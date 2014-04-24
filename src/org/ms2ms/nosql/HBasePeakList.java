@@ -1,7 +1,9 @@
 package org.ms2ms.nosql;
 
+import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.expasy.mzjava.core.ms.peaklist.DoublePeakList;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
@@ -18,21 +20,21 @@ import java.util.UUID;
  */
 public final class HBasePeakList implements Serializable
 {
-  static final String TBL_LIBSPECTRUM  = "Spectrum";
+  static public String TBL_PEAKLIST  = "PeakList";
 
-  static final byte[] FAM_PRECURSOR = "precursor".getBytes();
-  static final byte[] FAM_STAT      = "stat".getBytes();
-  static final byte[] FAM_IONS      = "ions".getBytes();
-  static final byte[] FAM_FLAG      = "flag".getBytes();
+  static public String FAM_PRECURSOR = "precursor";
+  static public String FAM_STAT      = "stat";
+  //static final byte[] FAM_IONS      = "ions".getBytes();
+  static public String FAM_FLAG      = "flag";
 
-  static final byte[] COL_MZ        = "mz".getBytes();
-  static final byte[] COL_Z         =  "z".getBytes();
-  static final byte[] COL_AI        = "ai".getBytes();
+  static public String COL_MZ        = "mz";
+  static public String COL_Z         =  "z";
+  //static final byte[] COL_AI        = "ai".getBytes();
+  static public String COL_IONS      = "ions";
 
   private      int size,              // length of the peak list
                    cursor,            // current position of the peak
                    precursorZ;        // the precursor charge
-  private     UUID id;
   private double[] mzList;            // m/z of the peaks
   private  short[] intensityList;     // relative intensities of the peaks
   private   byte[] ppmList, flucList; // the variances of the peaks in m/z and intensity
@@ -132,12 +134,20 @@ public final class HBasePeakList implements Serializable
 
     Put row = new Put(Bytes.toBytes(spec.getId().toString()));
     // byte[] family, byte[] qualifier, byte[] value
-    row.addImmutable(FAM_PRECURSOR, COL_MZ, Bytes.toBytes(spec.getPrecursor().getMz()));
-    row.addImmutable(FAM_PRECURSOR, COL_Z,  Bytes.toBytes(spec.getPrecursor().getCharge()));
-
+    row.add(Bytes.toBytes(FAM_PRECURSOR), Bytes.toBytes(COL_MZ), Bytes.toBytes(spec.getPrecursor().getMz()));
+    row.add(Bytes.toBytes(FAM_PRECURSOR), Bytes.toBytes(COL_Z),  Bytes.toBytes(spec.getPrecursor().getCharge()));
     // create the peaks bytes
-    row.addImmutable(FAM_IONS, null, toBytes(new HBasePeakList(spec)));
+    row.add(Bytes.toBytes(FAM_STAT),      Bytes.toBytes(COL_IONS), toBytes(new HBasePeakList(spec)));
 
     tbl.put(row);
+  }
+  public static HBasePeakList load(HTableInterface tbl, UUID id) throws IOException
+  {
+    Get g = new Get(Bytes.toBytes(id.toString()));
+    Result r = tbl.get(g);
+    byte[] value = r.getValue(Bytes.toBytes(FAM_STAT), Bytes.toBytes(COL_IONS));
+    HBasePeakList peaks = HBasePeakList.fromBytes(value);
+
+    return peaks;
   }
 }

@@ -3,18 +3,20 @@ package org.ms2ms.nosql;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 
 /** the base class to support I/O routine against the HBASE
  *
  * Created by wyu on 4/16/14.
  */
-abstract public class HbaseAbstract
+abstract public class HBaseAbstract
 {
   protected static Configuration conf;
 
@@ -46,7 +48,11 @@ abstract public class HbaseAbstract
     conn.close(); // done with the cluster, release resources
   }
   /*** Create a table */
-  public static void creatTable(Configuration conf, String tableName, String[] familys) throws Exception
+  public static void createTable(String tableName, String[] familys) throws IOException
+  {
+    createTable(conf, tableName, familys);
+  }
+  public static void createTable(Configuration conf, String tableName, String[] familys) throws IOException
   {
     HBaseAdmin admin = new HBaseAdmin(conf);
     if (admin.tableExists(tableName))
@@ -143,4 +149,17 @@ abstract public class HbaseAbstract
       e.printStackTrace();
     }
   }
+/*
+  public static void increSequence(HConnection conn, String table, long increment) throws IOException
+  {
+    HTableInterface tbl = conn.getTable(table);
+
+    Get g = new Get(Bytes.toBytes(table));
+    Result r = tbl.get(g);
+    byte[] value = r.getValue(Bytes.toBytes("ID"), Bytes.toBytes("id"));
+
+    UUID id = UUID.fromString(Bytes.toString(value)), next = id.;
+
+  }
+*/
 }

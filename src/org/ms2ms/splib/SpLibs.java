@@ -16,6 +16,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 /** collection of algorithms and utilities related to spectral libraries
@@ -38,7 +39,9 @@ public class SpLibs
 
     while (msp.hasNext())
     {
-      spectra.add(msp.next());
+      LibrarySpectrum spec = msp.next();
+      spec.setId(UUID.randomUUID());
+      spectra.add(spec);
 /*
       LibrarySpectrum spec = msp.next();
       HBasePeakList test = new HBasePeakList(spec);
