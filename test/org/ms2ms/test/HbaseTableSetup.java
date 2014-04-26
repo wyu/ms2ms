@@ -13,6 +13,6 @@ public class HbaseTableSetup extends TestAbstract
   @Test
   public void createTables() throws IOException
   {
-    HBaseProteomics.ensurePeakListTable();
+    HBaseProteomics.ensureTables();
   }
 }

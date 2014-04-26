@@ -1,12 +1,21 @@
 package org.ms2ms.mimsl;
 
 import com.google.common.collect.TreeMultimap;
+import org.expasy.mzjava.core.mol.Mass;
+import org.expasy.mzjava.core.mol.MassCalculator;
+import org.expasy.mzjava.core.mol.NumericMass;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
+import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.expasy.mzjava.core.ms.spectrum.Peak;
+import org.expasy.mzjava.core.ms.spectrum.PeakAnnotation;
+import org.expasy.mzjava.proteomics.mol.AAMassCalculator;
+import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
+import org.expasy.mzjava.proteomics.ms.spectrum.PepFragAnnotation;
+import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
+import org.ms2ms.alg.Peaks;
+import org.ms2ms.utils.Tools;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /** The core algorithms for Mrm inspired MS/MS spectral lookup
  *
@@ -14,6 +23,57 @@ import java.util.List;
  */
 public class MIMSL
 {
+  //isSignature(ion, 450d, msms.getPrecursorMz()))
+  public static PepLibPeakAnnotation getSignatureAnnotation(double mz, Collection<PepLibPeakAnnotation> annos, double min_mz, double precursor_mz)
+  {
+    if (mz>0 && annos!=null)
+      for (PepLibPeakAnnotation anno : annos)
+      {
+        // TODO need to store the calculated m/z of the fragment with anno
+        // some of the published transition use 2+ ions below precursor m/z
+        PepFragAnnotation frag = anno.getOptFragmentAnnotation().get();
+        // for a default value of 1+ if the charge is not set
+        boolean OK = AAMassCalculator.getInstance().calculateNeutralMolecularMass(mz, frag.getCharge()==0?1:frag.getCharge()) > precursor_mz &&
+          mz > min_mz && Peaks.isType(anno, IonType.b, IonType.y) && !Peaks.isType(anno, IonType.p, IonType.unknown) && frag.getNeutralLoss().getMolecularMass()==0d;
+        if (OK) return anno;
+      }
+
+    return null;
+  }
+
+  /** Extract the signature peaks from an annotated MS/MS.
+   *
+   *  !! invalidate the noise peaks a prior by min_merge_count or local noise model !!
+   *
+   * @param msms
+   * @param half_width
+   * @return
+   */
+  public static List<Peak> toSignature(PeakList msms, double half_width, double min_mz, int min_pk)
+  {
+    if (msms == null || msms.size()==0 || msms.getAnnotationIndexes().length==0) return null;
+
+    // TODO the merge count is not populated in mzJava-20140401
+//    double baseline = Peaks.getMinIntensity(msms);
+
+    List<Peak> signature = new ArrayList<Peak>(), orphans = new ArrayList<Peak>();
+    // only step thro the indices with peak annotation
+    for (int i :msms.getAnnotationIndexes())
+    {
+      // TODO apply the deviation so we have the theoretical m/z
+      PepLibPeakAnnotation OK = getSignatureAnnotation(msms.getMz(i), msms.getAnnotations(i), min_mz, msms.getPrecursor().getMz());
+      if (OK!=null)
+      {
+        double pk_counts = Peaks.countValid(msms, msms.getMz(i)-half_width, msms.getMz(i)+half_width);
+        Peak         ion = new Peak(msms.getMz(i), msms.getIntensity(i), OK.getCharge());
+        if      (pk_counts>0)    signature.add(ion);
+        else if (pk_counts<min_pk) orphans.add(ion);
+      }
+    }
+    if (signature.size() < min_pk) signature.addAll(orphans);
+
+    return signature;
+  }
 /*  protected static final String GRP_SETTINGS     = "Parameters";
   protected static final String GRP_IONS         = "Signature Ions";
   protected static final String GRP_CANDIDATE    = "";
@@ -1731,63 +1791,6 @@ public class MIMSL
     return dic;
   }
 
-  // MIMSL
-  public MsMsDictionary index(BinPepLibFile lib, double min_snr, double half_width, int tops, String... sequences) throws Exception
-  {
-    System.out.println("\nPreparaing the MsMs Dictionary from the Library: " + lib.getName());
-
-    MsMsAssignment assign = null;
-    Long           counts = 0L, offset = 0L, ion_cnt = 0L;
-
-    setSpectralLib(lib.getName());
-    try
-    {
-      assign = lib.newMsMsAssignment();
-      while (assign != null && assign.getMsMs() != null)
-      {
-        if (++counts % 5000   == 0) System.out.print(".");
-
-        if (Toolbox.isSet(sequences) && !Toolbox.isA(assign.getAssignment().getSequence(), sequences))
-        {
-          assign = lib.newMsMsAssignment();
-          continue;
-        }
-        Collection<MsIon> signatures = MimpCore.extractSignatureFragments(assign, min_snr, half_width, tops);
-
-        add(offset, assign.getMsMs().getPrecursor(), signatures, assign.getAssignment());
-        if (signatures.size() > 0) sigs.add((double )signatures.size());
-
-        ion_cnt += signatures.size();
-
-        if (Toolbox.isSet(sequences))
-        {
-          System.out.println(assign.getAssignment().toString());
-          for (MsIon ion : signatures)
-          {
-            System.out.println(ion.toString());
-          }
-        }
-        assign.dispose();
-        offset = lib.getFilePointer();
-
-        assign = lib.newMsMsAssignment();
-      }
-    }
-    catch (Exception e)
-    {
-      e.printStackTrace();
-      throw e;
-    }
-    finally { lib.close(); }
-
-    sigs.generate(50);
-    sigs.normalize();
-
-    System.out.println("assignments/ions: " + counts + "/" + ion_cnt);
-    System.out.println(Wiki_Util.newChart(sigs));
-
-    return this;
-  }
   public static boolean isY(ScorableMsPeak ion)
   {
     return ion != null && (ion.is(MsDataFlag.FLAG_Y, MsDataFlag.FLAG_Y2, MsDataFlag.FLAG_Y_MINUS_NEUTRAL));

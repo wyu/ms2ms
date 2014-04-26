@@ -4,7 +4,7 @@ package org.ms2ms.test;
  *
  * Created by wyu on 4/22/14.
  */
-public class MrmInspiredMsMsLookup extends TestAbstract
+public class MrmInspiredML extends TestAbstract
 {
 /*  String libs_dir = "/bioinfo/apps/linux/ms/twin/libs/nist/";
   Multimap<Double, PTM> ptms;
