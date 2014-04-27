@@ -1,15 +1,14 @@
 package org.ms2ms.nosql;
 
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HConnectionManager;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.expasy.mzjava.core.ms.peaklist.PeakList;
-import org.expasy.mzjava.core.ms.spectrum.Peak;
 import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
 import org.ms2ms.alg.Peaks;
 import org.ms2ms.mimsl.MIMSL;
+import org.ms2ms.mzjava.AnnotatedPeak;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -25,9 +24,29 @@ public class HBaseProteomics extends HBaseAbstract
   {
     // make sures the tables were properly created
      createTable(HBasePeakList.TBL_PEAKLIST, new String[] {
-      HBasePeakList.FAM_FLAG, HBasePeakList.FAM_PRECURSOR, HBasePeakList.FAM_STAT});
+      HBasePeakList.FAM_FLAG, HBasePeakList.FAM_PRECURSOR, HBasePeakList.FAM_PROP});
     createTable(HBasePeakList.TBL_MSMSINDEX, new String[] {
-      HBasePeakList.FAM_ID, HBasePeakList.FAM_MZ});
+      HBasePeakList.FAM_ID, HBasePeakList.FAM_PROP});
+  }
+  public static void listTables() throws IOException
+  {
+    HConnection conn = HConnectionManager.createConnection(HBaseConfiguration.create());
+    for (HTableDescriptor table : conn.listTables())
+    {
+      // get the number of row. Can be very expansive for a large table!!
+      HTableInterface tbl = conn.getTable(table.getTableName());
+      ResultScanner scanner = tbl.getScanner(new Scan());
+      long counts=0;
+      for (Result rs = scanner.next(); rs != null; rs = scanner.next()) { counts++; }
+      tbl.close();
+
+      System.out.println(table.getTableName() + " with " + table.getColumnFamilies().length + " Col families and " + counts + " Rows");
+      for (HColumnDescriptor col : table.getFamilies())
+      {
+        System.out.println("  " + col.getNameAsString());
+      }
+    }
+    conn.close();
   }
   public static void save(Collection<LibrarySpectrum> spectra) throws IOException
   {
@@ -65,22 +84,27 @@ public class HBaseProteomics extends HBaseAbstract
                       indice = conn.getTable(HBasePeakList.TBL_MSMSINDEX);
 
     // save the spectra to the table
+    long counts=0;
     for (LibrarySpectrum spec : spectra)
     {
-      System.out.println(Peaks.print(null, spec));
+      if (++counts%100 ==0) System.out.print(".");
+      if (++counts%5000==0) System.out.print("\n");
+//      System.out.println(Peaks.print(null, spec, false));
 
       spec.setId(UUID.randomUUID());
       HBasePeakList.save(peaklist, spec);
-      List<Peak> sigs = MIMSL.toSignature(spec, half_width, min_mz, min_pk, min_snr);
+      List<AnnotatedPeak> sigs = MIMSL.toSignature(spec, half_width, min_mz, min_pk, min_snr);
 
-      for (Peak sig : sigs)
+      for (AnnotatedPeak sig : sigs)
       {
-        System.out.println("Sig: " + Peaks.print(null, sig));
+//        System.out.println("Sig: " + Peaks.print(null, sig));
         // TODO need to work out the composite key incoporating the n/c and mod flag
         Put row = new Put(Bytes.toBytes(sig.getMz()));
         // byte[] family, byte[] qualifier, byte[] value
-        row.add(Bytes.toBytes(HBasePeakList.FAM_ID), Bytes.toBytes(HBasePeakList.COL_UUID), Bytes.toBytes(spec.getId().toString()));
-        row.add(Bytes.toBytes(HBasePeakList.FAM_MZ), Bytes.toBytes(HBasePeakList.COL_SIG),  Bytes.toBytes(sig.getMz()));
+        row.add(Bytes.toBytes(HBasePeakList.FAM_ID),   Bytes.toBytes(HBasePeakList.COL_UUID), Bytes.toBytes(spec.getId().toString()));
+        row.add(Bytes.toBytes(HBasePeakList.FAM_PROP), Bytes.toBytes(HBasePeakList.COL_SIG),  Bytes.toBytes(sig.getMz()));
+        row.add(Bytes.toBytes(HBasePeakList.FAM_PROP), Bytes.toBytes(HBasePeakList.COL_SNR),  Bytes.toBytes(sig.getSNR()));
+        row.add(Bytes.toBytes(HBasePeakList.FAM_PROP), Bytes.toBytes(HBasePeakList.COL_Z),    Bytes.toBytes(sig.getCharge()));
         // TODO row.add(Bytes.toBytes(HBasePeakList.FAM_MZ), Bytes.toBytes(HBasePeakList.COL_MMOD), Bytes.toBytes(spec.getPrecursor().getCharge()));
         indice.put(row);
       }

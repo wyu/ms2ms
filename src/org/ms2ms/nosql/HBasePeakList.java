@@ -24,10 +24,8 @@ public final class HBasePeakList implements Serializable
   static public String TBL_MSMSINDEX = "MsMsIndex";
 
   static public String FAM_PRECURSOR = "precursor";
-  static public String FAM_STAT      = "stat";
   static public String FAM_FLAG      = "flag";
-  static public String FAM_MZ        = "mz";
-
+  static public String FAM_PROP      = "prop";
   static public String FAM_ID        = "id";
 
   static public String COL_MZ        = "mz";
@@ -37,6 +35,7 @@ public final class HBasePeakList implements Serializable
   static public String COL_UUID      = "uuid";
   static public String COL_MMOD      = "mmod"; // mass of the modification on the fragment
   static public String COL_SIG       = "sig"; // m/z of the signature fragment
+  static public String COL_SNR       = "snr"; // m/z of the signature fragment
 
   private      int size,              // length of the peak list
                    cursor,            // current position of the peak
@@ -143,7 +142,7 @@ public final class HBasePeakList implements Serializable
     row.add(Bytes.toBytes(FAM_PRECURSOR), Bytes.toBytes(COL_MZ), Bytes.toBytes(spec.getPrecursor().getMz()));
     row.add(Bytes.toBytes(FAM_PRECURSOR), Bytes.toBytes(COL_Z),  Bytes.toBytes(spec.getPrecursor().getCharge()));
     // create the peaks bytes
-    row.add(Bytes.toBytes(FAM_STAT),      Bytes.toBytes(COL_IONS), toBytes(new HBasePeakList(spec)));
+    row.add(Bytes.toBytes(FAM_PROP),      Bytes.toBytes(COL_IONS), toBytes(new HBasePeakList(spec)));
 
     tbl.put(row);
   }
@@ -151,7 +150,7 @@ public final class HBasePeakList implements Serializable
   {
     Get g = new Get(Bytes.toBytes(id.toString()));
     Result r = tbl.get(g);
-    byte[] value = r.getValue(Bytes.toBytes(FAM_STAT), Bytes.toBytes(COL_IONS));
+    byte[] value = r.getValue(Bytes.toBytes(FAM_PROP), Bytes.toBytes(COL_IONS));
     HBasePeakList peaks = HBasePeakList.fromBytes(value);
 
     return peaks;

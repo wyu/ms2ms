@@ -1,18 +1,12 @@
 package org.ms2ms.mimsl;
 
-import com.google.common.collect.TreeMultimap;
-import org.expasy.mzjava.core.mol.Mass;
-import org.expasy.mzjava.core.mol.MassCalculator;
-import org.expasy.mzjava.core.mol.NumericMass;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
-import org.expasy.mzjava.core.ms.spectrum.Peak;
-import org.expasy.mzjava.core.ms.spectrum.PeakAnnotation;
 import org.expasy.mzjava.proteomics.mol.AAMassCalculator;
-import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepFragAnnotation;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
 import org.ms2ms.alg.Peaks;
+import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.utils.Tools;
 
 import java.util.*;
@@ -46,7 +40,8 @@ public class MIMSL
     if (annos!=null)
       for (PepLibPeakAnnotation anno : annos)
         if (Peaks.isType(anno, IonType.b, IonType.y) && !Peaks.isType(anno, IonType.p, IonType.unknown) &&
-            anno.getOptFragmentAnnotation().get().getNeutralLoss().getMolecularMass()==0d) return anno;
+            anno.getOptFragmentAnnotation().get().getNeutralLoss().getMolecularMass()==0d &&
+          anno.getOptFragmentAnnotation().get().getIsotopeCount()==0) return anno;
 
     return null;
   }
@@ -59,43 +54,56 @@ public class MIMSL
    * @param half_width
    * @return
    */
-  public static List<Peak> toSignature(PeakList msms, double half_width, double min_mz, int min_pk, double min_snr)
+  public static List<AnnotatedPeak> toSignature(PeakList msms, double half_width, double min_mz, int tops, double min_snr)
   {
     if (msms == null || msms.size()==0 || msms.getAnnotationIndexes().length==0) return null;
+    // setup a map to avoid duplicated signature of the same m/z
+    SortedMap<Double, AnnotatedPeak> mz_signature = new TreeMap<Double, AnnotatedPeak>();
+    // working objects
+    List<AnnotatedPeak> orphans = new ArrayList<AnnotatedPeak>();
+    AnnotatedPeak         below = null; // the lengest frag just below the precursor m/z
 
-    SortedMap<Double, Peak> mz_signature = new TreeMap<Double, Peak>();
-    List<Peak>                   orphans = new ArrayList<Peak>();
-    Peak                           below = null; // the lengest frag just below the precursor m/z
     // only step thro the indices with peak annotation
     for (int i :msms.getAnnotationIndexes())
     {
+//      System.out.println(Peaks.printIon(null, msms.getMz(i),msms.getIntensity(i), 0) + ", " + Peaks.printAnnot(null, msms.getAnnotations(i)));
+
       PepLibPeakAnnotation OK = getSignatureAnnotation(msms.getAnnotations(i));
       if (OK!=null)
       {
-        double pk_counts = Peaks.countValid( msms, msms.getMz(i)-half_width, msms.getMz(i)+half_width),
-                    base = Peaks.getBaseline(msms, msms.getMz(i)-half_width, msms.getMz(i)+half_width, min_pk, min_snr),
-                      mh = AAMassCalculator.getInstance().calculateNeutralMolecularMass(msms.getMz(i), OK.getCharge());
-        Peak         ion = new Peak(OK.getOptFragmentAnnotation().get().getTheoreticalMz(), msms.getIntensity(i), OK.getCharge());
+        PepFragAnnotation f = OK.getOptFragmentAnnotation().get();
+        double    pk_counts = Peaks.countValid( msms, msms.getMz(i)-half_width, msms.getMz(i)+half_width),
+                       base = Peaks.getBaseline(msms, msms.getMz(i)-half_width, msms.getMz(i)+half_width, tops, true),
+                         mh = AAMassCalculator.getInstance().calculateNeutralMolecularMass(msms.getMz(i), f.getCharge()==0?1:f.getCharge());
+        AnnotatedPeak   ion = new AnnotatedPeak(f.getTheoreticalMz(), msms.getIntensity(i), f.getCharge()==0?1:f.getCharge(), base!=0?Math.abs(msms.getIntensity(i)/base):-1d);
+
+//        System.out.println("  " + Tools.d2s(msms.getPrecursor().getMz(), 3) + "P, " + Tools.d2s(mh, 2) + "MH, " + Tools.d2s(base, 1) + "base, " + Tools.d2s(pk_counts,0) + ": " + Peaks.print(null, ion));
+//        if (msms.getPrecursor().getMz()==429.2356 && mh>msms.getPrecursor().getMz())
+//          System.out.println();
+
         // make sure the frag is more intense than the baseline
-        if (mh>=min_mz && msms.getMz(i)<msms.getPrecursor().getMz())
+        if (mh>=min_mz && mh>msms.getPrecursor().getMz())
         {
-          if      (pk_counts>0 && ion.getIntensity()>base)
+          if      (pk_counts>0 && ion.getSNR()>=min_snr)
           {
             if (mz_signature.get(ion.getMz())==null ||
                 mz_signature.get(ion.getMz()).getIntensity()<ion.getIntensity()) mz_signature.put(ion.getMz(),ion);
           }
-          else if (pk_counts<min_pk) orphans.add(ion);
+          else if (pk_counts<5) orphans.add(ion);
         }
-        if (msms.getMz(i)<msms.getPrecursor().getMz()-28d  && msms.getMz(i)<msms.getPrecursor().getMz())
-          if (below==null || below.getMz()<ion.getMz()) below = ion;
+        if (msms.getMz(i)<msms.getPrecursor().getMz()-28d &&
+            ion.getSNR()>=min_snr && (below==null || below.getMz()<ion.getMz())) below = ion;
       }
     }
-    if (mz_signature.size() < min_pk && below!=null) mz_signature.put(below.getMz(), below);
-    if (mz_signature.size() < min_pk && Tools.isSet(orphans))
-      for (Peak p : orphans)
+//    if (mz_signature.size() < 2)
+//      System.out.println();
+
+    if (mz_signature.size() < tops && below!=null) mz_signature.put(below.getMz(), below);
+    if (mz_signature.size() < tops && Tools.isSet(orphans))
+      for (AnnotatedPeak p : orphans)
         mz_signature.put(p.getMz(), p);
 
-    return new ArrayList<Peak>(mz_signature.values());
+    return new ArrayList<AnnotatedPeak>(mz_signature.values());
   }
 /*  protected static final String GRP_SETTINGS     = "Parameters";
   protected static final String GRP_IONS         = "Signature Ions";
