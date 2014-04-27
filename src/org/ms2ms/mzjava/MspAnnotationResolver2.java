@@ -1,4 +1,4 @@
-package org.ms2ms.splib;
+package org.ms2ms.mzjava;
 
 /**
  * Copyright (c) 2010, SIB. All rights reserved.

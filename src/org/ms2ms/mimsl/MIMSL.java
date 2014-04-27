@@ -24,6 +24,7 @@ import java.util.*;
 public class MIMSL
 {
   //isSignature(ion, 450d, msms.getPrecursorMz()))
+  @Deprecated
   public static PepLibPeakAnnotation getSignatureAnnotation(double mz, Collection<PepLibPeakAnnotation> annos, double min_mz, double precursor_mz)
   {
     if (mz>0 && annos!=null)
@@ -40,6 +41,15 @@ public class MIMSL
 
     return null;
   }
+  public static PepLibPeakAnnotation getSignatureAnnotation(Collection<PepLibPeakAnnotation> annos)
+  {
+    if (annos!=null)
+      for (PepLibPeakAnnotation anno : annos)
+        if (Peaks.isType(anno, IonType.b, IonType.y) && !Peaks.isType(anno, IonType.p, IonType.unknown) &&
+            anno.getOptFragmentAnnotation().get().getNeutralLoss().getMolecularMass()==0d) return anno;
+
+    return null;
+  }
 
   /** Extract the signature peaks from an annotated MS/MS.
    *
@@ -49,30 +59,43 @@ public class MIMSL
    * @param half_width
    * @return
    */
-  public static List<Peak> toSignature(PeakList msms, double half_width, double min_mz, int min_pk)
+  public static List<Peak> toSignature(PeakList msms, double half_width, double min_mz, int min_pk, double min_snr)
   {
     if (msms == null || msms.size()==0 || msms.getAnnotationIndexes().length==0) return null;
 
-    // TODO the merge count is not populated in mzJava-20140401
-//    double baseline = Peaks.getMinIntensity(msms);
-
-    List<Peak> signature = new ArrayList<Peak>(), orphans = new ArrayList<Peak>();
+    SortedMap<Double, Peak> mz_signature = new TreeMap<Double, Peak>();
+    List<Peak>                   orphans = new ArrayList<Peak>();
+    Peak                           below = null; // the lengest frag just below the precursor m/z
     // only step thro the indices with peak annotation
     for (int i :msms.getAnnotationIndexes())
     {
-      // TODO apply the deviation so we have the theoretical m/z
-      PepLibPeakAnnotation OK = getSignatureAnnotation(msms.getMz(i), msms.getAnnotations(i), min_mz, msms.getPrecursor().getMz());
+      PepLibPeakAnnotation OK = getSignatureAnnotation(msms.getAnnotations(i));
       if (OK!=null)
       {
-        double pk_counts = Peaks.countValid(msms, msms.getMz(i)-half_width, msms.getMz(i)+half_width);
-        Peak         ion = new Peak(msms.getMz(i), msms.getIntensity(i), OK.getCharge());
-        if      (pk_counts>0)    signature.add(ion);
-        else if (pk_counts<min_pk) orphans.add(ion);
+        double pk_counts = Peaks.countValid( msms, msms.getMz(i)-half_width, msms.getMz(i)+half_width),
+                    base = Peaks.getBaseline(msms, msms.getMz(i)-half_width, msms.getMz(i)+half_width, min_pk, min_snr),
+                      mh = AAMassCalculator.getInstance().calculateNeutralMolecularMass(msms.getMz(i), OK.getCharge());
+        Peak         ion = new Peak(OK.getOptFragmentAnnotation().get().getTheoreticalMz(), msms.getIntensity(i), OK.getCharge());
+        // make sure the frag is more intense than the baseline
+        if (mh>=min_mz && msms.getMz(i)<msms.getPrecursor().getMz())
+        {
+          if      (pk_counts>0 && ion.getIntensity()>base)
+          {
+            if (mz_signature.get(ion.getMz())==null ||
+                mz_signature.get(ion.getMz()).getIntensity()<ion.getIntensity()) mz_signature.put(ion.getMz(),ion);
+          }
+          else if (pk_counts<min_pk) orphans.add(ion);
+        }
+        if (msms.getMz(i)<msms.getPrecursor().getMz()-28d  && msms.getMz(i)<msms.getPrecursor().getMz())
+          if (below==null || below.getMz()<ion.getMz()) below = ion;
       }
     }
-    if (signature.size() < min_pk) signature.addAll(orphans);
+    if (mz_signature.size() < min_pk && below!=null) mz_signature.put(below.getMz(), below);
+    if (mz_signature.size() < min_pk && Tools.isSet(orphans))
+      for (Peak p : orphans)
+        mz_signature.put(p.getMz(), p);
 
-    return signature;
+    return new ArrayList<Peak>(mz_signature.values());
   }
 /*  protected static final String GRP_SETTINGS     = "Parameters";
   protected static final String GRP_IONS         = "Signature Ions";

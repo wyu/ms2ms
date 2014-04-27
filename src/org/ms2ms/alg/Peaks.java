@@ -1,5 +1,6 @@
 package org.ms2ms.alg;
 
+import com.google.common.collect.Lists;
 import org.expasy.mzjava.core.mol.AtomicSymbol;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
@@ -7,10 +8,10 @@ import org.expasy.mzjava.core.ms.spectrum.Peak;
 import org.expasy.mzjava.proteomics.mol.AAMassCalculator;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepFragAnnotation;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
+import org.ms2ms.utils.Stats;
 import org.ms2ms.utils.Tools;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /** Collection of algorithms pertaining to the MS Peak
  *
@@ -18,6 +19,9 @@ import java.util.List;
  */
 public class Peaks
 {
+  static class IntensityDesendComparator implements Comparator<Peak> { public int compare(Peak o1, Peak o2) { return o1!=null && o2!=null ? Double.compare(o2.getIntensity(), o1.getIntensity()):0; } }
+  static class IntensityAscendComparator implements Comparator<Peak> { public int compare(Peak o1, Peak o2) { return o1!=null && o2!=null ? Double.compare(o1.getIntensity(), o2.getIntensity()):0; } }
+
   public static boolean isType(PepLibPeakAnnotation s, IonType... types)
   {
     IonType ion = s.getOptFragmentAnnotation().get().getIonType();
@@ -44,13 +48,53 @@ public class Peaks
 
     return counts;
   }
-  public static double getMinIntensity(PeakList msms)
+  public static double getMinIntensity(PeakList msms) { return getMinIntensity(msms, Double.MIN_VALUE, Double.MAX_VALUE); }
+  public static double getMinIntensity(PeakList msms, double x0, double x1)
   {
+    if (msms==null || msms.size()==0) return 0;
+
     double baseline = Double.MAX_VALUE;
     for (int i=0; i<msms.size(); i++)
-      if (msms.getIntensity(i)<baseline) baseline=msms.getIntensity(i);
+      if (msms.getMz(i)>=x0 && msms.getMz(i)<=x1 && msms.getIntensity(i)<baseline) baseline=msms.getIntensity(i);
 
     return baseline;
+  }
+  public static double getmeanIntensity(PeakList msms) { return getmeanIntensity(msms, Double.MIN_VALUE, Double.MAX_VALUE); }
+  public static double getmeanIntensity(PeakList msms, double x0, double x1)
+  {
+    if (msms==null || msms.size()==0) return 0;
+
+    double sum = 0d;
+    for (int i=0; i<msms.size(); i++)
+      if (msms.getMz(i)>=x0 && msms.getMz(i)<=x1) sum+=msms.getIntensity(i);
+
+    return sum/(double )msms.size();
+  }
+  public static double getmeanIntensity(Collection<Peak> msms)
+  {
+    if (msms==null || msms.size()==0) return 0;
+
+    double sum = 0d;
+    for (Peak p : msms) sum+=p.getIntensity();
+
+    return sum/(double )msms.size();
+  }
+  public static double getBaseline(PeakList msms, double x0, double x1, int top, double val)
+  {
+    List<Peak> baselines = new ArrayList<Peak>();
+    for (int i=0; i<msms.size(); i++)
+      if (isValidIntensity(msms.getIntensity(i)) &&
+          msms.getMz(i)>=x0 && msms.getMz(i)<=x1)
+        baselines.add(new Peak(msms.getMz(i), msms.getIntensity(i), 1));
+
+    Collections.sort(baselines, new IntensityDesendComparator());
+    if (baselines.size()>top)
+    {
+      Collection<Double> pts = new ArrayList<Double>();
+      for (int i=0; i<baselines.size()-top; i++) pts.add(baselines.get(i).getIntensity());
+      return Stats.mean(pts) + Stats.stdev(pts)*val;
+    }
+    return -1d*getmeanIntensity(Lists.partition(baselines, 3).get(0));
   }
   public static boolean isValidIntensity(double s) { return s>0; }
 
@@ -82,7 +126,7 @@ public class Peaks
           PepFragAnnotation f = anno.getOptFragmentAnnotation().get();
           double loss = f.getNeutralLoss().getMolecularMass();
           buf.append("+" + f.getCharge() +
-            "," + f.getIonType() + (loss!=0?(loss>0?"+":"")+Math.round(loss):"") + "; ");
+            "," + f.getIonType() + (loss!=0?(loss>0?"+":"")+Math.round(loss):"") + ", " + Tools.d2s(f.getTheoreticalMz(), 4) + ", " + f.getFragment() + "; ");
         }
       buf.append("\n");
     }

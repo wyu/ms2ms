@@ -5,6 +5,7 @@ import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.Peak;
 import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
 import org.ms2ms.alg.Peaks;
@@ -53,7 +54,7 @@ public class HBaseProteomics extends HBaseAbstract
     table.close(); conn.close(); // done with the cluster, release resources
   }
   // MIMSL
-  public static void index(Collection<LibrarySpectrum> spectra, double half_width, double min_mz, int min_pk) throws IOException
+  public static void index(Collection<LibrarySpectrum> spectra, double half_width, double min_mz, int min_pk, double min_snr) throws IOException
   {
     // ensure that the table has been created
     ensureTables();
@@ -70,7 +71,8 @@ public class HBaseProteomics extends HBaseAbstract
 
       spec.setId(UUID.randomUUID());
       HBasePeakList.save(peaklist, spec);
-      List<Peak> sigs = MIMSL.toSignature(spec, half_width, min_mz, min_pk);
+      List<Peak> sigs = MIMSL.toSignature(spec, half_width, min_mz, min_pk, min_snr);
+
       for (Peak sig : sigs)
       {
         System.out.println("Sig: " + Peaks.print(null, sig));

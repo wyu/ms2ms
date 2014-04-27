@@ -4,11 +4,10 @@ import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.peakprocessor.PeakProcessorChain;
 import org.expasy.mzjava.proteomics.io.ms.spectrum.MsLibReader;
 import org.expasy.mzjava.proteomics.io.ms.spectrum.msp.MspCommentParser;
-import org.expasy.mzjava.proteomics.mol.Peptide;
 import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
 import org.expasy.mzjava.utils.URIBuilder;
-import org.ms2ms.nosql.HBasePeakList;
+import org.ms2ms.mzjava.MspAnnotationResolver2;
 
 import java.io.BufferedReader;
 import java.io.File;
