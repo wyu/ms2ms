@@ -5,6 +5,7 @@ import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.expasy.mzjava.core.ms.peaklist.DoublePeakList;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -149,6 +150,19 @@ abstract public class HBaseAbstract
       e.printStackTrace();
     }
   }
+  protected static double getDouble(Result rs, String family, String col)
+  {
+    return Bytes.toDouble(rs.getValue(Bytes.toBytes(family), Bytes.toBytes(col)));
+  }
+  protected static int getInt(Result rs, String family, String col)
+  {
+    return Bytes.toInt(rs.getValue(Bytes.toBytes(family), Bytes.toBytes(col)));
+  }
+  protected static String getString(Result rs, String family, String col)
+  {
+    return Bytes.toString(rs.getValue(Bytes.toBytes(family), Bytes.toBytes(col)));
+  }
+
 /*
   public static void increSequence(HConnection conn, String table, long increment) throws IOException
   {

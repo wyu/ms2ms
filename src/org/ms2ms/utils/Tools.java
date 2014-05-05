@@ -1,7 +1,8 @@
 package org.ms2ms.utils;
 
-import java.util.Collection;
-import java.util.Iterator;
+import com.google.common.collect.Range;
+
+import java.util.*;
 
 /**
  * Created by wyu on 4/17/14.
@@ -13,6 +14,7 @@ public class Tools
 
   public static <T> boolean isSet(Collection<T> s) { return s!=null && s.size()>0; }
   public static <T> boolean isSet(T[] s) { return s!=null && s.length>0; }
+  public static     boolean isSet(int[] s) { return s!=null && s.length>0; }
   public static <T> T front(Collection<T> s)
   {
     if (isSet(s))
@@ -88,5 +90,22 @@ public class Tools
   public static String d2s(double s, int i)
   {
     return format(s, i, 0);
+  }
+
+  public static <C extends Comparable> Collection<Range<C>> merge(Collection<Range<C>> r)
+  {
+    // merge the slices
+    Collection<Range<C>> pool = new ArrayList<Range<C>>();
+    Set<Range<C>>   discarded = new HashSet<Range<C>>();
+    for (Range<C> r1 : r)
+      if (!discarded.contains(r1))
+      {
+        Range<C> p = r1;
+        for (Range<C> r2 : r)
+          if (r2 != r1 && !discarded.contains(r2) && r1.isConnected(r2)) { p = p.span(r2); discarded.add(r2); }
+        pool.add(p);
+      }
+
+    return pool;
   }
 }

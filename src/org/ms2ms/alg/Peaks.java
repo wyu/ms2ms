@@ -167,4 +167,14 @@ public class Peaks
 
     return buf;
   }
+  public static boolean isCtermFrag(IonType s)
+  {
+    return s!=null?(s.equals(IonType.y) || s.equals(IonType.x) || s.equals(IonType.z) || s.equals(IonType.w)):false;
+  }
+  public static boolean isNtermFrag(IonType s)
+  {
+    return s!=null?(s.equals(IonType.b) || s.equals(IonType.a) || s.equals(IonType.c) || s.equals(IonType.d)):false;
+  }
+  public static double toMass(double mz, int z) { return (mz-1.00078)*z; }
+  public static double toMass(Peak p)           { return toMass(p.getMz(), p.getCharge()); }
 }

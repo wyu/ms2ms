@@ -1,11 +1,19 @@
 package org.ms2ms.test;
 
+import org.junit.Test;
+
+import java.io.IOException;
+
 /** Test the application logic
  *
  * Created by wyu on 4/22/14.
  */
 public class MrmInspiredML extends TestAbstract
 {
+  @Test
+  public void testRun() throws IOException
+  {
+  }
 /*  String libs_dir = "/bioinfo/apps/linux/ms/twin/libs/nist/";
   Multimap<Double, PTM> ptms;
   static MsMsDictionary dictionary = null;

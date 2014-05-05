@@ -1,14 +1,22 @@
 package org.ms2ms.mimsl;
 
+import com.google.common.collect.Range;
+import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
+import org.expasy.mzjava.core.ms.spectrum.Peak;
 import org.expasy.mzjava.proteomics.mol.AAMassCalculator;
+import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepFragAnnotation;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
 import org.ms2ms.alg.Peaks;
 import org.ms2ms.mzjava.AnnotatedPeak;
+import org.ms2ms.mzjava.AnnotatedSpectrum;
+import org.ms2ms.nosql.HBaseProteomics;
+import org.ms2ms.utils.Stats;
 import org.ms2ms.utils.Tools;
 
+import java.io.IOException;
 import java.util.*;
 
 /** The core algorithms for Mrm inspired MS/MS spectral lookup
@@ -17,6 +25,25 @@ import java.util.*;
  */
 public class MIMSL
 {
+  static class ScoreDesendComparator implements Comparator<AnnotatedSpectrum>
+  { public int compare(AnnotatedSpectrum o1, AnnotatedSpectrum o2) { return o1!=null && o2!=null ?
+    Double.compare(o1.getScore(AnnotatedSpectrum.SCR_MIMSL), o2.getScore(AnnotatedSpectrum.SCR_MIMSL)):0; } }
+
+  synchronized public static boolean run(PeakList<PepLibPeakAnnotation> ions, Tolerance tol) throws IOException
+  {
+    float msec = (float )System.nanoTime();
+
+    List<AnnotatedSpectrum> candidates = new ArrayList<AnnotatedSpectrum>();
+    candidates.addAll(setStatus(HBaseProteomics.query(ions, tol, 0d), LibrarySpectrum.Status.NORMAL));
+    // add 7 da offset to simulate decoy matches since this is not a common offset due to mod or mutation
+    candidates.addAll(setStatus(HBaseProteomics.query(ions, tol, 7d), LibrarySpectrum.Status.DECOY));
+
+    // calculate the score by hypergeometric model
+    candidates = (List<AnnotatedSpectrum> )score(candidates, tol);
+
+    fdr(candidates);
+    return true;
+  }
   //isSignature(ion, 450d, msms.getPrecursorMz()))
   @Deprecated
   public static PepLibPeakAnnotation getSignatureAnnotation(double mz, Collection<PepLibPeakAnnotation> annos, double min_mz, double precursor_mz)
@@ -105,6 +132,87 @@ public class MIMSL
 
     return new ArrayList<AnnotatedPeak>(mz_signature.values());
   }
+  public static Range<Double> range(double mz, Tolerance tol)
+  {
+    return Range.closed(tol.getMin(mz), tol.getMax(mz));
+  }
+  public static Collection<Range<Peak>> range(Peak p, Tolerance tol, int... zs)
+  {
+    Collection<Range<Peak>> ranges = new ArrayList<Range<Peak>>();
+    // if alternative not present, use the main peak
+    if (!Tools.isSet(zs)) zs = new int[] {p.getCharge()};
+    // step thro the charge states
+    for (int z : zs)
+    {
+      double mz = 1.00078 + Peaks.toMass(p) / (double) z;
+      Peak p1 = new Peak(p), p2 = new Peak(p);
+      p1.setMzAndCharge(tol.getMin(mz), z);
+      p2.setMzAndCharge(tol.getMax(mz), z);
+      ranges.add(Range.closed(p1,p2));
+    }
+    return ranges;
+  }
+  public static Range<Double> range(double mass, int z, Tolerance tol)
+  {
+    double mz = (1.00078 + mass) / (double )z;
+    return Range.closed(tol.getMin(mz), tol.getMax(mz));
+  }
+  // Given a list of precursor mz's, enumerate the m/z slices that are consistent with the mz tolerance and isolation width
+  public static Collection<Range<Peak>> enumeratePrecursors(Tolerance tol, int zfloat, Peak... precursors)
+  {
+    if (!Tools.isSet(precursors)) return null;
+
+    List<Range<Peak>> slices = new ArrayList<Range<Peak>>();
+    // expand the precursors into m/z slices
+    for (Peak ion : precursors)
+    {
+      int zs[] = null;
+      if (ion.getCharge()!=0 && zfloat>0)
+      {
+        zs = new int[zfloat*2+1];
+        zs[0] = ion.getCharge();
+        // check the neighboring charges if asked
+        for (int z = 1; z < zfloat; z++)
+        {
+          zs[(z-1)*2+1]=ion.getCharge()-z;
+          zs[(z-1)*2+2]=ion.getCharge()+z;
+        }
+      }
+      slices.addAll(range(ion, tol, zs));
+    }
+    return Tools.merge(slices);
+  }
+  public static <T extends LibrarySpectrum> Collection<T> setStatus(Collection<T> spectra, LibrarySpectrum.Status status)
+  {
+    if (Tools.isSet(spectra))
+      for (T spec : spectra) spec.setStatus(status);
+
+    return spectra;
+  }
+  public static Collection<AnnotatedSpectrum> score(Collection<AnnotatedSpectrum> candidates, Tolerance tol)
+  {
+    if (Tools.isSet(candidates)) return candidates;
+
+    for (AnnotatedSpectrum spec : candidates)
+    {
+      long bins = Math.round(1000 / (tol.getMax(spec.getPrecursor().getMz())- tol.getMin(spec.getPrecursor().getMz())));
+      int nmatch = spec.size(), nfrag = spec.getIonQueried(), nsig = spec.getIonIndexed();
+      // long success, long trials, long success_population, long population
+      spec.setScore(AnnotatedSpectrum.SCR_MIMSL,       -1d * Stats.hypergeometricPval1(spec.size(), nfrag, nsig, bins));
+      if (nsig > 1) nsig--; else if (nfrag > 1) nfrag--;
+      spec.setScore(AnnotatedSpectrum.SCR_MIMSL_DELTA, -1d * Stats.hypergeometricPval1(spec.size(), nfrag, nsig, bins));
+    }
+    return candidates;
+  }
+  public static List<AnnotatedSpectrum> fdr(List<AnnotatedSpectrum> candidates)
+  {
+    if (!Tools.isSet(candidates)) throw new RuntimeException("NULL candidate pool!");
+    // rank the candidates by their scores
+    Collections.sort(candidates, new ScoreDesendComparator());
+
+    return candidates;
+  }
+
 /*  protected static final String GRP_SETTINGS     = "Parameters";
   protected static final String GRP_IONS         = "Signature Ions";
   protected static final String GRP_CANDIDATE    = "";
