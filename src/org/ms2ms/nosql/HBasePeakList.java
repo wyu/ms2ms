@@ -22,6 +22,8 @@ import java.util.UUID;
  */
 public final class HBasePeakList implements Serializable
 {
+  private static final long serialVersionUID = 8472732522296541667L;
+
   static public String TBL_PEAKLIST  = "PeakList";
   static public String TBL_MSMSINDEX = "MsMsIndex";
 
@@ -100,6 +102,16 @@ public final class HBasePeakList implements Serializable
 
     return peaks;
   }
+  public <A extends PeakAnnotation> PeakList<A> toPeakList(PeakList<A> peaks)
+  {
+    peaks.clear();
+    // initialize the content of the new list
+    peaks.setPrecursor(new Peak(precursorMz, precursorAi, precursorZ));
+    for (int i=0; i<size; i++)
+      peaks.add(getMz(i), getIntensity(i));
+
+    return peaks;
+  }
 
   public static HBasePeakList fromBytes(byte[] s)
   {
@@ -150,7 +162,7 @@ public final class HBasePeakList implements Serializable
 
     tbl.put(row);
   }
-  public static HBasePeakList load(HTableInterface tbl, UUID id) throws IOException
+  public static HBasePeakList getPeakList(HTableInterface tbl, UUID id) throws IOException
   {
     Get g = new Get(Bytes.toBytes(id.toString()));
     Result r = tbl.get(g);

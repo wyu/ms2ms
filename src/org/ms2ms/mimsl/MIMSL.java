@@ -27,21 +27,24 @@ public class MIMSL
 {
   static class ScoreDesendComparator implements Comparator<AnnotatedSpectrum>
   { public int compare(AnnotatedSpectrum o1, AnnotatedSpectrum o2) { return o1!=null && o2!=null ?
-    Double.compare(o1.getScore(AnnotatedSpectrum.SCR_MIMSL), o2.getScore(AnnotatedSpectrum.SCR_MIMSL)):0; } }
+    Double.compare(o2.getScore(AnnotatedSpectrum.SCR_MIMSL), o1.getScore(AnnotatedSpectrum.SCR_MIMSL)):0; } }
 
-  synchronized public static boolean run(PeakList<PepLibPeakAnnotation> ions, Tolerance tol) throws IOException
+  synchronized public static boolean run(PeakList<PepLibPeakAnnotation> ions, Tolerance precursor, Tolerance frag) throws IOException
   {
-    float msec = (float )System.nanoTime();
+    long nsec = System.nanoTime();
 
     List<AnnotatedSpectrum> candidates = new ArrayList<AnnotatedSpectrum>();
-    candidates.addAll(setStatus(HBaseProteomics.query(ions, tol, 0d), LibrarySpectrum.Status.NORMAL));
+    candidates.addAll(setStatus(HBaseProteomics.query(ions, precursor, 0d), LibrarySpectrum.Status.NORMAL));
     // add 7 da offset to simulate decoy matches since this is not a common offset due to mod or mutation
-    candidates.addAll(setStatus(HBaseProteomics.query(ions, tol, 7d), LibrarySpectrum.Status.DECOY));
+    candidates.addAll(setStatus(HBaseProteomics.query(ions, precursor, 7d), LibrarySpectrum.Status.DECOY));
 
     // calculate the score by hypergeometric model
-    candidates = (List<AnnotatedSpectrum> )score(candidates, tol);
+    candidates = (List<AnnotatedSpectrum> )score(candidates, frag);
+    HBaseProteomics.loadPeakLists(candidates);
 
     fdr(candidates);
+
+    System.out.println(printCandidates(null, candidates));
     return true;
   }
   //isSignature(ion, 450d, msms.getPrecursorMz()))
@@ -93,8 +96,6 @@ public class MIMSL
     // only step thro the indices with peak annotation
     for (int i :msms.getAnnotationIndexes())
     {
-//      System.out.println(Peaks.printIon(null, msms.getMz(i),msms.getIntensity(i), 0) + ", " + Peaks.printAnnot(null, msms.getAnnotations(i)));
-
       PepLibPeakAnnotation OK = getSignatureAnnotation(msms.getAnnotations(i));
       if (OK!=null)
       {
@@ -103,10 +104,6 @@ public class MIMSL
                        base = Peaks.getBaseline(msms, msms.getMz(i)-half_width, msms.getMz(i)+half_width, tops, true),
                          mh = AAMassCalculator.getInstance().calculateNeutralMolecularMass(msms.getMz(i), f.getCharge()==0?1:f.getCharge());
         AnnotatedPeak   ion = new AnnotatedPeak(f.getTheoreticalMz(), msms.getIntensity(i), f.getCharge()==0?1:f.getCharge(), base!=0?Math.abs(msms.getIntensity(i)/base):-1d);
-
-//        System.out.println("  " + Tools.d2s(msms.getPrecursor().getMz(), 3) + "P, " + Tools.d2s(mh, 2) + "MH, " + Tools.d2s(base, 1) + "base, " + Tools.d2s(pk_counts,0) + ": " + Peaks.print(null, ion));
-//        if (msms.getPrecursor().getMz()==429.2356 && mh>msms.getPrecursor().getMz())
-//          System.out.println();
 
         // make sure the frag is more intense than the baseline
         if (mh>=min_mz && mh>msms.getPrecursor().getMz())
@@ -122,8 +119,6 @@ public class MIMSL
             ion.getSNR()>=min_snr && (below==null || below.getMz()<ion.getMz())) below = ion;
       }
     }
-//    if (mz_signature.size() < 2)
-//      System.out.println();
 
     if (mz_signature.size() < tops && below!=null) mz_signature.put(below.getMz(), below);
     if (mz_signature.size() < tops && Tools.isSet(orphans))
@@ -191,16 +186,16 @@ public class MIMSL
   }
   public static Collection<AnnotatedSpectrum> score(Collection<AnnotatedSpectrum> candidates, Tolerance tol)
   {
-    if (Tools.isSet(candidates)) return candidates;
+    if (!Tools.isSet(candidates)) return candidates;
 
     for (AnnotatedSpectrum spec : candidates)
     {
       long bins = Math.round(1000 / (tol.getMax(spec.getPrecursor().getMz())- tol.getMin(spec.getPrecursor().getMz())));
-      int nmatch = spec.size(), nfrag = spec.getIonQueried(), nsig = spec.getIonIndexed();
+      int nmatch = spec.getIonMatched(), nfrag = spec.getIonQueried(), nsig = spec.getIonIndexed();
       // long success, long trials, long success_population, long population
-      spec.setScore(AnnotatedSpectrum.SCR_MIMSL,       -1d * Stats.hypergeometricPval1(spec.size(), nfrag, nsig, bins));
+      spec.setScore(AnnotatedSpectrum.SCR_MIMSL,       -1d * Stats.hypergeometricPval1(nmatch, nfrag, nsig, bins));
       if (nsig > 1) nsig--; else if (nfrag > 1) nfrag--;
-      spec.setScore(AnnotatedSpectrum.SCR_MIMSL_DELTA, -1d * Stats.hypergeometricPval1(spec.size(), nfrag, nsig, bins));
+      spec.setScore(AnnotatedSpectrum.SCR_MIMSL_DELTA, -1d * Stats.hypergeometricPval1(nmatch, nfrag, nsig, bins) - spec.getScore(AnnotatedSpectrum.SCR_MIMSL));
     }
     return candidates;
   }
@@ -211,6 +206,29 @@ public class MIMSL
     Collections.sort(candidates, new ScoreDesendComparator());
 
     return candidates;
+  }
+  public static StringBuffer printCandidates(StringBuffer buf, Collection<AnnotatedSpectrum> candidates)
+  {
+    if (!Tools.isSet(candidates)) return buf;
+    if (buf==null) buf=new StringBuffer();
+
+    buf.append("score\tdelta\tvotes\tverdict\tdecoy\tppm\tPeptide\tm/z\tz\tSig\tunmatch\n");
+
+
+    for (AnnotatedSpectrum candidate : candidates)
+    {
+      buf.append(Tools.d2s(candidate.getScore(AnnotatedSpectrum.SCR_MIMSL),       2) + "\t");
+      buf.append(Tools.d2s(candidate.getScore(AnnotatedSpectrum.SCR_MIMSL_DELTA), 2) + "\t");
+      buf.append(candidate.getIonMatched() + "\t");
+      buf.append(candidate.getStatus() + "\t");
+      buf.append(Tools.d2s(Peaks.toPPM(candidate.getPrecursor().getMz(), candidate.getMzQueried()), 2) + "\t");
+      buf.append(candidate.getPeptide() + "\t");
+      buf.append(Tools.d2s(candidate.getPrecursor().getMz(), 4) + "\t");
+      buf.append(candidate.getPrecursor().getCharge() + "\t");
+      buf.append(candidate.getIonIndexed() + "\t");
+      buf.append((candidate.getIonIndexed()-candidate.getIonMatched()) + "\n");
+    }
+    return buf;
   }
 
 /*  protected static final String GRP_SETTINGS     = "Parameters";

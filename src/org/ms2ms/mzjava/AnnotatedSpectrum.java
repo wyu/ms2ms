@@ -15,7 +15,8 @@ public class AnnotatedSpectrum extends LibrarySpectrum
   public static final String SCR_MIMSL       = "MIMSL";
   public static final String SCR_MIMSL_DELTA = "Delta MIMSL";
 
-  private int ion_indiced, ion_queried;
+  private int ion_indiced, ion_queried, ion_matched;
+  private double mzQueried;
   private Map<String, Double> scoreMap = new HashMap<String, Double>();
 
   public AnnotatedSpectrum()     { super(new Peptide(AminoAcid.X)); }
@@ -31,11 +32,16 @@ public class AnnotatedSpectrum extends LibrarySpectrum
     super(peptide, initialCapacity, precision);
   }
 
+  public double getMzQueried() { return mzQueried; }
+  public AnnotatedSpectrum setMzQueried(double s) { mzQueried=s; return this; }
+
   public AnnotatedSpectrum setScore(String name, Double score) { scoreMap.put(name, score); return this; }
   public double            getScore(String name)               { return scoreMap.get(name); }
   public AnnotatedSpectrum setIonIndexed(int s)                { ion_indiced = s;; return this; }
   public int               getIonIndexed()                     { return ion_indiced; }
   public AnnotatedSpectrum setIonQueried(int s)                { ion_queried = s;; return this; }
   public int               getIonQueried()                     { return ion_queried; }
+  public AnnotatedSpectrum setIonMatched(int s)                { ion_matched = s;; return this; }
+  public int               getIonMatched()                     { return ion_matched; }
 
 }

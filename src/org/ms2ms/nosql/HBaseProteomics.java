@@ -10,18 +10,27 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.DoublePeakList;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
+import org.expasy.mzjava.core.ms.peakprocessor.PeakProcessorChain;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.expasy.mzjava.core.ms.spectrum.Peak;
+import org.expasy.mzjava.proteomics.io.ms.spectrum.MsLibReader;
+import org.expasy.mzjava.proteomics.io.ms.spectrum.msp.MspCommentParser;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
+import org.expasy.mzjava.utils.URIBuilder;
 import org.ms2ms.mimsl.MIMSL;
 import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.mzjava.AnnotatedSpectrum;
+import org.ms2ms.mzjava.MspAnnotationResolver2;
 import org.ms2ms.utils.Tools;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * Created by wyu on 4/20/14.
@@ -97,34 +106,36 @@ public class HBaseProteomics extends HBaseAbstract
     {
       if (++counts%100 ==0) System.out.print(".");
       if (++counts%5000==0) System.out.print("\n");
-//      System.out.println(Peaks.print(null, spec, false));
 
-      spec.setId(UUID.randomUUID());
-      HBasePeakList.save(peaklist, spec);
-      List<AnnotatedPeak> sigs = MIMSL.toSignature(spec, half_width, min_mz, min_pk, min_snr);
-
-      if (spec.getPrecursor().getMz()>=480 && spec.getPrecursor().getMz()<=520) System.out.print(Tools.d2s(spec.getPrecursor().getMz(), 3) + ", +" + spec.getPrecursor().getCharge() + "(" + sigs.size() + "): ");
-      for (AnnotatedPeak sig : sigs)
-      {
-//        System.out.println("Sig: " + Peaks.print(null, sig));
-        if (spec.getPrecursor().getMz()>=480 && spec.getPrecursor().getMz()<=520) System.out.print(Tools.d2s(sig.getMz(), 2) + ",");
-
-        // TODO need to work out the composite key incoporating the n/c and mod flag
-        Put row = new Put(HBasePeakList.row4MsMsIndex((float )spec.getPrecursor().getMz(), (byte )spec.getPrecursor().getCharge()));
-        // byte[] family, byte[] qualifier, byte[] value
-        row.add(Bytes.toBytes(HBasePeakList.FAM_ID),   Bytes.toBytes(HBasePeakList.COL_UUID), Bytes.toBytes(spec.getId().toString()));
-        row.add(Bytes.toBytes(HBasePeakList.FAM_PROP), Bytes.toBytes(HBasePeakList.COL_MZ),   Bytes.toBytes(sig.getMz()));
-        row.add(Bytes.toBytes(HBasePeakList.FAM_PROP), Bytes.toBytes(HBasePeakList.COL_SNR),  Bytes.toBytes(sig.getSNR()));
-        row.add(Bytes.toBytes(HBasePeakList.FAM_PROP), Bytes.toBytes(HBasePeakList.COL_Z),    Bytes.toBytes(sig.getCharge()));
-        row.add(Bytes.toBytes(HBasePeakList.FAM_PROP), Bytes.toBytes(HBasePeakList.COL_IONS), Bytes.toBytes(sigs.size()));
-        // TODO row.add(Bytes.toBytes(HBasePeakList.FAM_MZ), Bytes.toBytes(HBasePeakList.COL_MMOD), Bytes.toBytes(spec.getPrecursor().getCharge()));
-        indice.put(row);
-      }
-      if (spec.getPrecursor().getMz()>=480 && spec.getPrecursor().getMz()<=520) System.out.println();
+      index(peaklist, indice, spec, MIMSL.toSignature(spec, half_width, min_mz, min_pk, min_snr));
     }
     peaklist.close(); indice.close(); conn.close(); // release resources
+  }
+  public static void index(HTableInterface peaklist, HTableInterface indice,
+                           LibrarySpectrum spec, List<AnnotatedPeak> sigs) throws IOException
+  {
+    spec.setId(UUID.randomUUID());
+    HBasePeakList.save(peaklist, spec);
 
-    System.out.println("\nPreparaing the MsMs Index.");
+    boolean verbose = spec.getPrecursor().getMz()>=500.7 && spec.getPrecursor().getMz()<=500.8;
+
+    if (verbose) System.out.print(Tools.d2s(spec.getPrecursor().getMz(), 3) + ", +" + spec.getPrecursor().getCharge() + "(" + sigs.size() + "): ");
+    for (AnnotatedPeak sig : sigs)
+    {
+      if (verbose) System.out.print(Tools.d2s(sig.getMz(), 2) + ",");
+
+      // TODO need to work out the composite key incoporating the n/c and mod flag
+      Put row = new Put(HBasePeakList.row4MsMsIndex((float )spec.getPrecursor().getMz(), (byte )spec.getPrecursor().getCharge()));
+      // byte[] family, byte[] qualifier, byte[] value
+      row.add(Bytes.toBytes(HBasePeakList.FAM_ID),   Bytes.toBytes(HBasePeakList.COL_UUID), Bytes.toBytes(spec.getId().toString()));
+      row.add(Bytes.toBytes(HBasePeakList.FAM_PROP), Bytes.toBytes(HBasePeakList.COL_MZ),   Bytes.toBytes(sig.getMz()));
+      row.add(Bytes.toBytes(HBasePeakList.FAM_PROP), Bytes.toBytes(HBasePeakList.COL_SNR),  Bytes.toBytes(sig.getSNR()));
+      row.add(Bytes.toBytes(HBasePeakList.FAM_PROP), Bytes.toBytes(HBasePeakList.COL_Z),    Bytes.toBytes(sig.getCharge()));
+      row.add(Bytes.toBytes(HBasePeakList.FAM_PROP), Bytes.toBytes(HBasePeakList.COL_IONS), Bytes.toBytes(sigs.size()));
+      // TODO row.add(Bytes.toBytes(HBasePeakList.FAM_MZ), Bytes.toBytes(HBasePeakList.COL_MMOD), Bytes.toBytes(spec.getPrecursor().getCharge()));
+      indice.put(row);
+    }
+    if (verbose) System.out.println();
   }
 
   /** Query the HBase for the candidates. No scoring in this call
@@ -173,7 +184,9 @@ public class HBaseProteomics extends HBaseAbstract
         id_candidate.get(id).setIonIndexed(
           HBaseAbstract.getInt(rs, HBasePeakList.FAM_PROP, HBasePeakList.COL_IONS));
         id_candidate.get(id).setIonQueried(signatures.size());
+        id_candidate.get(id).setIonMatched(id_candidate.get(id).size());
         id_candidate.get(id).setPrecursor(signatures.getPrecursor());
+        id_candidate.get(id).setMzQueried(signatures.getPrecursor().getMz());
       }
       System.out.println("Candidates with the precursor m/z range of " + range.toString());
       for (UUID id : id_candidate.keySet())
@@ -188,5 +201,57 @@ public class HBaseProteomics extends HBaseAbstract
       }
     }
     return id_candidate.values();
+  }
+  public static long prepareMsp(File src, double half_width, double min_mz, int min_pk, double min_snr) throws IOException
+  {
+    // ensure that the table has been created
+    ensureTables();
+    // connection to the cluster
+    HConnection conn = HConnectionManager.createConnection(conf);
+
+    HTableInterface peaklist = conn.getTable(HBasePeakList.TBL_PEAKLIST),
+                      indice = conn.getTable(HBasePeakList.TBL_MSMSINDEX);
+
+    BufferedReader reader = new BufferedReader(new FileReader(src));
+    MsLibReader msp = new MsLibReader(reader, URIBuilder.UNDEFINED_URI,
+      PeakList.Precision.FLOAT,
+      new MspCommentParser(), new MspAnnotationResolver2(),
+      Pattern.compile(
+        "^([+-]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)?)\\s+([+-]?\\d+)\\s+\"([^\"]+)\"$"),
+      new PeakProcessorChain<PepLibPeakAnnotation>());
+
+    long counts=0; LibrarySpectrum spec = null;
+    while (msp.hasNext())
+    {
+      if (++counts%100 ==0) System.out.print(".");
+      if (++counts%5000==0) System.out.print("\n");
+      spec = msp.next();
+      index(peaklist, indice, spec, MIMSL.toSignature(spec, half_width, min_mz, min_pk, min_snr));
+      spec = null;
+    }
+    peaklist.close(); indice.close(); conn.close(); // release resources
+
+    return counts;
+  }
+  public static long prepareMsps(String root, double half_width, double min_mz, int min_pk, double min_snr, String... msps) throws IOException
+  {
+    long counts = 0;
+    for (String msp : msps)
+    {
+      counts += prepareMsp(new File(root + "/" + msp), half_width, min_mz, min_pk, min_snr);
+    }
+    return counts;
+  }
+  public static Collection<AnnotatedSpectrum> loadPeakLists(Collection<AnnotatedSpectrum> spectra) throws IOException
+  {
+    HConnection    conn = HConnectionManager.createConnection(conf);
+    HTableInterface tbl = conn.getTable(HBasePeakList.TBL_PEAKLIST);
+    for (AnnotatedSpectrum spec : spectra)
+    {
+      HBasePeakList.getPeakList(tbl, spec.getId()).toPeakList(spec);
+    }
+    tbl.close();
+
+    return spectra;
   }
 }

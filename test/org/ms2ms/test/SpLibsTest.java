@@ -33,13 +33,24 @@ public class SpLibsTest extends TestAbstract
   @Test
   public void readMsp() throws IOException
   {
-    Collection<LibrarySpectrum> spectra = SpLibs.readMsp(new File("/media/data/splib/human_crp_consensus_final_true_lib.msp"));
+//    Collection<LibrarySpectrum> spectra = SpLibs.readMsp(new File("/media/data/splib/human_crp_consensus_final_true_lib.msp"));
+//    Collection<LibrarySpectrum> spectra = SpLibs.readMsp(new File("/media/data/splib/nist_nci_stdmix_consensus_final_true_lib.msp"));
+    Collection<LibrarySpectrum> spectra = SpLibs.readMsp(new File("/media/data/splib/NIST_human_IT_2012-05-30.msp"));
+
     // save the spectrum and indice to HBase
     HBaseProteomics.index(spectra, 50d, 450d, 7, 4d);
     HBaseProteomics.listTables();
 
     //assert spectra.size()==92;
   }
+  @Test
+  public void prepareMsp() throws IOException
+  {
+//    HBaseProteomics.prepareMsps("/media/data/splib", 50d, 450d, 7, 4d, "human_crp_consensus_final_true_lib.msp", "nist_nci_stdmix_consensus_final_true_lib.msp", "NIST_human_IT_2012-05-30.msp");
+    HBaseProteomics.prepareMsps("/media/data/splib", 50d, 450d, 7, 4d, "NIST_mouse_IT_2012-04-21.msp","NIST_rat_IT_2012-04-16.msp","NIST_sigmaups1_IT_2011-05-24.msp","NIST_yeast_IT_2012-04-06.msp");
+    HBaseProteomics.listTables();
+  }
+
   @Test
   public void readAllMsMsIndex() throws IOException
   {
@@ -90,14 +101,15 @@ public class SpLibsTest extends TestAbstract
   @Test
   public void readAllSpectra() throws IOException
   {
-    Collection<AnnotatedSpectrum> spectra = HBaseProteomics.query(newPeakList(500d, 2), new AbsoluteTolerance(20), 0d);
+    Collection<AnnotatedSpectrum> spectra = HBaseProteomics.query(newPeakList(500.5d, 2), new AbsoluteTolerance(0.5), 0d);
     assert spectra.size()>0;
   }
   @Test
   public void queryTest() throws IOException
   {
-    PeakList<PepLibPeakAnnotation> ions = newPeakList(500d, 2, "400", "500");
-    MIMSL.run(ions, new PpmTolerance(25d));
+    // 500.730, +2(6): 318.20,520.19,568.30,683.25,782.32,869.35,
+    PeakList<PepLibPeakAnnotation> ions = newPeakList(500.73d, 2, "318.2", "568.3");
+    MIMSL.run(ions, new PpmTolerance(500d), new AbsoluteTolerance(0.5));
   }
 
   /** makeup a peaklist using string shorthand
@@ -106,7 +118,7 @@ public class SpLibsTest extends TestAbstract
    * @param frags variable number of fragment ions. e.g. "334.5", "562/23", "mz/ai". Only the mz is required
    * @return
    */
-  public static PeakList<PepLibPeakAnnotation> newPeakList(double mz, int z, String... frags)
+  private static PeakList<PepLibPeakAnnotation> newPeakList(double mz, int z, String... frags)
   {
     PeakList<PepLibPeakAnnotation> spec = new DoublePeakList<PepLibPeakAnnotation>();
     spec.setPrecursor(new Peak(mz, 0d, z));

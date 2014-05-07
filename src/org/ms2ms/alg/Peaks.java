@@ -102,7 +102,7 @@ public class Peaks
       for (int i=0; i<baselines.size()-top; i++) pts.add(baselines.get(i).getIntensity());
       return Stats.mean(pts) + Stats.stdev(pts);
     }
-    return -1d* getMeanIntensity(Lists.partition(baselines, 3).get(0));
+    return Tools.isSet(baselines) ? -1d* getMeanIntensity(Lists.partition(baselines, 3).get(0)) : 0;
   }
   public static boolean isValidIntensity(double s) { return s>0; }
 
@@ -177,4 +177,5 @@ public class Peaks
   }
   public static double toMass(double mz, int z) { return (mz-1.00078)*z; }
   public static double toMass(Peak p)           { return toMass(p.getMz(), p.getCharge()); }
+  public static double toPPM(double m0, double m1) { return 1E6*(m1-m0)/m0; }
 }
