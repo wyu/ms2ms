@@ -29,23 +29,27 @@ public class MIMSL
   { public int compare(AnnotatedSpectrum o1, AnnotatedSpectrum o2) { return o1!=null && o2!=null ?
     Double.compare(o2.getScore(AnnotatedSpectrum.SCR_MIMSL), o1.getScore(AnnotatedSpectrum.SCR_MIMSL)):0; } }
 
-  synchronized public static boolean run(PeakList<PepLibPeakAnnotation> ions, Tolerance precursor, Tolerance frag) throws IOException
+  synchronized public static List<AnnotatedSpectrum> run(PeakList<PepLibPeakAnnotation> ions, char spec_type, Tolerance precursor, Tolerance frag) throws IOException
   {
     long nsec = System.nanoTime();
 
     List<AnnotatedSpectrum> candidates = new ArrayList<AnnotatedSpectrum>();
-    candidates.addAll(setStatus(HBaseProteomics.query(ions, precursor, 0d), LibrarySpectrum.Status.NORMAL));
+    candidates.addAll(setStatus(HBaseProteomics.query(ions, spec_type, precursor, 0d), LibrarySpectrum.Status.NORMAL));
     // add 7 da offset to simulate decoy matches since this is not a common offset due to mod or mutation
-    candidates.addAll(setStatus(HBaseProteomics.query(ions, precursor, 7d), LibrarySpectrum.Status.DECOY));
+    candidates.addAll(setStatus(HBaseProteomics.query(ions, spec_type, precursor, 7d), LibrarySpectrum.Status.DECOY));
+    System.out.println("Query time: " + Tools.d2s(1E-9*(System.nanoTime()-nsec), 2) + " sec. m/z" +
+        Tools.d2s(precursor.getMin(ions.getPrecursor().getMz()),4) + " to " + Tools.d2s(precursor.getMax(ions.getPrecursor().getMz()),4));
 
     // calculate the score by hypergeometric model
     candidates = (List<AnnotatedSpectrum> )score(candidates, frag);
+
+    nsec = System.nanoTime();
     HBaseProteomics.loadPeakLists(candidates);
 
     fdr(candidates);
+    System.out.println("Load time: " + Tools.d2s(1E-9*(System.nanoTime()-nsec), 2) + " sec.");
 
-    System.out.println(printCandidates(null, candidates));
-    return true;
+    return candidates;
   }
   //isSignature(ion, 450d, msms.getPrecursorMz()))
   @Deprecated
@@ -212,21 +216,22 @@ public class MIMSL
     if (!Tools.isSet(candidates)) return buf;
     if (buf==null) buf=new StringBuffer();
 
-    buf.append("score\tdelta\tvotes\tverdict\tdecoy\tppm\tPeptide\tm/z\tz\tSig\tunmatch\n");
-
+    buf.append("score\tdelta\tvotes\tverdict\tdecoy\tppm\tPeptide\tm/z\tz\tSig\tunmatch\tprotein\n");
 
     for (AnnotatedSpectrum candidate : candidates)
     {
+      String[] peptide = candidate.getComment().split("\\^");
       buf.append(Tools.d2s(candidate.getScore(AnnotatedSpectrum.SCR_MIMSL),       2) + "\t");
       buf.append(Tools.d2s(candidate.getScore(AnnotatedSpectrum.SCR_MIMSL_DELTA), 2) + "\t");
       buf.append(candidate.getIonMatched() + "\t");
       buf.append(candidate.getStatus() + "\t");
       buf.append(Tools.d2s(Peaks.toPPM(candidate.getPrecursor().getMz(), candidate.getMzQueried()), 2) + "\t");
-      buf.append(candidate.getPeptide() + "\t");
+      buf.append(peptide[0] + "\t");
       buf.append(Tools.d2s(candidate.getPrecursor().getMz(), 4) + "\t");
       buf.append(candidate.getPrecursor().getCharge() + "\t");
       buf.append(candidate.getIonIndexed() + "\t");
-      buf.append((candidate.getIonIndexed()-candidate.getIonMatched()) + "\n");
+      buf.append((candidate.getIonIndexed()-candidate.getIonMatched()) + "\t");
+      buf.append((peptide.length>1?peptide[1]:"") + "\n");
     }
     return buf;
   }

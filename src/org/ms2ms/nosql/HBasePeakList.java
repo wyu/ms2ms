@@ -1,5 +1,6 @@
 package org.ms2ms.nosql;
 
+import com.google.common.base.Optional;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
@@ -10,7 +11,14 @@ import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.expasy.mzjava.core.ms.spectrum.Peak;
 import org.expasy.mzjava.core.ms.spectrum.PeakAnnotation;
+import org.expasy.mzjava.proteomics.mol.Peptide;
+import org.expasy.mzjava.proteomics.mol.modification.Modification;
+import org.expasy.mzjava.proteomics.mol.modification.ModificationResolver;
+import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodModificationResolver;
+import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
 import org.ms2ms.alg.Peaks;
+import org.ms2ms.mzjava.AnnotatedSpectrum;
+import org.ms2ms.utils.Tools;
 
 import java.io.*;
 import java.util.UUID;
@@ -43,12 +51,18 @@ public final class HBasePeakList implements Serializable
   static public String COL_SIG       = "sg"; // m/z of the signature fragment
   static public String COL_SNR       = "sr"; // m/z of the signature fragment
 
+  static public char SPEC_TRAP_CID = 'c';
+  static public char SPEC_TRAP_HCD = 'h';
+  static public char SPEC_TRAP_ETD = 'e';
+  static public char SPEC_QTOF     = 'q';
+
   private      int size,              // length of the peak list
                    cursor,            // current position of the peak
                    precursorZ;        // the precursor charge
   private double[] mzList;            // m/z of the peaks
   private  short[] intensityList;     // relative intensities of the peaks
   private   byte[] ppmList, flucList; // the variances of the peaks in m/z and intensity
+  private   String peptide, protein;
 
   // the upper bound of the peak intensity and variance in m/z and intensity
   private float maxIntensity, maxPPM, maxFluc, precursorAi;
@@ -64,6 +78,12 @@ public final class HBasePeakList implements Serializable
     // the stats
     maxIntensity=(float )src.getBasePeakIntensity();
     size        =        src.size();
+
+    if (src instanceof LibrarySpectrum)
+    {
+      peptide = ((LibrarySpectrum )src).getPeptide().toString().replace("(Carbamidomethyl)", "");
+      protein = Tools.front(((LibrarySpectrum) src).getProteinAccessionNumbers());
+    }
 
     mzList        = new double[src.size()];
     intensityList = new short[ src.size()];
@@ -110,6 +130,12 @@ public final class HBasePeakList implements Serializable
     for (int i=0; i<size; i++)
       peaks.add(getMz(i), getIntensity(i));
 
+    if (peaks instanceof AnnotatedSpectrum)
+    {
+      // can't set the peptide so we have to put it into the comment
+      // TODO need to setup a proper graph to store the relationship
+      ((AnnotatedSpectrum)peaks).setComment(peptide + "^" + protein);
+    }
     return peaks;
   }
 
@@ -172,13 +198,13 @@ public final class HBasePeakList implements Serializable
     return peaks;
   }
   public static byte[] row4PeakList(UUID id) { return Bytes.toBytes(id.toString()); }
-  public static byte[] row4MsMsIndex(float mz, byte z)
+  public static byte[] row4MsMsIndex(char spec_type, float mz, byte z)
   {
     // tag the system time in nanosec to ensure unique row key
-    return Bytes.add(Bytes.toBytes(mz), new byte[] {z}, Bytes.toBytes(System.nanoTime()));
+    return Bytes.add(Bytes.toBytes(spec_type), Bytes.add(Bytes.toBytes(mz), new byte[] {z}, Bytes.toBytes(System.nanoTime())));
   }
-  public static byte[] row4MsMsIndex(double mz, int z)
+  public static byte[] row4MsMsIndex(char spec_type, double mz, int z)
   {
-    return row4MsMsIndex((float )mz, (byte )z);
+    return row4MsMsIndex(spec_type, (float )mz, (byte )z);
   }
 }

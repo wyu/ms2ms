@@ -1,6 +1,7 @@
 package org.ms2ms.nosql;
 
 import com.google.common.collect.Range;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -90,7 +91,7 @@ public class HBaseProteomics extends HBaseAbstract
     table.close(); conn.close(); // done with the cluster, release resources
   }
   // MIMSL
-  public static void index(Collection<LibrarySpectrum> spectra, double half_width, double min_mz, int min_pk, double min_snr) throws IOException
+  public static void index(Collection<LibrarySpectrum> spectra, char spec_type, double half_width, double min_mz, int min_pk, double min_snr) throws IOException
   {
     // ensure that the table has been created
     ensureTables();
@@ -107,11 +108,11 @@ public class HBaseProteomics extends HBaseAbstract
       if (++counts%100 ==0) System.out.print(".");
       if (++counts%5000==0) System.out.print("\n");
 
-      index(peaklist, indice, spec, MIMSL.toSignature(spec, half_width, min_mz, min_pk, min_snr));
+      index(peaklist, indice, spec_type, spec, MIMSL.toSignature(spec, half_width, min_mz, min_pk, min_snr));
     }
     peaklist.close(); indice.close(); conn.close(); // release resources
   }
-  public static void index(HTableInterface peaklist, HTableInterface indice,
+  public static void index(HTableInterface peaklist, HTableInterface indice, char spec_type,
                            LibrarySpectrum spec, List<AnnotatedPeak> sigs) throws IOException
   {
     spec.setId(UUID.randomUUID());
@@ -125,7 +126,7 @@ public class HBaseProteomics extends HBaseAbstract
       if (verbose) System.out.print(Tools.d2s(sig.getMz(), 2) + ",");
 
       // TODO need to work out the composite key incoporating the n/c and mod flag
-      Put row = new Put(HBasePeakList.row4MsMsIndex((float )spec.getPrecursor().getMz(), (byte )spec.getPrecursor().getCharge()));
+      Put row = new Put(HBasePeakList.row4MsMsIndex(spec_type, (float )spec.getPrecursor().getMz(), (byte )spec.getPrecursor().getCharge()));
       // byte[] family, byte[] qualifier, byte[] value
       row.add(Bytes.toBytes(HBasePeakList.FAM_ID),   Bytes.toBytes(HBasePeakList.COL_UUID), Bytes.toBytes(spec.getId().toString()));
       row.add(Bytes.toBytes(HBasePeakList.FAM_PROP), Bytes.toBytes(HBasePeakList.COL_MZ),   Bytes.toBytes(sig.getMz()));
@@ -135,19 +136,28 @@ public class HBaseProteomics extends HBaseAbstract
       // TODO row.add(Bytes.toBytes(HBasePeakList.FAM_MZ), Bytes.toBytes(HBasePeakList.COL_MMOD), Bytes.toBytes(spec.getPrecursor().getCharge()));
       indice.put(row);
     }
-    if (verbose) System.out.println();
+    if (verbose && Tools.isSet(sigs)) System.out.println();
   }
 
   /** Query the HBase for the candidates. No scoring in this call
    *
    * @param signatures
    */
-  public static Collection<AnnotatedSpectrum> query(PeakList<PepLibPeakAnnotation> signatures, Tolerance tol, double offset) throws IOException
+  public static Collection<AnnotatedSpectrum> query(PeakList<PepLibPeakAnnotation> signatures, char spec_type, Tolerance tol, double offset) throws IOException
   {
     if (signatures == null || signatures.getPrecursor()==null) return null;
 
     // setup the HTable for query
-    HConnection conn = HConnectionManager.createConnection(HBaseConfiguration.create());
+    Configuration conf = HBaseConfiguration.create();
+    HConnection conn = null;
+    try
+    {
+      conn = HConnectionManager.createConnection(conf);
+    }
+    catch (Exception e)
+    {
+      e.printStackTrace();
+    }
     // get the number of row. Can be very expansive for a large table!!
     HTableInterface tbl = conn.getTable(HBasePeakList.TBL_MSMSINDEX);
 
@@ -155,8 +165,8 @@ public class HBaseProteomics extends HBaseAbstract
     Collection<Range<Peak>> slices = MIMSL.enumeratePrecursors(tol, 0, signatures.getPrecursor());
     for (Range<Peak> range : slices)
     {
-      Scan scan = new Scan(HBasePeakList.row4MsMsIndex(range.lowerEndpoint().getMz()+offset, range.lowerEndpoint().getCharge()),
-                           HBasePeakList.row4MsMsIndex(range.upperEndpoint().getMz()+offset, range.lowerEndpoint().getCharge()));
+      Scan scan = new Scan(HBasePeakList.row4MsMsIndex(spec_type, range.lowerEndpoint().getMz()+offset, range.lowerEndpoint().getCharge()),
+                           HBasePeakList.row4MsMsIndex(spec_type, range.upperEndpoint().getMz()+offset, range.lowerEndpoint().getCharge()));
       if (signatures.size()>0)
       {
         List<Filter> filters = new ArrayList<Filter>(signatures.size());
@@ -202,15 +212,15 @@ public class HBaseProteomics extends HBaseAbstract
     }
     return id_candidate.values();
   }
-  public static long prepareMsp(File src, double half_width, double min_mz, int min_pk, double min_snr) throws IOException
+  public static long prepareMsp(File src, char spec_type, double half_width, double min_mz, int min_pk, double min_snr) throws IOException
   {
-    // ensure that the table has been created
-    ensureTables();
     // connection to the cluster
     HConnection conn = HConnectionManager.createConnection(conf);
 
     HTableInterface peaklist = conn.getTable(HBasePeakList.TBL_PEAKLIST),
                       indice = conn.getTable(HBasePeakList.TBL_MSMSINDEX);
+
+    System.out.println("Preparing " + src.getAbsolutePath());
 
     BufferedReader reader = new BufferedReader(new FileReader(src));
     MsLibReader msp = new MsLibReader(reader, URIBuilder.UNDEFINED_URI,
@@ -226,19 +236,19 @@ public class HBaseProteomics extends HBaseAbstract
       if (++counts%100 ==0) System.out.print(".");
       if (++counts%5000==0) System.out.print("\n");
       spec = msp.next();
-      index(peaklist, indice, spec, MIMSL.toSignature(spec, half_width, min_mz, min_pk, min_snr));
+      index(peaklist, indice, spec_type, spec, MIMSL.toSignature(spec, half_width, min_mz, min_pk, min_snr));
       spec = null;
     }
     peaklist.close(); indice.close(); conn.close(); // release resources
 
     return counts;
   }
-  public static long prepareMsps(String root, double half_width, double min_mz, int min_pk, double min_snr, String... msps) throws IOException
+  public static long prepareMsps(String root, char spec_type, double half_width, double min_mz, int min_pk, double min_snr, String... msps) throws IOException
   {
     long counts = 0;
     for (String msp : msps)
     {
-      counts += prepareMsp(new File(root + "/" + msp), half_width, min_mz, min_pk, min_snr);
+      counts += prepareMsp(new File(root + "/" + msp), spec_type, half_width, min_mz, min_pk, min_snr);
     }
     return counts;
   }

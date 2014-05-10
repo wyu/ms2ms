@@ -11,6 +11,7 @@ import org.expasy.mzjava.core.ms.spectrum.Peak;
 import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
 import org.junit.Test;
+import org.ms2ms.alg.Peaks;
 import org.ms2ms.mimsl.MIMSL;
 import org.ms2ms.mzjava.AnnotatedSpectrum;
 import org.ms2ms.nosql.HBasePeakList;
@@ -19,10 +20,7 @@ import org.ms2ms.splib.SpLibs;
 import org.ms2ms.utils.Tools;
 
 import java.io.*;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NavigableMap;
+import java.util.*;
 
 /** Reading the content of splib
  *
@@ -38,7 +36,7 @@ public class SpLibsTest extends TestAbstract
     Collection<LibrarySpectrum> spectra = SpLibs.readMsp(new File("/media/data/splib/NIST_human_IT_2012-05-30.msp"));
 
     // save the spectrum and indice to HBase
-    HBaseProteomics.index(spectra, 50d, 450d, 7, 4d);
+    HBaseProteomics.index(spectra, HBasePeakList.SPEC_TRAP_CID, 50d, 450d, 7, 4d);
     HBaseProteomics.listTables();
 
     //assert spectra.size()==92;
@@ -46,11 +44,30 @@ public class SpLibsTest extends TestAbstract
   @Test
   public void prepareMsp() throws IOException
   {
-//    HBaseProteomics.prepareMsps("/media/data/splib", 50d, 450d, 7, 4d, "human_crp_consensus_final_true_lib.msp", "nist_nci_stdmix_consensus_final_true_lib.msp", "NIST_human_IT_2012-05-30.msp");
-    HBaseProteomics.prepareMsps("/media/data/splib", 50d, 450d, 7, 4d, "NIST_mouse_IT_2012-04-21.msp","NIST_rat_IT_2012-04-16.msp","NIST_sigmaups1_IT_2011-05-24.msp","NIST_yeast_IT_2012-04-06.msp");
+    // ensure that the table has been created
+    HBaseProteomics.ensureTables();
+
+    String root = "/media/data/splib/2013";
+    HBaseProteomics.prepareMsps(root, HBasePeakList.SPEC_TRAP_CID, 50d, 450d, 7, 4d, "bsa_consensus_final_true_lib.msp",
+        "human_crp_consensus_final_true_lib.msp","c_elegans_consensus_final_true_lib.msp","chicken_consensus_final_true_lib.msp",
+        "dradiodurans_consensus_final_true_lib.msp","msmegmatis_consensus_final_true_lib.msp","nist_nci_stdmix_consensus_final_true_lib.msp");
+    HBaseProteomics.prepareMsps(root, HBasePeakList.SPEC_TRAP_CID, 50d, 450d, 7, 4d,
+        "drosophila_consensus_final_true_lib.msp","e_coli_consensus_final_true_lib.msp","human_b2mg_consensus_final_true_lib.msp",
+        "yeast_pombe_consensus_final_true_lib.msp","sigmaups1_consensus_final_true_lib.msp","hsa201244f.msp","human_consensus_final_true_lib.msp",
+        "rat_consensus_final_true_lib.msp","yeast_consensus_final_true_lib.msp","mouse_consensus_final_true_lib.msp");
+    HBaseProteomics.prepareMsps(root, HBasePeakList.SPEC_TRAP_CID, 50d, 450d, 7, 4d,
+        "yeast_pombe_consensus_final_true_lib.msp","sigmaups1_consensus_final_true_lib.msp","hsa_consensus_final_true_lib.msp","human_consensus_final_true_lib.msp",
+        "rat_consensus_final_true_lib.msp","yeast_consensus_final_true_lib.msp","mouse_consensus_final_true_lib.msp");
+    HBaseProteomics.prepareMsps(root, HBasePeakList.SPEC_TRAP_CID, 50d, 450d, 7, 4d,
+        "hsa_consensus_final_true_lib.msp","human_consensus_final_true_lib.msp",
+        "rat_consensus_final_true_lib.msp","yeast_consensus_final_true_lib.msp","mouse_consensus_final_true_lib.msp");
+
+    HBaseProteomics.prepareMsps(root, HBasePeakList.SPEC_QTOF, 50d, 450d, 7, 4d, "rat_qtof_consensus_final_true_lib.msp","yeast_qtof_consensus_final_true_lib.msp");
+
+    // peak annotation format is invalid? Exception thrown
+//    HBaseProteomics.prepareMsps(root, HBasePeakList.SPEC_TRAP_HCD, 50d, 450d, 7, 4d, "human_hcd_selected_final_true_lib.msp");
     HBaseProteomics.listTables();
   }
-
   @Test
   public void readAllMsMsIndex() throws IOException
   {
@@ -101,37 +118,16 @@ public class SpLibsTest extends TestAbstract
   @Test
   public void readAllSpectra() throws IOException
   {
-    Collection<AnnotatedSpectrum> spectra = HBaseProteomics.query(newPeakList(500.5d, 2), new AbsoluteTolerance(0.5), 0d);
+    Collection<AnnotatedSpectrum> spectra = HBaseProteomics.query(Peaks.newPeakList(500.5d, 2), HBasePeakList.SPEC_TRAP_CID, new AbsoluteTolerance(0.5), 0d);
     assert spectra.size()>0;
   }
   @Test
   public void queryTest() throws IOException
   {
     // 500.730, +2(6): 318.20,520.19,568.30,683.25,782.32,869.35,
-    PeakList<PepLibPeakAnnotation> ions = newPeakList(500.73d, 2, "318.2", "568.3");
-    MIMSL.run(ions, new PpmTolerance(500d), new AbsoluteTolerance(0.5));
-  }
+    PeakList<PepLibPeakAnnotation> ions = Peaks.newPeakList(500.73d, 2, "318.2", "568.3"); //782.32,869.35
+    List<AnnotatedSpectrum>  candidates = MIMSL.run(ions, HBasePeakList.SPEC_TRAP_CID, new PpmTolerance(500d), new AbsoluteTolerance(0.5));
 
-  /** makeup a peaklist using string shorthand
-   *
-   * @param mz and z are the m/z value and charge state of the precursor.
-   * @param frags variable number of fragment ions. e.g. "334.5", "562/23", "mz/ai". Only the mz is required
-   * @return
-   */
-  private static PeakList<PepLibPeakAnnotation> newPeakList(double mz, int z, String... frags)
-  {
-    PeakList<PepLibPeakAnnotation> spec = new DoublePeakList<PepLibPeakAnnotation>();
-    spec.setPrecursor(new Peak(mz, 0d, z));
-    // go thro the fragment ions if any
-    for (String f : frags)
-    {
-      try
-      {
-        String[] strs = f.split("/");
-        spec.add(Double.valueOf(strs[0]), strs.length>2?Double.valueOf(strs[2]):0d);
-      }
-      catch (Exception e) { e.printStackTrace(); }
-    }
-    return spec;
+    System.out.println(MIMSL.printCandidates(null, candidates));
   }
 }

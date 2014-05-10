@@ -1,6 +1,7 @@
 package org.ms2ms.alg;
 
 import com.google.common.collect.Lists;
+import org.expasy.mzjava.core.ms.peaklist.DoublePeakList;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.expasy.mzjava.core.ms.spectrum.Peak;
@@ -18,6 +19,12 @@ import java.util.*;
  */
 public class Peaks
 {
+  public static final String OBT_CID    = "OrbitrapCID";
+  public static final String LTQ_CID    = "LTQCID";
+  public static final String OBT_HR_CID = "HrOrbitrapCID";
+  public static final String OBT_HCD    = "OrbitrapHCD";
+  public static final String QTOF       = "QTOF";
+
   static class IntensityDesendComparator implements Comparator<Peak> { public int compare(Peak o1, Peak o2) { return o1!=null && o2!=null ? Double.compare(o2.getIntensity(), o1.getIntensity()):0; } }
   static class IntensityAscendComparator implements Comparator<Peak> { public int compare(Peak o1, Peak o2) { return o1!=null && o2!=null ? Double.compare(o1.getIntensity(), o2.getIntensity()):0; } }
 
@@ -178,4 +185,27 @@ public class Peaks
   public static double toMass(double mz, int z) { return (mz-1.00078)*z; }
   public static double toMass(Peak p)           { return toMass(p.getMz(), p.getCharge()); }
   public static double toPPM(double m0, double m1) { return 1E6*(m1-m0)/m0; }
+
+  /** makeup a peaklist using string shorthand
+   *
+   * @param mz and z are the m/z value and charge state of the precursor.
+   * @param frags variable number of fragment ions. e.g. "334.5", "562/23", "mz/ai". Only the mz is required
+   * @return
+   */
+  public static PeakList<PepLibPeakAnnotation> newPeakList(double mz, int z, String... frags)
+  {
+    PeakList<PepLibPeakAnnotation> spec = new DoublePeakList<PepLibPeakAnnotation>();
+    spec.setPrecursor(new Peak(mz, 0d, z));
+    // go thro the fragment ions if any
+    for (String f : frags)
+    {
+      try
+      {
+        String[] strs = f.split("/");
+        spec.add(Double.valueOf(strs[0]), strs.length>2?Double.valueOf(strs[2]):0d);
+      }
+      catch (Exception e) { e.printStackTrace(); }
+    }
+    return spec;
+  }
 }
