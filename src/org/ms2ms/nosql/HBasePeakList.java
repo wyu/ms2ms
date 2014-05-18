@@ -1,22 +1,14 @@
 package org.ms2ms.nosql;
 
-import com.google.common.base.Optional;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.expasy.mzjava.core.ms.peaklist.DoublePeakList;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
-import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.expasy.mzjava.core.ms.spectrum.Peak;
 import org.expasy.mzjava.core.ms.spectrum.PeakAnnotation;
-import org.expasy.mzjava.proteomics.mol.Peptide;
-import org.expasy.mzjava.proteomics.mol.modification.Modification;
-import org.expasy.mzjava.proteomics.mol.modification.ModificationResolver;
-import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodModificationResolver;
 import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
-import org.ms2ms.alg.Peaks;
 import org.ms2ms.mzjava.AnnotatedSpectrum;
 import org.ms2ms.utils.Tools;
 
@@ -32,29 +24,24 @@ public final class HBasePeakList implements Serializable
 {
   private static final long serialVersionUID = 8472732522296541667L;
 
-  static public String TBL_PEAKLIST  = "PeakList";
-  static public String TBL_MSMSINDEX = "MsMsIndex";
-
   // Try to keep the ColumnFamily names as small as possible, preferably one character (e.g. "d" for data/default).
   // https://hbase.apache.org/book/rowkey.design.html
-  static public String FAM_PRECURSOR = "p";
-  static public String FAM_FLAG      = "f";
-  static public String FAM_PROP      = "P";
-  static public String FAM_ID        = "i";
+  static public byte[] FAM_PRECURSOR = Bytes.toBytes("p");
+  static public String TBL_PEAKLIST  = "PeakList";
 
-  static public String COL_MZ        = "mz";
-  static public String COL_Z         =  "z";
+  static public byte[] COL_MZ        = Bytes.toBytes("mz");
+  static public byte[] COL_Z         = Bytes.toBytes( "z");
   //static final byte[] COL_AI        = "ai".getBytes();
-  static public String COL_IONS      = "io";
-  static public String COL_UUID      = "id";
-  static public String COL_MMOD      = "mm"; // mass of the modification on the fragment
-  static public String COL_SIG       = "sg"; // m/z of the signature fragment
-  static public String COL_SNR       = "sr"; // m/z of the signature fragment
+  static public byte[] COL_IONS      = Bytes.toBytes("io");
+  static public byte[] COL_UUID      = Bytes.toBytes("id");
+  static public byte[] COL_MMOD      = Bytes.toBytes("mm"); // mass of the modification on the fragment
+  static public byte[] COL_SIG       = Bytes.toBytes("sg"); // m/z of the signature fragment
+  static public byte[] COL_SNR       = Bytes.toBytes("sr"); // m/z of the signature fragment
 
-  static public char SPEC_TRAP_CID = 'c';
-  static public char SPEC_TRAP_HCD = 'h';
-  static public char SPEC_TRAP_ETD = 'e';
-  static public char SPEC_QTOF     = 'q';
+  static public byte[] SPEC_TRAP_CID = Bytes.toBytes('c');
+  static public byte[] SPEC_TRAP_HCD = Bytes.toBytes('h');
+  static public byte[] SPEC_TRAP_ETD = Bytes.toBytes('e');
+  static public byte[] SPEC_QTOF     = Bytes.toBytes('q');
 
   private      int size,              // length of the peak list
                    cursor,            // current position of the peak
@@ -181,29 +168,28 @@ public final class HBasePeakList implements Serializable
 
     Put row = new Put(row4PeakList(spec.getId()));
     // byte[] family, byte[] qualifier, byte[] value
-    row.add(Bytes.toBytes(FAM_PRECURSOR), Bytes.toBytes(COL_MZ), Bytes.toBytes(spec.getPrecursor().getMz()));
-    row.add(Bytes.toBytes(FAM_PRECURSOR), Bytes.toBytes(COL_Z),  Bytes.toBytes(spec.getPrecursor().getCharge()));
+    row.add(FAM_PRECURSOR, COL_MZ, Bytes.toBytes(spec.getPrecursor().getMz()));
+    row.add(FAM_PRECURSOR, COL_Z,  Bytes.toBytes(spec.getPrecursor().getCharge()));
     // create the peaks bytes
-    row.add(Bytes.toBytes(FAM_PROP),      Bytes.toBytes(COL_IONS), toBytes(new HBasePeakList(spec)));
+    row.add(HBase.FAM_PROP, COL_IONS, toBytes(new HBasePeakList(spec)));
 
     tbl.put(row);
   }
   public static HBasePeakList getPeakList(HTableInterface tbl, UUID id) throws IOException
   {
-    Get g = new Get(Bytes.toBytes(id.toString()));
-    Result r = tbl.get(g);
-    byte[] value = r.getValue(Bytes.toBytes(FAM_PROP), Bytes.toBytes(COL_IONS));
+    Get g = new Get(Bytes.toBytes(tbl.toString()));
+    byte[] value = tbl.get(g).getValue(HBase.FAM_ID, COL_IONS);
     HBasePeakList peaks = HBasePeakList.fromBytes(value);
 
     return peaks;
   }
   public static byte[] row4PeakList(UUID id) { return Bytes.toBytes(id.toString()); }
-  public static byte[] row4MsMsIndex(char spec_type, float mz, byte z)
+  public static byte[] row4MsMsIndex(byte[] spec_type, float mz, byte z)
   {
     // tag the system time in nanosec to ensure unique row key
-    return Bytes.add(Bytes.toBytes(spec_type), Bytes.add(Bytes.toBytes(mz), new byte[] {z}, Bytes.toBytes(System.nanoTime())));
+    return Bytes.add(spec_type, Bytes.add(Bytes.toBytes(mz), new byte[] {z}, Bytes.toBytes(System.nanoTime())));
   }
-  public static byte[] row4MsMsIndex(char spec_type, double mz, int z)
+  public static byte[] row4MsMsIndex(byte[] spec_type, double mz, int z)
   {
     return row4MsMsIndex(spec_type, (float )mz, (byte )z);
   }

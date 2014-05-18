@@ -3,22 +3,52 @@ package org.ms2ms.nosql;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.expasy.mzjava.core.ms.peaklist.DoublePeakList;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 
 /** the base class to support I/O routine against the HBASE
  *
  * Created by wyu on 4/16/14.
  */
-abstract public class HBaseAbstract
+abstract public class HBase
 {
+  static public String TBL_MSMSINDEX = "MsMsIndex";
+  static public String TBL_TABLE     = "TableInfo";
+
+  // Try to keep the ColumnFamily names as small as possible, preferably one character (e.g. "d" for data/default).
+  // https://hbase.apache.org/book/rowkey.design.html
+  static public byte[] FAM_FLAG      = Bytes.toBytes("f");
+  static public byte[] FAM_PROP      = Bytes.toBytes("P");
+  static public byte[] FAM_ID        = Bytes.toBytes("i");
+
+  static public byte[] COL_ENDID     = Bytes.toBytes("id");
+  static public byte[] COL_ENTRIES   = Bytes.toBytes("n");
+  static public byte[] COL_NAME      = Bytes.toBytes("nm");
+  static public byte[] COL_SOURCE    = Bytes.toBytes("s");
+  static public byte[] COL_ORGANISM  = Bytes.toBytes("o");
+  static public byte[] COL_VERSION   = Bytes.toBytes("v");
+  static public byte[] COL_SPECTYPE  = Bytes.toBytes("t");
+  static public byte[] COL_FORMAT    = Bytes.toBytes("f");
+
+  static public String HUMAN  = "Homo Sapians";
+  static public String MOUSE  = "Mouse";
+  static public String ECOLI  = "EColi";
+  static public String YEAST  = "Yeast";
+  static public String MM     = "Msmegmatis";
+  static public String WORM   = "Ce";
+  static public String DM     = "Dm";
+  static public String BOVINE = "Bovine";
+  static public String CHICK  = "Chicken";
+  static public String DRADI  = "Dradiodurans";
+  static public String DROSO  = "Drosophila";
+  static public String RAT    = "Rat";
+  static public String MIXED  = "Mixed";
+  static public String POMBE  = "S.Pombe";
+
   protected static Configuration conf;
 
   // initiate the configuratio object. Only one per JVM
@@ -26,6 +56,9 @@ abstract public class HBaseAbstract
   {
     conf = HBaseConfiguration.create();
   }
+  public static HConnection getConnection() throws IOException { return HConnectionManager.createConnection(conf); }
+
+/*
   public static void execute(String tbl, Callable func) throws IOException
   {
     // connection to the cluster
@@ -48,10 +81,13 @@ abstract public class HBaseAbstract
 
     conn.close(); // done with the cluster, release resources
   }
+*/
   /*** Create a table */
-  public static void createTable(String tableName, String[] familys) throws IOException
+  public static void createTable(String tableName, byte[]... familys) throws IOException
   {
-    createTable(conf, tableName, familys);
+    String[] strs = new String[familys.length];
+    for (int i=0; i<familys.length; i++) strs[i] = Bytes.toString(familys[i]);
+    createTable(conf, tableName, strs);
   }
   public static void createTable(Configuration conf, String tableName, String[] familys) throws IOException
   {
@@ -150,18 +186,79 @@ abstract public class HBaseAbstract
       e.printStackTrace();
     }
   }
+/*
   protected static double getDouble(Result rs, String family, String col)
   {
-    return Bytes.toDouble(rs.getValue(Bytes.toBytes(family), Bytes.toBytes(col)));
+    return getDouble(rs, Bytes.toBytes(family), Bytes.toBytes(col));
   }
   protected static int getInt(Result rs, String family, String col)
   {
-    return Bytes.toInt(rs.getValue(Bytes.toBytes(family), Bytes.toBytes(col)));
+    return getInt(rs, Bytes.toBytes(family), Bytes.toBytes(col));
   }
   protected static String getString(Result rs, String family, String col)
   {
-    return Bytes.toString(rs.getValue(Bytes.toBytes(family), Bytes.toBytes(col)));
+    return getString(rs, Bytes.toBytes(family), Bytes.toBytes(col));
   }
+*/
+// Core utils that mimic the JDBC operations
+//
+  public static double getDouble(Result rs, byte[] family, byte[] col) { return Bytes.toDouble(rs.getValue(family, col)); }
+  public static int    getInt(   Result rs, byte[] family, byte[] col) { return Bytes.toInt(   rs.getValue(family, col));  }
+  public static String getString(Result rs, byte[] family, byte[] col) { return Bytes.toString(rs.getValue(family, col));  }
+
+  public static long incre(byte[] table, byte[] rowkey, byte[] family, byte[] col, long increment) throws IOException
+  {
+    HConnection    conn = HBase.getConnection();
+    HTableInterface tbl = conn.getTable(table);
+    long next = incre(tbl, rowkey, HBase.FAM_ID, HBase.COL_ENTRIES, increment);
+    tbl.close();conn.close();
+    return next;
+  }
+
+  public static long incre(HTableInterface table, byte[] rowkey, byte[] family, byte[] col, long increment) throws IOException
+  {
+    // grab the current value
+    byte[] id = select(table, rowkey, family, col);
+
+    long next = (id==null?increment:Bytes.toLong(id)+increment);
+    update(table, rowkey, family, col, Bytes.toBytes(next));
+
+    return next;
+  }
+/*
+  public static long incre(byte[] tbl, byte[] family, byte[] col, long increment) throws IOException
+  {
+    // connection to the cluster
+    HConnection      conn = HConnectionManager.createConnection(conf);
+    HTableInterface table = conn.getTable(tbl);
+
+    long next = incre(table, tbl, )
+    // grab the current value
+    byte[] id = table.get(new Get(tbl)).getValue(family, col);
+
+    long next = (id==null?increment:Bytes.toLong(id)+increment);
+    Put row = new Put(Bytes.toBytes(tbl.toString()));
+    // byte[] family, byte[] qualifier, byte[] value
+    row.add(family, col, Bytes.toBytes(next));
+
+    table.put(row);
+    table.close(); conn.close(); // done with the cluster, release resources
+
+    return next;
+  }
+*/
+  public static void update(HTableInterface table, byte[] rowkey, byte[] family, byte[] col, byte[] val) throws IOException
+  {
+    Put row = new Put(rowkey);
+    // byte[] family, byte[] qualifier, byte[] value
+    row.add(family, col, val);
+    table.put(row);
+  }
+  public static byte[] select(HTableInterface table, byte[] rowkey, byte[] family, byte[] col) throws IOException
+  {
+    return table.get(new Get(rowkey)).getValue(family, col);
+  }
+  // End of the core utils that mimic the JDBC operations //
 
 /*
   public static void increSequence(HConnection conn, String table, long increment) throws IOException
@@ -176,4 +273,20 @@ abstract public class HBaseAbstract
 
   }
 */
+  public static String update(Result row, byte[] family, byte[] col, String val)
+  {
+    return row!=null && row.getValue(family, col)!=null ? Bytes.toString(row.getValue(family, col)) : val;
+  }
+  public static long update(Result row, byte[] family, byte[] col, long val)
+  {
+    return row!=null && row.getValue(family, col)!=null ? Bytes.toLong(row.getValue(family, col)) : val;
+  }
+  public static char update(Result row, byte[] family, byte[] col, char val)
+  {
+    return row!=null && row.getValue(family, col)!=null ? Bytes.toString(row.getValue(family, col)).charAt(0) : val;
+  }
+  public static int update(Result row, byte[] family, byte[] col, int val)
+  {
+    return row!=null && row.getValue(family, col)!=null ? Bytes.toInt(row.getValue(family, col)) : val;
+  }
 }

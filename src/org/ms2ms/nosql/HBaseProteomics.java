@@ -9,14 +9,12 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.expasy.mzjava.core.ms.Tolerance;
-import org.expasy.mzjava.core.ms.peaklist.DoublePeakList;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.peakprocessor.PeakProcessorChain;
-import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.expasy.mzjava.core.ms.spectrum.Peak;
 import org.expasy.mzjava.proteomics.io.ms.spectrum.MsLibReader;
+import org.expasy.mzjava.proteomics.io.ms.spectrum.SptxtReader;
 import org.expasy.mzjava.proteomics.io.ms.spectrum.msp.MspCommentParser;
-import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
 import org.expasy.mzjava.utils.URIBuilder;
@@ -30,21 +28,23 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 import java.util.regex.Pattern;
 
 /**
  * Created by wyu on 4/20/14.
  */
-public class HBaseProteomics extends HBaseAbstract
+public class HBaseProteomics extends HBase
 {
   public static void ensureTables() throws IOException
   {
     // make sures the tables were properly created
-     createTable(HBasePeakList.TBL_PEAKLIST, new String[] {
-      HBasePeakList.FAM_FLAG, HBasePeakList.FAM_PRECURSOR, HBasePeakList.FAM_PROP});
-    createTable(HBasePeakList.TBL_MSMSINDEX, new String[] {
-      HBasePeakList.FAM_ID, HBasePeakList.FAM_PROP});
+    createTable(HBasePeakList.TBL_PEAKLIST, HBase.FAM_FLAG, HBasePeakList.FAM_PRECURSOR, HBase.FAM_PROP);
+    createTable(HBase.TBL_MSMSINDEX, HBase.FAM_ID, HBase.FAM_PROP);
+    createTable(HBase.TBL_TABLE,    HBase.FAM_ID, HBase.FAM_PROP);
+    createTable(Bytes.toString(HBaseSpLib.TBL_SPLIB), HBase.FAM_ID, HBase.FAM_PROP);
   }
   public static void listTables() throws IOException
   {
@@ -91,7 +91,7 @@ public class HBaseProteomics extends HBaseAbstract
     table.close(); conn.close(); // done with the cluster, release resources
   }
   // MIMSL
-  public static void index(Collection<LibrarySpectrum> spectra, char spec_type, double half_width, double min_mz, int min_pk, double min_snr) throws IOException
+  public static void index(Collection<LibrarySpectrum> spectra, byte[] spec_type, double half_width, double min_mz, int min_pk, double min_snr) throws IOException
   {
     // ensure that the table has been created
     ensureTables();
@@ -99,7 +99,7 @@ public class HBaseProteomics extends HBaseAbstract
     HConnection conn = HConnectionManager.createConnection(conf);
 
     HTableInterface peaklist = conn.getTable(HBasePeakList.TBL_PEAKLIST),
-                      indice = conn.getTable(HBasePeakList.TBL_MSMSINDEX);
+                      indice = conn.getTable(HBase.TBL_MSMSINDEX);
 
     // save the spectra to the table
     long counts=0;
@@ -112,7 +112,7 @@ public class HBaseProteomics extends HBaseAbstract
     }
     peaklist.close(); indice.close(); conn.close(); // release resources
   }
-  public static void index(HTableInterface peaklist, HTableInterface indice, char spec_type,
+  public static void index(HTableInterface peaklist, HTableInterface indice, byte[] spec_type,
                            LibrarySpectrum spec, List<AnnotatedPeak> sigs) throws IOException
   {
     spec.setId(UUID.randomUUID());
@@ -128,11 +128,11 @@ public class HBaseProteomics extends HBaseAbstract
       // TODO need to work out the composite key incoporating the n/c and mod flag
       Put row = new Put(HBasePeakList.row4MsMsIndex(spec_type, (float )spec.getPrecursor().getMz(), (byte )spec.getPrecursor().getCharge()));
       // byte[] family, byte[] qualifier, byte[] value
-      row.add(Bytes.toBytes(HBasePeakList.FAM_ID),   Bytes.toBytes(HBasePeakList.COL_UUID), Bytes.toBytes(spec.getId().toString()));
-      row.add(Bytes.toBytes(HBasePeakList.FAM_PROP), Bytes.toBytes(HBasePeakList.COL_MZ),   Bytes.toBytes(sig.getMz()));
-      row.add(Bytes.toBytes(HBasePeakList.FAM_PROP), Bytes.toBytes(HBasePeakList.COL_SNR),  Bytes.toBytes(sig.getSNR()));
-      row.add(Bytes.toBytes(HBasePeakList.FAM_PROP), Bytes.toBytes(HBasePeakList.COL_Z),    Bytes.toBytes(sig.getCharge()));
-      row.add(Bytes.toBytes(HBasePeakList.FAM_PROP), Bytes.toBytes(HBasePeakList.COL_IONS), Bytes.toBytes(sigs.size()));
+      row.add(HBase.FAM_ID,   HBasePeakList.COL_UUID, Bytes.toBytes(spec.getId().toString()));
+      row.add(HBase.FAM_PROP, HBasePeakList.COL_MZ,   Bytes.toBytes(sig.getMz()));
+      row.add(HBase.FAM_PROP, HBasePeakList.COL_SNR,  Bytes.toBytes(sig.getSNR()));
+      row.add(HBase.FAM_PROP, HBasePeakList.COL_Z,    Bytes.toBytes(sig.getCharge()));
+      row.add(HBase.FAM_PROP, HBasePeakList.COL_IONS, Bytes.toBytes(sigs.size()));
       // TODO row.add(Bytes.toBytes(HBasePeakList.FAM_MZ), Bytes.toBytes(HBasePeakList.COL_MMOD), Bytes.toBytes(spec.getPrecursor().getCharge()));
       indice.put(row);
     }
@@ -143,7 +143,7 @@ public class HBaseProteomics extends HBaseAbstract
    *
    * @param signatures
    */
-  public static Collection<AnnotatedSpectrum> query(PeakList<PepLibPeakAnnotation> signatures, char spec_type, Tolerance tol, double offset) throws IOException
+  public static Collection<AnnotatedSpectrum> query(PeakList<PepLibPeakAnnotation> signatures, byte[] spec_type, Tolerance tol, double offset) throws IOException
   {
     if (signatures == null || signatures.getPrecursor()==null) return null;
 
@@ -159,14 +159,14 @@ public class HBaseProteomics extends HBaseAbstract
       e.printStackTrace();
     }
     // get the number of row. Can be very expansive for a large table!!
-    HTableInterface tbl = conn.getTable(HBasePeakList.TBL_MSMSINDEX);
+    HTableInterface tbl = conn.getTable(HBase.TBL_MSMSINDEX);
 
     Map<UUID, AnnotatedSpectrum> id_candidate = new HashMap<UUID, AnnotatedSpectrum>();
     Collection<Range<Peak>> slices = MIMSL.enumeratePrecursors(tol, 0, signatures.getPrecursor());
     for (Range<Peak> range : slices)
     {
       Scan scan = new Scan(HBasePeakList.row4MsMsIndex(spec_type, range.lowerEndpoint().getMz()+offset, range.lowerEndpoint().getCharge()),
-                           HBasePeakList.row4MsMsIndex(spec_type, range.upperEndpoint().getMz()+offset, range.lowerEndpoint().getCharge()));
+                           HBasePeakList.row4MsMsIndex(spec_type, range.upperEndpoint().getMz() + offset, range.lowerEndpoint().getCharge()));
       if (signatures.size()>0)
       {
         List<Filter> filters = new ArrayList<Filter>(signatures.size());
@@ -174,8 +174,8 @@ public class HBaseProteomics extends HBaseAbstract
         {
           // set the range of row keys
           filters.add(new FilterList(FilterList.Operator.MUST_PASS_ALL,
-            new SingleColumnValueFilter(Bytes.toBytes(HBasePeakList.FAM_PROP), Bytes.toBytes(HBasePeakList.COL_MZ), CompareFilter.CompareOp.GREATER_OR_EQUAL, new BinaryComparator(Bytes.toBytes(tol.getMin(signatures.getMz(k))))),
-            new SingleColumnValueFilter(Bytes.toBytes(HBasePeakList.FAM_PROP), Bytes.toBytes(HBasePeakList.COL_MZ), CompareFilter.CompareOp.LESS_OR_EQUAL, new BinaryComparator(Bytes.toBytes(tol.getMax(signatures.getMz(k)))))));
+            new SingleColumnValueFilter(HBase.FAM_PROP, HBasePeakList.COL_MZ, CompareFilter.CompareOp.GREATER_OR_EQUAL, new BinaryComparator(Bytes.toBytes(tol.getMin(signatures.getMz(k))))),
+            new SingleColumnValueFilter(HBase.FAM_PROP, HBasePeakList.COL_MZ, CompareFilter.CompareOp.LESS_OR_EQUAL,    new BinaryComparator(Bytes.toBytes(tol.getMax(signatures.getMz(k)))))));
         }
         FilterList filterList = new FilterList(FilterList.Operator.MUST_PASS_ONE, filters);
         scan.setFilter(filterList);
@@ -184,15 +184,15 @@ public class HBaseProteomics extends HBaseAbstract
       ResultScanner scanner = tbl.getScanner(scan);
       for (Result rs = scanner.next(); rs != null; rs = scanner.next()) {
         UUID id = UUID.fromString(
-          HBaseAbstract.getString(rs, HBasePeakList.FAM_ID, HBasePeakList.COL_UUID));
+          HBase.getString(rs, HBase.FAM_ID, HBasePeakList.COL_UUID));
         if (id_candidate.get(id) == null) id_candidate.put(id, new AnnotatedSpectrum());
         id_candidate.get(id).add(
-          HBaseAbstract.getDouble(rs, HBasePeakList.FAM_PROP, HBasePeakList.COL_MZ),
-          HBaseAbstract.getDouble(rs, HBasePeakList.FAM_PROP, HBasePeakList.COL_SNR));
+          HBase.getDouble(rs, HBase.FAM_PROP, HBasePeakList.COL_MZ),
+          HBase.getDouble(rs, HBase.FAM_PROP, HBasePeakList.COL_SNR));
         id_candidate.get(id).setId(id);
         // record the number the indice
         id_candidate.get(id).setIonIndexed(
-          HBaseAbstract.getInt(rs, HBasePeakList.FAM_PROP, HBasePeakList.COL_IONS));
+          HBase.getInt(rs, HBase.FAM_PROP, HBasePeakList.COL_IONS));
         id_candidate.get(id).setIonQueried(signatures.size());
         id_candidate.get(id).setIonMatched(id_candidate.get(id).size());
         id_candidate.get(id).setPrecursor(signatures.getPrecursor());
@@ -212,13 +212,13 @@ public class HBaseProteomics extends HBaseAbstract
     }
     return id_candidate.values();
   }
-  public static long prepareMsp(File src, char spec_type, double half_width, double min_mz, int min_pk, double min_snr) throws IOException
+  public static long prepareMsp(File src, byte[] spec_type, double half_width, double min_mz, int min_pk, double min_snr) throws IOException, URISyntaxException
   {
     // connection to the cluster
     HConnection conn = HConnectionManager.createConnection(conf);
 
     HTableInterface peaklist = conn.getTable(HBasePeakList.TBL_PEAKLIST),
-                      indice = conn.getTable(HBasePeakList.TBL_MSMSINDEX);
+                      indice = conn.getTable(HBase.TBL_MSMSINDEX);
 
     System.out.println("Preparing " + src.getAbsolutePath());
 
@@ -235,7 +235,7 @@ public class HBaseProteomics extends HBaseAbstract
     {
       if (++counts%100 ==0) System.out.print(".");
       if (++counts%5000==0) System.out.print("\n");
-      spec = msp.next();
+      spec = msp.next(); spec.setSpectrumSource(new URI(src.getName()));
       index(peaklist, indice, spec_type, spec, MIMSL.toSignature(spec, half_width, min_mz, min_pk, min_snr));
       spec = null;
     }
@@ -243,13 +243,53 @@ public class HBaseProteomics extends HBaseAbstract
 
     return counts;
   }
-  public static long prepareMsps(String root, char spec_type, double half_width, double min_mz, int min_pk, double min_snr, String... msps) throws IOException
+  public static long prepareSpLib(File src, byte[] spec_type, double half_width, double min_mz, int min_pk, double min_snr) throws IOException
+  {
+    // connection to the cluster
+    HConnection conn = HConnectionManager.createConnection(conf);
+
+    HTableInterface peaklist = conn.getTable(HBasePeakList.TBL_PEAKLIST),
+                      indice = conn.getTable(HBase.TBL_MSMSINDEX);
+
+    System.out.println("Preparing " + src.getAbsolutePath());
+
+    BufferedReader reader = new BufferedReader(new FileReader(src));
+    MsLibReader     splib = new SptxtReader(reader, URIBuilder.UNDEFINED_URI, PeakList.Precision.FLOAT);
+
+    long counts=0; LibrarySpectrum spec = null;
+    while (splib.hasNext())
+    {
+      if (++counts%100 ==0) System.out.print(".");
+      if (++counts%5000==0) System.out.print("\n");
+      spec = splib.next();
+      //index(peaklist, indice, spec_type, spec, MIMSL.toSignature(spec, half_width, min_mz, min_pk, min_snr));
+      spec = null;
+    }
+    peaklist.close(); indice.close(); conn.close(); // release resources
+
+    return counts;
+  }
+  @Deprecated
+  public static long prepareLibs(String root, byte[] spec_type, double half_width, double min_mz, int min_pk, double min_snr, String... msps) throws IOException, URISyntaxException
   {
     long counts = 0;
     for (String msp : msps)
     {
-      counts += prepareMsp(new File(root + "/" + msp), spec_type, half_width, min_mz, min_pk, min_snr);
+      if      (msp.endsWith(".msp"))   counts += prepareMsp(  new File(root + "/" + msp), spec_type, half_width, min_mz, min_pk, min_snr);
+      else if (msp.endsWith(".sptxt")) counts += prepareSpLib(new File(root + "/" + msp), spec_type, half_width, min_mz, min_pk, min_snr);
+//
+//      counts += prepareMsp(new File(root + "/" + msp), spec_type, half_width, min_mz, min_pk, min_snr);
     }
+    return counts;
+  }
+  public static long prepareLib(String root, HBaseSpLib lib, double half_width, double min_mz, int min_pk, double min_snr) throws IOException, URISyntaxException
+  {
+    long counts=0;
+    if      (lib.isFormat(HBaseSpLib.LIB_MSP))   counts=prepareMsp(  new File(root+"/"+lib.getName()+".msp"),   Bytes.toBytes(lib.getSpecType()), half_width, min_mz, min_pk, min_snr);
+    else if (lib.isFormat(HBaseSpLib.LIB_SPTXT)) counts=prepareSpLib(new File(root+"/"+lib.getName()+".sptxt"), Bytes.toBytes(lib.getSpecType()), half_width, min_mz, min_pk, min_snr);
+
+    // update the entries counts
+    HBaseSpLib.increEntries(Bytes.toBytes(lib.getName()), counts);
     return counts;
   }
   public static Collection<AnnotatedSpectrum> loadPeakLists(Collection<AnnotatedSpectrum> spectra) throws IOException

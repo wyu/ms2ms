@@ -29,7 +29,7 @@ public class MIMSL
   { public int compare(AnnotatedSpectrum o1, AnnotatedSpectrum o2) { return o1!=null && o2!=null ?
     Double.compare(o2.getScore(AnnotatedSpectrum.SCR_MIMSL), o1.getScore(AnnotatedSpectrum.SCR_MIMSL)):0; } }
 
-  synchronized public static List<AnnotatedSpectrum> run(PeakList<PepLibPeakAnnotation> ions, char spec_type, Tolerance precursor, Tolerance frag) throws IOException
+  synchronized public static List<AnnotatedSpectrum> run(PeakList<PepLibPeakAnnotation> ions, byte[] spec_type, Tolerance precursor, Tolerance frag) throws IOException
   {
     long nsec = System.nanoTime();
 
