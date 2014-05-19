@@ -81,6 +81,17 @@ public class SpLibsTest extends TestAbstract
   @Test
   public void prepareAllLibs() throws IOException, URISyntaxException
   {
+    Collection<HBaseSpLib> libs = HBaseSpLib.getAll();
+    for (HBaseSpLib lib : libs)
+    {
+      System.out.println(lib.toString());
+      // for debugging only
+//      if (lib==null || lib.getName().indexOf("HumanPlasma_2012-08_all")<0) continue;
+      if (lib==null || lib.getName().indexOf("sigmaups1_consensus_final_true_lib")<0) continue;
+      // preparing the library
+      System.out.println("\n" + HBaseProteomics.prepareLib("/media/data/splib/2013", lib, 50d, 450d, 7, 4d) + " entries prepared");
+    }
+/*
     HBaseProteomics.ensureTables();
 
     HConnection      conn = HConnectionManager.createConnection(HBaseConfiguration.create());
@@ -88,7 +99,6 @@ public class SpLibsTest extends TestAbstract
     Scan             scan = new Scan();
 
     scan.setCaching(1); scan.setBatch(1);
-//    scan.addFamily(HBase.FAM_PROP);
     scan.addColumn(HBase.FAM_ID, HBase.COL_ENDID);
 
     int rows = 0;
@@ -108,21 +118,8 @@ public class SpLibsTest extends TestAbstract
       // preparing the library
       long counts = HBaseProteomics.prepareLib("/media/data/splib/2013", lib, 50d, 450d, 7, 4d);
     }
-/*
-    Iterator<Result>   iterator = resultScanner.iterator();
-    while (iterator.hasNext())
-    {
-      Result next = iterator.next();
-      byte[] spectype = next.getValue(HBase.FAM_PROP, HBase.COL_SPECTYPE);
-      String     name = Bytes.toString(next.getValue(HBase.FAM_PROP, HBase.COL_NAME));
-      if (name.indexOf("nist_nci_stdmix_consensus_final_true_lib")<0) continue;
-      // preparing the library
-      long counts = HBaseProteomics.prepareLibs(root, spectype, 50d, 450d, 7, 4d, name);
-      // update the number of entries
-
-    }
-*/
     table.close(); conn.close();
+*/
   }
   @Test
   public void readAllMsMsIndex() throws IOException

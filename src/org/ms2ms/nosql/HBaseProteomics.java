@@ -15,6 +15,8 @@ import org.expasy.mzjava.core.ms.spectrum.Peak;
 import org.expasy.mzjava.proteomics.io.ms.spectrum.MsLibReader;
 import org.expasy.mzjava.proteomics.io.ms.spectrum.SptxtReader;
 import org.expasy.mzjava.proteomics.io.ms.spectrum.msp.MspCommentParser;
+import org.expasy.mzjava.proteomics.mol.modification.Modification;
+import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodModificationResolver;
 import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
 import org.expasy.mzjava.utils.URIBuilder;
@@ -28,6 +30,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
@@ -118,12 +121,12 @@ public class HBaseProteomics extends HBase
     spec.setId(UUID.randomUUID());
     HBasePeakList.save(peaklist, spec);
 
-    boolean verbose = spec.getPrecursor().getMz()>=500.7 && spec.getPrecursor().getMz()<=500.8;
+    //boolean verbose = spec.getPrecursor().getMz()>=500.7 && spec.getPrecursor().getMz()<=500.8;
 
-    if (verbose) System.out.print(Tools.d2s(spec.getPrecursor().getMz(), 3) + ", +" + spec.getPrecursor().getCharge() + "(" + sigs.size() + "): ");
+    //if (verbose) System.out.print(Tools.d2s(spec.getPrecursor().getMz(), 3) + ", +" + spec.getPrecursor().getCharge() + "(" + sigs.size() + "): ");
     for (AnnotatedPeak sig : sigs)
     {
-      if (verbose) System.out.print(Tools.d2s(sig.getMz(), 2) + ",");
+      //if (verbose) System.out.print(Tools.d2s(sig.getMz(), 2) + ",");
 
       // TODO need to work out the composite key incoporating the n/c and mod flag
       Put row = new Put(HBasePeakList.row4MsMsIndex(spec_type, (float )spec.getPrecursor().getMz(), (byte )spec.getPrecursor().getCharge()));
@@ -136,7 +139,7 @@ public class HBaseProteomics extends HBase
       // TODO row.add(Bytes.toBytes(HBasePeakList.FAM_MZ), Bytes.toBytes(HBasePeakList.COL_MMOD), Bytes.toBytes(spec.getPrecursor().getCharge()));
       indice.put(row);
     }
-    if (verbose && Tools.isSet(sigs)) System.out.println();
+    //if (verbose && Tools.isSet(sigs)) System.out.println();
   }
 
   /** Query the HBase for the candidates. No scoring in this call
@@ -233,8 +236,8 @@ public class HBaseProteomics extends HBase
     long counts=0; LibrarySpectrum spec = null;
     while (msp.hasNext())
     {
-      if (++counts%100 ==0) System.out.print(".");
-      if (++counts%5000==0) System.out.print("\n");
+      if (++counts%1000  ==0) System.out.print(".");
+      if (  counts%200000==0) System.out.print("\n");
       spec = msp.next(); spec.setSpectrumSource(new URI(src.getName()));
       index(peaklist, indice, spec_type, spec, MIMSL.toSignature(spec, half_width, min_mz, min_pk, min_snr));
       spec = null;
@@ -256,14 +259,44 @@ public class HBaseProteomics extends HBase
     BufferedReader reader = new BufferedReader(new FileReader(src));
     MsLibReader     splib = new SptxtReader(reader, URIBuilder.UNDEFINED_URI, PeakList.Precision.FLOAT);
 
+    try
+    {
+      // work around the unknown mod per Oliver's suggestion
+      Field f = MsLibReader.class.getDeclaredField("modResolver");
+      f.setAccessible(true);
+      UnimodModificationResolver modResolver = (UnimodModificationResolver) f.get(splib);
+      modResolver.putOverrideUnimod("USM_C", Modification.parseModification("H"));
+      modResolver.putOverrideUnimod("Propionamide:13C(3)", Modification.parseModification("H"));
+      modResolver.putOverrideUnimod("USM_n_230.170762", Modification.parseModification("H"));
+      modResolver.putOverrideUnimod("USM_K_357.257892", Modification.parseModification("H"));
+//      modResolver.putTranslate("USM_C", "Unimod version of USM_C");
+//      modResolver.putTranslate("Propionamide:13C(3)", "Unknown");
+    }
+    catch (NoSuchFieldException nse)
+    {
+      throw new RuntimeException(nse);
+    }
+    catch (IllegalAccessException iae)
+    {
+      throw new RuntimeException(iae);
+    }
+
     long counts=0; LibrarySpectrum spec = null;
     while (splib.hasNext())
     {
-      if (++counts%100 ==0) System.out.print(".");
-      if (++counts%5000==0) System.out.print("\n");
-      spec = splib.next();
-      //index(peaklist, indice, spec_type, spec, MIMSL.toSignature(spec, half_width, min_mz, min_pk, min_snr));
-      spec = null;
+      if (++counts%1000  ==0) System.out.print(".");
+      if (  counts%200000==0) System.out.print("\n");
+      try
+      {
+        spec = splib.next();
+        index(peaklist, indice, spec_type, spec, MIMSL.toSignature(spec, half_width, min_mz, min_pk, min_snr));
+        spec = null;
+      }
+      catch (IllegalStateException e)
+      {
+        System.out.print("undefined residue!");
+        //e.printStackTrace();
+      }
     }
     peaklist.close(); indice.close(); conn.close(); // release resources
 

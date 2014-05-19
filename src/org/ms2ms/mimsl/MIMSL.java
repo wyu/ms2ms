@@ -110,7 +110,7 @@ public class MIMSL
         AnnotatedPeak   ion = new AnnotatedPeak(f.getTheoreticalMz(), msms.getIntensity(i), f.getCharge()==0?1:f.getCharge(), base!=0?Math.abs(msms.getIntensity(i)/base):-1d);
 
         // make sure the frag is more intense than the baseline
-        if (mh>=min_mz && mh>msms.getPrecursor().getMz())
+        if (mh>=min_mz && (msms.getPrecursor().getCharge()==1 || mh>msms.getPrecursor().getMz()))
         {
           if      (pk_counts>0 && ion.getSNR()>=min_snr)
           {
@@ -119,7 +119,8 @@ public class MIMSL
           }
           else if (pk_counts<5) orphans.add(ion);
         }
-        if (msms.getMz(i)<msms.getPrecursor().getMz()-28d &&
+        if (msms.getPrecursor().getCharge()>1 &&
+            msms.getMz(i)<msms.getPrecursor().getMz()-28d &&
             ion.getSNR()>=min_snr && (below==null || below.getMz()<ion.getMz())) below = ion;
       }
     }

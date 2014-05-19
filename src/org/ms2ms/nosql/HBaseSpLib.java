@@ -1,12 +1,15 @@
 package org.ms2ms.nosql;
 
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 
 /** Representation of spectral library in HBase
  *  User: wyu
@@ -75,5 +78,38 @@ public class HBaseSpLib implements Serializable
     row.add(HBase.FAM_PROP, HBase.COL_FORMAT,  Bytes.toBytes(format));
 
     tbl.put(row);
+  }
+  public static Collection<HBaseSpLib> getAll()
+  {
+    Collection<HBaseSpLib> libs = new ArrayList<HBaseSpLib>();
+    try
+    {
+      HBaseProteomics.ensureTables();
+
+      HConnection      conn = HConnectionManager.createConnection(HBaseConfiguration.create());
+      HTableInterface table = conn.getTable(TBL_SPLIB);
+      Scan             scan = new Scan();
+
+      scan.setCaching(1); scan.setBatch(1);
+      scan.addColumn(HBase.FAM_ID, HBase.COL_ENDID);
+
+      int rows = 0;
+      ResultScanner resultScanner = table.getScanner(scan);
+      Iterator<Result> iterator = resultScanner.iterator();
+      while (iterator.hasNext())
+      {
+        Result result = iterator.next();
+        //if you want to get the entire row
+        Get get = new Get(result.getRow());
+        Result entireRow = table.get(get);
+        // process the row
+        libs.add(new HBaseSpLib(entireRow));
+      }
+    }
+    catch (IOException ie)
+    {
+      ie.printStackTrace();
+    }
+    return libs;
   }
 }

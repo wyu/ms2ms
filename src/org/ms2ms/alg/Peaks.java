@@ -30,10 +30,17 @@ public class Peaks
 
   public static boolean isType(PepLibPeakAnnotation s, IonType... types)
   {
-    IonType ion = s.getOptFragmentAnnotation().get().getIonType();
-    if (s!=null && Tools.isSet(types))
-      for (IonType t : types)
-        if (t.equals(ion)) return true;
+    try
+    {
+      IonType ion = s.getOptFragmentAnnotation().get().getIonType();
+      if (s!=null && Tools.isSet(types))
+        for (IonType t : types)
+          if (t.equals(ion)) return true;
+    }
+    catch (IllegalStateException e)
+    {
+
+    }
 
     return false;
   }
