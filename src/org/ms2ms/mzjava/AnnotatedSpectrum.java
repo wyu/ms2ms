@@ -1,5 +1,6 @@
 package org.ms2ms.mzjava;
 
+import org.expasy.mzjava.core.ms.spectrum.Peak;
 import org.expasy.mzjava.proteomics.mol.AminoAcid;
 import org.expasy.mzjava.proteomics.mol.Peptide;
 import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
@@ -16,7 +17,8 @@ public class AnnotatedSpectrum extends LibrarySpectrum
   public static final String SCR_MIMSL_DELTA = "Delta MIMSL";
 
   private int ion_indiced, ion_queried, ion_matched;
-  private double mzQueried;
+  private float mzQueried;
+  private Peak[] precursors;
   private Map<String, Double> scoreMap = new HashMap<String, Double>();
 
   public AnnotatedSpectrum()     { super(new Peptide(AminoAcid.X)); }
@@ -33,7 +35,10 @@ public class AnnotatedSpectrum extends LibrarySpectrum
   }
 
   public double getMzQueried() { return mzQueried; }
-  public AnnotatedSpectrum setMzQueried(double s) { mzQueried=s; return this; }
+  public AnnotatedSpectrum setMzQueried(float s) { mzQueried=s; return this; }
+
+  public AnnotatedSpectrum setPrecursors(Peak[] peaks)         { precursors=peaks; return this; }
+  public Peak[]            getPrecursors()                     { return precursors; }
 
   public AnnotatedSpectrum setScore(String name, Double score) { scoreMap.put(name, score); return this; }
   public double            getScore(String name)               { return scoreMap.get(name); }

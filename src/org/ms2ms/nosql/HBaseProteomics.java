@@ -21,6 +21,7 @@ import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
 import org.expasy.mzjava.utils.URIBuilder;
 import org.ms2ms.mimsl.MIMSL;
+import org.ms2ms.mimsl.MimslSettings;
 import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.mzjava.AnnotatedSpectrum;
 import org.ms2ms.mzjava.MspAnnotationResolver2;
@@ -146,6 +147,7 @@ public class HBaseProteomics extends HBase
    *
    * @param signatures
    */
+  @Deprecated
   public static Collection<AnnotatedSpectrum> query(PeakList<PepLibPeakAnnotation> signatures, byte[] spec_type, Tolerance tol, double offset) throws IOException
   {
     if (signatures == null || signatures.getPrecursor()==null) return null;
@@ -199,7 +201,7 @@ public class HBaseProteomics extends HBase
         id_candidate.get(id).setIonQueried(signatures.size());
         id_candidate.get(id).setIonMatched(id_candidate.get(id).size());
         id_candidate.get(id).setPrecursor(signatures.getPrecursor());
-        id_candidate.get(id).setMzQueried(signatures.getPrecursor().getMz());
+        id_candidate.get(id).setMzQueried((float )signatures.getPrecursor().getMz());
       }
       System.out.println("Candidates with the precursor m/z range of " + range.toString());
       for (UUID id : id_candidate.keySet())
@@ -215,6 +217,138 @@ public class HBaseProteomics extends HBase
     }
     return id_candidate.values();
   }
+  public static Collection<AnnotatedSpectrum> query(Peak[] precursors, MimslSettings settings, double offset, Peak... frags) throws IOException
+  {
+    if (frags==null || precursors==null) return null;
+
+    // setup the HTable for query
+    Configuration conf = HBaseConfiguration.create();
+    HConnection conn = null;
+    try
+    {
+      conn = HConnectionManager.createConnection(conf);
+    }
+    catch (Exception e)
+    {
+      e.printStackTrace();
+    }
+    // get the number of row. Can be very expansive for a large table!!
+    HTableInterface tbl = conn.getTable(HBase.TBL_MSMSINDEX);
+
+    Map<UUID, AnnotatedSpectrum> id_candidate = new HashMap<UUID, AnnotatedSpectrum>();
+    Collection<Range<Peak>> slices = MIMSL.enumeratePrecursors(settings.getPrecursorTol(), settings.getZFloat(), precursors);
+    for (Range<Peak> range : slices)
+    {
+      Tools.putAll(id_candidate, fetch(tbl, settings.getSpecType(),
+          range.lowerEndpoint().getMz()+offset, range.upperEndpoint().getMz()+offset,
+          range.lowerEndpoint().getCharge(), settings.getFragmentTol(), frags));
+/*
+
+      Scan scan = new Scan(HBasePeakList.row4MsMsIndex(settings.getSpecType(), range.lowerEndpoint().getMz()+offset, range.lowerEndpoint().getCharge()),
+                           HBasePeakList.row4MsMsIndex(settings.getSpecType(), range.upperEndpoint().getMz()+offset, range.lowerEndpoint().getCharge()));
+      if (frags.length>0)
+      {
+        List<Filter> filters = new ArrayList<Filter>(frags.length);
+        for (int k=0; k<frags.length; k++)
+        {
+          // set the range of row keys
+          filters.add(new FilterList(FilterList.Operator.MUST_PASS_ALL,
+              new SingleColumnValueFilter(HBase.FAM_PROP, HBasePeakList.COL_MZ, CompareFilter.CompareOp.GREATER_OR_EQUAL,
+                  new BinaryComparator(Bytes.toBytes(settings.getFragmentTol().getMin(frags[k].getMz())))),
+              new SingleColumnValueFilter(HBase.FAM_PROP, HBasePeakList.COL_MZ, CompareFilter.CompareOp.LESS_OR_EQUAL,
+                  new BinaryComparator(Bytes.toBytes(settings.getFragmentTol().getMax(frags[k].getMz()))))));
+        }
+        FilterList filterList = new FilterList(FilterList.Operator.MUST_PASS_ONE, filters);
+        scan.setFilter(filterList);
+      }
+      // go thro the peaks
+      ResultScanner scanner = tbl.getScanner(scan);
+      for (Result rs = scanner.next(); rs != null; rs = scanner.next()) {
+        UUID id = UUID.fromString(
+            HBase.getString(rs, HBase.FAM_ID, HBasePeakList.COL_UUID));
+        if (id_candidate.get(id) == null) id_candidate.put(id, new AnnotatedSpectrum());
+        id_candidate.get(id).add(
+            HBase.getDouble(rs, HBase.FAM_PROP, HBasePeakList.COL_MZ),
+            HBase.getDouble(rs, HBase.FAM_PROP, HBasePeakList.COL_SNR));
+        id_candidate.get(id).setId(id);
+        // record the number the indice
+        id_candidate.get(id).setIonIndexed(
+            HBase.getInt(rs, HBase.FAM_PROP, HBasePeakList.COL_IONS));
+        id_candidate.get(id).setIonQueried(frags.length);
+        id_candidate.get(id).setIonMatched(id_candidate.get(id).size());
+        id_candidate.get(id).setPrecursor(null);
+        id_candidate.get(id).setPrecursors(precursors);
+//        id_candidate.get(id).setMzQueried((float )signatures.getPrecursor().getMz());
+      }
+*/
+      System.out.println("Candidates with the precursor m/z range of " + range.toString());
+      for (UUID id : id_candidate.keySet())
+      {
+        id_candidate.get(id).setPrecursors(precursors);
+        System.out.print(
+            Tools.d2s(id_candidate.get(id).getPrecursor().getMz(), 3) + ", +" + id_candidate.get(
+                id).getPrecursor().getCharge() + "(" + id_candidate.get(id).size() + "): ");
+        for (int i = 0; i < id_candidate.get(id).size(); i++) {
+          System.out.print(Tools.d2s(id_candidate.get(id).getMz(i), 2) + ",");
+        }
+        System.out.println();
+      }
+    }
+    return id_candidate.values();
+  }
+  public static Map<UUID, AnnotatedSpectrum> fetch(HTableInterface tbl,
+     byte[] stype, double mzlow, double mzhigh, int z, Tolerance frag, Peak... frags) throws IOException
+  {
+    Scan scan = new Scan(HBasePeakList.row4MsMsIndex(stype, mzlow, z), HBasePeakList.row4MsMsIndex(stype, mzhigh, z));
+    if (frags!=null && frags.length>0)
+    {
+      List<Filter> filters = new ArrayList<Filter>(frags.length);
+      for (int k=0; k<frags.length; k++)
+      {
+        // set the range of row keys
+        filters.add(new FilterList(FilterList.Operator.MUST_PASS_ALL,
+            new SingleColumnValueFilter(HBase.FAM_PROP, HBasePeakList.COL_MZ, CompareFilter.CompareOp.GREATER_OR_EQUAL,
+                new BinaryComparator(Bytes.toBytes(frag.getMin(frags[k].getMz())))),
+            new SingleColumnValueFilter(HBase.FAM_PROP, HBasePeakList.COL_MZ, CompareFilter.CompareOp.LESS_OR_EQUAL,
+                new BinaryComparator(Bytes.toBytes(frag.getMax(frags[k].getMz()))))));
+      }
+      FilterList filterList = new FilterList(FilterList.Operator.MUST_PASS_ONE, filters);
+      scan.setFilter(filterList);
+    }
+    // go thro the peaks
+    ResultScanner scanner = tbl.getScanner(scan);
+    Map<UUID, AnnotatedSpectrum> id_candidate = new HashMap<UUID, AnnotatedSpectrum>();
+    for (Result rs = scanner.next(); rs != null; rs = scanner.next()) {
+      UUID id = UUID.fromString(
+          HBase.getString(rs, HBase.FAM_ID, HBasePeakList.COL_UUID));
+      if (id_candidate.get(id) == null) id_candidate.put(id, new AnnotatedSpectrum());
+      id_candidate.get(id).add(
+          HBase.getDouble(rs, HBase.FAM_PROP, HBasePeakList.COL_MZ),
+          HBase.getDouble(rs, HBase.FAM_PROP, HBasePeakList.COL_SNR));
+      id_candidate.get(id).setId(id);
+      // record the number the indice
+      id_candidate.get(id).setIonIndexed(
+          HBase.getInt(rs, HBase.FAM_PROP, HBasePeakList.COL_IONS));
+      id_candidate.get(id).setIonQueried(frags.length);
+      id_candidate.get(id).setIonMatched(id_candidate.get(id).size());
+      id_candidate.get(id).setPrecursor(null);
+//        id_candidate.get(id).setMzQueried((float )signatures.getPrecursor().getMz());
+    }
+/*
+    System.out.println("Candidates with the precursor m/z range of " + range.toString());
+    for (UUID id : id_candidate.keySet())
+    {
+      System.out.print(
+          Tools.d2s(id_candidate.get(id).getPrecursor().getMz(), 3) + ", +" + id_candidate.get(
+              id).getPrecursor().getCharge() + "(" + id_candidate.get(id).size() + "): ");
+      for (int i = 0; i < id_candidate.get(id).size(); i++) {
+        System.out.print(Tools.d2s(id_candidate.get(id).getMz(i), 2) + ",");
+      }
+      System.out.println();
+    }
+*/
+    return id_candidate;
+  }
   public static long prepareMsp(File src, byte[] spec_type, double half_width, double min_mz, int min_pk, double min_snr) throws IOException, URISyntaxException
   {
     // connection to the cluster
@@ -229,8 +363,7 @@ public class HBaseProteomics extends HBase
     MsLibReader msp = new MsLibReader(reader, URIBuilder.UNDEFINED_URI,
       PeakList.Precision.FLOAT,
       new MspCommentParser(), new MspAnnotationResolver2(),
-      Pattern.compile(
-        "^([+-]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)?)\\s+([+-]?\\d+)\\s+\"([^\"]+)\"$"),
+      Pattern.compile("^([+-]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)?)\\s+([+-]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)?)\\s+\"([^\"]+)\"$"),
       new PeakProcessorChain<PepLibPeakAnnotation>());
 
     long counts=0; LibrarySpectrum spec = null;
@@ -336,5 +469,14 @@ public class HBaseProteomics extends HBase
     tbl.close();
 
     return spectra;
+  }
+  public static UUID randUUID(HTableInterface tbl, byte[] spectype, Random rand) throws IOException
+  {
+    if (rand==null) rand=new Random(System.nanoTime());
+
+    double mz = rand.nextDouble() * 1000d+350d; int z = rand.nextInt(3)+1;
+    Map<UUID, AnnotatedSpectrum> id_candidate = fetch(tbl, spectype, mz-0.015, mz+0.015, z, null);
+
+    return Tools.front(id_candidate.keySet());
   }
 }

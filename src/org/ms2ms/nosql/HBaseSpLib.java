@@ -91,7 +91,7 @@ public class HBaseSpLib implements Serializable
       Scan             scan = new Scan();
 
       scan.setCaching(1); scan.setBatch(1);
-      scan.addColumn(HBase.FAM_ID, HBase.COL_ENDID);
+      scan.addColumn(HBase.FAM_PROP, HBase.COL_NAME);
 
       int rows = 0;
       ResultScanner resultScanner = table.getScanner(scan);

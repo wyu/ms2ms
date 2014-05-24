@@ -29,6 +29,32 @@ public class MIMSL
   { public int compare(AnnotatedSpectrum o1, AnnotatedSpectrum o2) { return o1!=null && o2!=null ?
     Double.compare(o2.getScore(AnnotatedSpectrum.SCR_MIMSL), o1.getScore(AnnotatedSpectrum.SCR_MIMSL)):0; } }
 
+  public static void randHBasePeakList(Random rand)
+  {
+
+  }
+  synchronized public static List<AnnotatedSpectrum> run(Peak[] precursors, MimslSettings settings, Peak... frags) throws IOException
+  {
+    long nsec = System.nanoTime();
+
+    List<AnnotatedSpectrum> candidates = new ArrayList<AnnotatedSpectrum>();
+    candidates.addAll(setStatus(HBaseProteomics.query(precursors, settings, 0d, frags), LibrarySpectrum.Status.NORMAL));
+    // add 7 da offset to simulate decoy matches since this is not a common offset due to mod or mutation
+    candidates.addAll(setStatus(HBaseProteomics.query(precursors, settings, 7d, frags), LibrarySpectrum.Status.DECOY));
+    System.out.println("Query time: " + Tools.d2s(1E-9*(System.nanoTime()-nsec), 2) + " sec.");
+
+    // calculate the score by hypergeometric model
+    candidates = (List<AnnotatedSpectrum> )score(candidates, settings.getFragmentTol());
+
+    nsec = System.nanoTime();
+    HBaseProteomics.loadPeakLists(candidates);
+
+    fdr(candidates);
+    System.out.println("Load time: " + Tools.d2s(1E-9*(System.nanoTime()-nsec), 2) + " sec.");
+
+    return candidates;
+  }
+  @Deprecated
   synchronized public static List<AnnotatedSpectrum> run(PeakList<PepLibPeakAnnotation> ions, byte[] spec_type, Tolerance precursor, Tolerance frag) throws IOException
   {
     long nsec = System.nanoTime();
@@ -51,7 +77,6 @@ public class MIMSL
 
     return candidates;
   }
-  //isSignature(ion, 450d, msms.getPrecursorMz()))
   @Deprecated
   public static PepLibPeakAnnotation getSignatureAnnotation(double mz, Collection<PepLibPeakAnnotation> annos, double min_mz, double precursor_mz)
   {

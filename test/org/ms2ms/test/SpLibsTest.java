@@ -23,6 +23,8 @@ import org.ms2ms.utils.Tools;
 import java.io.*;
 import java.net.URISyntaxException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** Reading the content of splib
  *
@@ -81,13 +83,14 @@ public class SpLibsTest extends TestAbstract
   @Test
   public void prepareAllLibs() throws IOException, URISyntaxException
   {
+    HBaseProteomics.ensureTables();
+
     Collection<HBaseSpLib> libs = HBaseSpLib.getAll();
     for (HBaseSpLib lib : libs)
     {
-      System.out.println(lib.toString());
       // for debugging only
-//      if (lib==null || lib.getName().indexOf("HumanPlasma_2012-08_all")<0) continue;
-      if (lib==null || lib.getName().indexOf("sigmaups1_consensus_final_true_lib")<0) continue;
+//      if (lib==null || lib.getName().indexOf("HumanPlasma_2012-08_all")==0) continue;
+      if (lib==null && lib.getName().indexOf("yeast_pombe_consensus_final_true_lib")<0) continue;
       // preparing the library
       System.out.println("\n" + HBaseProteomics.prepareLib("/media/data/splib/2013", lib, 50d, 450d, 7, 4d) + " entries prepared");
     }
@@ -221,5 +224,25 @@ public class SpLibsTest extends TestAbstract
     HBaseSpLib.set(table, "NIST", "msp", HBase.MIXED, "MAY2011", HBasePeakList.SPEC_TRAP_CID, "sigmaups1_consensus_final_true_lib");
 
     table.close(); conn.close();
+  }
+  @Test
+  public void peakMatcher()
+  {
+    String deci = "110.0717	4108.5	\"?\"", cid = "373.3\t144\t\"?i 21/25 0.4\"", exp="115.0868\t1.91984e+006\t\"a2/1.7ppm,a4-28^2/1.7ppm,Int/AA-28/1.7ppm\"", line=exp;
+
+    //Pattern peakPattern = Pattern.compile("^([+-]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)?)\\s+([+-]?\\d+)\\s+\"([^\"]+)\"$");
+    //Pattern peakPattern = Pattern.compile("^([+-]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)?)\\s+([+-]?\\d+(?:\\.\\d+)?)\\s+\"([^\"]+)\"$");
+    Pattern peakPattern   = Pattern.compile("^([+-]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)?)\\s+([+-]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)?)\\s+\"([^\"]+)\"$");
+
+    Matcher matcher = peakPattern.matcher(line);
+
+    if (matcher.matches())
+    {
+      System.out.println(matcher.group(1) + ", " + matcher.group(2) + ", " + matcher.group(3));
+//      builder.addPeak(Double.parseDouble(matcher.group(1)), Double.parseDouble(matcher.group(2)), matcher.group(3));
+    } else {
+
+      throw new IllegalArgumentException(line + " is not a valid peak line");
+    }
   }
 }

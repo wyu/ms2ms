@@ -12,9 +12,11 @@ public class Tools
   static String ZEROES = "000000000000";
   static String BLANKS = "            ";
 
+  public static     boolean isSet(String        s) { return s!=null && s.length()>0; }
   public static <T> boolean isSet(Collection<T> s) { return s!=null && s.size()>0; }
-  public static <T> boolean isSet(T[] s) { return s!=null && s.length>0; }
-  public static     boolean isSet(int[] s) { return s!=null && s.length>0; }
+  public static <T> boolean isSet(T[]           s) { return s!=null && s.length>0; }
+  public static     boolean isSet(int[]         s) { return s!=null && s.length>0; }
+
   public static <T> T front(Collection<T> s)
   {
     if (isSet(s))
@@ -107,5 +109,14 @@ public class Tools
       }
 
     return pool;
+  }
+  public static String extend(String s0, String s1, String delimiter)
+  {
+    return s0==null?s1:(s0+delimiter+s1);
+  }
+  public static <K, V> Map<K,V> putAll(Map<K,V> map, Map<K,V> in)
+  {
+    if (map!=null && in!=null) map.putAll(in);
+    return map;
   }
 }

@@ -1,6 +1,9 @@
 package org.ms2ms.alg;
 
 import com.google.common.collect.Lists;
+import org.expasy.mzjava.core.ms.AbsoluteTolerance;
+import org.expasy.mzjava.core.ms.PpmTolerance;
+import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.DoublePeakList;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
@@ -8,6 +11,8 @@ import org.expasy.mzjava.core.ms.spectrum.Peak;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepFragAnnotation;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
 import org.ms2ms.mzjava.AnnotatedPeak;
+import org.ms2ms.mzjava.AnnotatedSpectrum;
+import org.ms2ms.nosql.HBasePeakList;
 import org.ms2ms.utils.Stats;
 import org.ms2ms.utils.Tools;
 
@@ -21,9 +26,13 @@ public class Peaks
 {
   public static final String OBT_CID    = "OrbitrapCID";
   public static final String LTQ_CID    = "LTQCID";
-  public static final String OBT_HR_CID = "HrOrbitrapCID";
+  public static final String OBT_HR_CID = "OrbitrapCIDHr";
   public static final String OBT_HCD    = "OrbitrapHCD";
   public static final String QTOF       = "QTOF";
+
+  public static final String CID       = "cid";
+  public static final String HCD       = "hcd";
+  public static final String ETD       = "etd";
 
   static class IntensityDesendComparator implements Comparator<Peak> { public int compare(Peak o1, Peak o2) { return o1!=null && o2!=null ? Double.compare(o2.getIntensity(), o1.getIntensity()):0; } }
   static class IntensityAscendComparator implements Comparator<Peak> { public int compare(Peak o1, Peak o2) { return o1!=null && o2!=null ? Double.compare(o1.getIntensity(), o2.getIntensity()):0; } }
@@ -215,4 +224,48 @@ public class Peaks
     }
     return spec;
   }
+
+  /** Parse the precursor specification from the web form
+   *
+   * @param line : "501.1/2 5051/3 505.6"
+   * @param z : the default charge if not specified with the m/z above
+   * @return array of precursor peaks
+   */
+  public static Peak[] newPeaks(String line, int z)
+  {
+    if (!Tools.isSet(line)) return null;
+    String[] strs = line.split(";|,|\\s");
+    Peak[]  peaks = new Peak[strs.length];
+    for (int i=0; i<strs.length; i++)
+    {
+      String[] items = strs[i].split("/");
+      peaks[i].setMzAndCharge(Double.valueOf(items[0]), items.length>1?Integer.valueOf(items[1]):z);
+    }
+    return peaks;
+  }
+//  public static String toString(Peak... peaks)
+//  {
+//    String out=null;
+//    if (peaks!=null)
+//      for (Peak p : peaks)
+//        out = Tools.extend(out, Tools.d2s(p.getMz(), 5)p.toString(), "; ");
+//
+//    return out;
+//  }
+/*
+  public static AnnotatedSpectrum newPeakList(String frags)
+  {
+    PeakList<PepLibPeakAnnotation> spec = new DoublePeakList<PepLibPeakAnnotation>();
+    try
+    {
+      ions.setPrecursor(new Peak(Double.valueOf(pmz), 0, pz));
+      String[] fs=frags.split(";|,|\\s");
+      for (String f : fs)
+        ions.add(Double.valueOf(f), 0d);
+    }
+    catch (Exception e) {}
+    return ions;
+  }
+*/
 }
+
