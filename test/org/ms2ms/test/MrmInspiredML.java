@@ -1,8 +1,37 @@
 package org.ms2ms.test;
 
+import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.HConnectionManager;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.expasy.mzjava.core.ms.AbsoluteTolerance;
+import org.expasy.mzjava.core.ms.PpmTolerance;
+import org.expasy.mzjava.core.ms.peaklist.PeakList;
+import org.expasy.mzjava.proteomics.io.ms.spectrum.MsLibReader;
+import org.expasy.mzjava.proteomics.io.ms.spectrum.SptxtReader;
+import org.expasy.mzjava.proteomics.mol.modification.Modification;
+import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodModificationResolver;
+import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
+import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
+import org.expasy.mzjava.utils.URIBuilder;
 import org.junit.Test;
+import org.ms2ms.alg.Peaks;
+import org.ms2ms.mimsl.MIMSL;
+import org.ms2ms.mimsl.MimslSettings;
+import org.ms2ms.mzjava.AnnotatedPeak;
+import org.ms2ms.mzjava.AnnotatedSpectrum;
+import org.ms2ms.nosql.HBase;
+import org.ms2ms.nosql.HBasePeakList;
+import org.ms2ms.nosql.HBaseProteomics;
+import org.ms2ms.nosql.HBaseSpLib;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.List;
 
 /** Test the application logic
  *
@@ -14,6 +43,28 @@ public class MrmInspiredML extends TestAbstract
   public void testRun() throws IOException
   {
   }
+
+  /** suite of tests to back up the manuscript */
+  @Test
+  public void queryTest() throws IOException
+  {
+    // 500.730, +2(6): 318.20,520.19,568.30,683.25,782.32,869.35,
+//    PeakList<PepLibPeakAnnotation> ions = Peaks.newPeakList(500.73d, 2, "318.2", "568.3"); //782.32,869.35
+    // nist_nci_stdmix_consensus_final_true_lib.msp
+    // C.AAADPHECYAK.V/2, m/z588.2642; 375.67/2, 424.19/2, 481.71/2, 517.22/2, 552.74/2, 613.27/1, 750.32/1, 795.31/1, 847.38/1, 958.37/1,962.40/1, 1029.41/1, 1033.44/1
+    PeakList<PepLibPeakAnnotation> ions = Peaks.newPeakList(588.3d, 2, "517.2", "613.3");
+    List<AnnotatedSpectrum>  candidates = MIMSL.run(ions, HBasePeakList.SPEC_TRAP_CID, new PpmTolerance(500d), new AbsoluteTolerance(0.5));
+
+    System.out.println(MIMSL.printCandidates(null, candidates));
+  }
+  // test the recovery of known spectra at various parameter
+  @Test
+  public void sampleRecovery() throws IOException
+  {
+    HBaseProteomics.sampleRecovery("/media/data/splib/2013/HumanPlasma_2012-08_all.sptxt", 1, 1000, MimslSettings.ORBI_HL_CID);
+  }
+
+
 /*  String libs_dir = "/bioinfo/apps/linux/ms/twin/libs/nist/";
   Multimap<Double, PTM> ptms;
   static MsMsDictionary dictionary = null;

@@ -45,12 +45,12 @@ public class SpLibsTest extends TestAbstract
 
     //assert spectra.size()==92;
   }
-  @Test
-  public void readSpLib() throws IOException
-  {
-    long n = HBaseProteomics.prepareSpLib(new File("/media/data/splib/2013/human/HumanPlasma_2012-08_all.sptxt"), HBasePeakList.SPEC_TRAP_CID, 20, 450, 0, 0);
-    assert n==92;
-  }
+//  @Test
+//  public void readSpLib() throws IOException
+//  {
+//    long n = HBaseProteomics.prepareLib(new File("/media/data/splib/2013/human/HumanPlasma_2012-08_all.sptxt"), HBasePeakList.SPEC_TRAP_CID, 20, 450, 0, 0);
+//    assert n==92;
+//  }
 /*
   @Test
   public void prepareLibs() throws IOException
@@ -89,8 +89,8 @@ public class SpLibsTest extends TestAbstract
     for (HBaseSpLib lib : libs)
     {
       // for debugging only
-//      if (lib==null || lib.getName().indexOf("HumanPlasma_2012-08_all")==0) continue;
-      if (lib==null && lib.getName().indexOf("yeast_pombe_consensus_final_true_lib")<0) continue;
+      if (lib==null || lib.getName().indexOf("HumanPlasma_2012-08_all")==0) continue;
+//      if (lib==null || lib.getName().indexOf("nist_nci_stdmix_consensus_final_true_lib")<0) continue;
       // preparing the library
       System.out.println("\n" + HBaseProteomics.prepareLib("/media/data/splib/2013", lib, 50d, 450d, 7, 4d) + " entries prepared");
     }
@@ -176,15 +176,6 @@ public class SpLibsTest extends TestAbstract
   {
     Collection<AnnotatedSpectrum> spectra = HBaseProteomics.query(Peaks.newPeakList(500.5d, 2), HBasePeakList.SPEC_TRAP_CID, new AbsoluteTolerance(0.5), 0d);
     assert spectra.size()>0;
-  }
-  @Test
-  public void queryTest() throws IOException
-  {
-    // 500.730, +2(6): 318.20,520.19,568.30,683.25,782.32,869.35,
-    PeakList<PepLibPeakAnnotation> ions = Peaks.newPeakList(500.73d, 2, "318.2", "568.3"); //782.32,869.35
-    List<AnnotatedSpectrum>  candidates = MIMSL.run(ions, HBasePeakList.SPEC_TRAP_CID, new PpmTolerance(500d), new AbsoluteTolerance(0.5));
-
-    System.out.println(MIMSL.printCandidates(null, candidates));
   }
   @Test
   public  void setSpLibs() throws IOException

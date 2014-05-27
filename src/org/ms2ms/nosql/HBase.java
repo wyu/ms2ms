@@ -94,7 +94,7 @@ abstract public class HBase
     HBaseAdmin admin = new HBaseAdmin(conf);
     if (admin.tableExists(tableName))
     {
-      System.out.println("table already exists!");
+      System.out.println(tableName + " table already exists!");
     } else
     {
       HTableDescriptor tableDesc = new HTableDescriptor(tableName);
@@ -273,19 +273,23 @@ abstract public class HBase
 
   }
 */
-  public static String update(Result row, byte[] family, byte[] col, String val)
+  public static String get(Result row, byte[] family, byte[] col, String val)
   {
     return row!=null && row.getValue(family, col)!=null ? Bytes.toString(row.getValue(family, col)) : val;
   }
-  public static long update(Result row, byte[] family, byte[] col, long val)
+  public static long get(Result row, byte[] family, byte[] col, long val)
   {
     return row!=null && row.getValue(family, col)!=null ? Bytes.toLong(row.getValue(family, col)) : val;
   }
-  public static char update(Result row, byte[] family, byte[] col, char val)
+  public static char get(Result row, byte[] family, byte[] col, char val)
   {
     return row!=null && row.getValue(family, col)!=null ? Bytes.toString(row.getValue(family, col)).charAt(0) : val;
   }
-  public static int update(Result row, byte[] family, byte[] col, int val)
+  public static byte[] get(Result row, byte[] family, byte[] col, byte[] val)
+  {
+    return row!=null && row.getValue(family, col)!=null ? row.getValue(family, col) : val;
+  }
+  public static int  get(Result row, byte[] family, byte[] col, int val)
   {
     return row!=null && row.getValue(family, col)!=null ? Bytes.toInt(row.getValue(family, col)) : val;
   }

@@ -52,15 +52,15 @@ public class HbaseExample01 extends TestAbstract
     // you want to insert into as a byte array. In HBase, the Bytes class
     // has utility for converting all kinds of java types to byte arrays. In
     // the below, we are converting the String "myLittleRow" into a byte
-    // array to use as a row key for our update. Once you have a Put
+    // array to use as a row key for our get. Once you have a Put
     // instance, you can adorn it by setting the names of columns you want
-    // to update on the row, the timestamp to use in your update, etc.
+    // to get on the row, the timestamp to use in your get, etc.
     // If no timestamp, the server applies current time to the edits.
     Put p = new Put(Bytes.toBytes("myLittleRow"));
 
-    // To set the value you'd like to update in the row 'myLittleRow',
+    // To set the value you'd like to get in the row 'myLittleRow',
     // specify the column family, column qualifier, and value of the table
-    // cell you'd like to update. The column family must already exist
+    // cell you'd like to get. The column family must already exist
     // in your table schema. The qualifier can be anything.
     // All must be specified as byte arrays as hbase is all about byte
     // arrays. Lets pretend the table 'myLittleHBaseTable' was created

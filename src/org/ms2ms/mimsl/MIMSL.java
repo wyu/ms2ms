@@ -231,10 +231,12 @@ public class MIMSL
   }
   public static List<AnnotatedSpectrum> fdr(List<AnnotatedSpectrum> candidates)
   {
-    if (!Tools.isSet(candidates)) throw new RuntimeException("NULL candidate pool!");
-    // rank the candidates by their scores
-    Collections.sort(candidates, new ScoreDesendComparator());
-
+    if (Tools.isSet(candidates))
+    {
+      // rank the candidates by their scores
+      Collections.sort(candidates, new ScoreDesendComparator());
+      // TODO fdr calculation
+    }
     return candidates;
   }
   public static StringBuffer printCandidates(StringBuffer buf, Collection<AnnotatedSpectrum> candidates)
@@ -247,17 +249,18 @@ public class MIMSL
     for (AnnotatedSpectrum candidate : candidates)
     {
       String[] peptide = candidate.getComment().split("\\^");
+      boolean decoy = (candidate.getStatus().equals(LibrarySpectrum.Status.DECOY));
       buf.append(Tools.d2s(candidate.getScore(AnnotatedSpectrum.SCR_MIMSL),       2) + "\t");
       buf.append(Tools.d2s(candidate.getScore(AnnotatedSpectrum.SCR_MIMSL_DELTA), 2) + "\t");
       buf.append(candidate.getIonMatched() + "\t");
       buf.append(candidate.getStatus() + "\t");
-      buf.append(Tools.d2s(Peaks.toPPM(candidate.getPrecursor().getMz(), candidate.getMzQueried()), 2) + "\t");
-      buf.append(peptide[0] + "\t");
+      buf.append((decoy?"---":Tools.d2s(Peaks.toPPM(candidate.getPrecursor().getMz(), candidate.getMzQueried()), 2)) + "\t");
+      buf.append((decoy?"---":peptide[0]) + "\t");
       buf.append(Tools.d2s(candidate.getPrecursor().getMz(), 4) + "\t");
       buf.append(candidate.getPrecursor().getCharge() + "\t");
       buf.append(candidate.getIonIndexed() + "\t");
       buf.append((candidate.getIonIndexed()-candidate.getIonMatched()) + "\t");
-      buf.append((peptide.length>1?peptide[1]:"") + "\n");
+      buf.append((decoy?"---":peptide.length>1?peptide[1]:"") + "\n");
     }
     return buf;
   }
@@ -1569,7 +1572,7 @@ public class MIMSL
               for (MsMsAssignment A : seq_peptidez_as.row(seq).values())
               {
                 as_totals++; distinct.add(seq);
-                // update the protein info
+                // get the protein info
                 A.getAssignment().setDescription(pid.getProtein().getDescription());
                 A.getAssignment().setId(         pid.getProtein().getId());
                 MultiTreeMap<Integer, Long> z_id = peptide_z_asid.get(A.getAssignment().getBackboneCutPattern(false));

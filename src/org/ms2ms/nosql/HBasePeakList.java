@@ -38,10 +38,10 @@ public final class HBasePeakList implements Serializable
   static public byte[] COL_SIG       = Bytes.toBytes("sg"); // m/z of the signature fragment
   static public byte[] COL_SNR       = Bytes.toBytes("sr"); // m/z of the signature fragment
 
-  static public byte[] SPEC_TRAP_CID = Bytes.toBytes('c');
-  static public byte[] SPEC_TRAP_HCD = Bytes.toBytes('h');
-  static public byte[] SPEC_TRAP_ETD = Bytes.toBytes('e');
-  static public byte[] SPEC_QTOF     = Bytes.toBytes('q');
+  static public byte[] SPEC_TRAP_CID = Bytes.toBytes("c");
+  static public byte[] SPEC_TRAP_HCD = Bytes.toBytes("h");
+  static public byte[] SPEC_TRAP_ETD = Bytes.toBytes("e");
+  static public byte[] SPEC_QTOF     = Bytes.toBytes("q");
 
   private      int size,              // length of the peak list
                    cursor,            // current position of the peak
@@ -177,8 +177,8 @@ public final class HBasePeakList implements Serializable
   }
   public static HBasePeakList getPeakList(HTableInterface tbl, UUID id) throws IOException
   {
-    Get g = new Get(Bytes.toBytes(tbl.toString()));
-    byte[] value = tbl.get(g).getValue(HBase.FAM_ID, COL_IONS);
+    Get g = new Get(row4PeakList(id));
+    byte[] value = tbl.get(g).getValue(HBase.FAM_PROP, COL_IONS);
     HBasePeakList peaks = HBasePeakList.fromBytes(value);
 
     return peaks;
@@ -187,10 +187,15 @@ public final class HBasePeakList implements Serializable
   public static byte[] row4MsMsIndex(byte[] spec_type, float mz, byte z)
   {
     // tag the system time in nanosec to ensure unique row key
-    return Bytes.add(spec_type, Bytes.add(Bytes.toBytes(mz), new byte[] {z}, Bytes.toBytes(System.nanoTime())));
+    return Bytes.add(query4MsMsIndex(spec_type, mz,z), Bytes.toBytes(System.nanoTime()));
   }
-  public static byte[] row4MsMsIndex(byte[] spec_type, double mz, int z)
+  public static byte[] query4MsMsIndex(byte[] spec_type, float mz, byte z)
   {
-    return row4MsMsIndex(spec_type, (float )mz, (byte )z);
+    // tag the system time in nanosec to ensure unique row key
+    return Bytes.add(spec_type, Bytes.add(Bytes.toBytes(mz), new byte[] {z}));
   }
+//  public static byte[] row4MsMsIndex(byte[] spec_type, double mz, int z)
+//  {
+//    return row4MsMsIndex(spec_type, (float )mz, (byte )z);
+//  }
 }

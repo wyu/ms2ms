@@ -6,7 +6,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -24,30 +23,30 @@ public class HBaseSpLib implements Serializable
   private String name, path, source, organism, version, format;
   private long entries;
 //  private int id;
-  private char spectype;
+  private byte[] spectype;
 
   public HBaseSpLib(Result row)
   {
     if (row==null) return;
     // process the row
-    spectype = HBase.update(row, HBase.FAM_PROP, HBase.COL_SPECTYPE,spectype);
-    name     = HBase.update(row, HBase.FAM_PROP, HBase.COL_NAME,    name);
-    source   = HBase.update(row, HBase.FAM_PROP, HBase.COL_SOURCE,  source);
-    organism = HBase.update(row, HBase.FAM_PROP, HBase.COL_ORGANISM,organism);
-    version  = HBase.update(row, HBase.FAM_PROP, HBase.COL_VERSION, version);
-    format   = HBase.update(row, HBase.FAM_PROP, HBase.COL_FORMAT,  format);
-    entries  = HBase.update(row, HBase.FAM_PROP, HBase.COL_ENTRIES, entries);
-//    id       = HBase.update(row, HBase.FAM_ID,   HBase.COL_ENDID,   id);
+    spectype = HBase.get(row, HBase.FAM_PROP, HBase.COL_SPECTYPE,spectype);
+    name     = HBase.get(row, HBase.FAM_PROP, HBase.COL_NAME,    name);
+    source   = HBase.get(row, HBase.FAM_PROP, HBase.COL_SOURCE,  source);
+    organism = HBase.get(row, HBase.FAM_PROP, HBase.COL_ORGANISM,organism);
+    version  = HBase.get(row, HBase.FAM_PROP, HBase.COL_VERSION, version);
+    format   = HBase.get(row, HBase.FAM_PROP, HBase.COL_FORMAT,  format);
+    entries  = HBase.get(row, HBase.FAM_PROP, HBase.COL_ENTRIES, entries);
+//    id       = HBase.get(row, HBase.FAM_ID,   HBase.COL_ENDID,   id);
   }
   public String getName()     { return name; }
-  public   char getSpecType() { return spectype; }
+  public byte[] getSpecType() { return spectype; }
 
   public boolean isFormat(String s) { return format!=null && format.equals(s); }
 
   @Override
   public String toString()
   {
-    return "'" + name + "' (" + organism + ") by '" + source + "' #" + version + ": entries=" + entries;
+    return Bytes.toString(spectype) + ": '" + name + "' (" + organism + ") by '" + source + "' #" + version + ": entries=" + entries;
   }
 //  public static long increID(String tbl, long block) throws IOException
 //  {
@@ -59,7 +58,7 @@ public class HBaseSpLib implements Serializable
 //  }
   public static long increEntries(byte[] lib, long incre) throws IOException
   {
-    return HBase.incre(TBL_SPLIB, lib, HBase.FAM_ID, HBase.COL_ENTRIES, incre);
+    return HBase.incre(TBL_SPLIB, lib, HBase.FAM_PROP, HBase.COL_ENTRIES, incre);
   }
 
   public static void set(HTableInterface tbl, String source, String format,

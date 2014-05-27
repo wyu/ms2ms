@@ -119,4 +119,15 @@ public class Tools
     if (map!=null && in!=null) map.putAll(in);
     return map;
   }
+  public static <T> boolean has(T[] vals, T obj, int end)
+  {
+    if (isSet(vals) && obj!=null)
+    {
+      int bound = (end>=0&&end<=vals.length?end:vals.length);
+      for (int i=0; i<bound; i++)
+        if (vals[i]!=null && vals[i].equals(obj)) return true;
+    }
+
+    return false;
+  }
 }
