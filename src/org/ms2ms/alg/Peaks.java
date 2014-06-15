@@ -239,7 +239,7 @@ public class Peaks
     for (int i=0; i<strs.length; i++)
     {
       String[] items = strs[i].split("/");
-      peaks[i].setMzAndCharge(Double.valueOf(items[0]), items.length>1?Integer.valueOf(items[1]):z);
+      peaks[i] = new Peak(Double.valueOf(items[0]), 0d, items.length>1?Integer.valueOf(items[1]):z);
     }
     return peaks;
   }

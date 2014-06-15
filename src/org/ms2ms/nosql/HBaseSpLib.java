@@ -25,6 +25,17 @@ public class HBaseSpLib implements Serializable
 //  private int id;
   private byte[] spectype;
 
+  public HBaseSpLib(String n, String s, String o, String v, String f, long e, byte[] stype)
+  {
+    spectype = stype;
+    name     = n;
+    source   = s;
+    organism = o;
+    version  = v;
+    format   = f;
+    entries  = e;
+  }
+
   public HBaseSpLib(Result row)
   {
     if (row==null) return;
@@ -61,7 +72,7 @@ public class HBaseSpLib implements Serializable
     return HBase.incre(TBL_SPLIB, lib, HBase.FAM_PROP, HBase.COL_ENTRIES, incre);
   }
 
-  public static void set(HTableInterface tbl, String source, String format,
+  public static HBaseSpLib set(HTableInterface tbl, String source, String format,
                          String organism, String version, byte[] spectype, String name) throws IOException
   {
     // only need an integer
@@ -77,6 +88,8 @@ public class HBaseSpLib implements Serializable
     row.add(HBase.FAM_PROP, HBase.COL_FORMAT,  Bytes.toBytes(format));
 
     tbl.put(row);
+    return new HBaseSpLib(name, source, organism, version, format, 0, spectype);
+
   }
   public static Collection<HBaseSpLib> getAll()
   {

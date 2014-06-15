@@ -316,8 +316,9 @@ public class HBaseProteomics extends HBase
           HBase.getInt(rs, HBase.FAM_PROP, HBasePeakList.COL_IONS));
       id_candidate.get(id).setIonQueried(frags.length);
       id_candidate.get(id).setIonMatched(id_candidate.get(id).size());
-      id_candidate.get(id).setPrecursor(null);
-//        id_candidate.get(id).setMzQueried((float )signatures.getPrecursor().getMz());
+//      id_candidate.get(id).setPrecursor(null);
+      // assume the range is symmetrical for now
+      id_candidate.get(id).setMzQueried(0.5f*(mzlow+mzhigh));
     }
 /*
     System.out.println("Candidates with the precursor m/z range of " + range.toString());

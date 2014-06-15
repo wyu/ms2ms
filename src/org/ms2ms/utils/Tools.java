@@ -110,10 +110,6 @@ public class Tools
 
     return pool;
   }
-  public static String extend(String s0, String s1, String delimiter)
-  {
-    return s0==null?s1:(s0+delimiter+s1);
-  }
   public static <K, V> Map<K,V> putAll(Map<K,V> map, Map<K,V> in)
   {
     if (map!=null && in!=null) map.putAll(in);
@@ -128,6 +124,15 @@ public class Tools
         if (vals[i]!=null && vals[i].equals(obj)) return true;
     }
 
+    return false;
+  }
+  public static <T extends Object> boolean isA(T A, T... B)
+  {
+    if ((A == null && B != null) ||
+        (A != null && B == null)) return false;
+    if (A == null && B == null) return true;
+
+    for (T b : B) if (A.equals(b)) return true;
     return false;
   }
 }

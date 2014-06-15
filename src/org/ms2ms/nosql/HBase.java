@@ -104,6 +104,7 @@ abstract public class HBase
       admin.createTable(tableDesc);
       System.out.println("create table " + tableName + " ok.");
     }
+    if (admin!=null) admin.close();
   }
 
   /*** Delete a table */
