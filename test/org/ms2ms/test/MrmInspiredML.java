@@ -335,7 +335,7 @@ public class MrmInspiredML extends TestAbstract
   }
   private static List<MsIon> newSignatureFromMsMsSpectrum(Connection conn, Long msid) throws Exception
   {
-    Spectre_MsMsSpectrum spec = Spectre_MsMsSpectrum.getRow(conn, msid, MsMsSpectrumRetrievalFlags.ASSIGNMENT_ION);
+    Spectre_MsMsSpectrum spec = Spectre_MsMsSpectrum.row(conn, msid, MsMsSpectrumRetrievalFlags.ASSIGNMENT_ION);
     spec.getPeptideAssignment().matchToSpectrum(conn, spec.getRawSpectrum(), 0.5f, true);
 
     return MimpCore.extractSignatureFragments(spec.getRawSpectrum(), 4d, 50d, 7);
@@ -371,7 +371,7 @@ public class MrmInspiredML extends TestAbstract
       //System.out.println(">>" + peptide.getAssignment().toString());
       if (!Toolbox.isSet(peptide.getMsMs().getRawData()))
       {
-        Spectre_MsMsSpectrum row = Spectre_MsMsSpectrum.getRow(conn, peptide.getMsMs().getPrimaryKey(), MsMsSpectrumRetrievalFlags.ASSIGNMENT_ION);
+        Spectre_MsMsSpectrum row = Spectre_MsMsSpectrum.row(conn, peptide.getMsMs().getPrimaryKey(), MsMsSpectrumRetrievalFlags.ASSIGNMENT_ION);
         row.getPeptideAssignment().matchToSpectrum(conn, row.getRawSpectrum(), 0.5f, true);
         peptide.getMsMs().setData(row.getRawSpectrum().getData());
         //peptide.setMsMs(row.toMsMsAssignment().getMsMs());
@@ -436,7 +436,7 @@ public class MrmInspiredML extends TestAbstract
       Spectre_MsMsSpectrum row = null;
       if (!Toolbox.isSet(peptide.getMsMs().getRawData()))
       {
-        row = Spectre_MsMsSpectrum.getRow(conn, peptide.getMsMs().getPrimaryKey(), MsMsSpectrumRetrievalFlags.ASSIGNMENT_ION);
+        row = Spectre_MsMsSpectrum.row(conn, peptide.getMsMs().getPrimaryKey(), MsMsSpectrumRetrievalFlags.ASSIGNMENT_ION);
         row.getPeptideAssignment().matchToSpectrum(conn, row.getRawSpectrum(), 0.5f, true);
         peptide.getMsMs().setData(row.getRawSpectrum().getData());
       }

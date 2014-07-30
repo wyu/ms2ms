@@ -90,7 +90,7 @@ public class SpLibsTest extends TestAbstract
     {
       // for debugging only
       if (lib==null || lib.getName().indexOf("HumanPlasma_2012-08_all")==0) continue;
-//      if (lib==null || lib.getName().indexOf("nist_nci_stdmix_consensus_final_true_lib")<0) continue;
+      if (lib==null || lib.getName().indexOf("nist_nci_stdmix_consensus_final_true_lib")<0) continue;
       // preparing the library
       System.out.println("\n" + HBaseProteomics.prepareLib("/media/data/splib/2013", lib, 50d, 450d, 7, 4d) + " entries prepared");
     }
@@ -111,7 +111,7 @@ public class SpLibsTest extends TestAbstract
     {
       Result result = iterator.next();
       //if you want to get the entire row
-      Get get = new Get(result.getRow());
+      Get get = new Get(result.row());
       Result entireRow = table.get(get);
       // process the row
       HBaseSpLib lib = new HBaseSpLib(entireRow);

@@ -188,6 +188,7 @@ public class Strs
     // return the concatenated string
     return made;
   }
+/*
   public static String[] toStringArray(Collection<String> ss)
   {
     if (!Tools.isSet(ss)) return null;
@@ -198,6 +199,7 @@ public class Strs
 
     return cols;
   }
+*/
   public static <T> Collection<String> toStrings(Collection<T> ss) {
     // no point to go further
     if (ss == null) return null;
@@ -257,4 +259,13 @@ public class Strs
     for (Long s : ss) made = extend(made, s.toString(), dl);
     // return the concatenated string
     return made;
-  }}
+  }
+  public static String[] toStringArray(Collection s)
+  {
+    String[] out = new String[s.size()];
+    int i=0;
+    for (Object v : s)  out[i++]=v.toString();
+
+    return out;
+  }
+}

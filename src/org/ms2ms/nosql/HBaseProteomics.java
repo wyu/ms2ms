@@ -59,13 +59,14 @@ public class HBaseProteomics extends HBase
     for (HTableDescriptor table : conn.listTables())
     {
       // get the number of row. Can be very expansive for a large table!!
-      HTableInterface tbl = conn.getTable(table.getTableName());
+      //HTableInterface tbl = conn.getTable(table.getTableName());
+      HTableInterface tbl = conn.getTable(table.getName());
       ResultScanner scanner = tbl.getScanner(new Scan());
       long counts=0;
       for (Result rs = scanner.next(); rs != null; rs = scanner.next()) { counts++; }
       tbl.close();
 
-      System.out.println(table.getTableName() + " with " + table.getColumnFamilies().length + " Col families and " + counts + " Rows");
+      System.out.println(table.getName() + " with " + table.getColumnFamilies().length + " Col families and " + counts + " Rows");
       for (HColumnDescriptor col : table.getFamilies())
       {
         System.out.println("  " + col.getNameAsString());

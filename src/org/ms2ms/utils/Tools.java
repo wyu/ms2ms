@@ -1,6 +1,13 @@
 package org.ms2ms.utils;
 
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
+import com.google.common.collect.Table;
+import com.google.common.collect.TreeBasedTable;
+import org.apache.commons.lang.NumberUtils;
+import org.apache.commons.math.linear.Array2DRowRealMatrix;
+import org.ms2ms.data.Dataframe;
+import org.ms2ms.data.Var;
 
 import java.util.*;
 
@@ -14,8 +21,11 @@ public class Tools
 
   public static     boolean isSet(String        s) { return s!=null && s.length()>0; }
   public static <T> boolean isSet(Collection<T> s) { return s!=null && s.size()>0; }
+  public static <T> boolean isSet(Map s)           { return s!=null && s.size()>0; }
   public static <T> boolean isSet(T[]           s) { return s!=null && s.length>0; }
+  public static <T> boolean isSet(double[]      s) { return s!=null && s.length>0; }
   public static     boolean isSet(int[]         s) { return s!=null && s.length>0; }
+  public static     boolean isSet(Table         s) { return s!=null && s.size()>0; }
 
   public static <T> T front(Collection<T> s)
   {
@@ -135,4 +145,66 @@ public class Tools
     for (T b : B) if (A.equals(b)) return true;
     return false;
   }
+  public static Collection dispose(Collection s)
+  {
+    if (s!=null) { s.clear(); s=null; }
+    return null;
+  }
+  public static Collection dispose(Map s)
+  {
+    if (s!=null) { s.clear(); s=null; }
+    return null;
+  }
+  public static Collection dispose(Multimap s)
+  {
+    if (s!=null) { s.clear(); s=null; }
+    return null;
+  }
+  public static Collection dispose(Table s)
+  {
+    if (s!=null) { s.clear(); s=null; }
+    return null;
+  }
+  public static Map putNotNull(Map m, Object k, Object v)
+  {
+    if (m!=null && k!=null && v!=null) m.put(k, v);
+    return m;
+  }
+  public static double[][] sort(double[]... xs)
+  {
+    // bubble sort from
+    // http://thilinasameera.wordpress.com/2011/06/01/sorting-algorithms-sample-codes-on-java-c-and-matlab/
+    int lenD = xs[0].length; double tmp = 0;
+    for(int i = 0;i<lenD;i++)
+      for(int j = (lenD-1);j>=(i+1);j--)
+        if(xs[0][j]<xs[0][j-1])
+          for (int k=0; k<xs.length; k++)
+          {
+            tmp = xs[k][j];
+            xs[k][j]=xs[k][j-1];
+            xs[k][j-1]=tmp;
+          }
+
+    return xs;
+  }
+  public static <T extends Object> Collection<T> slice(TreeBasedTable<Double, Double, T> data, Double r1, Double r2, Double c1, Double c2)
+  {
+    Collection<T> results = new ArrayList<T>();
+
+    if (isSet(data) && (r2>r1) && (c2>c1))
+    {
+      SortedMap<Double,Map<Double, T>> s1 = data.rowMap().subMap(r1, r2);
+      if (isSet(s1))
+      {
+        SortedMap<Double,Map<Double, T>> s2 = s1.subMap(c1, c2);
+        if (isSet(s2))
+          for (Map<Double, T> s3 : s2.values())
+            results.addAll(s3.values());
+        s2=null;
+      }
+      s1=null;
+    }
+    return results;
+  }
+
 }

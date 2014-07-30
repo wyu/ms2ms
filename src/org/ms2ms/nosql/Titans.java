@@ -18,6 +18,8 @@ abstract public class Titans
   {
     Configuration conf = new BaseConfiguration();
     conf.setProperty("storage.backend","hbase");
+    conf.setProperty("storage.directory","/media/data/titan");
+
     return TitanFactory.open(conf);
   }
   public static TitanGraph openGraph(String cfg)

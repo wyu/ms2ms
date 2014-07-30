@@ -9,6 +9,8 @@ import org.ms2ms.nosql.HBasePeakList;
 import org.ms2ms.nosql.HBaseProteomics;
 import org.ms2ms.nosql.HBaseSpLib;
 import org.ms2ms.utils.TabFile;
+import org.ms2ms.utils.Tools;
+
 import java.io.IOException;
 
 /**
@@ -25,7 +27,8 @@ public class SpLibBuilder extends Apps
   public SpLibBuilder() { super(); mAppName = "SpLibBuilder"; mVersion = "v0.001"; }
   protected void processCommandLine(String args[])
   {
-    System.out.println("Build Date: Jun 12, 2014; 11:30pm");
+    System.out.println(mAppName);
+    System.out.println("Build Date: Jul 3, 2014; 5:45pm");
     super.processCommandLine(args);
 
     for (int i = 0; i < args.length; i++)
@@ -45,24 +48,22 @@ public class SpLibBuilder extends Apps
   @Override
   protected boolean doRun() throws Exception
   {
-    if (mCfg==null) return false;
+    if (!Tools.isSet(mLibList)) return false;
 
-      HBaseProteomics.ensureTables();
+    HBase.verifyConnection();
+    HBaseProteomics.ensureTables();
 
-    HConnection      conn = HConnectionManager.createConnection(HBaseConfiguration.create());
+    HConnection      conn = HConnectionManager.createConnection(HBase.conf);
     HTableInterface table = conn.getTable(HBaseSpLib.TBL_SPLIB);
 
-    if (mCfg!=null)
+    TabFile cfg = new TabFile(mLibList, TabFile.comma);
+    while (cfg.hasNext())
     {
-      TabFile cfg = new TabFile(mCfg, TabFile.tabb);
-      while (cfg.hasNext())
-      {
-        byte[] stype = HBasePeakList.SPEC_TRAP_CID;
-        if      (cfg.get("spectype").equals("HCD" )) stype = HBasePeakList.SPEC_TRAP_HCD;
-        else if (cfg.get("spectype").equals("QTOF")) stype = HBasePeakList.SPEC_QTOF;
-        HBaseSpLib lib = HBaseSpLib.set(table, cfg.get("source"), cfg.get("format"), cfg.get("organism"), cfg.get("version"), stype, cfg.get("name"));
-        System.out.println("\n" + HBaseProteomics.prepareLib("/media/data/splib/2013", lib, 50d, 450d, 7, 4d) + " entries prepared");
-      }
+      byte[] stype = HBasePeakList.SPEC_TRAP_CID;
+      if      (cfg.get("spectype").equals("HCD" )) stype = HBasePeakList.SPEC_TRAP_HCD;
+      else if (cfg.get("spectype").equals("QTOF")) stype = HBasePeakList.SPEC_QTOF;
+      HBaseSpLib lib = HBaseSpLib.set(table, cfg.get("source"), cfg.get("format"), cfg.get("organism"), cfg.get("version"), stype, cfg.get("name"));
+      System.out.println("\n" + HBaseProteomics.prepareLib(mLibRoot, lib, 50d, 450d, 7, 4d) + " entries prepared");
     }
     table.close(); conn.close();
 

@@ -49,7 +49,7 @@ abstract public class HBase
   static public String MIXED  = "Mixed";
   static public String POMBE  = "S.Pombe";
 
-  protected static Configuration conf;
+  public static Configuration conf;
 
   // initiate the configuratio object. Only one per JVM
   static
@@ -293,5 +293,38 @@ abstract public class HBase
   public static int  get(Result row, byte[] family, byte[] col, int val)
   {
     return row!=null && row.getValue(family, col)!=null ? Bytes.toInt(row.getValue(family, col)) : val;
+  }
+
+  public static boolean verifyConnection()
+  {
+    HConnection conn = null;
+    try
+    {
+      try
+      {
+        HBaseAdmin admin = new HBaseAdmin(conf);
+        HTableDescriptor tableDescriptor = new HTableDescriptor("dummy");
+        tableDescriptor.addFamily(new HColumnDescriptor("personal"));
+        tableDescriptor.addFamily(new HColumnDescriptor("contactinfo"));
+        tableDescriptor.addFamily(new HColumnDescriptor("creditcard"));
+        admin.createTable(tableDescriptor);
+        admin.close();
+
+        conn = HConnectionManager.createConnection(conf);
+        if (!conn.isTableAvailable(Bytes.toBytes("dummy"))) throw new RuntimeException("Table creation failed!");
+        System.out.println(conn.getRegionLocation(Bytes.toBytes("dummy"), Bytes.toBytes("test"), true).toString());
+        if (conn!=null) conn.close();
+
+        deleteTable(conf, "dummy");
+      }
+      catch (Exception e) { e.printStackTrace(); }
+      finally
+      {
+        if (conn!=null && !conn.isClosed()) conn.close();
+      }
+    }
+    catch (IOException ioe) { throw new RuntimeException(ioe); }
+
+    return true;
   }
 }

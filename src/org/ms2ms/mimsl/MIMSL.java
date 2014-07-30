@@ -173,7 +173,7 @@ public class MIMSL
       Peak p1 = new Peak(p), p2 = new Peak(p);
       p1.setMzAndCharge(tol.getMin(mz), z);
       p2.setMzAndCharge(tol.getMax(mz), z);
-      ranges.add(Range.closed(p1,p2));
+      ranges.add(Range.closed(p1, p2));
     }
     return ranges;
   }
@@ -1214,7 +1214,7 @@ public class MIMSL
   }
   public static void save(Connection conn, Long expt_id, MapOfMultiMap<String, String, MsMsAssignment> chrom_gene_assign) throws Exception
   {
-    Spectre_Experiment parent = Spectre_Experiment.getRow(conn, expt_id);
+    Spectre_Experiment parent = Spectre_Experiment.row(conn, expt_id);
     for (String ch : chrom_gene_assign.keySet())
     {
       Spectre_Experiment folder_ch = Db_Util.getExperiment(conn, parent, "ch " + ch);
