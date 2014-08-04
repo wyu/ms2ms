@@ -47,7 +47,7 @@ public class Tools
   //  Date:    March 2006
   // http://www.iro.umontreal.ca/~vaucher/Java/tutorials/Formatting.html
   /* -------------------------------------------------------------------------
-     Meant to be used in a "print" statement to align data (text, int or real)
+     Meant to be used in a "print" statement to run data (text, int or real)
      in fields of W characters: on the right if W>0 and left if W<0.
      With real numbers, the parameter N is the number of decimals required.
 
@@ -206,5 +206,12 @@ public class Tools
     }
     return results;
   }
+  public static <K, V> Map<K, V> putNew(Map<K, V> m, K key, V val)
+  {
+    if (m==null || key==null || val==null) return m;
+    // Check if the row or the aligned row is already filled
+    if (!m.containsKey(key) && !m.containsValue(val)) m.put(key, val);
 
+    return m;
+  }
 }

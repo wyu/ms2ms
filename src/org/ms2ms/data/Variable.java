@@ -34,6 +34,8 @@ public class Variable implements Var
   public Var setType(VarType s) { eType=s; return this; }
   public Var setFactors(Collection s)
   {
+    if (s==null) { mFactors=null; return this; }
+
     if (mFactors==null) mFactors = new ArrayList();
     mFactors.addAll(s);
     return this;

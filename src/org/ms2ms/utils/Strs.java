@@ -1,5 +1,7 @@
 package org.ms2ms.utils;
 
+import com.google.common.collect.Table;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -267,5 +269,27 @@ public class Strs
     for (Object v : s)  out[i++]=v.toString();
 
     return out;
+  }
+  public static String toString(Table t)
+  {
+    if (!Tools.isSet(t)) return null;
+
+    StringBuffer buf = new StringBuffer();
+    for (Object col : t.columnKeySet()) buf.append(col.toString() + "\t");
+    buf.append("\n");
+    for (Object row : t.rowKeySet())
+    {
+      for (Object col : t.columnKeySet())
+      {
+        Object val = t.get(row, col);
+        buf.append((val!=null?val.toString():"--") + "\t");
+      }
+      buf.append("\n");
+    }
+    return buf.toString();
+  }
+  public static String rtuncate(String s, int n)
+  {
+    return s==null||s.length()<n?s:s.substring(s.length()-n);
   }
 }

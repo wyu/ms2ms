@@ -19,6 +19,7 @@ import java.util.*;
  */
 public class Dataframe
 {
+  private String                     mTitle;
   private boolean                    mKeepData = true;
   private List<String>               mRowIDs;
   private List<Var>                  mColVars;
@@ -26,12 +27,13 @@ public class Dataframe
   private Table<String, Var, Object> mData;
 
   public Dataframe()                                         { super(); }
-  public Dataframe(String cvs, char delim, String... idcols) { super(); readTable(cvs, delim, idcols);}
+  public Dataframe(String cvs, char delim, String... idcols) { super(); readTable(cvs, delim, idcols); setTitle(cvs); }
 
-  //** Getters the Settings **//
+  //** Getters the Setters **//
   public int size() { return mData!=null?mData.rowKeySet().size():0; }
-  public List<Var>    getVars()   { return mColVars; }
-  public List<String> getRowIds() { return mRowIDs; }
+  public String       getTitle()      { return mTitle; }
+  public List<Var>    getVars()       { return mColVars; }
+  public List<String> getRowIds()     { return mRowIDs; }
   public String       getRowId(int i) { return mRowIDs!=null?mRowIDs.get(i):null; }
   public Var[]        toVars(String... s)
   {
@@ -41,6 +43,7 @@ public class Dataframe
 
     return out;
   }
+  public Dataframe setTitle(String s) { mTitle=s; return this; }
 
   public Map<Var,    Object> row(int    i) { return mData!=null?mData.row(getRowIds().get(i)):null; }
   public Map<Var,    Object> row(String s) { return mData!=null?mData.row(s):null; }
@@ -125,6 +128,7 @@ public class Dataframe
     return lead;
   }
   public Object cell(String rowid, Var v) { return mData!=null?mData.get(rowid,v):null; }
+  public Object cell(String rowid, String s) { return mData!=null?mData.get(rowid,getVar(s)):null; }
 
   public Dataframe reorder(String... s)
   {
@@ -264,9 +268,7 @@ public class Dataframe
     //int counts=0;
     for (Var v : mColVars)
     {
-      //System.out.print(v+"...");
-      //if (++counts%10==0) System.out.println();
-      init(v);
+      v.setFactors(null); init(v);
     }
     System.out.println();
   }
@@ -319,7 +321,7 @@ public class Dataframe
       Dataframe F = outs.get(key);
       if (F==null) F = new Dataframe();
       F.addRow(r, mData.row(r));
-      outs.put(key, F);
+      outs.put(key, F.setTitle(key.toString()));
     }
     for (Dataframe d : outs.values()) d.init();
 

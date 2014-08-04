@@ -15,6 +15,7 @@ import java.util.Map;
  */
 public class Features
 {
+/*
   private Dataframe mData;
   private Var[]            mVariable;
   private Tolerance[]      mTols;
@@ -50,13 +51,15 @@ public class Features
 
   public String  getID()            { return null; }
   public Object  get(int i,Var key) { return mData!=null?mData.row(i).get(key):null; }
+*/
 /*
   public String  getString(Var key) { return (String )get(key); }
   public Double  getDouble(Var key) { return (Double )get(key); }
   public Float   getFloat( Var key) { return (Float  )get(key); }
   public Long    getLong(  Var key) { return (Long   )get(key); }
   public Integer getInt(   Var key) { return (Integer)get(key); }
-*/
+*//*
+
 
   public Features setVars(Var... vs) { mVariable = vs; return this; }
   public Features setTols(Tolerance... ts)
@@ -83,4 +86,5 @@ public class Features
     }
     return score;
   }
+*/
 }

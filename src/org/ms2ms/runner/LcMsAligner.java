@@ -1,6 +1,8 @@
 package org.ms2ms.runner;
 
 
+import org.expasy.mzjava.core.ms.Tolerance;
+
 /**
  * Created with IntelliJ IDEA.
  * User: wyu
@@ -11,7 +13,7 @@ package org.ms2ms.runner;
 public class LcMsAligner extends Aligner
 {
 
-  public LcMsAligner() { super(); }
+  public LcMsAligner(String[] cols, Tolerance[] tols) { super(tols, cols); }
 
   public void run()
   {

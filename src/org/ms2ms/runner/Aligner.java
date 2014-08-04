@@ -1,20 +1,15 @@
 package org.ms2ms.runner;
 
-import com.google.common.collect.TreeBasedTable;
-import net.sf.mzmine.data.IsotopePattern;
-import net.sf.mzmine.data.PeakListRow;
-import net.sf.mzmine.data.RawDataFile;
-import net.sf.mzmine.data.impl.SimplePeakListRow;
-import net.sf.mzmine.modules.peaklistmethods.alignment.join.JoinAlignerParameters;
-import net.sf.mzmine.modules.peaklistmethods.alignment.join.RowVsRowScore;
-import net.sf.mzmine.modules.peaklistmethods.isotopes.isotopepatternscore.IsotopePatternScoreCalculator;
-import net.sf.mzmine.parameters.ParameterSet;
-import net.sf.mzmine.util.PeakUtils;
+import com.google.common.base.Strings;
+import com.google.common.collect.*;
+import com.hfg.util.OrderedMap;
+import org.apache.commons.math3.distribution.NormalDistribution;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.ms2ms.data.Dataframe;
 import org.ms2ms.data.Features;
 import org.ms2ms.data.Var;
 import org.ms2ms.utils.Stats;
+import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
 import java.util.*;
@@ -28,24 +23,62 @@ public class Aligner
   protected Tolerance[] mTols;
   protected String[]    mCols;
 
+  protected Table<      Long, Dataframe, String> mAlignment;      // id, frame and rowid to the starting data frame
+  protected List<TreeMap<Double, Long>>          mIndice;
+
+  public Aligner(Tolerance[] tols, String... cols)
+  {
+    mCols=cols; mTols=tols;
+  }
+
+  public int getNumVars() { return mTols!=null?mTols.length:0; }
+
+  public String print()
+  {
+    StringBuffer buf = new StringBuffer();
+
+    // print the headers
+    for (Dataframe frm : mAlignment.columnKeySet())
+    {
+      buf.append(Strs.rtuncate(frm.getTitle(), 4) + "\t");
+    }
+    buf.append("\n");
+
+    for (Long row : mAlignment.rowKeySet())
+    {
+      for (Dataframe frm : mAlignment.columnKeySet())
+      {
+        Object val = frm.cell(mAlignment.get(row, frm), "m/z");
+        buf.append((val!=null?val.toString():"--") + "\t");
+      }
+      buf.append("\n");
+    }
+
+    return buf.toString();
+  }
   class F2F implements Comparable<F2F>
   {
-    private Features mRow1, mRow2;
+    private Long mID1, mID2;
+    private String mRow1, mRow2;
     private double mScore;
 
-    protected F2F(Features from, Features to)
+    protected F2F(String from, String to, Long id2, double s)
     {
-      mRow1=from; mRow2=to;
-      mScore=mRow1.score(mRow2);
+      mRow1=from; mRow2=to; mID2=id2; mScore=s;
     }
 
     /*** This method returns the peak list row which is being aligned */
-    public Features getRow1() { return mRow1; }
+    public String getRow1() { return mRow1; }
     /*** This method returns the row of aligned peak list */
-    public Features getRow2() { return mRow2; }
-
+    public String getRow2() { return mRow2; }
+    public Long   getID2()  { return mID2; }
     /*** This method returns score between the these two peaks (the lower score, the better match) */
     double getScore() { return mScore; }
+
+    F2F setRow1(String s) { mRow1=s; return this; }
+    F2F setRow2(String s) { mRow2=s; return this; }
+    F2F setID1( Long   s) { mID1 =s; return this; }
+    F2F setID2( Long   s) { mID2 =s; return this; }
 
     /*** @see java.lang.Comparable#compareTo(java.lang.Object) */
     public int compareTo(F2F object)
@@ -54,119 +87,93 @@ public class Aligner
       return mScore < object.getScore() ? 1 : -1;
     }
   }
-  static public double match()
+  public double match(Dataframe A, String rowidA, Dataframe B, String rowidB)
   {
-
+    double score = 1d;
+    for (int i=0; i<mCols.length; i++)
+    {
+      double x0 = Stats.toDouble(A.cell(rowidA, mCols[i])), delta = Math.abs(x0 - Stats.toDouble(B.cell(rowidB, mCols[i])));
+      NormalDistribution norm = new NormalDistribution(0, (mTols[i].getMax(x0)-mTols[i].getMin(x0))/1.77d);
+      score *= norm.density(delta); norm=null;
+    }
+    return score;
   }
-
-  public static <T extends Features> void align(String r1, String r2, Tolerance t1, Tolerance t2, Dataframe... traces)
+  public <T extends Features> void run(Dataframe... traces)
   {
-    Dataframe                            aligned = new Dataframe();
-    TreeBasedTable<Double, Double, String> index = aligned.index(r1, r2);
+    mAlignment = HashBasedTable.create(); // id, frame and rowid
+    mIndice    = new ArrayList<TreeMap<Double, Long>>(getNumVars());
 
     // Iterate source peak lists
+    int processedRows = 0; long maxid=0;
     for (int i=0; i<traces.length; i++)
     {
+      System.out.print("Frame " + (i + 1) + ": " + traces[i].size());
       // the variables
-      Var v1=traces[i].getVar(r1), v2=traces[i].getVar(r2);
+      Var[] vs=traces[i].toVars(mCols);
       // Create a sorted set of scores matching
       TreeSet<F2F> scoreSet = new TreeSet<F2F>();
       // Calculate scores for all possible alignments of this row
       for (String rowid : traces[i].getRowIds())
       {
-        Double x1= Stats.toDouble(traces[i].cell(rowid,v1)), x2= Stats.toDouble(traces[i].cell(rowid, v2));
-        Collection<String> candidates = Tools.slice(index, t1.getMin(x1), t1.getMax(x1), t2.getMin(x2), t2.getMax(x2));
+        // collect the rows from the current alignment that match to the row in consideration within the tolerances
+        Set<Long>  candidates = null;
+        if (mIndice.size()>0)
+          for (int k=0; k<getNumVars(); k++)
+          {
+            Double x=Stats.toDouble(traces[i].cell(rowid,vs[k]));
+            Map<Double, Long> slice = mIndice.get(k).subMap(mTols[k].getMin(x), mTols[k].getMax(x));
+            if (Tools.isSet(slice))
+            {
+              // setup the new candidates
+              if  (candidates==null) candidates = new HashSet<>(slice.values());
+                // retain the shared rows only
+              else candidates=Sets.intersection(candidates, new HashSet<>(slice.values()));
+            }
+            else candidates = new HashSet<>();
+          }
 
         // Calculate scores and store them
-        for (String candidate : candidates)
-        {
-          if (sameChargeRequired) {
-            if (!PeakUtils.compareChargeState(row, candidate))
-              continue;
-          }
-
-          if (sameIDRequired) {
-            if (!PeakUtils.compareIdentities(row, candidate))
-              continue;
-          }
-
-          if (compareIsotopePattern) {
-            IsotopePattern ip1 = row.getBestIsotopePattern();
-            IsotopePattern ip2 = candidate.getBestIsotopePattern();
-
-            if ((ip1 != null) && (ip2 != null)) {
-              ParameterSet isotopeParams = parameters
-                  .getParameter(
-                      JoinAlignerParameters.compareIsotopePattern)
-                  .getEmbeddedParameters();
-
-              if (!IsotopePatternScoreCalculator.checkMatch(ip1,
-                  ip2, isotopeParams)) {
-                continue;
-              }
+        if (Tools.isSet(candidates))
+          for (Long candidate : candidates)
+            for (Dataframe d : mAlignment.row(candidate).keySet())
+            {
+              double score = match(traces[i], rowid, d, mAlignment.get(candidate, d));
+              if (score!=0) scoreSet.add(new F2F(rowid, mAlignment.get(candidate, d), candidate, score));
             }
-          }
-
-          RowVsRowScore score = new RowVsRowScore(row, candidate,
-              mzRange.getSize() / 2, mzWeight,
-              rtRange.getSize() / 2, rtWeight);
-
-          scoreSet.add(score);
-
-        }
 
         processedRows++;
-
       }
 
       // Create a table of mappings for best scores
-      Hashtable<PeakListRow, PeakListRow> alignmentMapping = new Hashtable<PeakListRow, PeakListRow>();
+      Map<String, F2F> mapping = new Hashtable<>();
 
       // Iterate scores by descending order
-      Iterator<RowVsRowScore> scoreIterator = scoreSet.iterator();
-      while (scoreIterator.hasNext()) {
-
-        RowVsRowScore score = scoreIterator.next();
-
-        // Check if the row is already mapped
-        if (alignmentMapping.containsKey(score.getPeakListRow()))
-          continue;
-
-        // Check if the aligned row is already filled
-        if (alignmentMapping.containsValue(score.getAlignedRow()))
-          continue;
-
-        alignmentMapping.put(score.getPeakListRow(),
-            score.getAlignedRow());
-
-      }
+      for (F2F score : scoreSet)
+        mapping = Tools.putNew(mapping, score.getRow1(), score);
 
       // Align all rows using mapping
-      for (PeakListRow row : allRows) {
-
-        PeakListRow targetRow = alignmentMapping.get(row);
+      for (String rowid : traces[i].getRowIds())
+      {
+        F2F target = mapping.get(rowid);
 
         // If we have no mapping for this row, add a new one
-        if (targetRow == null) {
-          targetRow = new SimplePeakListRow(newRowID);
-          newRowID++;
-          alignedPeakList.addRow(targetRow);
+        if (target == null)
+        {
+          target = new F2F(rowid, null, maxid++, 0);
         }
-
+        target.setRow2(rowid);
         // Add all peaks from the original row to the aligned row
-        for (RawDataFile file : row.getRawDataFiles()) {
-          targetRow.addPeak(file, row.getPeak(file));
+        mAlignment.put(target.getID2(), traces[i], rowid);
+        // update the indice
+        for (int k=0; k<getNumVars(); k++)
+        {
+          if (mIndice.size()-1<k) mIndice.add(new TreeMap<Double, Long>());
+          mIndice.get(k).put(Stats.toDouble(traces[i].cell(rowid,vs[k])), target.getID2());
         }
-
-        // Add all non-existing identities from the original row to the
-        // aligned row
-        PeakUtils.copyPeakListRowProperties(row, targetRow);
 
         processedRows++;
-
       }
-
+      System.out.println("\t" + mAlignment.rowKeySet().size());
     } // Next peak list
-
   }
 }

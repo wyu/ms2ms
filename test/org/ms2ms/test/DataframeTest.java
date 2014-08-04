@@ -1,12 +1,16 @@
 package org.ms2ms.test;
 
+import org.expasy.mzjava.core.ms.AbsoluteTolerance;
+import org.expasy.mzjava.core.ms.PpmTolerance;
+import org.expasy.mzjava.core.ms.Tolerance;
 import org.junit.Before;
 import org.junit.Test;
-import org.ms2ms.alg.Dataframes;
 import org.ms2ms.data.Dataframe;
+import org.ms2ms.runner.Aligner;
 import org.ms2ms.utils.Stats;
+import org.ms2ms.utils.Tools;
 
-import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -18,6 +22,7 @@ import java.util.Map;
  */
 public class DataframeTest extends TestAbstract
 {
+  Tolerance rttol=new PpmTolerance(1.5E5), mztol=new PpmTolerance(15);
   String root = "/media/data/maxquant/20081129_Orbi6_NaNa_SA_FASP_out/combined/txt/";
   Dataframe evidences = null;
 
@@ -25,6 +30,7 @@ public class DataframeTest extends TestAbstract
   public void setUp()
   {
     evidences = new Dataframe(root+"evidence1k.txt", '\t');
+    //evidences = new Dataframe(root+"evidence.txt", '\t');
   }
   @Test
   public void pivoting() throws Exception
@@ -56,5 +62,19 @@ public class DataframeTest extends TestAbstract
     System.out.println("\n" + evidences.display());
 
     evidences.addVar("Calibrated RT", Stats.sum(evidences.getDoubleCol("Retention time"), evidences.getDoubleCol("Retention time calibration")));
+  }
+  @Test
+  public void aligning() throws Exception
+  {
+    // Dataframe pivot(String col, String val, Stats.Aggregator func, String... rows)
+    Map<Object, Dataframe> outs = evidences.split("Raw file");
+
+    Aligner aligner = new Aligner(new Tolerance[] {mztol, rttol}, "m/z", "Retention time");
+    aligner.run(outs.values().toArray(new Dataframe[] {}));
+
+    System.out.println("\n" + aligner.print());
+
+    for (Object obj : outs.keySet())
+      System.out.println(obj.toString() + "\n" + outs.get(obj).display());
   }
 }

@@ -1,5 +1,7 @@
 package org.ms2ms.utils;
 
+import com.google.common.collect.Table;
+
 import java.io.File;
 
 /**
