@@ -1,9 +1,6 @@
 package org.ms2ms.utils;
 
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Range;
-import com.google.common.collect.Table;
-import com.google.common.collect.TreeBasedTable;
+import com.google.common.collect.*;
 import org.apache.commons.lang.NumberUtils;
 import org.apache.commons.math.linear.Array2DRowRealMatrix;
 import org.ms2ms.data.Dataframe;
@@ -206,12 +203,22 @@ public class Tools
     }
     return results;
   }
-  public static <K, V> Map<K, V> putNew(Map<K, V> m, K key, V val)
+  public static <K, V> BiMap<K, V> putNew(BiMap<K, V> m, K key, V val)
   {
     if (m==null || key==null || val==null) return m;
     // Check if the row or the aligned row is already filled
-    if (!m.containsKey(key) && !m.containsValue(val)) m.put(key, val);
+    if (!m.containsKey(key) && !m.inverse().containsKey(val)) m.put(key, val);
 
     return m;
+  }
+  public static <T> Collection<T> common(Collection<T> A, Collection<T> B)
+  {
+    if (A==null || B==null) return A;
+
+    Iterator<T> itr = A.iterator();
+    while (itr.hasNext())
+      if (!B.contains(itr.next())) itr.remove();
+
+    return A;
   }
 }

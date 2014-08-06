@@ -1,8 +1,6 @@
 package org.ms2ms.runner;
 
-import com.google.common.base.Strings;
 import com.google.common.collect.*;
-import com.hfg.util.OrderedMap;
 import org.apache.commons.math3.distribution.NormalDistribution;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.ms2ms.data.Dataframe;
@@ -22,6 +20,7 @@ public class Aligner
 {
   protected Tolerance[] mTols;
   protected String[]    mCols;
+//  protected Table<Dataframe, String, Var> mStr2Var;
 
   protected Table<      Long, Dataframe, String> mAlignment;      // id, frame and rowid to the starting data frame
   protected List<TreeMap<Double, Long>>          mIndice;
@@ -37,16 +36,20 @@ public class Aligner
   {
     StringBuffer buf = new StringBuffer();
 
+    // pre-fetch the cols and rows to save time
+    Collection<Dataframe> cols = mAlignment.columnKeySet();
+    Collection<Long>      rows = mAlignment.rowKeySet();
+
     // print the headers
-    for (Dataframe frm : mAlignment.columnKeySet())
+    for (Dataframe frm : cols)
     {
       buf.append(Strs.rtuncate(frm.getTitle(), 4) + "\t");
     }
     buf.append("\n");
 
-    for (Long row : mAlignment.rowKeySet())
+    for (Long row : rows)
     {
-      for (Dataframe frm : mAlignment.columnKeySet())
+      for (Dataframe frm : cols)
       {
         Object val = frm.cell(mAlignment.get(row, frm), "m/z");
         buf.append((val!=null?val.toString():"--") + "\t");
@@ -103,8 +106,14 @@ public class Aligner
     mAlignment = HashBasedTable.create(); // id, frame and rowid
     mIndice    = new ArrayList<TreeMap<Double, Long>>(getNumVars());
 
+    // map the col header and variables
+//    mStr2Var = HashBasedTable.create();
+//    for (Dataframe d : traces)
+//        for (String m : mCols)
+//            mStr2Var.put(d, m, d.getVar(m));
+
     // Iterate source peak lists
-    int processedRows = 0; long maxid=0;
+    int processedRows = 0; long maxid=0; boolean fresh=true; Collection<Long> candidates = new HashSet<>();
     for (int i=0; i<traces.length; i++)
     {
       System.out.print("Frame " + (i + 1) + ": " + traces[i].size());
@@ -116,20 +125,20 @@ public class Aligner
       for (String rowid : traces[i].getRowIds())
       {
         // collect the rows from the current alignment that match to the row in consideration within the tolerances
-        Set<Long>  candidates = null;
+        candidates.clear(); fresh=true;
         if (mIndice.size()>0)
           for (int k=0; k<getNumVars(); k++)
           {
-            Double x=Stats.toDouble(traces[i].cell(rowid,vs[k]));
+            Double                x = Stats.toDouble(traces[i].cell(rowid,vs[k]));
             Map<Double, Long> slice = mIndice.get(k).subMap(mTols[k].getMin(x), mTols[k].getMax(x));
-            if (Tools.isSet(slice))
+            if (slice==null)
             {
               // setup the new candidates
-              if  (candidates==null) candidates = new HashSet<>(slice.values());
+              if  (fresh) candidates.addAll(slice.values());
                 // retain the shared rows only
-              else candidates=Sets.intersection(candidates, new HashSet<>(slice.values()));
+              else candidates=Tools.common(candidates, slice.values());
             }
-            else candidates = new HashSet<>();
+            fresh=false;
           }
 
         // Calculate scores and store them
@@ -145,7 +154,7 @@ public class Aligner
       }
 
       // Create a table of mappings for best scores
-      Map<String, F2F> mapping = new Hashtable<>();
+      BiMap<String, F2F> mapping = HashBiMap.create();
 
       // Iterate scores by descending order
       for (F2F score : scoreSet)

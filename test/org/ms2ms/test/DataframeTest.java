@@ -24,13 +24,14 @@ public class DataframeTest extends TestAbstract
 {
   Tolerance rttol=new PpmTolerance(1.5E5), mztol=new PpmTolerance(15);
   String root = "/media/data/maxquant/20081129_Orbi6_NaNa_SA_FASP_out/combined/txt/";
-  Dataframe evidences = null;
+  Dataframe evidences = null, peptides=null;
 
   @Before
   public void setUp()
   {
-    evidences = new Dataframe(root+"evidence1k.txt", '\t');
-    //evidences = new Dataframe(root+"evidence.txt", '\t');
+    //evidences = new Dataframe(root+"evidence1k.txt", '\t');
+    evidences = new Dataframe(root+"evidence.txt", '\t');
+    peptides  = new Dataframe(root+"allPeptides.txt", '\t');
   }
   @Test
   public void pivoting() throws Exception
@@ -66,8 +67,8 @@ public class DataframeTest extends TestAbstract
   @Test
   public void aligning() throws Exception
   {
-    // Dataframe pivot(String col, String val, Stats.Aggregator func, String... rows)
-    Map<Object, Dataframe> outs = evidences.split("Raw file");
+    //Map<Object, Dataframe> outs = evidences.split("Raw file");
+    Map<Object, Dataframe> outs = peptides.split("Raw file");
 
     Aligner aligner = new Aligner(new Tolerance[] {mztol, rttol}, "m/z", "Retention time");
     aligner.run(outs.values().toArray(new Dataframe[] {}));

@@ -94,6 +94,13 @@ public class Stats
   // convert the Object to Number if possible
   public static Object toNumber(Object s)
   {
+    try
+    {
+      return NumberUtils.createNumber((String )s);
+    }
+    catch (Exception e) {}
+    return s;
+/*
     if (s==null) return s;
     if (s instanceof String)
     {
@@ -114,6 +121,7 @@ public class Stats
       }
     }
     return s;
+*/
   }
   public static Double toDouble(Object s)
   {
