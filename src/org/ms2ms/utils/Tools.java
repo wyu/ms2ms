@@ -39,6 +39,10 @@ public class Tools
 
     return last;
   }
+  public static <T> T  front(     T... s) { return s!=null?s[0]:null; }
+  public static <T> T  back(      T... s) { return s!=null?s[s.length-1]:null; }
+  public static double front(double... s) { return s!=null?s[0]:null; }
+  public static double back( double... s) { return s!=null?s[s.length-1]:null; }
 
   //	Author:  Jean Vaucher
   //  Date:    March 2006
@@ -122,7 +126,15 @@ public class Tools
     if (map!=null && in!=null) map.putAll(in);
     return map;
   }
-  public static <T> boolean has(T[] vals, T obj, int end)
+  public static boolean contains(int[] tt, int t)
+  {
+    if (isSet(tt))
+      for (int i : tt)
+        if (i==t) return true;
+
+    return false;
+  }
+  public static <T> boolean contains(T[] vals, T obj, int end)
   {
     if (isSet(vals) && obj!=null)
     {
@@ -221,4 +233,6 @@ public class Tools
 
     return A;
   }
+  public static boolean equals(Object A, Object B) { return A!=null&&B!=null?A.equals(B):false; }
+  public static boolean equalsCaseless(String A, String B) { return A!=null&&B!=null?A.equalsIgnoreCase(B):false; }
 }

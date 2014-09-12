@@ -52,7 +52,7 @@ public class Dataframe
   {
     if (mNameVar==null)
     {
-      mNameVar= new HashMap<>();
+      mNameVar= new HashMap<String, Var>();
       for (Var v : mColVars) mNameVar.put(v.toString(), v);
     }
     return mNameVar.get(s);
@@ -82,7 +82,7 @@ public class Dataframe
   }
   public Dataframe addRowId(String row)
   {
-    if (mRowIDs==null) mRowIDs = new ArrayList<>();
+    if (mRowIDs==null) mRowIDs = new ArrayList<String>();
     mRowIDs.add(row); return this;
   }
   public Dataframe addRow(String id, Map<Var, Object> row)
@@ -95,11 +95,11 @@ public class Dataframe
   }
   public Var addVar(Var v)
   {
-    if (mNameVar==null) mNameVar = new HashMap<>();
+    if (mNameVar==null) mNameVar = new HashMap<String, Var>();
     if (mNameVar.put(v.toString(), v)==null)
     {
       // add to the var list if this is a new one
-      if (mColVars==null) mColVars = new ArrayList<>();
+      if (mColVars==null) mColVars = new ArrayList<Var>();
       mColVars.add(v);
     }
     return v;
@@ -134,7 +134,7 @@ public class Dataframe
   {
     if (!Tools.isSet(s) || mData==null || !Tools.isSet(mColVars) || !Tools.isSet(mNameVar)) return this;
 
-    mColVars = new ArrayList<>(s.length);
+    mColVars = new ArrayList<Var>(s.length);
     for (String v : s) if (mNameVar.containsKey(v)) mColVars.add(mNameVar.get(v));
     return this;
   }
@@ -176,7 +176,7 @@ public class Dataframe
   {
     if (!hasVar(x,false) || hasVar(y,false)) return null;
 
-    SortedMap<Double, Double> line = new TreeMap<>();
+    SortedMap<Double, Double> line = new TreeMap<Double, Double>();
     Var vx=getVar(x), vy=getVar(y);
     for (String id : getRowIds())
     {
@@ -221,7 +221,7 @@ public class Dataframe
     {
       csv = new TabFile(src, delimiter);
       // convert the header to variables
-      mColVars = new ArrayList<>();
+      mColVars = new ArrayList<Var>();
       mData    = HashBasedTable.create();
       for (String col : csv.getHeaders()) mColVars.add(new Variable(col));
       // going thro the rows
@@ -257,11 +257,11 @@ public class Dataframe
   protected void init()
   {
     if (!Tools.isSet(mData)) return;
-    if (mRowIDs ==null) { mRowIDs  = new ArrayList<>(mData.rowKeySet()); Collections.sort(mRowIDs); }
+    if (mRowIDs ==null) { mRowIDs  = new ArrayList<String>(mData.rowKeySet()); Collections.sort(mRowIDs); }
     if (mColVars==null)
     {
-      mColVars = new ArrayList<>(mData.columnKeySet());
-      mNameVar = new HashMap<>(mColVars.size());
+      mColVars = new ArrayList<Var>(mData.columnKeySet());
+      mNameVar = new HashMap<String, Var>(mColVars.size());
       for (Var v : mColVars) mNameVar.put(v.toString(), v);
     }
 
@@ -277,7 +277,7 @@ public class Dataframe
     if (!Tools.isSet(mData)) return;
 
     boolean       isNum=true;
-    Set<Object> factors=new HashSet<>();
+    Set<Object> factors=new HashSet<Object>();
     for (String row : mRowIDs)
     {
       Object val = Stats.toNumber(mData.get(row, v));
@@ -313,7 +313,7 @@ public class Dataframe
   {
     if (v==null || !hasVar(v,true)) return null;
 
-    Map<Object, Dataframe> outs = new HashMap<>();
+    Map<Object, Dataframe> outs = new HashMap<Object, Dataframe>();
     Var vv = getVar(v);
     for (String r : getRowIds())
     {

@@ -243,6 +243,158 @@ public class Peaks
     }
     return peaks;
   }
+  /**
+      * Check for the positive evidence of duplicated spectrum using dot-product
+      * algorithm as outlined by
+      *     Stein, SE, Scott DR. "Optimization and Testing of Mass Spectral Library
+      *     Search Algorithms for Compound Identification", JASMS 1994, 5, 859-866
+      *
+      *  porting notes: the minor peaks are expected to be tagged via 'invalidate()'
+      *                 prior to the call.
+      *
+      * @param             A = Profile A
+      * @param             B = Profile B
+      * @param           tol = m/z tolerance in dalton
+      * @param        sqrted = transform the Y by sqrt() if TRUE
+      *
+      * @return dot-product from A to B, 0 if not enough matching points or empty profile in A or B
+      */
+  public static double dp(List<? extends Peak> A, List<? extends Peak> B, Tolerance tol, boolean highest, boolean sqrted)
+  {
+    boolean verbose = false;
+
+    // false if one of the spectra is empty
+    if (A == null || A.isEmpty() || B == null || B.isEmpty()) return 0;
+    // the variables Peak           a, b;
+    int    match_cnt = 0, ia     = 0, ib         = 0, start_b;
+    double dp        = 0, best_Y = 0, best_error = 1E23, abs_err,
+           sum_a     = 0, sum_b  = 0, sum_ab     = 0;
+
+    while (ia < A.size())
+    {
+      // ignore any invalidated point
+      // if (!A.get(ia).isValid()) { ++ia; continue; }
+      if (verbose) System.out.print(">>" + A.get(ia).getMz() + ", " + A.get(ia).getIntensity());
+      // reset the goalposts
+      best_Y = 0; best_error = 1E23; start_b = -1;
+      // recycle to avoid access violation
+      if (ib >= B.size()) ib = 0;
+      while (ib < B.size())
+      {
+        // skip the minor points that's labled
+        // if (!B.get(ib).isValid())                               { ++ib; continue; }
+        if ( B.get(ib).getMz() > tol.getMax(A.get(ia).getMz()) + 0.1) break;
+        if (!tol.withinTolerance(A.get(ia).getMz(), B.get(ib).getMz())) { ++ib; continue; }
+        if (start_b == -1) start_b = ib;
+        // find the highest peak in the matching window
+        if   ( highest && (B.get(ib).getIntensity() > best_Y))
+          best_Y = B.get(ib).getIntensity();
+          // WYU 10-13-2000, option for matching the closest
+        else
+        {
+          abs_err = Math.abs(B.get(ib).getMz() - A.get(ia).getMz());
+          if (!highest && (abs_err  < best_error))
+          { best_Y = B.get(ib).getIntensity(); best_error  = abs_err; }
+        }
+        ++ib;
+      }
+      if (verbose) System.out.println("    !!" + best_Y);
+      if (best_Y > 0) match_cnt++;
+      // calculate the summation terms with sqrt() scaling of abundance
+      if (sqrted)
+      {
+        sum_a  +=   A.get(ia).getIntensity();
+        sum_b  +=           best_Y;
+        sum_ab += Math.sqrt(best_Y * A.get(ia).getIntensity());
+      }
+      else
+      {
+        sum_a  +=   A.get(ia).getIntensity() * A.get(ia).getIntensity();
+        sum_b  +=           best_Y   * best_Y;
+        sum_ab +=   A.get(ia).getIntensity() * best_Y;
+      }
+      // increment the outer loop
+      ++ia;
+      // move the b iterator back a little
+      if (start_b > 0) { ib = start_b - 1; start_b = -1; } else ib = 0;
+    }
+    // calculating the dot-product
+    if (sum_a > 0 && sum_b > 0)
+      dp = sum_ab * sum_ab / (sum_a * sum_b);
+
+    return dp;
+  }
+  /** Assuming that the registration is already done.
+   *
+   * @param A
+   * @param B
+   * @return dot-product
+   */
+  public static double dp(List<? extends Peak> A, List<? extends Peak> B)
+  {
+    // false if one of the spectra is empty or with diff dimension
+    if (A.isEmpty() || B.isEmpty() || A.size() != B.size()) return 0;
+
+    double dp = 0, sum_a = 0, sum_b = 0, sum_ab = 0;
+    for (int ia = 0; ia < A.size(); ia++) {
+       sum_a  +=   A.get(ia).getIntensity() * A.get(ia).getIntensity();
+       sum_b  +=   B.get(ia).getIntensity() * B.get(ia).getIntensity();
+       sum_ab +=   A.get(ia).getIntensity() * B.get(ia).getIntensity();
+    }
+    // calculating the dot-product
+    return sum_ab * sum_ab / (sum_a * sum_b);
+  }
+
+  public static <T extends Peak> T getBasePeak(Collection<T> data)
+  {
+    if (!Tools.isSet(data)) return null;
+
+    T base = null;
+    for (T datum : data)
+      if (base == null || (datum.getIntensity() > base.getIntensity())) base = datum;
+
+    // send the base peak back
+    return base;
+  }
+  public static int getBasePeak(double[] ais)
+  {
+    if (!Tools.isSet(ais)) return -1;
+
+    int base = -1;
+    for (int i=0; i<ais.length; i++)
+      if (base==-1 || (ais[i] > ais[base])) base = i;
+
+    // send the base peak back
+    return base;
+  }
+  public static <T extends Peak> T find(List<T> ms, T m, Tolerance tol)
+  {
+    // locate the point that's the cloest to 'm'
+     T found = null; double best = Double.MAX_VALUE, fold;
+     for (T t : ms)
+       if (tol.withinTolerance(t.getMz(), m.getMz()))
+       {
+         fold = Math.abs(m.getIntensity() != 0d ? Math.log(t.getIntensity() / m.getIntensity()) : (t.getMz() - m.getMz()));
+         if (found == null || fold < best)
+         { found = t; best = fold; }
+       }
+
+     return found;
+  }
+  public static int find(double[] mzs, double m, Tolerance tol)
+  {
+    // locate the point that's the cloest to 'm'
+     int found = -1; double best = Double.MAX_VALUE, delta;
+     for (int t=0; t<mzs.length; t++)
+       if (tol.withinTolerance(mzs[t], m))
+       {
+         if (found==-1 || Math.abs(mzs[t]-m)<best)
+         { found=t; best=Math.abs(mzs[t]-m); }
+       }
+
+     return found;
+  }
+
 //  public static String toString(Peak... peaks)
 //  {
 //    String out=null;

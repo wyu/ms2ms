@@ -44,13 +44,11 @@ public class MimslSettings extends MsSettings
   }
   public static MimslSettings valueOf(String s)
   {
-    switch (s)
-    {
-      case Peaks.OBT_HR_CID: return ORBI_HH_CID;
-      case Peaks.LTQ_CID:    return LTQ_LL_CID;
-      case Peaks.OBT_HCD:    return ORBI_HH_HCD;
-      case Peaks.QTOF:       return QTOF_MM_CID;
-    }
+    if      (s.equals(Peaks.OBT_HR_CID)) return ORBI_HH_CID;
+    else if (s.equals(Peaks.LTQ_CID))    return LTQ_LL_CID;
+    else if (s.equals(Peaks.OBT_HCD))    return ORBI_HH_HCD;
+    else if (s.equals(Peaks.QTOF))       return QTOF_MM_CID;
+
     return ORBI_HL_CID;
   }
   public MimslSettings set(double halfw, double minmz, double minsnr, int minpk)

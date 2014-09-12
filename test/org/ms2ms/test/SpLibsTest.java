@@ -55,7 +55,7 @@ public class SpLibsTest extends TestAbstract
   @Test
   public void prepareLibs() throws IOException
   {
-    // ensure that the table has been created
+    // ensure that the table contains been created
     HBaseProteomics.ensureTables();
 
     String root = "/media/data/splib/2013";

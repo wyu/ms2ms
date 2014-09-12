@@ -9,8 +9,6 @@ package org.ms2ms.data;
  */
 
 import au.com.bytecode.opencsv.CSVReader;
-import org.jgraph.JGraph;
-import org.jgrapht.graph.DefaultDirectedGraph;
 import org.ms2ms.utils.Tools;
 
 import java.io.BufferedReader;
@@ -123,7 +121,7 @@ public class MaxquantReader
        * *
        * read from experimentalDesignTemplate.txt
        */
-      if (Tools.has(fileList, "", 0))
+      if (Tools.contains(fileList, "", 0))
       rd = new FileReader(parentPath + "//" + DESIGN);
       br = new BufferedReader(rd);
       csvReader = new CSVReader(br, '\t');

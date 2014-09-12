@@ -6,6 +6,8 @@ import org.apache.commons.lang.NumberUtils;
 import org.apache.commons.math.MathException;
 import org.apache.commons.math.analysis.interpolation.LoessInterpolator;
 import org.apache.commons.math.analysis.polynomials.PolynomialSplineFunction;
+import org.expasy.mzjava.stats.Histogram;
+import org.expasy.mzjava.stats.HistogramImpl;
 import org.ms2ms.alg.Dataframes;
 import org.ms2ms.data.Var;
 
@@ -154,7 +156,7 @@ public class Stats
    *                  usually 0.25 to 0.5, the default value is 0.3.
    * @return
    */
-  public static double[] interpolate(double[] xs, double[] ys, double bandwidth, double[] Xs)
+  public static double[] interpolate(double[] xs, double[] ys, double bandwidth, double... Xs)
   {
     if (!Tools.isSet(xs) || !Tools.isSet(ys) || xs.length!=ys.length) return null;
 
@@ -199,5 +201,12 @@ public class Stats
       }
     }
     return out;
+  }
+  public static Histogram newHistogram(String title, int bins, Range<Double> bound)
+  {
+    HistogramImpl hist=new HistogramImpl(bins, bound!=null?bound.lowerEndpoint():0d, bound!=null?bound.upperEndpoint():1d);
+    hist.setName(title);
+
+    return hist;
   }
 }

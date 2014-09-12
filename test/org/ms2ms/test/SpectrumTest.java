@@ -26,7 +26,7 @@ public class SpectrumTest extends TestAbstract
         stored in a float or double array and intensity values can be constant, an array of floats or an array
         of doubles. All implementations of PeakList guarantee that the peaks are sorted. Peak annotations are
         represented by classes that implement PeakAnnotation. The type of PeakAnnotation that a PeakList holds is
-        specified using a generic. Each PeakList has a randomly generated UUID to simplify identification. We
+        specified using a generic. Each PeakList contains a randomly generated UUID to simplify identification. We
         provide a bunch of PeakList implementations given the precision of m/zs and intensities.
      */
 
@@ -89,7 +89,7 @@ public class SpectrumTest extends TestAbstract
         // methods to retrieve a peak that is at n peaks distant from the current position without moving the cursor.
         if (cursor.canPeek(4))
         {
-            // here peeked peak has mz 255.191 and intensity 7.2381
+            // here peeked peak contains mz 255.191 and intensity 7.2381
             double mz = cursor.peekMz(4);
             double intensity = cursor.peekIntensity(4);
         }

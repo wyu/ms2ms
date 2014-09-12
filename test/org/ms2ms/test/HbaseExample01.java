@@ -50,7 +50,7 @@ public class HbaseExample01 extends TestAbstract
   {
     // To add to a row, use Put. A Put constructor takes the name of the row
     // you want to insert into as a byte array. In HBase, the Bytes class
-    // has utility for converting all kinds of java types to byte arrays. In
+    // contains utility for converting all kinds of java types to byte arrays. In
     // the below, we are converting the String "myLittleRow" into a byte
     // array to use as a row key for our get. Once you have a Put
     // instance, you can adorn it by setting the names of columns you want

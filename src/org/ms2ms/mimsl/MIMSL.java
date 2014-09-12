@@ -320,7 +320,7 @@ public class MIMSL
   {
     if (mPrecursorMzs == null) mPrecursorMzs = TreeMultimap.create();
     // make sure the precursor is not already deposited
-    if (!MsIon_Util.has(mPrecursorMzs.get(ion.getCharge()), ion,
+    if (!MsIon_Util.contains(mPrecursorMzs.get(ion.getCharge()), ion,
       getSettings().getEffectivePrecursorTol(ion.getMz()))) mPrecursorMzs.put(ion.getCharge(), ion);
 
     return this;

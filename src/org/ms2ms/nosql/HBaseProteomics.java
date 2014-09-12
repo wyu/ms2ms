@@ -1,8 +1,6 @@
 package org.ms2ms.nosql;
 
 import com.google.common.collect.Range;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.*;
@@ -19,9 +17,6 @@ import org.expasy.mzjava.proteomics.mol.modification.Modification;
 import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodModificationResolver;
 import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
-import org.expasy.mzjava.stats.Classification;
-import org.expasy.mzjava.stats.ROCTable;
-import org.expasy.mzjava.stats.SimROCTable;
 import org.expasy.mzjava.utils.URIBuilder;
 import org.ms2ms.mimsl.MIMSL;
 import org.ms2ms.mimsl.MimslSettings;
@@ -31,7 +26,6 @@ import org.ms2ms.mzjava.MspAnnotationResolver2;
 import org.ms2ms.utils.Tools;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -76,7 +70,7 @@ public class HBaseProteomics extends HBase
   }
   public static void save(Collection<LibrarySpectrum> spectra) throws IOException
   {
-    // ensure that the table has been created
+    // ensure that the table contains been created
     ensureTables();
     // connection to the cluster
     HConnection conn = getConnection();
@@ -101,7 +95,7 @@ public class HBaseProteomics extends HBase
   // MIMSL
   public static void index(Collection<LibrarySpectrum> spectra, byte[] spec_type, double half_width, double min_mz, int min_pk, double min_snr) throws IOException
   {
-    // ensure that the table has been created
+    // ensure that the table contains been created
     ensureTables();
     // connection to the cluster
     HConnection conn = getConnection();
@@ -562,7 +556,7 @@ public class HBaseProteomics extends HBase
     System.out.println("Sampling " + src);
 
     long counts=0;
-    Map<LibrarySpectrum.Status, LibrarySpectrum> findings = new HashMap<>();
+    Map<LibrarySpectrum.Status, LibrarySpectrum> findings = new HashMap<LibrarySpectrum.Status, LibrarySpectrum>();
     while (splib.hasNext())
     {
       if (++counts%1000  ==0) System.out.print(".");
@@ -578,7 +572,7 @@ public class HBaseProteomics extends HBase
           for (int i=0; i<peaks.size(); i++)
           {
             int k=rand.nextInt(peaks.size());
-            if (!Tools.has(sampled, peaks.get(k), nsig)) sampled[n++] = peaks.get(k);
+            if (!Tools.contains(sampled, peaks.get(k), nsig)) sampled[n++] = peaks.get(k);
             if (n>=nsig) break;
           }
           // issue the MIMSL query using the sampled signature peaks

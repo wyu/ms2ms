@@ -22,8 +22,8 @@ public class Aligner
   protected String[]    mCols;
 //  protected Table<Dataframe, String, Var> mStr2Var;
 
-  protected Table<      Long, Dataframe, String> mAlignment;      // id, frame and rowid to the starting data frame
-  protected List<TreeMap<Double, Long>>          mIndice;
+  protected Table<Long, Dataframe, String> mAlignment;      // id, frame and rowid to the starting data frame
+  protected List<TreeMap<Double, Long>>    mIndice;
 
   public Aligner(Tolerance[] tols, String... cols)
   {
@@ -113,7 +113,7 @@ public class Aligner
 //            mStr2Var.put(d, m, d.getVar(m));
 
     // Iterate source peak lists
-    int processedRows = 0; long maxid=0; boolean fresh=true; Collection<Long> candidates = new HashSet<>();
+    int processedRows = 0; long maxid=0; boolean fresh=true; Collection<Long> candidates = new HashSet<Long>();
     for (int i=0; i<traces.length; i++)
     {
       System.out.print("Frame " + (i + 1) + ": " + traces[i].size());
