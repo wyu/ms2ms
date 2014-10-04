@@ -2,8 +2,6 @@ package org.ms2ms.test;
 
 import org.expasy.mzjava.core.ms.peaklist.*;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
-import org.expasy.mzjava.core.ms.spectrum.PeakAnnotation;
-import org.expasy.mzjava.core.ms.spectrum.PeakListFactory;
 import org.expasy.mzjava.proteomics.mol.Peptide;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepFragAnnotation;
 import org.junit.Test;
