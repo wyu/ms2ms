@@ -1,6 +1,6 @@
 package org.ms2ms.mzjava;
 
-import org.expasy.mzjava.core.ms.spectrum.Peak;
+import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.proteomics.mol.AminoAcid;
 import org.expasy.mzjava.proteomics.mol.Peptide;
 import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;

@@ -7,27 +7,29 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.expasy.mzjava.core.ms.Tolerance;
+import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
-import org.expasy.mzjava.core.ms.peakprocessor.PeakProcessorChain;
-import org.expasy.mzjava.core.ms.spectrum.Peak;
+import org.expasy.mzjava.core.ms.peaklist.PeakProcessorChain;
 import org.expasy.mzjava.proteomics.io.ms.spectrum.MsLibReader;
 import org.expasy.mzjava.proteomics.io.ms.spectrum.SptxtReader;
 import org.expasy.mzjava.proteomics.io.ms.spectrum.msp.MspCommentParser;
+import org.expasy.mzjava.proteomics.io.ms.spectrum.sptxt.AnnotationResolver;
+import org.expasy.mzjava.proteomics.io.ms.spectrum.sptxt.SpectraLibCommentParser;
 import org.expasy.mzjava.proteomics.mol.modification.Modification;
+import org.expasy.mzjava.proteomics.mol.modification.ModificationResolver;
 import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodModificationResolver;
 import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
 import org.expasy.mzjava.utils.URIBuilder;
 import org.ms2ms.mimsl.MIMSL;
 import org.ms2ms.mimsl.MimslSettings;
-import org.ms2ms.mzjava.AnnotatedPeak;
-import org.ms2ms.mzjava.AnnotatedSpectrum;
-import org.ms2ms.mzjava.MspAnnotationResolver2;
+import org.ms2ms.mzjava.*;
 import org.ms2ms.utils.Tools;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.Reader;
 import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -369,8 +371,8 @@ public class HBaseProteomics extends HBase
     {
       if (src.endsWith(".sptxt"))
       {
-        splib = new SptxtReader(new BufferedReader(new FileReader(src)),
-            URIBuilder.UNDEFINED_URI, PeakList.Precision.FLOAT);
+        splib = SptxtReader.newBuilder(new BufferedReader(new FileReader(src)),
+            URIBuilder.UNDEFINED_URI, PeakList.Precision.FLOAT).build();
 
         // work around the unknown mod per Oliver's suggestion
         Field f = MsLibReader.class.getDeclaredField("modResolver");
@@ -388,8 +390,8 @@ public class HBaseProteomics extends HBase
         splib = new MsLibReader(new BufferedReader(new FileReader(src)), URIBuilder.UNDEFINED_URI,
             PeakList.Precision.FLOAT,
             new MspCommentParser(), new MspAnnotationResolver2(),
-            Pattern.compile("^([+-]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)?)\\s+([+-]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)?)\\s+\"([^\"]+)\"$"),
-            new PeakProcessorChain<PepLibPeakAnnotation>());
+            new PeakProcessorChain<PepLibPeakAnnotation>(),
+            new NumModResolver("^([+-]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)?)\\s+([+-]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)?)\\s+\"([^\"]+)\"$"));
       }
     }
     catch (IOException ioe)

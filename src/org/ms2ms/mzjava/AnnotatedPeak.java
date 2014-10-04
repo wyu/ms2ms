@@ -1,9 +1,9 @@
 package org.ms2ms.mzjava;
 
+import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
-import org.expasy.mzjava.core.ms.spectrum.Peak;
 
-/** A more elaborate class to descrbe the MS peak
+/** A more elaborate class to describe the MS peak
  *
  * Created by wyu on 4/27/14.
  */

@@ -2,9 +2,9 @@ package org.ms2ms.mimsl;
 
 import com.google.common.collect.Range;
 import org.expasy.mzjava.core.ms.Tolerance;
+import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
-import org.expasy.mzjava.core.ms.spectrum.Peak;
 import org.expasy.mzjava.proteomics.mol.AAMassCalculator;
 import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepFragAnnotation;

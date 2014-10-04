@@ -4,6 +4,7 @@ import com.google.common.collect.*;
 import org.apache.commons.lang.NumberUtils;
 import org.apache.commons.math.linear.Array2DRowRealMatrix;
 import org.ms2ms.data.Dataframe;
+import org.ms2ms.data.MultiTreeTable;
 import org.ms2ms.data.Var;
 
 import java.util.*;
@@ -16,13 +17,15 @@ public class Tools
   static String ZEROES = "000000000000";
   static String BLANKS = "            ";
 
-  public static     boolean isSet(String        s) { return s!=null && s.length()>0; }
-  public static <T> boolean isSet(Collection<T> s) { return s!=null && s.size()>0; }
-  public static <T> boolean isSet(Map s)           { return s!=null && s.size()>0; }
-  public static <T> boolean isSet(T[]           s) { return s!=null && s.length>0; }
-  public static <T> boolean isSet(double[]      s) { return s!=null && s.length>0; }
-  public static     boolean isSet(int[]         s) { return s!=null && s.length>0; }
-  public static     boolean isSet(Table         s) { return s!=null && s.size()>0; }
+  public static     boolean isSet(String         s) { return s!=null && s.length()>0; }
+  public static <T> boolean isSet(Collection<T>  s) { return s!=null && s.size()>0; }
+  public static <T> boolean isSet(Map            s) { return s!=null && s.size()>0; }
+  public static <T> boolean isSet(MultiTreeTable s) { return s!=null && s.size()>0; }
+  public static <T> boolean isSet(TreeMultimap   s) { return s!=null && s.size()>0; }
+  public static <T> boolean isSet(T[]            s) { return s!=null && s.length>0; }
+  public static <T> boolean isSet(double[]       s) { return s!=null && s.length>0; }
+  public static     boolean isSet(int[]          s) { return s!=null && s.length>0; }
+  public static     boolean isSet(Table          s) { return s!=null && s.size()>0; }
 
   public static <T> T front(Collection<T> s)
   {

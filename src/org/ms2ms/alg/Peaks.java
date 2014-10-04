@@ -1,18 +1,14 @@
 package org.ms2ms.alg;
 
 import com.google.common.collect.Lists;
-import org.expasy.mzjava.core.ms.AbsoluteTolerance;
-import org.expasy.mzjava.core.ms.PpmTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.DoublePeakList;
+import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
-import org.expasy.mzjava.core.ms.spectrum.Peak;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepFragAnnotation;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
 import org.ms2ms.mzjava.AnnotatedPeak;
-import org.ms2ms.mzjava.AnnotatedSpectrum;
-import org.ms2ms.nosql.HBasePeakList;
 import org.ms2ms.utils.Stats;
 import org.ms2ms.utils.Tools;
 
