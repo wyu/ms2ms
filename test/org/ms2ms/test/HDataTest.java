@@ -2,7 +2,7 @@ package org.ms2ms.test;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.ms2ms.data.Dataframe;
+import org.ms2ms.r.Dataframe;
 
 /**
  * Created with IntelliJ IDEA.

@@ -1,6 +1,4 @@
-package org.ms2ms.data;
-
-import org.ms2ms.utils.Tools;
+package org.ms2ms.r;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,6 +40,11 @@ public class Variable implements Var
   }
   public Variable setName(String s) { mName=s; return this; }
   public List getFactors() { return mFactors; }
+
+  public boolean equals(Variable s)
+  {
+    return toString().equals(s.toString()) && eType.equals(s.eType);
+  }
 
   //**************  Utils  ***********************//
 

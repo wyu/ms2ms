@@ -2,7 +2,7 @@ package org.ms2ms.alg;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import org.ms2ms.data.Dataframe;
+import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.Tools;
 
 /**

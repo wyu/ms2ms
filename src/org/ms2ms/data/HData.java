@@ -1,12 +1,7 @@
 package org.ms2ms.data;
 
 import com.google.common.collect.*;
-import org.ms2ms.utils.ArrayKey;
-import org.ms2ms.utils.Stats;
-import org.ms2ms.utils.Strs;
-import org.ms2ms.utils.Tools;
-
-import java.util.Arrays;
+import org.ms2ms.r.Dataframe;
 
 /** Representation of high-dimensional omic dataset. L-shape struct as described in ArrayStudio doc.
  *

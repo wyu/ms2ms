@@ -7,11 +7,12 @@ import org.ms2ms.utils.Tools;
 
 import java.io.*;
 
-/** Responsible for writing out the MS objects in various formats
+/** Responsible for writing out the MS objects in binary format. Not to be confused with import duty
+ *
  * User: wyu
  * Date: 9/29/14
  */
-public class MsWriters
+public class MsIO
 {
   // BufferedWriter
   public static void write(DataOutput w, PeakList ms) throws IOException
@@ -45,7 +46,7 @@ public class MsWriters
     {
       ms.setPrecursor(new Peak(w.readDouble(), w.readDouble(), w.readInt()));
 
-      int counts = w.readInt();
+      int counts = w.readInt(); ms.clear();
       if (counts>0)
         for (int i=0; i<counts; i++)
           ms.add(w.readDouble(), w.readDouble());
@@ -59,6 +60,8 @@ public class MsWriters
       ms = (MsnSpectrum )read(w, (PeakList)ms);
 
       int counts = w.readInt();
+      // clear the content of the retention times if necessary
+      if (ms.getRetentionTimes()!=null) ms.getRetentionTimes().clear();
       if (counts>0)
         for (int i=0; i<counts; i++)
           ms.addRetentionTime(new RetentionTimeDiscrete(w.readDouble(), TimeUnit.SECOND));

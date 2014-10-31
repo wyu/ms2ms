@@ -1,11 +1,7 @@
 package org.ms2ms.utils;
 
 import com.google.common.collect.*;
-import org.apache.commons.lang.NumberUtils;
-import org.apache.commons.math.linear.Array2DRowRealMatrix;
-import org.ms2ms.data.Dataframe;
 import org.ms2ms.data.MultiTreeTable;
-import org.ms2ms.data.Var;
 
 import java.util.*;
 
@@ -145,6 +141,14 @@ public class Tools
       for (int i=0; i<bound; i++)
         if (vals[i]!=null && vals[i].equals(obj)) return true;
     }
+
+    return false;
+  }
+  public static <T> boolean contains(T[] vals, T obj)
+  {
+    if (isSet(vals) && obj!=null)
+      for (int i=0; i<vals.length; i++)
+        if (vals[i]!=null && vals[i].equals(obj)) return true;
 
     return false;
   }

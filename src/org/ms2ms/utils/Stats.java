@@ -1,6 +1,5 @@
 package org.ms2ms.utils;
 
-import cern.colt.matrix.linalg.Matrix2DMatrix2DFunction;
 import com.google.common.collect.*;
 import org.apache.commons.lang.NumberUtils;
 import org.apache.commons.math.MathException;
@@ -8,8 +7,6 @@ import org.apache.commons.math.analysis.interpolation.LoessInterpolator;
 import org.apache.commons.math.analysis.polynomials.PolynomialSplineFunction;
 import org.expasy.mzjava.stats.Histogram;
 import org.expasy.mzjava.stats.HistogramImpl;
-import org.ms2ms.alg.Dataframes;
-import org.ms2ms.data.Var;
 
 import java.util.*;
 

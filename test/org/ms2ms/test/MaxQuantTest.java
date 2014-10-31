@@ -1,7 +1,7 @@
 package org.ms2ms.test;
 
 import org.junit.Test;
-import org.ms2ms.data.Dataframe;
+import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.Stats;
 import uk.ac.liv.jmzqml.model.mzqml.*;
 import uk.ac.liv.jmzqml.xml.io.MzQuantMLMarshaller;

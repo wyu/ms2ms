@@ -1,4 +1,4 @@
-package org.ms2ms.data;
+package org.ms2ms.r;
 
 import java.util.Collection;
 import java.util.List;

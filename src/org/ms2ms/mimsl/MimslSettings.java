@@ -3,7 +3,8 @@ package org.ms2ms.mimsl;
 import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.core.ms.PpmTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;
-import org.ms2ms.MsSettings;
+import org.ms2ms.data.ms.ClusteringSettings;
+import org.ms2ms.data.ms.MsSettings;
 import org.ms2ms.alg.Peaks;
 import org.ms2ms.nosql.HBasePeakList;
 
@@ -16,6 +17,9 @@ import org.ms2ms.nosql.HBasePeakList;
  */
 public class MimslSettings extends MsSettings
 {
+  public static final String SPEC_TYPE = "SpecType";
+  public static final String Z_FLOAT   = "Zfloat";
+
   public static MimslSettings ORBI_HL_CID  =null;
   public static MimslSettings ORBI_HL_ETD  =null;
   public static MimslSettings ORBI_HH_CID  =null;
@@ -41,6 +45,8 @@ public class MimslSettings extends MsSettings
   public MimslSettings(byte[] type, Tolerance precursor, Tolerance frag, String mode)
   {
     super(type, precursor, frag, mode);
+    properties.put(ClusteringSettings.SPEC_TYPE, type);
+    properties.put(ClusteringSettings.Z_FLOAT,   0);
   }
   public static MimslSettings valueOf(String s)
   {
@@ -60,4 +66,6 @@ public class MimslSettings extends MsSettings
   public double getMinMz()     { return min_mz; }
   public double getMinSNR()    { return min_snr; }
   public int    getMinPeaks()  { return min_pk; }
+  public byte[] getSpecType()  { return getBytes(ClusteringSettings.SPEC_TYPE); }
+  public int    getZFloat()    { return getInteger(ClusteringSettings.Z_FLOAT); }
 }

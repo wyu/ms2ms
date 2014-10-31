@@ -1,16 +1,13 @@
 package org.ms2ms.test;
 
-import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.core.ms.PpmTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.junit.Before;
 import org.junit.Test;
-import org.ms2ms.data.Dataframe;
+import org.ms2ms.r.Dataframe;
 import org.ms2ms.runner.Aligner;
 import org.ms2ms.utils.Stats;
-import org.ms2ms.utils.Tools;
 
-import java.util.Collections;
 import java.util.Map;
 
 /**

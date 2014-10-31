@@ -1,13 +1,12 @@
 package org.ms2ms.data;
 
-/**
- * Created with IntelliJ IDEA.
- * User: wyu
+/** A logical collection of data that will be processed and produce a HData object for future analysis
+ *
+ * Author: wyu
  * Date: 10/3/14
- * Time: 10:47 PM
- * To change this template use File | Settings | File Templates.
  */
 public interface Dataset
 {
   public String getName();
+  public HData  getData();
 }

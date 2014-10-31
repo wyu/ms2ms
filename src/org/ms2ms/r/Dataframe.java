@@ -1,9 +1,6 @@
-package org.ms2ms.data;
+package org.ms2ms.r;
 
 import com.google.common.collect.*;
-import org.apache.commons.math.MathException;
-import org.apache.commons.math.analysis.interpolation.LoessInterpolator;
-import org.apache.commons.math.analysis.polynomials.PolynomialSplineFunction;
 import org.ms2ms.utils.*;
 
 import java.io.IOException;
@@ -28,6 +25,14 @@ public class Dataframe
 
   public Dataframe()                                         { super(); }
   public Dataframe(String cvs, char delim, String... idcols) { super(); readTable(cvs, delim, idcols); setTitle(cvs); }
+
+  //** factory method **//
+  public static Dataframe csv(String csv, char delim, String... idcols)
+  {
+    Dataframe data = new Dataframe();
+    data.readTable(csv, delim, idcols); data.setTitle(csv);
+    return data;
+  }
 
   //** Getters the Setters **//
   public int size() { return mData!=null?mData.rowKeySet().size():0; }
@@ -127,8 +132,17 @@ public class Dataframe
 
     return lead;
   }
+  public Object[] get(String rowid, String... vs)
+  {
+    Object[] lead = new Object[vs.length];
+    for (int i=0; i<vs.length; i++) lead[i]=row(rowid).get(getVar(vs[i]));
+
+    return lead;
+  }
   public Object cell(String rowid, Var v) { return mData!=null?mData.get(rowid,v):null; }
   public Object cell(String rowid, String s) { return mData!=null?mData.get(rowid,getVar(s)):null; }
+  public List<Var> cols() { return mColVars; }
+  public List<String> rows() { return mRowIDs; }
 
   public Dataframe reorder(String... s)
   {
@@ -409,6 +423,147 @@ public class Dataframe
       indices[i] = frames[i].index(row, col);
     }
     return indices;
+  }
+
+  //** algorithms **//
+
+  /**The returned data frame will contain:
+
+   columns: all columns present in any provided data frame
+   rows:    a set of rows from each provided data frame, with values in columns not present in the given data frame
+            filled with missing (NA) values.
+
+   The data type of columns will be preserved, as long as all data frames with a given column name agree on the
+   data type of that column. If the data frames disagree, the column will be converted into a character strings.
+   The user will need to coerce such character columns into an appropriate type.
+   *
+   * @param frames
+   * @return
+   */
+  public static Dataframe smartbind(Dataframe... frames)
+  {
+    // prepare the merged columns
+    Set<Var> cols = new TreeSet<Var>(); int order=0;
+    for (Dataframe F : frames)
+    {
+      if (!Tools.isSet(F.getTitle())) F.setTitle(""+order++);
+      cols.addAll(F.cols());
+    }
+    // the resulting dataframe
+    Dataframe output = new Dataframe();
+    for (Dataframe frame : frames)
+    {
+      for (Var v : cols)
+        for (String r : frame.rows())
+          if (frame.hasVar(v)) output.put(frame.getTitle()+"::"+r, v, frame.cell(r,v));
+          // no value set if col didn;t exist for this dataframe. In R-routine, NA would the be the default
+    }
+    return output;
+  }
+
+  /** Merge two data frames by common columns or row names, or do other versions of database join operations.
+   * animals *
+   size   type   name
+   small  cat    lynx
+   big    cat    tiger
+   small  dog    chihuahua
+   big    dog   "great dane"
+
+   * observations *
+   number size  type
+   1      big   cat
+   2      small dog
+   3      small dog
+   4      big   dog
+
+   * obs2 *
+          number  size    type
+   1      1       big     cat
+   2      2       small   dog
+   3      3       small   dog
+   4      4       big     dog
+   5      5       big     dog
+   6      6       big     dog
+
+   merge(observations, animals, c("size","type"))
+   size   type  number    name
+   big    cat   1         tiger
+   big    dog   4         great dane
+   small  dog   2         chihuahua
+   small  dog   3         chihuahua
+
+   > merge(obs2, animals, "size")
+          size    number  type.x  type.y    name
+   1      big     1       cat     cat       tiger
+   2      big     1       cat     dog       great dane
+   3      big     4       dog     cat       tiger
+   4      big     4       dog     dog       great dane
+   5      big     5       dog     cat       tiger
+   6      big     5       dog     dog       great dane
+   7      big     6       dog     cat       tiger
+   8      big     6       dog     dog       great dane
+   9      small   2       dog     cat       lynx
+   10     small   2       dog     dog       chihuahua
+   11     small   3       dog     cat       lynx
+   12     small   3       dog     dog       chihuahua
+
+   > merge(animals, obs2, "size")
+          size   type.x  name         number  type.y
+   1      big     cat   tiger         1       cat
+   2      big     cat   tiger         4       dog
+   3      big     cat   tiger         5       dog
+   4      big     cat   tiger         6       dog
+   5      big     dog   great dane    1       cat
+   6      big     dog   great dane    4       dog
+   7      big     dog   great dane    5       dog
+   8      big     dog   great dane    6       dog
+   9      small   cat   lynx          2       dog
+   10     small   cat   lynx          3       dog
+   11     small   dog   chihuahua     2       dog
+   12     small   dog   chihuahua     3       dog
+
+   * @param x and y : the data frames to be merged
+   * @param allx and ally : TRUE if the rows from x/y will be added to the output that has no matching in the other.
+   * @return the dataframe with the merge data
+   */
+  public static Dataframe merge(Dataframe x, Dataframe y, boolean allx, boolean ally, String... by)
+  {
+    if (x==null || y==null) return null;
+    // get the shared cols
+    String[] shared=Strs.toStringArray(Sets.intersection(Sets.newHashSet(x.cols()), Sets.newHashSet(y.cols())));
+    // set the by cols to the common if not specified
+    if (!Tools.isSet(by)) by=shared;
+    if (!Tools.isSet(by)) return null;
+    // pool the matching rows
+    Table<String, String, String> id_x_y = HashBasedTable.create();
+    for (String r : x.rows())
+    {
+      id_x_y.put(Strs.toString(x.get(r, by),"^"), ;
+
+    }
+
+    // create the merged cols
+    Collection<String> col_merged = new HashSet<String>();
+    for (Var v : x.cols())
+      col_merged.add(!Tools.contains(shared, v.toString()) || Tools.contains(by, v.toString()) ? v.toString() : v.toString()+".x");
+    for (Var v : y.cols())
+      col_merged.add(!Tools.contains(shared, v.toString()) || Tools.contains(by, v.toString()) ? v.toString() : v.toString()+".y");
+
+    // create the merged results
+    Dataframe out = new Dataframe();
+    for (String r : x.rows())
+    {
+      // check if the row meets the id col requirement
+    }
+    for (Var v : x.cols())
+    {
+        for (String c : col_merged)
+        {
+
+        }
+      }
+    }
+
   }
 }
 
