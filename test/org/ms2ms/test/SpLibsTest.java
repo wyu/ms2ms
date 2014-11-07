@@ -110,9 +110,9 @@ public class SpLibsTest extends TestAbstract
     while (iterator.hasNext())
     {
       Result result = iterator.next();
-      //if you want to get the entire row
-      Get get = new Get(result.row());
-      Result entireRow = table.get(get);
+      //if you want to cells the entire row
+      Get cells = new Get(result.row());
+      Result entireRow = table.cells(cells);
       // process the row
       HBaseSpLib lib = new HBaseSpLib(entireRow);
       System.out.println("row " + (rows++) + ": " + lib.toString());
@@ -128,7 +128,7 @@ public class SpLibsTest extends TestAbstract
   public void readAllMsMsIndex() throws IOException
   {
     HConnection conn = HConnectionManager.createConnection(HBaseConfiguration.create());
-    // get the number of row. Can be very expansive for a large table!!
+    // cells the number of row. Can be very expansive for a large table!!
     HTableInterface table = conn.getTable(HBase.TBL_MSMSINDEX);
 
     Scan scan = new Scan();

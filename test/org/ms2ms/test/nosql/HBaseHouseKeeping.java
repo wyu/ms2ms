@@ -1,4 +1,4 @@
-package org.ms2ms.test;
+package org.ms2ms.test.nosql;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -6,6 +6,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.ms2ms.nosql.HBase;
 import org.ms2ms.nosql.HBasePeakList;
+import org.ms2ms.test.TestAbstract;
 
 public class HBaseHouseKeeping extends TestAbstract
 {
@@ -46,7 +47,7 @@ public class HBaseHouseKeeping extends TestAbstract
       HBase.addRecord(conf, tablename, "baoniu", "grade", "", "4");
       HBase.addRecord(conf, tablename, "baoniu", "course", "math", "89");
 
-      System.out.println("===========get one record========");
+      System.out.println("===========cells one record========");
       HBase.getOneRecord(conf, tablename, "zkb");
 
       System.out.println("===========show all record========");

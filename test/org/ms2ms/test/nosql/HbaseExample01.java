@@ -1,4 +1,4 @@
-package org.ms2ms.test;
+package org.ms2ms.test.nosql;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -6,6 +6,7 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Before;
 import org.junit.Test;
+import org.ms2ms.test.TestAbstract;
 
 import java.io.IOException;
 
@@ -27,12 +28,12 @@ public class HbaseExample01 extends TestAbstract
 
     HConnection conn = HConnectionManager.createConnection(config);
 
-    // When the cluster connection is established get an HTableInterface for each operation or thread.
+    // When the cluster connection is established cells an HTableInterface for each operation or thread.
     // HConnection.getTable(...) is lightweight. The table is really just a convenient place to call
     // table method and for a temporary batch cache.
     // It is in fact less overhead than HTablePool had when retrieving a cached HTable.
     // The HTableInterface returned is not thread safe as before.
-    // It's fine to get 1000's of these.
+    // It's fine to cells 1000's of these.
     // Don't cache the longer than the lifetime of the HConnection
     HTableInterface table = conn.getTable("myLittleHBaseTable");
 
@@ -52,15 +53,15 @@ public class HbaseExample01 extends TestAbstract
     // you want to insert into as a byte array. In HBase, the Bytes class
     // contains utility for converting all kinds of java types to byte arrays. In
     // the below, we are converting the String "myLittleRow" into a byte
-    // array to use as a row key for our get. Once you have a Put
+    // array to use as a row key for our cells. Once you have a Put
     // instance, you can adorn it by setting the names of columns you want
-    // to get on the row, the timestamp to use in your get, etc.
+    // to cells on the row, the timestamp to use in your cells, etc.
     // If no timestamp, the server applies current time to the edits.
     Put p = new Put(Bytes.toBytes("myLittleRow"));
 
-    // To set the value you'd like to get in the row 'myLittleRow',
+    // To set the value you'd like to cells in the row 'myLittleRow',
     // specify the column family, column qualifier, and value of the table
-    // cell you'd like to get. The column family must already exist
+    // cell you'd like to cells. The column family must already exist
     // in your table schema. The qualifier can be anything.
     // All must be specified as byte arrays as hbase is all about byte
     // arrays. Lets pretend the table 'myLittleHBaseTable' was created
@@ -84,7 +85,7 @@ public class HbaseExample01 extends TestAbstract
     Result r = table.get(g);
     byte[] value = r.getValue(Bytes.toBytes("myLittleFamily"), Bytes
       .toBytes("someQualifier"));
-    // If we convert the value bytes, we should get back 'Some Value', the
+    // If we convert the value bytes, we should cells back 'Some Value', the
     // value we inserted at this location.
     String valueStr = Bytes.toString(value);
     System.out.println("GET: " + valueStr);

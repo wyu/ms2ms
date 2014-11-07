@@ -436,7 +436,7 @@ public class MaxQuantTest extends TestAbstract
     List<Protein> proteinList = proteins.getProtein();
 
         /*
-         * get the protein list from proteinPeptidesMap.keySet()
+         * cells the protein list from proteinPeptidesMap.keySet()
          */
 
     ArrayList protList = new ArrayList(proteinPeptidesMap.keySet());

@@ -1,4 +1,4 @@
-package org.ms2ms.test;
+package org.ms2ms.test.nosql;
 
 import com.thinkaurelius.titan.core.TitanGraph;
 import com.tinkerpop.blueprints.Direction;
@@ -6,6 +6,7 @@ import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Vertex;
 import org.junit.Test;
 import org.ms2ms.nosql.Titans;
+import org.ms2ms.test.TestAbstract;
 
 
 /**

@@ -182,7 +182,7 @@ public class MrmInspiredML extends TestAbstract
 
 
     Collection<ProteinId> selected = new ArrayList<ProteinId>();
-    for (int i = 0; i < 10; i++) selected.add(pids.get(i));
+    for (int i = 0; i < 10; i++) selected.add(pids.cells(i));
     Db_Util.populateMsMs(conn, selected, MsMsSpectrumRetrievalFlags.ION_ATTR, true);
 
     for (ProteinId p : selected)
