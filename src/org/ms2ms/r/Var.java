@@ -12,7 +12,11 @@ import java.util.List;
  */
 public interface Var
 {
-  public enum VarType { CONTINOUOUS, CATEGORICAL, UNKNOWN }
+  public enum VarType { CONTINOUOUS, CATEGORICAL, NUMERICAL, UNKNOWN }
+
+  public void setName(String s);
+  public String getName();
+  public VarType getType();
 
   public boolean isCategorical();
   public boolean isContinuous();

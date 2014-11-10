@@ -1,6 +1,9 @@
 package org.ms2ms.r;
 
 import com.google.common.collect.*;
+import org.ms2ms.Disposable;
+import org.ms2ms.data.NameValue;
+import org.ms2ms.data.collect.MapOfMultimap;
 import org.ms2ms.utils.*;
 
 import java.io.IOException;
@@ -14,17 +17,19 @@ import java.util.*;
  * Time: 2:14 PM
  * To change this template use File | Settings | File Templates.
  */
-public class Dataframe
+public class Dataframe implements Disposable
 {
   private String                     mTitle;
   private boolean                    mKeepData = true;
-  private List<String>               mRowIDs;
-  private List<Var>                  mColVars;
+  private List<String>               mRowIDs, mColIDs;
   private Map<String, Var>           mNameVar;
-  private Table<String, Var, Object> mData;
+  private Table<String, String, Object> mData;
 
   public Dataframe()                                         { super(); }
   public Dataframe(String cvs, char delim, String... idcols) { super(); readTable(cvs, delim, idcols); setTitle(cvs); }
+
+  public Dataframe setRowIds(List<String> s) { mRowIDs=s; return this; }
+  public Dataframe setColIds(List<String> s) { mColIDs=s; return this; }
 
   //** factory method **//
   public static Dataframe csv(String csv, char delim, String... idcols)
@@ -37,63 +42,68 @@ public class Dataframe
   //** Getters the Setters **//
   public int size() { return mData!=null?mData.rowKeySet().size():0; }
   public String       getTitle()      { return mTitle; }
-  public List<Var>    getVars()       { return mColVars; }
-  public List<String> getRowIds()     { return mRowIDs; }
+//  public List<String> getColIds()     { return mColIDs; }
+//  public List<String> getRowIds()     { return mRowIDs; }
   public String       getRowId(int i) { return mRowIDs!=null?mRowIDs.get(i):null; }
-  public Var[]        toVars(String... s)
+//  public Var          asVar(String s) { return mNameVar!=null?mNameVar.get(s):null; }
+  public Var[]        asVars(String... s)
   {
     if (!hasVars(s)) return null;
     Var[] out = new Var[s.length];
-    for (int i=0; i<s.length; i++) out[i] = getVar(s[i]);
+    for (int i=0; i<s.length; i++) out[i] = asVar(s[i]);
 
     return out;
   }
   public Dataframe setTitle(String s) { mTitle=s; return this; }
 
-  public Map<Var,    Object> row(int    i) { return mData!=null?mData.row(getRowIds().get(i)):null; }
-  public Map<Var,    Object> row(String s) { return mData!=null?mData.row(s):null; }
-  public Map<String, Object> col(Var    s) { return mData!=null?mData.column(s):null; }
-  public Var getVar(String s)
+  public Map<String, Object> row(int    i) { return mData!=null?mData.row(getRowId(i)):null; }
+  public Map<String, Object> row(String s) { return mData!=null?mData.row(s):null; }
+  public Map<String, Object> col(String s) { return mData!=null?mData.column(s):null; }
+  public Var asVar(String s)
   {
     if (mNameVar==null)
     {
       mNameVar= new HashMap<String, Var>();
-      for (Var v : mColVars) mNameVar.put(v.toString(), v);
+      if (Tools.isSet(mColIDs))
+        for (String v : mColIDs) mNameVar.put(v, new Variable(v));
     }
     return mNameVar.get(s);
   }
-  public Dataframe put(String row, Var col, Object val)
+//  public Dataframe put(String row, Var col, Object val)
+//  {
+//    if (mData==null) mData = HashBasedTable.create();
+//    mData.put(row, col, val);
+//    // update the variable cache. DON'T do it due to cost
+////    addVar(col);
+//
+//    return this;
+//  }
+//  public Dataframe put(Var col, Object val)
+//  {
+//    if (mData  ==null) mData = HashBasedTable.create();
+//    return put(mData.rowKeySet().size() + "", col, val);
+//  }
+  public Dataframe put(String row, String col, Object val)
   {
-    if (mData==null) mData = HashBasedTable.create();
+    if (mData  ==null) mData = HashBasedTable.create();
     mData.put(row, col, val);
-    // update the variable cache
-    addVar(col);
 
     return this;
   }
-  public Dataframe put(Var col, Object val)
-  {
-    if (mData  ==null) mData = HashBasedTable.create();
-    return put(mData.rowKeySet().size() + "", col, val);
-  }
-  public Dataframe put(String row, String col, Object val)
-  {
-    return put(row, hasVars(col)?getVar(col):new Variable(col), val);
-  }
-  public Dataframe put(String col, Object val)
-  {
-    if (mData  ==null) mData = HashBasedTable.create();
-    return put(mData.rowKeySet().size()+"", hasVars(col)?getVar(col):new Variable(col), val);
-  }
+//  public Dataframe put(String col, Object val)
+//  {
+//    if (mData  ==null) mData = HashBasedTable.create();
+//    return put(mData.rowKeySet().size()+"", hasVars(col)?getVar(col):new Variable(col), val);
+//  }
   public Dataframe addRowId(String row)
   {
     if (mRowIDs==null) mRowIDs = new ArrayList<String>();
     mRowIDs.add(row); return this;
   }
-  public Dataframe addRow(String id, Map<Var, Object> row)
+  public Dataframe addRow(String id, Map<String, Object> row)
   {
     if (mData==null) mData = HashBasedTable.create();
-    for (Var v : row.keySet())
+    for (String v : row.keySet())
       mData.put(id, v, row.get(v));
 
     return this;
@@ -104,82 +114,96 @@ public class Dataframe
     if (mNameVar.put(v.toString(), v)==null)
     {
       // add to the var list if this is a new one
-      if (mColVars==null) mColVars = new ArrayList<Var>();
-      mColVars.add(v);
+      if ( mColIDs==null) mColIDs = new ArrayList<String>();
+      if (!mColIDs.contains(v.getName())) mColIDs.add(v.getName());
     }
     return v;
   }
   public boolean hasVars(String... vs)
   {
     if (!Tools.isSet(vs)) return false;
-    for (String v : vs) if (getVar(v)==null) return false;
+    for (String v : vs) if (asVar(v)==null) return false;
 
     return true;
   }
   public boolean hasVar(String s, boolean isCategorical)
   {
-    if (Tools.isSet(s) && getVar(s)!=null && getVar(s).isCategorical()==isCategorical) return true;
+    if (Tools.isSet(s) && asVar(s)!=null && asVar(s).isCategorical()==isCategorical) return true;
     return false;
   }
   public boolean hasVar(Var s)
   {
-    return (s!=null && mColVars!=null && mColVars.contains(s));
+    return (s!=null && mNameVar!=null && mNameVar.values().contains(s));
   }
-  public Object[] get(String rowid, Var... vs)
+//  public Object[] cells(String rowid, Var... vs)
+//  {
+//    Object[] lead = new Object[vs.length];
+//    for (int i=0; i<vs.length; i++) lead[i]=row(rowid).get(vs[i]);
+//
+//    return lead;
+//  }
+  public Object[] cells(String rowid, String... vs)
   {
     Object[] lead = new Object[vs.length];
     for (int i=0; i<vs.length; i++) lead[i]=row(rowid).get(vs[i]);
 
     return lead;
   }
-  public Object[] get(String rowid, String... vs)
-  {
-    Object[] lead = new Object[vs.length];
-    for (int i=0; i<vs.length; i++) lead[i]=row(rowid).get(getVar(vs[i]));
-
-    return lead;
-  }
-  public Object cell(String rowid, Var v) { return mData!=null?mData.get(rowid,v):null; }
-  public Object cell(String rowid, String s) { return mData!=null?mData.get(rowid,getVar(s)):null; }
-  public List<Var> cols() { return mColVars; }
+//  public Object get(String rowid, Var v) { return row(rowid).get(v); }
+//  public Object get(String rowid, String v) { return row(rowid).get(getVar(v)); }
+//  public Object cell(String rowid, Var v) { return mData!=null?mData.get(rowid,v):null; }
+  public Object cell(String rowid, String s) { return mData!=null?mData.get(rowid,s):null; }
+  public List<String> cols() { return mColIDs; }
   public List<String> rows() { return mRowIDs; }
 
   public Dataframe reorder(String... s)
   {
-    if (!Tools.isSet(s) || mData==null || !Tools.isSet(mColVars) || !Tools.isSet(mNameVar)) return this;
+    if (!Tools.isSet(s) || mData==null || !Tools.isSet(mColIDs) || !Tools.isSet(mNameVar)) return this;
 
-    mColVars = new ArrayList<Var>(s.length);
-    for (String v : s) if (mNameVar.containsKey(v)) mColVars.add(mNameVar.get(v));
+    mColIDs = new ArrayList<String>(s.length);
+    for (String v : s) if (mNameVar.containsKey(v)) mColIDs.add(v);
     return this;
   }
   // simulate optional var so it's OK to call display(). Only the first element of the array is used
-  public StringBuffer display(StringBuffer... bufs)
+  public StringBuffer display() { return display("\t"); }
+  public StringBuffer display(String delim)
   {
-    StringBuffer buf = (Tools.isSet(bufs) && bufs[0]!=null) ? bufs[0] : new StringBuffer();
-    buf.append("rowid\t" + Strs.toString(getVars(), "\t") + "\n");
-    for (String id : getRowIds())
+    StringBuffer buf = new StringBuffer();
+    buf.append("rowid" + Strs.toString(cols(), delim) + "\n");
+    for (String id : rows())
     {
       buf.append(id);
-      for (Var v : getVars())
-        buf.append("\t" + (get(id, v)!=null&&get(id, v)[0]!=null?get(id, v)[0]:"--"));
+      for (String v : cols())
+        buf.append(delim + (cells(id, v)!=null&& cells(id, v)[0]!=null? cells(id, v)[0]:"--"));
 
       buf.append("\n");
     }
     return buf;
   }
+  @Override
+  public String toString()
+  {
+    return getTitle();
+//    StringBuffer buf = new StringBuffer();
+//    buf.append("rowid\t" + Strs.toString(getVars(), "\t") + "\n");
+//    for (String id : getRowIds())
+//    {
+//      buf.append(id);
+//      for (Var v : getVars())
+//      {
+//        Object t = cells(id, v)!=null? cells(id, v)[0]:null;
+//        buf.append("\t" + (t!=null?(t instanceof String?(String)t:t.toString()):"--"));
+//      }
+//
+//      buf.append("\n");
+//    }
+//    return buf.toString();
+  }
   public void write(Writer writer, String delim)
   {
     try
     {
-      writer.write("rowid" + delim + Strs.toString(getVars(), delim) + "\n");
-      for (String id : getRowIds())
-      {
-        writer.write(id);
-        for (Var v : getVars())
-          writer.write(delim + (get(id, v)!=null&&get(id, v)[0]!=null?get(id, v)[0]:""));
-
-        writer.write("\n");
-      }
+      writer.write(display(delim) + "\n");
     }
     catch (IOException io)
     {
@@ -191,10 +215,10 @@ public class Dataframe
     if (!hasVar(x,false) || hasVar(y,false)) return null;
 
     SortedMap<Double, Double> line = new TreeMap<Double, Double>();
-    Var vx=getVar(x), vy=getVar(y);
-    for (String id : getRowIds())
+//    Var vx=asVar(x), vy=getVar(y);
+    for (String id : rows())
     {
-      Tools.putNotNull(line, cell(id, vx), cell(id, vy));
+      Tools.putNotNull(line, cell(id, x), cell(id, y));
     }
     return line;
   }
@@ -202,11 +226,10 @@ public class Dataframe
   {
     if (!Tools.isSet(mData) || !hasVars(y)) return null;
 
-    double[] ys = new double[getRowIds().size()];
-    Var      vy = getVar(y);
-    for (int i=0; i<getRowIds().size(); i++)
+    double[] ys = new double[rows().size()];
+    for (int i=0; i<rows().size(); i++)
     {
-      ys[i] = Stats.toDouble(cell(getRowIds().get(i), vy));
+      ys[i] = Stats.toDouble(cell(rows().get(i), y));
     }
     return ys;
   }
@@ -214,14 +237,46 @@ public class Dataframe
   {
     if (hasVars(v)) throw new RuntimeException("Variable " + v + " already exist!");
 
-    if (ys!=null && ys.length==getRowIds().size())
+    if (ys!=null && ys.length==rows().size())
     {
-      Var vv = addVar(new Variable(v));
       for (int i=0; i<ys.length; i++)
       {
-        put(getRowId(i), vv, ys[i]);
+        put(getRowId(i), v, ys[i]);
       }
     }
+    return this;
+  }
+  public Dataframe renameCol(String from, String to)
+  {
+    if (!Tools.isSet(cols())) return this;
+    // look
+    int i = cols().indexOf(from);
+    if (i>=0)
+    {
+      mColIDs.set(i, to);
+      Var v = mNameVar.get(from);
+      v.setName(to); mNameVar.remove(from); mNameVar.put(to, v);
+      // move the actual column
+      Map<String, Object> col = mData.column(from);
+      if (Tools.isSet(col))
+        for (String r : col.keySet())
+        {
+          mData.put(r, to, col.get(r));
+          // remove the old column
+          mData.remove(r, from);
+        }
+    }
+    return this;
+  }
+  public Dataframe removeCols(String... cols)
+  {
+    if (Tools.isSet(cols) && mData!=null)
+      for (String col : cols)
+      {
+        mColIDs.remove(col); mNameVar.remove(col);
+        if (mData.column(col)!=null) mData.column(col).clear();
+      }
+
     return this;
   }
   //** builders **//
@@ -235,15 +290,15 @@ public class Dataframe
     {
       csv = new TabFile(src, delimiter);
       // convert the header to variables
-      mColVars = new ArrayList<Var>();
+      mColIDs = new ArrayList<>();
       mData    = HashBasedTable.create();
-      for (String col : csv.getHeaders()) mColVars.add(new Variable(col));
+      for (String col : csv.getHeaders()) addVar(new Variable(col));
       // going thro the rows
       long row_counts = 0;
       while (csv.hasNext())
       {
         if (++row_counts % 10000  ==0) System.out.print(".");
-        if (  row_counts % 1000000==0) System.out.println();
+//        if (  row_counts % 1000000==0) System.out.println();
         String id=null;
         if (Tools.isSet(idcols))
         {
@@ -253,12 +308,10 @@ public class Dataframe
         else id = row_counts+"";
 
         addRowId(id);
-        // deposite the cells
-        for (Var v : mColVars)
-          mData.put(id, v, csv.get(v.toString()));
+        // deposit the cells
+        for (String v : cols()) mData.put(id, v, csv.get(v));
       }
       csv.close();
-      System.out.println();
       // setup the types
       init();
     }
@@ -271,35 +324,35 @@ public class Dataframe
   protected void init()
   {
     if (!Tools.isSet(mData)) return;
-    if (mRowIDs ==null) { mRowIDs  = new ArrayList<String>(mData.rowKeySet()); Collections.sort(mRowIDs); }
-    if (mColVars==null)
+    if (mRowIDs ==null) { mRowIDs  = new ArrayList<>(mData.rowKeySet()); Collections.sort(mRowIDs); }
+    if (mColIDs ==null)
     {
-      mColVars = new ArrayList<Var>(mData.columnKeySet());
-      mNameVar = new HashMap<String, Var>(mColVars.size());
-      for (Var v : mColVars) mNameVar.put(v.toString(), v);
+      mColIDs  = new ArrayList<>(mData.columnKeySet());
+      mNameVar = new HashMap<>(mColIDs.size());
+      for (String v : mColIDs) mNameVar.put(v, new Variable(v));
     }
 
     //int counts=0;
-    for (Var v : mColVars)
+    for (String v : mColIDs)
     {
-      v.setFactors(null); init(v);
+      asVar(v).setFactors(null); init(asVar(v));
     }
     System.out.println();
   }
-  protected void init(Var v)
+  public Dataframe init(Var v)
   {
-    if (!Tools.isSet(mData)) return;
+    if (!Tools.isSet(mData)) return this;
 
     boolean       isNum=true;
     Set<Object> factors=new HashSet<Object>();
     for (String row : mRowIDs)
     {
-      Object val = Stats.toNumber(mData.get(row, v));
+      Object val = Stats.toNumber(cell(row, v.getName()));
 
       if (val instanceof String) isNum=false;
       if (val!=null && (!(val instanceof String) || ((String )val).length()>0)) factors.add(val);
       // put the cell back
-      if (row!=null && v!=null && val!=null) mData.put(row, v, val);
+      if (row!=null && v!=null && val!=null) mData.put(row, v.getName(), val);
     }
     if (v.isType(Var.VarType.UNKNOWN))
     {
@@ -307,13 +360,121 @@ public class Dataframe
         v.setType(Var.VarType.CATEGORICAL);
       else v.setType(Var.VarType.CONTINOUOUS);
     }
-    if ( v.isCategorical())
-    {
-      v.setFactors(factors);
-      //Collections.sort(v.getFactors());
-    }
+    if ( v.isCategorical()) v.setFactors(factors);
 
     Tools.dispose(factors);
+    return this;
+  }
+  public Dataframe init(Var.VarType type, String... vs)
+  {
+    if (!Tools.isSet(mData)) return this;
+
+    for (String s : vs)
+    {
+      Var v = asVar(s);
+      if (Tools.equals(type, Var.VarType.CATEGORICAL))
+      {
+        Set<Object> factors=new HashSet<>();
+        for (String row : mRowIDs) factors.add(row);
+        v.setFactors(factors);
+        Tools.dispose(factors);
+      }
+      else if (Tools.equals(type, Var.VarType.CONTINOUOUS))
+      {
+        for (String row : mRowIDs)
+        {
+          Object val = Stats.toNumber(cell(row, v.getName()));
+
+          if (val instanceof String) break;
+          // put the cell back
+          if (row!=null && v!=null && val!=null) mData.put(row, v.getName(), val);
+        }
+      }
+      v.setType(type);
+    }
+    return this;
+  }
+
+  /** Test whether the columns are identical
+   *
+   * @param A
+   * @param B
+   * @return
+   */
+  public boolean isEqualCols(String A, String B)
+  {
+    if (mColIDs==null || !mColIDs.contains(A) || !mColIDs.contains(B)) return false;
+
+    MapDifference<String, Object> diff = Maps.difference(mData.column(A), mData.column(B));
+    return diff.areEqual();
+  }
+
+  /** Produce a shallow copy of the self */
+  @Override
+  public Dataframe clone()
+  {
+    Dataframe out = new Dataframe();
+    if (Tools.isSet(mData))
+    {
+      out.mData = TreeBasedTable.create(); out.mData.putAll(mData);
+    }
+    out.setTitle(getTitle());
+    out.mKeepData = mKeepData;
+    if (mRowIDs !=null) out.mRowIDs =new ArrayList<>(mRowIDs);
+    if (mColIDs !=null) out.mColIDs =new ArrayList<>(mColIDs);
+    if (mNameVar!=null) out.mNameVar=new HashMap<>(  mNameVar);
+
+    return out;
+  }
+
+  /** Produce a view of the self. Any change to the Data object of the 'view' will alter the self, and vice versus
+   *  Row and col IDs are free to change on their own
+   *
+   * @return
+   */
+  public Dataframe view()
+  {
+    Dataframe out = new Dataframe();
+
+    out.setTitle(getTitle());
+    out.mKeepData = mKeepData;
+    if (mRowIDs !=null) out.mRowIDs =new ArrayList<>(mRowIDs);
+    if (mColIDs !=null) out.mColIDs =new ArrayList<>(mColIDs);
+    if (mNameVar!=null) out.mNameVar=new HashMap<>(  mNameVar);
+
+    out.mData = mData;
+
+    return out;
+  }
+
+  //********** factory methods ***************//
+  // obs2 <- read.table(header=T, text='number  size type\n1   big  cat\n2 small  dog\n3 small  dog\n4   big  dog\n5   big  dog\n6   big  dog')
+  public static Dataframe readtable(boolean header, String text)
+  {
+    Dataframe    f = new Dataframe();
+    String[] lines = Strs.split(text, '\n');
+
+    // test for the field delimiter. prefer tab if exist
+    String token = lines[0].split("\t").length>1?"\t":"\\s+";
+    // make the headers
+    String[] headers = header&&lines.length>0?lines[0].split(token):Strs.toStringArray(Stats.newIntArray(0,lines[0].split(token).length));
+
+    // fill out the data frame
+    for (int i=(header?1:0); i<lines.length; i++)
+    {
+      f.addRowId(i+"");
+      String[] fields = lines[i].split(token);
+      for (int j=0; j<fields.length; j++)
+        f.put(i+"", headers[j], fields[j]);
+    }
+    f.init();
+
+    return f;
+  }
+  public static Dataframe readtable(String src, char delimiter, String... idcols)
+  {
+    Dataframe f = new Dataframe(src, delimiter, idcols);
+    return f;
   }
 
   //********** R or Matlab style algorithms ***************//
@@ -328,18 +489,89 @@ public class Dataframe
     if (v==null || !hasVar(v,true)) return null;
 
     Map<Object, Dataframe> outs = new HashMap<Object, Dataframe>();
-    Var vv = getVar(v);
-    for (String r : getRowIds())
-    {
-      Object key = row(r).get(vv);
-      Dataframe F = outs.get(key);
-      if (F==null) F = new Dataframe();
-      F.addRow(r, mData.row(r));
-      outs.put(key, F.setTitle(key.toString()));
-    }
-    for (Dataframe d : outs.values()) d.init();
+    for (Object f : asVar(v).getFactors())
+      outs.put(f, subset(v+"=="+(f instanceof String ? ("'"+f+"'"):f.toString())));
+//    for (String r : rows())
+//    {
+//      Object key = row(r).get(v);
+//      Dataframe F = outs.get(key);
+//      if (F==null) F = new Dataframe();
+//      F.addRow(r, mData.row(r));
+//      outs.put(key, F.setTitle(key.toString()));
+//    }
+//    for (Dataframe d : outs.values()) d.init();
 
     return outs;
+  }
+
+  /** subset the rows according to the test conditions specified, similar to 'subset' function from R
+   *
+   * subset(animals, type=="cat")
+   *
+      size    type    name
+   1  small   cat     lynx
+   2  big     cat     tiger
+   *
+   * @return
+   */
+  public Dataframe subset(String test)
+  {
+    // taking
+    Dataframe out = view();
+    NameValue nv  = new NameValue();
+    // parse the test and prepare the row subset
+    List<String> rows = new ArrayList<>();
+    String[]      ors = Strs.split(test, '|', true);
+    if (Tools.isSet(ors))
+      for (String or : ors)
+      {
+        String[]     ands = Strs.split(or, '&', true);
+        List<String> subs = new ArrayList<>(rows());
+        if (Tools.isSet(ands))
+          for (String and : ands)
+          {
+//            if (nv.parse(and, "==") && out.hasVars(nv.name))
+//            {
+//              Iterator<String> itr = subs.iterator();
+//              while (itr.hasNext())
+//              {
+//                // remove the row if not meeting the test
+//                Object v=Stats.toNumber(cell(itr.next(), nv.name));
+//                if (!((v instanceof String && Tools.equals((String )v, nv.val)) ||
+//                       v instanceof Double && Tools.equals((Double )v, nv.getNumber()))) itr.remove();
+//              }
+//            }
+            if (nv.parse(and, "==",">=","<=",">","<","!=","%in%") && out.hasVars(nv.name))
+            {
+              Iterator<String> itr = subs.iterator();
+              while (itr.hasNext())
+              {
+                // remove the row if not meeting the test
+                Object v=Stats.toNumber(cell(itr.next(), nv.name));
+                if (v instanceof String)
+                {
+                  if ((Tools.equals(nv.token, "==") && !Tools.equals((String )v, nv.val)) ||
+                      (Tools.equals(nv.token, "!=") &&  Tools.equals((String )v, nv.val))) itr.remove();
+                }
+                else if (v instanceof Double)
+                {
+                  if ((Tools.equals(nv.token, "==") && !Tools.equals((Double )v, nv.getNumber())) ||
+                      (Tools.equals(nv.token, "!=") &&  Tools.equals((Double )v, nv.getNumber())) ||
+                      (Tools.equals(nv.token, "<=") &&  (Double )v>nv.getNumber()) ||
+                      (Tools.equals(nv.token, ">=") &&  (Double )v<nv.getNumber()) ||
+                      (Tools.equals(nv.token, "<")  &&  (Double )v>=nv.getNumber()) ||
+                      (Tools.equals(nv.token, ">")  &&  (Double )v<=nv.getNumber())) itr.remove();
+                }
+              }
+            }
+          }
+        // combine the rows
+        for (String r : subs)
+          if (rows.size()==0 || !rows.contains(r)) rows.add(r);
+      }
+
+    // update the rows
+    return out.setRowIds(rows);
   }
   /** Partial implementation of R-aggregate
    *
@@ -376,14 +608,12 @@ public class Dataframe
   public Dataframe pivot(String col, String val, Stats.Aggregator func, String... rows)
   {
     // make sure the column types are OK
-    if (!hasVars(rows) || !hasVar(col, true)) return null;
-    // looping thro the rows
-    Var vcol=getVar(col), vval=getVar(val); Var[] vrows=Variable.toVars(this,rows);
+    if ((Tools.isSet(rows) && !hasVars(rows)) || !hasVar(col, true) || !hasVar(val, true)) return null;
     // build the inventory
     ListMultimap<ArrayKey, Object> body = ArrayListMultimap.create();
-    for (String rowid : getRowIds())
+    for (String rowid : rows())
     {
-      body.put(new ArrayKey(ObjectArrays.concat(get(rowid, vcol)[0], get(rowid, vrows))), get(rowid, vval)[0]);
+      body.put(new ArrayKey(ObjectArrays.concat(cell(rowid, col), cells(rowid, rows))), cell(rowid, val));
     }
     // construct the outgoing data frame
     Dataframe out = new Dataframe();
@@ -392,12 +622,12 @@ public class Dataframe
       String id = Strs.toString(Arrays.copyOfRange(keys.key, 1, keys.key.length), "");
       for (int i=1; i< keys.key.length; i++)
       {
-        out.put(id, vrows[i-1], keys.key[i]);
+        out.put(id, rows[i-1], keys.key[i]);
       }
       out.put(id, keys.key[0].toString(), Stats.aggregate(body.get(keys), func));
     }
     out.init(); Tools.dispose(body);
-    out.reorder(ObjectArrays.concat(rows, Strs.toStringArray(vcol.getFactors()), String.class));
+    out.reorder(ObjectArrays.concat(rows, Strs.toStringArray(asVar(col).getFactors()), String.class));
 
     return out;
   }
@@ -406,9 +636,9 @@ public class Dataframe
     if (!hasVar(row,false) || !hasVar(col,false)) return null;
 
     TreeBasedTable<Double, Double, String> indice = TreeBasedTable.create();
-    Var vrow=getVar(row), vcol=getVar(col);
-    for (String rowid : getRowIds())
-      indice.put(Stats.toDouble(cell(rowid, vrow)), Stats.toDouble(cell(rowid, vcol)), rowid);
+//    Var vrow=getVar(row), vcol=getVar(col);
+    for (String rowid : rows())
+      indice.put(Stats.toDouble(cell(rowid, row)), Stats.toDouble(cell(rowid, col)), rowid);
 
     return indice;
   }
@@ -425,6 +655,30 @@ public class Dataframe
     return indices;
   }
 
+  /** ftable(animals), same as ftable(animals[,c("size","type","name")])
+   *
+              name   chihuahua   greatdane   lynx  tiger
+   size   type
+   big    cat               0          0      0     1
+          dog               0          1      0     0
+   small  cat               0          0      1     0
+          dog               1          0      0     0
+   *
+   > ftable(animals[,c("size","type")])
+          type cat dog
+   size
+   big          1   1
+   small        1   1
+   *
+   * @param cols
+   * @return
+   */
+  public Dataframe ftable(String... cols)
+  {
+    Dataframe out = new Dataframe();
+
+    return out;
+  }
   //** algorithms **//
 
   /**The returned data frame will contain:
@@ -443,7 +697,7 @@ public class Dataframe
   public static Dataframe smartbind(Dataframe... frames)
   {
     // prepare the merged columns
-    Set<Var> cols = new TreeSet<Var>(); int order=0;
+    Set<String> cols = new TreeSet<String>(); int order=0;
     for (Dataframe F : frames)
     {
       if (!Tools.isSet(F.getTitle())) F.setTitle(""+order++);
@@ -453,117 +707,88 @@ public class Dataframe
     Dataframe output = new Dataframe();
     for (Dataframe frame : frames)
     {
-      for (Var v : cols)
+      for (String v : cols)
         for (String r : frame.rows())
-          if (frame.hasVar(v)) output.put(frame.getTitle()+"::"+r, v, frame.cell(r,v));
+          if (frame.cols().contains(v)) output.put(frame.getTitle()+"::"+r, v, frame.cell(r,v));
           // no value set if col didn;t exist for this dataframe. In R-routine, NA would the be the default
     }
     return output;
   }
 
   /** Merge two data frames by common columns or row names, or do other versions of database join operations.
-   * animals *
-   size   type   name
-   small  cat    lynx
-   big    cat    tiger
-   small  dog    chihuahua
-   big    dog   "great dane"
-
-   * observations *
-   number size  type
-   1      big   cat
-   2      small dog
-   3      small dog
-   4      big   dog
-
-   * obs2 *
-          number  size    type
-   1      1       big     cat
-   2      2       small   dog
-   3      3       small   dog
-   4      4       big     dog
-   5      5       big     dog
-   6      6       big     dog
-
-   merge(observations, animals, c("size","type"))
-   size   type  number    name
-   big    cat   1         tiger
-   big    dog   4         great dane
-   small  dog   2         chihuahua
-   small  dog   3         chihuahua
-
-   > merge(obs2, animals, "size")
-          size    number  type.x  type.y    name
-   1      big     1       cat     cat       tiger
-   2      big     1       cat     dog       great dane
-   3      big     4       dog     cat       tiger
-   4      big     4       dog     dog       great dane
-   5      big     5       dog     cat       tiger
-   6      big     5       dog     dog       great dane
-   7      big     6       dog     cat       tiger
-   8      big     6       dog     dog       great dane
-   9      small   2       dog     cat       lynx
-   10     small   2       dog     dog       chihuahua
-   11     small   3       dog     cat       lynx
-   12     small   3       dog     dog       chihuahua
-
-   > merge(animals, obs2, "size")
-          size   type.x  name         number  type.y
-   1      big     cat   tiger         1       cat
-   2      big     cat   tiger         4       dog
-   3      big     cat   tiger         5       dog
-   4      big     cat   tiger         6       dog
-   5      big     dog   great dane    1       cat
-   6      big     dog   great dane    4       dog
-   7      big     dog   great dane    5       dog
-   8      big     dog   great dane    6       dog
-   9      small   cat   lynx          2       dog
-   10     small   cat   lynx          3       dog
-   11     small   dog   chihuahua     2       dog
-   12     small   dog   chihuahua     3       dog
 
    * @param x and y : the data frames to be merged
-   * @param allx and ally : TRUE if the rows from x/y will be added to the output that has no matching in the other.
+//   * @param allx and ally : TRUE if the rows from x/y will be added to the output that contains no matching in the other.
    * @return the dataframe with the merge data
    */
-  public static Dataframe merge(Dataframe x, Dataframe y, boolean allx, boolean ally, String... by)
+  public static Dataframe merge(Dataframe x, Dataframe y, boolean combineSharedCol, String... by)
   {
     if (x==null || y==null) return null;
-    // get the shared cols
-    String[] shared=Strs.toStringArray(Sets.intersection(Sets.newHashSet(x.cols()), Sets.newHashSet(y.cols())));
+    // cells the shared cols
+    String[] shared=Strs.toStringArray(Tools.overlap(x.cols(), y.cols()));
     // set the by cols to the common if not specified
     if (!Tools.isSet(by)) by=shared;
     if (!Tools.isSet(by)) return null;
     // pool the matching rows
-    Table<String, String, String> id_x_y = HashBasedTable.create();
+    MapOfMultimap<String, Integer, String> id_x_y = MapOfMultimap.create();
     for (String r : x.rows())
-    {
-      id_x_y.put(Strs.toString(x.get(r, by),"^"), ;
-
-    }
+      id_x_y.put(Strs.toString(x.cells(r, by),"^"), 1, r);
+    for (String r : y.rows())
+      id_x_y.put(Strs.toString(y.cells(r, by),"^"), 2, r);
 
     // create the merged cols
-    Collection<String> col_merged = new HashSet<String>();
-    for (Var v : x.cols())
-      col_merged.add(!Tools.contains(shared, v.toString()) || Tools.contains(by, v.toString()) ? v.toString() : v.toString()+".x");
-    for (Var v : y.cols())
-      col_merged.add(!Tools.contains(shared, v.toString()) || Tools.contains(by, v.toString()) ? v.toString() : v.toString()+".y");
+    Table<Integer, String, String> xy_var_col = HashBasedTable.create();
+    for (String v : x.cols())
+      xy_var_col.put(1, v, !Tools.contains(shared, v) || Tools.contains(by, v) ? v : v + (Tools.isSet(x.getTitle())?"."+x.getTitle():".x"));
+    for (String v : y.cols())
+      xy_var_col.put(2, v, !Tools.contains(shared, v) || Tools.contains(by, v) ? v : v + (Tools.isSet(y.getTitle())?"."+y.getTitle():".y"));
 
     // create the merged results
     Dataframe out = new Dataframe();
-    for (String r : x.rows())
-    {
-      // check if the row meets the id col requirement
-    }
-    for (Var v : x.cols())
-    {
-        for (String c : col_merged)
-        {
+    // deposite the columns
+    for (String v : xy_var_col.values()) out.addVar(new Variable(v));
 
+    for (String id : id_x_y.keySet())
+    {
+      if (id_x_y.get(id).keySet().size()>1)
+        for (String xrow : id_x_y.get(id, 1))
+          for (String yrow : id_x_y.get(id, 2))
+          {
+            String row = xrow+"."+yrow;
+            out.addRowId(row);
+            // make up the unique row id
+            // deposit the A first
+            for (String v : x.cols())
+              out.put(row, xy_var_col.get(1, v), x.cell(xrow, v));
+            for (String v : y.cols())
+              out.put(row, xy_var_col.get(2, v), y.cell(yrow, v));
+          }
+    }
+    // combined the shared cols bot in 'by' if asked
+    if (combineSharedCol && shared!=null && shared.length>by.length)
+    {
+      for (String s : shared)
+      {
+        // skip the column if already in 'by'
+        if (Tools.contains(by, s)) continue;
+        if (out.isEqualCols(xy_var_col.get(1, s), xy_var_col.get(2, s)))
+        {
+          out.removeCols(xy_var_col.get(1, s));
+          out.renameCol(xy_var_col.get(2, s), s);
         }
       }
     }
+    Collections.sort(out.cols());
+    return out;
+  }
 
+  @Override
+  public void dispose()
+  {
+    mTitle=null;
+    Tools.dispose(mRowIDs, mColIDs);
+    Tools.dispose(mNameVar);
+    Tools.dispose(mData);
   }
 }
 
