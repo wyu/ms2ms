@@ -31,6 +31,23 @@ public class DataframeTest extends TestAbstract
     obs2      = Dataframe.readtable(true, "number  size    type\n1       big     cat\n2       small   dog\n3       small   dog\n4       big     dog\n5       big     dog\n6       big     dog");
   }
 
+  @Test
+  public void subsetting() throws Exception
+  {
+    System.out.println(animals.display());
+    System.out.println(obs1.display());
+    System.out.println(obs2.display());
+
+    Dataframe s1 = animals.subset("type=='cat'");
+    Dataframe s2 = animals.subset("type=='cat' & size=='small'");
+
+    System.out.println(s1.display());
+    System.out.println(s2.display());
+
+    Assert.assertEquals(s1.rows().size(), 2);
+    Assert.assertEquals(s2.rows().size(), 1);
+  }
+
   /**
    * animals *
    size   type   name
