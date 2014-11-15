@@ -28,19 +28,20 @@ public class OutputTest extends TestAbstract
   Tolerance rttol=new PpmTolerance(1.5E5), mztol=new PpmTolerance(15);
   String root = "/media/data/maxquant/20081129_Orbi6_NaNa_SA_FASP_out/combined/txt/";
   Dataframe evidences = null, peptides=null, msms=null, scans=null;
+  MaxQuant mq = null;
 
   @Before
   public void setUp()
   {
     // allPeptides100.txt  evidence100.txt  msms100.txt  msmsScans100.txt
-//    evidences = Dataframe.readtable(root+"evidence1k.txt",    '\t').setTitle("evidence");
-//    peptides  = Dataframe.readtable(root+"allPeptides1k.txt", '\t').setTitle("peptide");
-//    msms      = Dataframe.readtable(root+"msms1k.txt",        '\t').setTitle("msms");
-//    scans     = Dataframe.readtable(root+"msmsScans1k.txt",   '\t').setTitle("scan");
+    evidences = Dataframe.readtable(root+"evidence1k.txt",    '\t').setTitle("evidence");
+    peptides  = Dataframe.readtable(root+"allPeptides1k.txt", '\t').setTitle("peptide");
+    msms      = Dataframe.readtable(root+"msms1k.txt",        '\t').setTitle("msms");
+    scans     = Dataframe.readtable(root+"msmsScans1k.txt",   '\t').setTitle("scan");
 
-    evidences = Dataframe.readtable(root+"evidence.txt",    '\t');
-    msms      = Dataframe.readtable(root+"msms.txt", '\t');
-    scans     = Dataframe.readtable(root+"msmsScans.txt", '\t');
+//    evidences = Dataframe.readtable(root+"evidence.txt",    '\t');
+//    msms      = Dataframe.readtable(root+"msms.txt", '\t');
+//    scans     = Dataframe.readtable(root+"msmsScans.txt", '\t');
 
     evidences.removeCols(MaxQuant.sRmdEvidence);
     msms.removeCols(MaxQuant.sRmdMsms);
@@ -52,6 +53,19 @@ public class OutputTest extends TestAbstract
     evidences.renameCol("id", "Evidence ID");
     evidences.renameCol("m/z", "m/z-calibrated");
     evidences.renameCol("Mass", "Mass-predicted");
+  }
+  @Test
+  public void newMQ() throws Exception
+  {
+    mq = new MaxQuant(root, "/media/data/test/mzXML/");
+    mq.init();
+  }
+  @Test
+  public void summaryFile() throws Exception
+  {
+    Dataframe summary = Dataframe.readtable(root+"summary.txt",    '\t').setTitle("summary");
+    summary = summary.subset("Raw file!='Total'");
+    System.out.println(summary.asVar("Raw file").getFactors().size());
   }
   @Test
   // create a composite view of MSMS scans with peptide annotation if available

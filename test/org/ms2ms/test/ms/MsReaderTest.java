@@ -1,4 +1,4 @@
-package org.ms2ms.test;
+package org.ms2ms.test.ms;
 
 import com.google.common.collect.Range;
 import org.expasy.mzjava.core.io.ms.spectrum.MgfWriter;
@@ -7,12 +7,15 @@ import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.junit.Test;
 import org.ms2ms.data.ms.LcMsMsDataset;
+import org.ms2ms.data.ms.MsSpectrum;
 import org.ms2ms.io.MsIO;
 import org.ms2ms.io.MsReaders;
+import org.ms2ms.r.Dataframe;
+import org.ms2ms.test.TestAbstract;
+import org.ms2ms.utils.IOs;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.io.*;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
@@ -28,6 +31,52 @@ public class MsReaderTest extends TestAbstract
   // TODO: Need to modify or extend MzxmlReader to read only selected msLevel or RT range, etc
   // peak processing takes lots of time!
 
+  @Test
+  public void serializing() throws Exception
+  {
+    // grab a new scan
+    MsnSpectrum scan  = firstScan();
+    MsnSpectrum scan2 = firstScan();
+
+    FileOutputStream f_out = new FileOutputStream("/tmp/myobject.data");
+
+    // Write object with ObjectOutputStream
+    ObjectOutputStream obj_out = new ObjectOutputStream (f_out);
+
+    // Write object out to disk
+    long p1 = f_out.getChannel().position();
+    obj_out.writeObject(MsSpectrum.adopt(scan));
+    long p2 = f_out.getChannel().position();
+    obj_out.writeObject(MsSpectrum.adopt(scan2));
+
+    obj_out.close(); f_out.close();
+
+    FileInputStream f_in = new FileInputStream("/tmp/myobject.data");
+
+    ObjectInputStream obj_in = new ObjectInputStream(f_in);
+    MsSpectrum m1 = (MsSpectrum )obj_in.readObject();
+    obj_in.close(); f_in.close();
+
+    f_in = new FileInputStream("/tmp/myobject.data");
+    obj_in = new ObjectInputStream(f_in);
+
+    f_in.getChannel().position(p1);
+//    MsSpectrum m3 = (MsSpectrum )obj_in.readObject();
+    f_in.getChannel().position(p2);
+    long p3 = f_in.getChannel().position();
+
+    MsSpectrum m4 = (MsSpectrum )obj_in.readObject();
+    obj_in.close(); f_in.close();
+  }
+  @Test
+  public void statMzXMLs() throws IOException
+  {
+    String[] rawfiles = {"20081129_Orbi6_NaNa_SA_FASP_blacktips_01","20081129_Orbi6_NaNa_SA_FASP_blacktips_02"};
+//    Dataframe test = MsReaders.surveyMzXML(rawfiles, root, "/tmp/survey01", Range.openClosed(20d, 21d), 2);
+    Dataframe test = MsReaders.surveyMzXML(rawfiles, root, "/tmp/survey01", null, 2);
+
+    IOs.write("/tmp/surveys.txt", test.display().toString());
+  }
   @Test
   public void surveyMzXMLs() throws IOException
   {
@@ -75,5 +124,16 @@ public class MsReaderTest extends TestAbstract
     List<MsnSpectrum> spectra = MsReaders.readMzXML(root + "20081129_Orbi6_NaNa_SA_FASP_blacktips_01.mzXML", Range.closed(20d, 21d), 2);
 
     System.out.println(spectra.size());
+  }
+  private MsnSpectrum firstScan() throws IOException
+  {
+    Logger.getLogger(MzxmlReader.class.getName()).setLevel(Level.SEVERE);
+
+    File          data = new File(root+"20081129_Orbi6_NaNa_SA_FASP_blacktips_01.mzXML");
+    MzxmlReader reader = MzxmlReader.newTolerantReader(data, PeakList.Precision.FLOAT);
+    MsnSpectrum spec = reader.next();
+    reader.close();
+
+    return spec;
   }
 }

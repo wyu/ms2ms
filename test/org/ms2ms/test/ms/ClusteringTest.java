@@ -1,13 +1,26 @@
-package org.ms2ms.test;
+package org.ms2ms.test.ms;
 
 import com.google.common.collect.Range;
+import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.Table;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.proteomics.ms.cluster.KMeansPeakListClusterer;
 import org.expasy.mzjava.proteomics.ms.cluster.MSTPeakListClusterer;
 import org.junit.Test;
+import org.ms2ms.data.collect.MultiTreeTable;
+import org.ms2ms.io.MaxQuant;
+import org.ms2ms.io.MsIO;
 import org.ms2ms.io.MsReaders;
+import org.ms2ms.r.Dataframe;
+import org.ms2ms.test.TestAbstract;
+import org.ms2ms.utils.Stats;
+import org.ms2ms.utils.Tools;
 
+import java.io.RandomAccessFile;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.RandomAccess;
 
 /**
  * Created with IntelliJ IDEA.
@@ -19,6 +32,29 @@ import java.util.List;
 public class ClusteringTest extends TestAbstract
 {
   String root = "/Users/hliu/Desktop/Apps/2014/data/mzXML-centroid/";
+
+  @Test
+  public void precluster() throws Exception
+  {
+    Dataframe msms = Dataframe.readtable("/media/data/maxquant/20081129_Orbi6_NaNa_SA_FASP_out/combined/txt/composite_scans.txt",'\t').setTitle("msms");
+
+    MultiTreeTable<Double, Double, String> mz_rt_row = msms.index(MaxQuant.V_MZ,MaxQuant.V_RT);
+    SortedSetMultimap<     Double, String> tic_row   = Tools.reverse(msms.index(MaxQuant.V_TIC));
+
+    double mztol=0.05, rttol=1.5;
+    RandomAccessFile bin = new RandomAccessFile("/tmp/survey01.ms2", "r");
+    // starting from the most intense scan
+    for (Double t : tic_row.keySet())
+    {
+      for (String r : tic_row.get(t))
+      {
+        double mz = Stats.toDouble(msms.cell(r, MaxQuant.V_MZ)), rt = Stats.toDouble(msms.cell(r, MaxQuant.V_RT));
+        Collection<String>  slice = mz_rt_row.subset(mz-mztol, mz+mztol, rt-rttol,rt+rttol);
+        List<MsnSpectrum> spectra = MsIO.readSpectra(bin, msms.getLongCol(MaxQuant.V_FOFFSET));
+      }
+    }
+    System.out.println();
+  }
 
   @Test
   public void prepare() throws Exception

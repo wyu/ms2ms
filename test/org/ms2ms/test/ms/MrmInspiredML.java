@@ -1,4 +1,4 @@
-package org.ms2ms.test;
+package org.ms2ms.test.ms;
 
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
@@ -24,6 +24,7 @@ import org.ms2ms.nosql.HBase;
 import org.ms2ms.nosql.HBasePeakList;
 import org.ms2ms.nosql.HBaseProteomics;
 import org.ms2ms.nosql.HBaseSpLib;
+import org.ms2ms.test.TestAbstract;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
