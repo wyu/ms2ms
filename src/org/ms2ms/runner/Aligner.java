@@ -106,30 +106,24 @@ public class Aligner
     mAlignment = HashBasedTable.create(); // id, frame and rowid
     mIndice    = new ArrayList<TreeMap<Double, Long>>(getNumVars());
 
-    // map the col header and variables
-//    mStr2Var = HashBasedTable.create();
-//    for (Dataframe d : traces)
-//        for (String m : mCols)
-//            mStr2Var.put(d, m, d.getVar(m));
-
     // Iterate source peak lists
     int processedRows = 0; long maxid=0; boolean fresh=true; Collection<Long> candidates = new HashSet<Long>();
     for (int i=0; i<traces.length; i++)
     {
       System.out.print("Frame " + (i + 1) + ": " + traces[i].size());
       // the variables
-      Var[] vs=traces[i].toVars(mCols);
+//      Var[] vs=traces[i].asVars(mCols);
       // Create a sorted set of scores matching
       TreeSet<F2F> scoreSet = new TreeSet<F2F>();
       // Calculate scores for all possible alignments of this row
-      for (String rowid : traces[i].getRowIds())
+      for (String rowid : traces[i].rows())
       {
         // collect the rows from the current alignment that match to the row in consideration within the tolerances
         candidates.clear(); fresh=true;
         if (mIndice.size()>0)
           for (int k=0; k<getNumVars(); k++)
           {
-            Double                x = Stats.toDouble(traces[i].cell(rowid,vs[k]));
+            Double                x = Stats.toDouble(traces[i].cell(rowid,mCols[k]));
             Map<Double, Long> slice = mIndice.get(k).subMap(mTols[k].getMin(x), mTols[k].getMax(x));
             if (slice==null)
             {
@@ -161,7 +155,7 @@ public class Aligner
         mapping = Tools.putNew(mapping, score.getRow1(), score);
 
       // Align all rows using mapping
-      for (String rowid : traces[i].getRowIds())
+      for (String rowid : traces[i].rows())
       {
         F2F target = mapping.get(rowid);
 
@@ -177,7 +171,7 @@ public class Aligner
         for (int k=0; k<getNumVars(); k++)
         {
           if (mIndice.size()-1<k) mIndice.add(new TreeMap<Double, Long>());
-          mIndice.get(k).put(Stats.toDouble(traces[i].cell(rowid,vs[k])), target.getID2());
+          mIndice.get(k).put(Stats.toDouble(traces[i].cell(rowid,mCols[k])), target.getID2());
         }
 
         processedRows++;

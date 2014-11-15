@@ -50,14 +50,14 @@ public class Features
   public Tolerance tol(int i) { return mTols!=null?mTols[i]:null; }
 
   public String  getID()            { return null; }
-  public Object  get(int i,Var key) { return mData!=null?mData.row(i).get(key):null; }
+  public Object  cells(int i,Var key) { return mData!=null?mData.row(i).cells(key):null; }
 */
 /*
-  public String  getString(Var key) { return (String )get(key); }
-  public Double  getDouble(Var key) { return (Double )get(key); }
-  public Float   getFloat( Var key) { return (Float  )get(key); }
-  public Long    getLong(  Var key) { return (Long   )get(key); }
-  public Integer getInt(   Var key) { return (Integer)get(key); }
+  public String  getString(Var key) { return (String )cells(key); }
+  public Double  getDouble(Var key) { return (Double )cells(key); }
+  public Float   getFloat( Var key) { return (Float  )cells(key); }
+  public Long    getLong(  Var key) { return (Long   )cells(key); }
+  public Integer getInt(   Var key) { return (Integer)cells(key); }
 *//*
 
 
@@ -71,7 +71,7 @@ public class Features
   public boolean match(Features s)
   {
     for (int i=0; i<mVariable.length; i++)
-      if (!mTols[i].withinTolerance(Stats.toDouble(get(var(i))), Stats.toDouble(s.get(s.var(i))))) return false;
+      if (!mTols[i].withinTolerance(Stats.toDouble(cells(var(i))), Stats.toDouble(s.cells(s.var(i))))) return false;
 
     return true;
   }
@@ -80,7 +80,7 @@ public class Features
     double score = 1d;
     for (int i=0; i<mVariable.length; i++)
     {
-      double x0 = Stats.toDouble(get(var(i))), delta = x0 - Stats.toDouble(s.get(s.var(i)));
+      double x0 = Stats.toDouble(cells(var(i))), delta = x0 - Stats.toDouble(s.cells(s.var(i)));
       NormalDistribution norm = new NormalDistribution(0, (tol(i).getMax(x0)-tol(i).getMin(x0))/1.77d);
       score *= norm.density(delta); norm=null;
     }

@@ -270,6 +270,14 @@ public class Strs
 
     return out;
   }
+  public static String[] toStringArray(Object[] s)
+  {
+    String[] out = new String[s.length];
+    int i=0;
+    for (Object v : s)  out[i++]=v.toString();
+
+    return out;
+  }
   public static String toString(Table t)
   {
     if (!Tools.isSet(t)) return null;
@@ -310,4 +318,5 @@ public class Strs
     String        hoursStr = (hours<10 ? "0" : "")+hours;
     return new String(hoursStr+":"+minutesStr+":"+secondsStr+"."+millisecondsStr);
   }
+
 }

@@ -47,7 +47,7 @@ public class HBaseSpLib implements Serializable
     version  = HBase.get(row, HBase.FAM_PROP, HBase.COL_VERSION, version);
     format   = HBase.get(row, HBase.FAM_PROP, HBase.COL_FORMAT,  format);
     entries  = HBase.get(row, HBase.FAM_PROP, HBase.COL_ENTRIES, entries);
-//    id       = HBase.get(row, HBase.FAM_ID,   HBase.COL_ENDID,   id);
+//    id       = HBase.cells(row, HBase.FAM_ID,   HBase.COL_ENDID,   id);
   }
   public String getName()     { return name; }
   public byte[] getSpecType() { return spectype; }
@@ -111,7 +111,7 @@ public class HBaseSpLib implements Serializable
       while (iterator.hasNext())
       {
         Result result = iterator.next();
-        //if you want to get the entire row
+        //if you want to cells the entire row
         Get get = new Get(result.getRow());
         Result entireRow = table.get(get);
         // process the row

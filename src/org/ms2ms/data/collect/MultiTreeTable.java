@@ -1,7 +1,5 @@
-package org.ms2ms.data;
+package org.ms2ms.data.collect;
 
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Ordering;
 import com.google.common.collect.TreeMultimap;
 import org.ms2ms.utils.Tools;
 
@@ -140,10 +138,10 @@ public class MultiTreeTable<K extends Comparable, L extends Comparable, T extend
     if (val != null)
     {
 
-      boolean outcome = get(key, label).remove(val);
+      boolean outcome = cells(key, label).remove(val);
       if (outcome)
       {
-        if (!Tools.isSet(get(key, label))) row(key).remove(label);
+        if (!Tools.isSet(cells(key, label))) row(key).remove(label);
         if (!Tools.isSet(row(key)))        getData().remove(key);
       }
 
@@ -177,9 +175,6 @@ public class MultiTreeTable<K extends Comparable, L extends Comparable, T extend
 
     return values;
   }
-  public static <R extends Comparable, C extends Comparable, V extends Comparable>
-  MultiTreeTable<R, C, V> create()
-  {
-    return new MultiTreeTable<R, C, V>();
-  }
+  public static <R extends Comparable, C extends Comparable, V extends Comparable> MultiTreeTable<R, C, V>
+  create() { return new MultiTreeTable<R, C, V>(); }
 }

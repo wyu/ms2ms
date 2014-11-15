@@ -4,6 +4,7 @@ import com.google.common.collect.*;
 import org.ms2ms.Disposable;
 import org.ms2ms.data.NameValue;
 import org.ms2ms.data.collect.MapOfMultimap;
+import org.ms2ms.data.collect.MultiTreeTable;
 import org.ms2ms.utils.*;
 
 import java.io.IOException;
@@ -26,6 +27,7 @@ public class Dataframe implements Disposable
   private Table<String, String, Object> mData;
 
   public Dataframe()                                         { super(); }
+  public Dataframe(String s)                                 { super(); setTitle(s); }
   public Dataframe(String cvs, char delim, String... idcols) { super(); readTable(cvs, delim, idcols); setTitle(cvs); }
 
   public Dataframe setRowIds(List<String> s) { mRowIDs=s; return this; }
@@ -83,6 +85,7 @@ public class Dataframe implements Disposable
 //    if (mData  ==null) mData = HashBasedTable.create();
 //    return put(mData.rowKeySet().size() + "", col, val);
 //  }
+  public Dataframe put(int row, String col, Object val) { return put(row+"", col, val); }
   public Dataframe put(String row, String col, Object val)
   {
     if (mData  ==null) mData = HashBasedTable.create();
@@ -233,6 +236,28 @@ public class Dataframe implements Disposable
     }
     return ys;
   }
+  public long[] getLongCol(String y)
+  {
+    if (!Tools.isSet(mData) || !hasVars(y)) return null;
+
+    long[] ys = new long[rows().size()];
+    for (int i=0; i<rows().size(); i++)
+    {
+      ys[i] = Stats.toLong(cell(rows().get(i), y));
+    }
+    return ys;
+  }
+  public String[] getStrCol(String y)
+  {
+    if (!Tools.isSet(mData) || !hasVars(y)) return null;
+
+    String[] ys = new String[rows().size()];
+    for (int i=0; i<rows().size(); i++)
+    {
+      ys[i] = cell(rows().get(i), y).toString();
+    }
+    return ys;
+  }
   public Dataframe addVar(String v, double[] ys)
   {
     if (hasVars(v)) throw new RuntimeException("Variable " + v + " already exist!");
@@ -279,6 +304,19 @@ public class Dataframe implements Disposable
 
     return this;
   }
+  public Dataframe removeRows(String... rows)
+  {
+    if (Tools.isSet(rows) && mData!=null)
+      for (String row : rows)
+      {
+        mRowIDs.remove(row);
+        if (mData.row(row)!=null) mData.row(row).clear();
+      }
+    // re-init the columns since we removed some of the rows
+    for (String col : cols()) init(asVar(col));
+
+    return this;
+  }
   //** builders **//
   public void readTable(String src, char delimiter, String... idcols)
   {
@@ -321,9 +359,9 @@ public class Dataframe implements Disposable
     }
   }
   // go thro the table to determine the type of the variables. Convert them to number if necessary
-  protected void init()
+  public Dataframe init()
   {
-    if (!Tools.isSet(mData)) return;
+    if (!Tools.isSet(mData)) return this;
     if (mRowIDs ==null) { mRowIDs  = new ArrayList<>(mData.rowKeySet()); Collections.sort(mRowIDs); }
     if (mColIDs ==null)
     {
@@ -331,13 +369,18 @@ public class Dataframe implements Disposable
       mNameVar = new HashMap<>(mColIDs.size());
       for (String v : mColIDs) mNameVar.put(v, new Variable(v));
     }
-
-    //int counts=0;
     for (String v : mColIDs)
     {
       asVar(v).setFactors(null); init(asVar(v));
     }
-    System.out.println();
+//    System.out.println();
+    return this;
+  }
+  public Dataframe initVars()
+  {
+    // re-init the columns since we removed some of the rows
+    for (String col : cols()) init(asVar(col).getType(), col);
+    return this;
   }
   public Dataframe init(Var v)
   {
@@ -375,7 +418,7 @@ public class Dataframe implements Disposable
       if (Tools.equals(type, Var.VarType.CATEGORICAL))
       {
         Set<Object> factors=new HashSet<>();
-        for (String row : mRowIDs) factors.add(row);
+        for (String row : mRowIDs) factors.add(cell(row, s));
         v.setFactors(factors);
         Tools.dispose(factors);
       }
@@ -491,15 +534,6 @@ public class Dataframe implements Disposable
     Map<Object, Dataframe> outs = new HashMap<Object, Dataframe>();
     for (Object f : asVar(v).getFactors())
       outs.put(f, subset(v+"=="+(f instanceof String ? ("'"+f+"'"):f.toString())));
-//    for (String r : rows())
-//    {
-//      Object key = row(r).get(v);
-//      Dataframe F = outs.get(key);
-//      if (F==null) F = new Dataframe();
-//      F.addRow(r, mData.row(r));
-//      outs.put(key, F.setTitle(key.toString()));
-//    }
-//    for (Dataframe d : outs.values()) d.init();
 
     return outs;
   }
@@ -530,17 +564,6 @@ public class Dataframe implements Disposable
         if (Tools.isSet(ands))
           for (String and : ands)
           {
-//            if (nv.parse(and, "==") && out.hasVars(nv.name))
-//            {
-//              Iterator<String> itr = subs.iterator();
-//              while (itr.hasNext())
-//              {
-//                // remove the row if not meeting the test
-//                Object v=Stats.toNumber(cell(itr.next(), nv.name));
-//                if (!((v instanceof String && Tools.equals((String )v, nv.val)) ||
-//                       v instanceof Double && Tools.equals((Double )v, nv.getNumber()))) itr.remove();
-//              }
-//            }
             if (nv.parse(and, "==",">=","<=",">","<","!=","%in%") && out.hasVars(nv.name))
             {
               Iterator<String> itr = subs.iterator();
@@ -570,8 +593,8 @@ public class Dataframe implements Disposable
           if (rows.size()==0 || !rows.contains(r)) rows.add(r);
       }
 
-    // update the rows
-    return out.setRowIds(rows);
+    // refresh the factors and update the rows
+    return out.setRowIds(rows).initVars();
   }
   /** Partial implementation of R-aggregate
    *
@@ -631,23 +654,34 @@ public class Dataframe implements Disposable
 
     return out;
   }
-  public TreeBasedTable<Double, Double, String> index(String row, String col)
+  public MultiTreeTable<Double, Double, String> index(String row, String col)
   {
     if (!hasVar(row,false) || !hasVar(col,false)) return null;
 
-    TreeBasedTable<Double, Double, String> indice = TreeBasedTable.create();
+    MultiTreeTable<Double, Double, String> indice = MultiTreeTable.create();
 //    Var vrow=getVar(row), vcol=getVar(col);
     for (String rowid : rows())
       indice.put(Stats.toDouble(cell(rowid, row)), Stats.toDouble(cell(rowid, col)), rowid);
 
     return indice;
   }
+  public SortedSetMultimap<Double, String> index(String row)
+  {
+    if (!hasVar(row,false)) return null;
 
-  public static TreeBasedTable<Double, Double, String>[] indice(String row, String col, Dataframe... frames)
+    TreeMultimap<Double, String> indice = TreeMultimap.create();
+//    Var vrow=getVar(row), vcol=getVar(col);
+    for (String rowid : rows())
+      indice.put(Stats.toDouble(cell(rowid, row)), rowid);
+
+    return indice;
+  }
+
+  public static MultiTreeTable<Double, Double, String>[] indice(String row, String col, Dataframe... frames)
   {
     if (!Tools.isSet(frames) || !Tools.isSet(row) || !Tools.isSet(col)) return null;
 
-    TreeBasedTable<Double, Double, String>[] indices = new TreeBasedTable[frames.length];
+    MultiTreeTable<Double, Double, String>[] indices = new MultiTreeTable[frames.length];
     for (int i=0; i<frames.length; i++)
     {
       indices[i] = frames[i].index(row, col);

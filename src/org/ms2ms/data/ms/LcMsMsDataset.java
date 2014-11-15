@@ -5,7 +5,8 @@ import com.google.common.collect.TreeMultimap;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.ms2ms.data.Dataset;
 import org.ms2ms.data.HData;
-import org.ms2ms.data.MultiTreeTable;
+import org.ms2ms.data.collect.MultiTreeTable;
+import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.Tools;
 
 import java.io.IOException;
@@ -22,8 +23,9 @@ import java.util.Collection;
 public class LcMsMsDataset implements Dataset
 {
   public static String sTempDir = "/tmp/";
-  private String             mName, mSpCacheName;
+  private String             mName, mSpCacheName, mRawfileRoot;
   private Collection<String> mRawFilenames;
+  private Dataframe          mSummary;
   private HData              mData; // contains the sample, variable and intensities data for downstream analysis
   private ClusteringSettings mSpSettings;
 
@@ -42,9 +44,11 @@ public class LcMsMsDataset implements Dataset
   public TreeMultimap<  Double, Long>         getTicFileOffset( )     { return mTicFileOffset; }
   public ClusteringSettings                   getClusteringSettings() { return mSpSettings; }
   public Collection<String>                   getRawFilenames()       { return mRawFilenames; }
+  public String                               getmRawfileRoot()       { return mRawfileRoot; }
 
   public LcMsMsDataset setName(String    s) { mName = s; return this; }
   public LcMsMsDataset setRawFilename(String... s) { mRawFilenames = Lists.newArrayList(s); return this; }
+  public LcMsMsDataset setRawFileRoot(String s)    { mRawfileRoot  = s; return this; }
 
   /** more complex access functions **/
   public LcMsMsDataset add(MsnSpectrum ms, long offset)
@@ -82,6 +86,10 @@ public class LcMsMsDataset implements Dataset
    *
    */
 
+  public void importMaxquant(String root, String mzXML)
+  {
+
+  }
   /** Determine the appropriate parameters in situ.
    *
    * @param settings

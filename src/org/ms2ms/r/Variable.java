@@ -39,6 +39,14 @@ public class Variable implements Var
   {
     if (s==null) { mFactors=null; return this; }
 
+    if (mFactors==null) mFactors = new ArrayList(); else mFactors.clear();
+    mFactors.addAll(s);
+    return this;
+  }
+  public Var addFactors(Collection s)
+  {
+    if (s==null) { mFactors=null; return this; }
+
     if (mFactors==null) mFactors = new ArrayList();
     mFactors.addAll(s);
     return this;

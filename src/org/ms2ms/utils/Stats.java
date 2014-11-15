@@ -1,7 +1,8 @@
 package org.ms2ms.utils;
 
 import com.google.common.collect.*;
-import org.apache.commons.lang.NumberUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
 import org.apache.commons.math.MathException;
 import org.apache.commons.math.analysis.interpolation.LoessInterpolator;
 import org.apache.commons.math.analysis.polynomials.PolynomialSplineFunction;
@@ -95,32 +96,17 @@ public class Stats
   {
     try
     {
+      // quotes? must remain a string if so
+      if (s instanceof String)
+      {
+        String val = Strs.trim((String )s);
+        if ((val.charAt(0)=='"'  && val.charAt(val.length()-1)=='"') ||
+            (val.charAt(0)=='\'' && val.charAt(val.length()-1)=='\'')) return val.substring(1, val.length()-1);
+      }
       return NumberUtils.createNumber((String )s);
     }
     catch (Exception e) {}
     return s;
-/*
-    if (s==null) return s;
-    if (s instanceof String)
-    {
-      try
-      {
-        return NumberUtils.createLong((String )s);
-      }
-      catch (NumberFormatException ne1)
-      {
-        try
-        {
-          return NumberUtils.createDouble((String )s);
-        }
-        catch (NumberFormatException ne2)
-        {
-          return s;
-        }
-      }
-    }
-    return s;
-*/
   }
   public static Double toDouble(Object s)
   {
@@ -130,6 +116,15 @@ public class Stats
     else if (s instanceof Float )  return ((Float  )s).doubleValue();
     else if (s instanceof Long  )  return ((Long   )s).doubleValue();
     else if (s instanceof Integer) return ((Integer)s).doubleValue();
+
+    return null;
+  }
+  public static Long toLong(Object s)
+  {
+    if (s==null) return null;
+    if      (s instanceof String)  return NumberUtils.createLong((String )s);
+    else if (s instanceof Long  )  return ((Long   )s);
+    else if (s instanceof Integer) return ((Integer )s).longValue();
 
     return null;
   }
@@ -205,5 +200,12 @@ public class Stats
     hist.setName(title);
 
     return hist;
+  }
+  public static Integer[] newIntArray(int start, int end)
+  {
+    Integer[] out = new Integer[end-start];
+    for (int i=start; i<end; i++) out[i-start]=i;
+
+    return out;
   }
 }

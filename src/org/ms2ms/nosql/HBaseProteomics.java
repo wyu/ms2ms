@@ -54,7 +54,7 @@ public class HBaseProteomics extends HBase
     HConnection conn = getConnection();
     for (HTableDescriptor table : conn.listTables())
     {
-      // get the number of row. Can be very expansive for a large table!!
+      // cells the number of row. Can be very expansive for a large table!!
       //HTableInterface tbl = conn.getTable(table.getTableName());
       HTableInterface tbl = conn.getTable(table.getName());
       ResultScanner scanner = tbl.getScanner(new Scan());
@@ -77,12 +77,12 @@ public class HBaseProteomics extends HBase
     // connection to the cluster
     HConnection conn = getConnection();
 
-    // When the cluster connection is established get an HTableInterface for each operation or thread.
+    // When the cluster connection is established cells an HTableInterface for each operation or thread.
     // HConnection.getTable(...) is lightweight. The table is really just a convenient place to call
     // table method and for a temporary batch cache.
     // It is in fact less overhead than HTablePool had when retrieving a cached HTable.
     // The HTableInterface returned is not thread safe as before.
-    // It's fine to get 1000's of these.
+    // It's fine to cells 1000's of these.
     // Don't cache the longer than the lifetime of the HConnection
     HTableInterface table = conn.getTable(HBasePeakList.TBL_PEAKLIST);
 
@@ -154,7 +154,7 @@ public class HBaseProteomics extends HBase
 
     // setup the HTable for query
     HConnection conn = getConnection();
-    // get the number of row. Can be very expansive for a large table!!
+    // cells the number of row. Can be very expansive for a large table!!
     HTableInterface tbl = conn.getTable(HBase.TBL_MSMSINDEX);
 
     Map<UUID, AnnotatedSpectrum> id_candidate = new HashMap<UUID, AnnotatedSpectrum>();
@@ -214,7 +214,7 @@ public class HBaseProteomics extends HBase
 
     // setup the HTable for query
     HConnection conn = getConnection();
-    // get the number of row. Can be very expansive for a large table!!
+    // cells the number of row. Can be very expansive for a large table!!
     HTableInterface tbl = conn.getTable(HBase.TBL_MSMSINDEX);
 
     Map<UUID, AnnotatedSpectrum> id_candidate = new HashMap<UUID, AnnotatedSpectrum>();
@@ -248,19 +248,19 @@ public class HBaseProteomics extends HBase
       for (Result rs = scanner.next(); rs != null; rs = scanner.next()) {
         UUID id = UUID.fromString(
             HBase.getString(rs, HBase.FAM_ID, HBasePeakList.COL_UUID));
-        if (id_candidate.get(id) == null) id_candidate.put(id, new AnnotatedSpectrum());
-        id_candidate.get(id).add(
+        if (id_candidate.cells(id) == null) id_candidate.put(id, new AnnotatedSpectrum());
+        id_candidate.cells(id).add(
             HBase.getDouble(rs, HBase.FAM_PROP, HBasePeakList.COL_MZ),
             HBase.getDouble(rs, HBase.FAM_PROP, HBasePeakList.COL_SNR));
-        id_candidate.get(id).setId(id);
+        id_candidate.cells(id).setId(id);
         // record the number the indice
-        id_candidate.get(id).setIonIndexed(
+        id_candidate.cells(id).setIonIndexed(
             HBase.getInt(rs, HBase.FAM_PROP, HBasePeakList.COL_IONS));
-        id_candidate.get(id).setIonQueried(frags.length);
-        id_candidate.get(id).setIonMatched(id_candidate.get(id).size());
-        id_candidate.get(id).setPrecursor(null);
-        id_candidate.get(id).setPrecursors(precursors);
-//        id_candidate.get(id).setMzQueried((float )signatures.getPrecursor().getMz());
+        id_candidate.cells(id).setIonQueried(frags.length);
+        id_candidate.cells(id).setIonMatched(id_candidate.cells(id).size());
+        id_candidate.cells(id).setPrecursor(null);
+        id_candidate.cells(id).setPrecursors(precursors);
+//        id_candidate.cells(id).setMzQueried((float )signatures.getPrecursor().getMz());
       }
 */
       System.out.println("Candidates with the precursor m/z range of " + range.toString());
@@ -313,7 +313,7 @@ public class HBaseProteomics extends HBase
           HBase.getInt(rs, HBase.FAM_PROP, HBasePeakList.COL_IONS));
       id_candidate.get(id).setIonQueried(frags.length);
       id_candidate.get(id).setIonMatched(id_candidate.get(id).size());
-//      id_candidate.get(id).setPrecursor(null);
+//      id_candidate.cells(id).setPrecursor(null);
       // assume the range is symmetrical for now
       id_candidate.get(id).setMzQueried(0.5f*(mzlow+mzhigh));
     }
@@ -322,10 +322,10 @@ public class HBaseProteomics extends HBase
     for (UUID id : id_candidate.keySet())
     {
       System.out.print(
-          Tools.d2s(id_candidate.get(id).getPrecursor().getMz(), 3) + ", +" + id_candidate.get(
-              id).getPrecursor().getCharge() + "(" + id_candidate.get(id).size() + "): ");
-      for (int i = 0; i < id_candidate.get(id).size(); i++) {
-        System.out.print(Tools.d2s(id_candidate.get(id).getMz(i), 2) + ",");
+          Tools.d2s(id_candidate.cells(id).getPrecursor().getMz(), 3) + ", +" + id_candidate.cells(
+              id).getPrecursor().getCharge() + "(" + id_candidate.cells(id).size() + "): ");
+      for (int i = 0; i < id_candidate.cells(id).size(); i++) {
+        System.out.print(Tools.d2s(id_candidate.cells(id).getMz(i), 2) + ",");
       }
       System.out.println();
     }
@@ -428,7 +428,7 @@ public class HBaseProteomics extends HBase
       // work around the unknown mod per Oliver's suggestion
       Field f = MsLibReader.class.getDeclaredField("modResolver");
       f.setAccessible(true);
-      UnimodModificationResolver modResolver = (UnimodModificationResolver) f.get(splib);
+      UnimodModificationResolver modResolver = (UnimodModificationResolver) f.cells(splib);
       modResolver.putOverrideUnimod("USM_C", Modification.parseModification("H"));
       modResolver.putOverrideUnimod("Propionamide:13C(3)", Modification.parseModification("H"));
       modResolver.putOverrideUnimod("USM_n_230.170762", Modification.parseModification("H"));
@@ -520,7 +520,7 @@ public class HBaseProteomics extends HBase
       }
     }
     peaklist.close(); indice.close(); conn.close(); splib.close(); // release resources
-    // get the entries counts
+    // cells the entries counts
     HBaseSpLib.increEntries(Bytes.toBytes(lib.getName()), counts);
     return counts;
   }

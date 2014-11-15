@@ -54,7 +54,7 @@ public class HData
     ListMultimap<ArrayKey, Object> body = ArrayListMultimap.create();
     for (String rowid : getRowIds())
     {
-      body.put(new ArrayKey(ObjectArrays.concat(get(rowid, vcol)[0], get(rowid, vrows))), get(rowid, vval)[0]);
+      body.put(new ArrayKey(ObjectArrays.concat(cells(rowid, vcol)[0], cells(rowid, vrows))), cells(rowid, vval)[0]);
     }
     // construct the outgoing data frame
     Dataframe out = new Dataframe();
@@ -65,7 +65,7 @@ public class HData
       {
         out.put(id, vrows[i-1], keys.key[i]);
       }
-      out.put(id, keys.key[0].toString(), Stats.aggregate(body.get(keys), func));
+      out.put(id, keys.key[0].toString(), Stats.aggregate(body.cells(keys), func));
     }
     out.init(); Tools.dispose(body);
     out.reorder(ObjectArrays.concat(rows, Strs.toStringArray(vcol.getFactors()), String.class));

@@ -142,8 +142,8 @@ public class TabFile
     return mCol;
   }
 
-//  public Double number( String key) { return Double.parseDouble(get(key)); }
-//  public Long   integer(String key) { return Long.parseLong(get(key)); }
+//  public Double number( String key) { return Double.parseDouble(cells(key)); }
+//  public Long   integer(String key) { return Long.parseLong(cells(key)); }
 
   public String getCurrentLine() { return mCurrentLine; }
 

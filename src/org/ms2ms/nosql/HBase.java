@@ -64,12 +64,12 @@ abstract public class HBase
     // connection to the cluster
     HConnection conn = HConnectionManager.createConnection(conf);
 
-    // When the cluster connection is established get an HTableInterface for each operation or thread.
+    // When the cluster connection is established cells an HTableInterface for each operation or thread.
     // HConnection.getTable(...) is lightweight. The table is really just a convenient place to call
     // table method and for a temporary batch cache.
     // It is in fact less overhead than HTablePool had when retrieving a cached HTable.
     // The HTableInterface returned is not thread safe as before.
-    // It's fine to get 1000's of these.
+    // It's fine to cells 1000's of these.
     // Don't cache the longer than the lifetime of the HConnection
     HTableInterface table = conn.getTable(tbl);
 
@@ -235,7 +235,7 @@ abstract public class HBase
 
     long next = incre(table, tbl, )
     // grab the current value
-    byte[] id = table.get(new Get(tbl)).getValue(family, col);
+    byte[] id = table.cells(new Get(tbl)).getValue(family, col);
 
     long next = (id==null?increment:Bytes.toLong(id)+increment);
     Put row = new Put(Bytes.toBytes(tbl.toString()));
@@ -267,7 +267,7 @@ abstract public class HBase
     HTableInterface tbl = conn.getTable(table);
 
     Get g = new Get(Bytes.toBytes(table));
-    Result r = tbl.get(g);
+    Result r = tbl.cells(g);
     byte[] value = r.getValue(Bytes.toBytes("ID"), Bytes.toBytes("id"));
 
     UUID id = UUID.fromString(Bytes.toString(value)), next = id.;

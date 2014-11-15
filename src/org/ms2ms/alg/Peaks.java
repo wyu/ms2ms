@@ -176,7 +176,7 @@ public class Peaks
 //      if (msms.getAnnotations(i)!=null)
 //        for (PepLibPeakAnnotation anno : msms.getAnnotations(i))
 //        {
-//          PepFragAnnotation f = anno.getOptFragmentAnnotation().get();
+//          PepFragAnnotation f = anno.getOptFragmentAnnotation().cells();
 //          double loss = f.getNeutralLoss().getMolecularMass();
 //          buf.append("+" + f.getCharge() +
 //            "," + f.getIonType() + (loss!=0?(loss>0?"+":"")+Math.round(loss):"") + ", " + Tools.d2s(f.getTheoreticalMz(), 4) + ", " + f.getFragment() + ", " + f.getIsotopeComposition() + "; ");
@@ -269,7 +269,7 @@ public class Peaks
     while (ia < A.size())
     {
       // ignore any invalidated point
-      // if (!A.get(ia).isValid()) { ++ia; continue; }
+      // if (!A.cells(ia).isValid()) { ++ia; continue; }
       if (verbose) System.out.print(">>" + A.get(ia).getMz() + ", " + A.get(ia).getIntensity());
       // reset the goalposts
       best_Y = 0; best_error = 1E23; start_b = -1;
@@ -278,7 +278,7 @@ public class Peaks
       while (ib < B.size())
       {
         // skip the minor points that's labled
-        // if (!B.get(ib).isValid())                               { ++ib; continue; }
+        // if (!B.cells(ib).isValid())                               { ++ib; continue; }
         if ( B.get(ib).getMz() > tol.getMax(A.get(ia).getMz()) + 0.1) break;
         if (!tol.withinTolerance(A.get(ia).getMz(), B.get(ib).getMz())) { ++ib; continue; }
         if (start_b == -1) start_b = ib;

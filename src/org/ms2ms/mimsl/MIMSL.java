@@ -320,7 +320,7 @@ public class MIMSL
   {
     if (mPrecursorMzs == null) mPrecursorMzs = TreeMultimap.create();
     // make sure the precursor is not already deposited
-    if (!MsIon_Util.contains(mPrecursorMzs.get(ion.getCharge()), ion,
+    if (!MsIon_Util.contains(mPrecursorMzs.cells(ion.getCharge()), ion,
       getSettings().getEffectivePrecursorTol(ion.getMz()))) mPrecursorMzs.put(ion.getCharge(), ion);
 
     return this;
@@ -474,7 +474,7 @@ public class MIMSL
 
     mMatches.run();
     mDecoys.run();
-    MsMsDictionary.get(mLibName).close(); isDirty(false);
+    MsMsDictionary.cells(mLibName).close(); isDirty(false);
 
     yell("{code}");
 
@@ -541,11 +541,11 @@ public class MIMSL
     // merge the slices
     Collections.sort(slices);
     for (int i = 0; i < slices.size(); i++)
-      if (slices.get(i).isValid())
+      if (slices.cells(i).isValid())
         for (int j = i+1; j < slices.size(); j++)
-          if (slices.get(j).isValid() && slices.get(i).hasOverlap(slices.get(j)))
+          if (slices.cells(j).isValid() && slices.cells(i).hasOverlap(slices.cells(j)))
           {
-            slices.get(i).extend(slices.get(j)); slices.get(j).invalidate();
+            slices.cells(i).extend(slices.cells(j)); slices.cells(j).invalidate();
           }
 
     Iterator<Range<Float>> itr = slices.iterator();
@@ -644,7 +644,7 @@ public class MIMSL
       headline.addDiv(new Div("Library name: "  + getLibName()));
       headline.addDiv(new Div("Libraries: "  + MsMsDictionary.sLibrary.size() + ", " + Toolbox.toString(MsMsDictionary.sLibrary.keySet(), ",")));
 
-      MsMsDictionary dic = MsMsDictionary.sLibrary.get(getLibName());
+      MsMsDictionary dic = MsMsDictionary.sLibrary.cells(getLibName());
       if (dic != null)
       {
         headline.addDiv(new Div("Precursor Index: "  + (dic.mPrecursors != null ? dic.mPrecursors.size() : null)));
@@ -763,7 +763,7 @@ public class MIMSL
     }
     report.addDiv(new Div(line));
     for (String lib : MsMsDictionary.sLibrary.keySet())
-      report.addDiv(new Div(lib + ": " + MsMsDictionary.sLibrary.get(lib).toString()));
+      report.addDiv(new Div(lib + ": " + MsMsDictionary.sLibrary.cells(lib).toString()));
 
     return report;
   }
@@ -813,7 +813,7 @@ public class MIMSL
 
       queryByPrecursors();
       // non-sense to place the min on the match per fragment?
-      MultiTreeMap<Long, Float> matches = MsMsDictionary.get(mLibName).queryByFragments(
+      MultiTreeMap<Long, Float> matches = MsMsDictionary.cells(mLibName).queryByFragments(
         getSettings(), iFragmentMatches, iPrecursorMatches, mFrags.values(),
         iDecoyOffset, 0, Toolbox.isSet(mPrecursorMzs));
 
@@ -822,7 +822,7 @@ public class MIMSL
 
       if (Toolbox.isSet(matches))
         for (Long id : matches.keySet())
-          iMatches.putAll(id, matches.get(id));
+          iMatches.putAll(id, matches.cells(id));
 
       if (Toolbox.isSet(getPtmpMap()) && Toolbox.isSet(iPrecursorMatches)) queryByMods();      // score with expanded ions!!
       survey(); // score the simple matches first
@@ -833,10 +833,10 @@ public class MIMSL
 
       for (Integer charge : getPrecursorMzs().keySet())
       {
-        Collection<Range<Float>> slices = enumeratePrecursor(getSettings(), getPtmMs(), getPrecursorMzs().get(charge), charge == 0 ? 2 : charge);
+        Collection<Range<Float>> slices = enumeratePrecursor(getSettings(), getPtmMs(), getPrecursorMzs().cells(charge), charge == 0 ? 2 : charge);
         if (Toolbox.isSet(slices))
           for (Range<Float> slice : slices)
-            iPrecursorMatches.putAll(MsMsDictionary.get(mLibName).queryByPrecursor(slice.getLower() + iDecoyOffset, slice.getUpper() + iDecoyOffset, charge));
+            iPrecursorMatches.putAll(MsMsDictionary.cells(mLibName).queryByPrecursor(slice.getLower() + iDecoyOffset, slice.getUpper() + iDecoyOffset, charge));
       }
       // for debugging
       //SpectralLib_Util.print(mDictionary, mPrecursors, "Precursors @" + Toolbox.toString(mPrecursorMzs, ","));
@@ -851,8 +851,8 @@ public class MIMSL
       //Collection<MsIon> shifted = new ArrayList<MsIon>();
       for (Long precursor : iPrecursorMatches.keySet())
       {
-        Float delta = (float )mSettings.getEffectivePrecursorTol((double )iPrecursorMatches.get(precursor));
-        //if (iPrecursorMatches.get(precursor) > 597.6 && iPrecursorMatches.get(precursor) < 597.605)
+        Float delta = (float )mSettings.getEffectivePrecursorTol((double )iPrecursorMatches.cells(precursor));
+        //if (iPrecursorMatches.cells(precursor) > 597.6 && iPrecursorMatches.cells(precursor) < 597.605)
         //{
         //  System.out.println();
         //}
@@ -860,7 +860,7 @@ public class MIMSL
         {
           if (ion.getCharge() == null || ion.getCharge() == 0) continue;
 
-          Float offset = (float )ion.getMz() - iPrecursorMatches.get(precursor);
+          Float offset = (float )ion.getMz() - iPrecursorMatches.cells(precursor);
           if (!isolation.isEnclosed(offset))
           {
             // pull the plausible PTMs
@@ -873,11 +873,11 @@ public class MIMSL
                 //  System.out.println();
                 //}
                 // we used to have 1 min match per query fragment, why, 20120503
-                MultiTreeMap<Long, Float> M = MsMsDictionary.get(mLibName).queryByFragments(
+                MultiTreeMap<Long, Float> M = MsMsDictionary.cells(mLibName).queryByFragments(
                   getSettings(), iFragmentMatches, iPrecursorMatches, mFrags.values(),
                   ptm.getMonoDeltaMass().floatValue() + iDecoyOffset, 0, Toolbox.isSet(mPrecursorMzs));
                 for (Long id : M.keySet())
-                  for (Float m : M.get(id)) iMatches.put(id, m * -1f);
+                  for (Float m : M.cells(id)) iMatches.put(id, m * -1f);
               }
           }
         }
@@ -894,12 +894,12 @@ public class MIMSL
         float multiplier = 1f;
 
         match.setPrimaryKey(id);
-        for (MsIon M : iFragmentMatches.get(id))
+        for (MsIon M : iFragmentMatches.cells(id))
           if (M.getMz() < 0) { multiplier = 2f; break; }
 
-        int nmatch = iFragmentMatches.get(id).size(),
+        int nmatch = iFragmentMatches.cells(id).size(),
           nfrag = (int )(mFrags.size() * multiplier),
-          nsig = MsMsDictionary.get(mLibName).getSignatureSize(id);
+          nsig = MsMsDictionary.cells(mLibName).getSignatureSize(id);
 
         match.setScore(      -1d * hypergeometric_oneSidedPValue(nmatch, nfrag, nsig, mBinSize));
         if (nsig > 1) nsig--; else if (nfrag > 1) nfrag--;
@@ -913,13 +913,13 @@ public class MIMSL
     {
       if (iMatches == null) return candidates;
 
-      MsMsAssignment assignment = MsMsDictionary.get(mLibName).get(id);
+      MsMsAssignment assignment = MsMsDictionary.cells(mLibName).cells(id);
       PeptideHit          match = assignment.getAssignment().clone();
 
       match.setPeptideHitId(id); match.isDecoy(decoy);
       try
       {
-        match.setRank(iMatches.get(id).size());
+        match.setRank(iMatches.cells(id).size());
       }
       catch (Exception e)
       {
@@ -945,19 +945,19 @@ public class MIMSL
       {
         double    tol = mSettings.getEffectiveFragmentTol(F.getMz());
         boolean found = false;
-        for (MsIon M : iFragmentMatches.get(id))
+        for (MsIon M : iFragmentMatches.cells(id))
         {
           if (Math.abs(Math.abs(M.getMz()) - F.getMz() + iDecoyOffset) <= tol) { found = true; break; }
         }
         if (!found) unmatched = Toolbox.extend(unmatched, Toolbox.d2s(F.getMz(), 1), ";");
       }
       float multiplier = 1f;
-      for (MsIon M : iFragmentMatches.get(id))
+      for (MsIon M : iFragmentMatches.cells(id))
       {
         if (M.getMz() < 0) { multiplier = 2f; break; }
       }
 
-      int nmatch = iFragmentMatches.get(id).size(), nfrag = (int )(mFrags.size() * multiplier), nsig = signatures.size();
+      int nmatch = iFragmentMatches.cells(id).size(), nfrag = (int )(mFrags.size() * multiplier), nsig = signatures.size();
       match.setScore(      -1d * hypergeometric_oneSidedPValue(nmatch, nfrag, nsig, mBinSize));
       if (nsig > 1) nsig--; else if (nfrag > 1) nfrag--;
       match.setErrorPctVar(-1d * hypergeometric_oneSidedPValue(nmatch, nfrag, nsig, mBinSize) - match.getScore());
@@ -1028,8 +1028,8 @@ public class MIMSL
 
       // only deposit the new one
       boolean found = false;
-      if (Toolbox.isSet(assignments.get(assign.getAssignment().getSequence())))
-        for (MsMsAssignment as : assignments.get(assign.getAssignment().getSequence()))
+      if (Toolbox.isSet(assignments.cells(assign.getAssignment().getSequence())))
+        for (MsMsAssignment as : assignments.cells(assign.getAssignment().getSequence()))
         {
           if (       assign.getAssignment().getCharge() == as.getAssignment().getCharge() &&
             Math.abs(assign.getMsMs().getPrecursorMz()   - as.getMsMs().getPrecursorMz()) < 0.5)
@@ -1070,8 +1070,8 @@ public class MIMSL
     Map<String, GeneFeature> geneid_feature = fetchGeneDefinition(amgen_geneids);
     // populate the gene info for the sequences
     for (SQUID_Sequence seq : acc_seq.values())
-      if (geneid_feature.get(seq.getAmgenGeneId()) != null)
-        seq.setProperty("GeneFeature", geneid_feature.get(seq.getAmgenGeneId()));
+      if (geneid_feature.cells(seq.getAmgenGeneId()) != null)
+        seq.setProperty("GeneFeature", geneid_feature.cells(seq.getAmgenGeneId()));
 
     return acc_seq;
   }
@@ -1124,7 +1124,7 @@ public class MIMSL
         String gene = null;
         for (String id : assign.getAssignment().getId().split("\\|"))
         {
-          gene = idmapping.get(id);
+          gene = idmapping.cells(id);
           if (gene != null) break;
         }
         if (gene == null && assign.getAssignment().getDescription().toUpperCase().indexOf("IG") >= 0)
@@ -1148,9 +1148,9 @@ public class MIMSL
         {
           for (String sample : assignments.keySet())
           {
-            if (assignments.get(sample).size() > 100)
+            if (assignments.cells(sample).size() > 100)
             {
-              Db_Util.batchInsert(conn, 123L, assignments.get(sample));
+              Db_Util.batchInsert(conn, 123L, assignments.cells(sample));
               assignments.removeAll(sample);
             }
           }
@@ -1168,15 +1168,15 @@ public class MIMSL
     System.out.println(datafile);
     System.out.println("Unmapped Accessions:");
     for (String id : unmapped.keySet())
-      System.out.println("|" + id + "|" + unmapped.get(id).size() + "|");
+      System.out.println("|" + id + "|" + unmapped.cells(id).size() + "|");
 
     System.out.println("Break down by the instrument type:");
     for (MsInstrumentType inst : source.getInstrumentType().keySet())
-      System.out.println(inst.toString() + ": " + source.getInstrumentType().get(inst));
+      System.out.println(inst.toString() + ": " + source.getInstrumentType().cells(inst));
 
     System.out.println("\nBreak down by the Sample:");
     for (String sample : source.getSamples().keySet())
-      System.out.println(sample + ": " + source.getSamples().get(sample));
+      System.out.println(sample + ": " + source.getSamples().cells(sample));
 
     source.close();
   }
@@ -1197,12 +1197,12 @@ public class MIMSL
     {
       seqs.clear();
       for (String acc : accs.split("\\|"))
-        Toolbox.addNotNull(seqs, acc_seq.get(acc));
+        Toolbox.addNotNull(seqs, acc_seq.cells(acc));
 
       for (SQUID_Sequence seq : seqs)
       {
         GeneFeature gene = (GeneFeature )seq.getProperty("GeneFeature");
-        for (MsMsAssignment A : acc_assign.get(accs))
+        for (MsMsAssignment A : acc_assign.cells(accs))
         {
           A.getAssignment().setProperty("ProtName", gene.getGeneSymbol()); // to become Spectre_PeptideAssignment.ProteinName later
           A.getAssignment().setDescription(gene.getGeneSymbol() + ": " + A.getAssignment().getDescription());
@@ -1219,13 +1219,13 @@ public class MIMSL
     {
       Spectre_Experiment folder_ch = Db_Util.getExperiment(conn, parent, "ch " + ch);
       // go by the genes
-      for (String gene : chrom_gene_assign.get(ch).keySet())
+      for (String gene : chrom_gene_assign.cells(ch).keySet())
       {
         Spectre_Experiment folder_gene = Db_Util.getExperiment(conn, folder_ch, gene.substring(0, 1) + "...");
         Spectre_AnalysisRun run = Db_Util.newAnalysisRun(conn, folder_gene.getRowId(), gene, "system", ProcessingStatus.CONFIGURING);
         Collection<MsMsAssignment> temp_as = new ArrayList<MsMsAssignment>();
-        temp_as.add(Toolbox.front(chrom_gene_assign.get(ch, gene)));
-        //Db_Util.batchInsert(conn, run.getAnalysisRunId(), chrom_gene_assign.get(ch, gene));
+        temp_as.add(Toolbox.front(chrom_gene_assign.cells(ch, gene)));
+        //Db_Util.batchInsert(conn, run.getAnalysisRunId(), chrom_gene_assign.cells(ch, gene));
         Db_Util.batchInsert(conn, run.getAnalysisRunId(), temp_as);
       }
     }
@@ -1302,7 +1302,7 @@ public class MIMSL
     for (String seq : seq_assignment.keySet())
     {
       // pick the most intense one by the BPI
-      List<MsMsAssignment> pool = new ArrayList<MsMsAssignment>(seq_assignment.get(seq));
+      List<MsMsAssignment> pool = new ArrayList<MsMsAssignment>(seq_assignment.cells(seq));
       Collections.sort(pool, MsMsAssignment.BPI_DESCEND);
 
       if (compact) Toolbox.front(pool).compact_write(output); else Toolbox.front(pool).write(output);
@@ -1331,7 +1331,7 @@ public class MIMSL
         for (String peptide : sum.getAssignments().keySet())
         {
           pids.clear();
-          for (MsMsAssignment A : sum.getAssignments().get(peptide)) pids.add(A.getId());
+          for (MsMsAssignment A : sum.getAssignments().cells(peptide)) pids.add(A.getId());
 
           Collection<Spectre_MsMsSpectrum> rows = Spectre_MsMsSpectrum.getRowsForPeptideAssignmentIds(conn, pids, true);
           rows = Spectre_MsMsSpectrum.populateSpectra(  conn, rows, true);
@@ -1340,12 +1340,12 @@ public class MIMSL
           Spectre_MsMsSpectrum composit = SpectralClustering_Util.composite(rows, null, mztol, true);
           composit.getPeptideAssignment().matchToSpectrum(conn, composit.getRawSpectrum(), 0.5f, true);
 
-          MsMsAssignment assignment = Toolbox.front(sum.getAssignments().get(peptide));
+          MsMsAssignment assignment = Toolbox.front(sum.getAssignments().cells(peptide));
           assignment.setMsMs(composit.convertToMsMsMatches());
           assignment.getMsMs().setScanType(MsScanType.CENTROID);
           assignment.write(os);
           assignments++;
-          msms += sum.getAssignments().get(peptide).size();
+          msms += sum.getAssignments().cells(peptide).size();
         }
       }
       //break; // for debugging
@@ -1398,16 +1398,16 @@ public class MIMSL
         {
           pids.clear();
           // trim the set by the error rate first
-          for (MsMsAssignment A : sum.getAssignments().get(peptide)) pids.add(A.getId());
+          for (MsMsAssignment A : sum.getAssignments().cells(peptide)) pids.add(A.getId());
 
           if (pids.size() > row_limit)
           {
             // no need to set the owner
             Map<Long, Spectre_MsMsSpectrum> pid_ms = Spectre_MsMsSpectrum.getRowMapWithTypesForPeptideAssignmentIds(conn, pids);
-            for (MsMsAssignment A : sum.getAssignments().get(peptide))
+            for (MsMsAssignment A : sum.getAssignments().cells(peptide))
             {
               if (!pid_ms.containsKey(A.getId())) throw new RuntimeException("MS not found: " + A.getId());
-              pid_ms.get(A.getId()).setRetentionTime((float )A.getAssignment().getErrorPct());
+              pid_ms.cells(A.getId()).setRetentionTime((float )A.getAssignment().getErrorPct());
             }
             List<Spectre_MsMsSpectrum> focused = new ArrayList<Spectre_MsMsSpectrum>(pid_ms.values());
             Collections.sort(focused, Spectre_MsMsSpectrum.RT_ASC);
@@ -1425,7 +1425,7 @@ public class MIMSL
             rows = savePeptideAssignments(conn, lib, rows, row_limit); // need no more than a dozen
 
           assignments++;
-          msms += sum.getAssignments().get(peptide).size();
+          msms += sum.getAssignments().cells(peptide).size();
 
           // dispose the temp objects
           Toolbox.dispose(rows);
@@ -1451,8 +1451,8 @@ public class MIMSL
     MapOfMultiMap<BinPepLibFile,Integer, Long> lib_charge_pid = new MapOfMultiMap<BinPepLibFile, Integer, Long>();
     for (Spectre_MsMsSpectrum ms : rows)
       for (BinPepLibFile lib : libs)
-        if (lib_charge_pid.get(lib, ms.getPrecursorCharge()) == null ||
-          lib_charge_pid.get(lib, ms.getPrecursorCharge()).size() < row_limit)
+        if (lib_charge_pid.cells(lib, ms.getPrecursorCharge()) == null ||
+          lib_charge_pid.cells(lib, ms.getPrecursorCharge()).size() < row_limit)
           if (lib.isCompatible(ms.getInstrumentType(), ms.getIonActivationType()))
             lib_charge_pid.add(lib, ms.getPrecursorCharge(), ms.getPeptideAssignmentId());
 
@@ -1477,8 +1477,8 @@ public class MIMSL
       {
         // always count on the charge state of the assignment
         ms.setPrecursorCharge(ms.getPeptideAssignment().getChargeState());
-        if (row_limit <= 0 || permitted.get(ms.getPrecursorCharge()) == null ||
-          row_limit > permitted.get(ms.getPrecursorCharge()).size())
+        if (row_limit <= 0 || permitted.cells(ms.getPrecursorCharge()) == null ||
+          row_limit > permitted.cells(ms.getPrecursorCharge()).size())
           permitted.put(ms.getPrecursorCharge(), ms);
         // remove the spec from future considration
         itr.remove();
@@ -1501,8 +1501,8 @@ public class MIMSL
           continue;
         }
 
-        MsMsAssignment     assignment = Toolbox.front(permitted.get(z)).toMsMsAssignment();
-        Spectre_MsMsSpectrum composit = SpectralClustering_Util.composite(permitted.get(z), null, mztol, false);
+        MsMsAssignment     assignment = Toolbox.front(permitted.cells(z)).toMsMsAssignment();
+        Spectre_MsMsSpectrum composit = SpectralClustering_Util.composite(permitted.cells(z), null, mztol, false);
         composit.getPeptideAssignment().matchToSpectrum(conn, composit.getRawSpectrum(), mztol, true);
 
         assignment.setMsMs(composit.convertToMsMsMatches());
@@ -1552,8 +1552,8 @@ public class MIMSL
         if (sampling > 0)
           for (String seq : pid.getRawAssignments().keySet())
             for (MsMsAssignment A : seq_peptidez_as.row(seq).values())
-              for (Integer z : peptide_z_asid.get(A.getAssignment().getBackboneCutPattern(false)).keySet())
-                Toolbox.subsample(asids, peptide_z_asid.get(A.getAssignment().getBackboneCutPattern(false), z), sampling, rand);
+              for (Integer z : peptide_z_asid.cells(A.getAssignment().getBackboneCutPattern(false)).keySet())
+                Toolbox.subsample(asids, peptide_z_asid.cells(A.getAssignment().getBackboneCutPattern(false), z), sampling, rand);
       }
       Map<Long, Spectre_MsMsSpectrum> id_spec = Spectre_MsMsSpectrum.getRowMapForPeptideAssignmentIds(conn, asids, false);
 
@@ -1572,10 +1572,10 @@ public class MIMSL
               for (MsMsAssignment A : seq_peptidez_as.row(seq).values())
               {
                 as_totals++; distinct.add(seq);
-                // get the protein info
+                // cells the protein info
                 A.getAssignment().setDescription(pid.getProtein().getDescription());
                 A.getAssignment().setId(         pid.getProtein().getId());
-                MultiTreeMap<Integer, Long> z_id = peptide_z_asid.get(A.getAssignment().getBackboneCutPattern(false));
+                MultiTreeMap<Integer, Long> z_id = peptide_z_asid.cells(A.getAssignment().getBackboneCutPattern(false));
                 if (!Toolbox.isSet(z_id))
                 {
                   System.out.println("Empty asid: " + A.toString());
@@ -1584,7 +1584,7 @@ public class MIMSL
                 inst_act_ms.clear();
                 for (Long asid : z_id.values())
                 {
-                  Spectre_MsMsSpectrum ms = id_spec.get(asid);
+                  Spectre_MsMsSpectrum ms = id_spec.cells(asid);
                   if (ms != null)
                     inst_act_ms.add(ms.getInstrumentType(), ms.getIonActivationType(), ms);
                 }
@@ -1618,10 +1618,10 @@ public class MIMSL
     // save the assignments by the types
     for (MsInstrumentType inst : inst_act_ms.keySet())
       for (IonActivationType act : inst_act_ms.labelSet())
-        if (inst_act_ms.get(inst, act) != null)
+        if (inst_act_ms.cells(inst, act) != null)
         {
           // take the charge state from the assignment
-          Multimap<Integer, Spectre_MsMsSpectrum> z_ms = Qualitative_Util.toChargeMap(inst_act_ms.get(inst, act));
+          Multimap<Integer, Spectre_MsMsSpectrum> z_ms = Qualitative_Util.toChargeMap(inst_act_ms.cells(inst, act));
           for (Integer z : z_ms.keySet())
           {
             if (z == 0)
@@ -1633,32 +1633,32 @@ public class MIMSL
             try
             {
               A.getAssignment().setCharge(z);
-              Spectre_MsMsSpectrum composit = SpectralClustering_Util.composite(z_ms.get(z), null, ms2tol, false);
+              Spectre_MsMsSpectrum composit = SpectralClustering_Util.composite(z_ms.cells(z), null, ms2tol, false);
               composit.setPeptideAssignment(Qualitative_Factory.newSpectrePeptideAssignment(A));
               composit.getPeptideAssignment().matchToSpectrum(conn, composit.getRawSpectrum(), ms2tol, true);
 
-              if (z_ms.get(z).size() > 2)
+              if (z_ms.cells(z).size() > 2)
                 MsIon_Util.purgeByMergeCount(composit.getRawSpectrum().getModifiableData(), 0.5d);
 
               A.setMsMs(composit.convertToMsMsMatches());
               A.getMsMs().setScanType(MsScanType.CENTROID);
               if (A.getAssignment().getProperties() != null)
                 A.getAssignment().removeProperty("asid");
-              if (inst_act_libs.get(inst, act) != null)
+              if (inst_act_libs.cells(inst, act) != null)
               {
-                A.write(inst_act_libs.get(inst, act).getDataOutput());
+                A.write(inst_act_libs.cells(inst, act).getDataOutput());
                 if (A.getMsMs() == null || !Toolbox.isSet(A.getMsMs().getData()))
                 {
                   System.out.println("fragment ions not initialized?");
                 }
-                if (inst_act_libs.get(inst, act).mPeptideZs.contains(A.getAssignment().getUniqueTag()))
+                if (inst_act_libs.cells(inst, act).mPeptideZs.contains(A.getAssignment().getUniqueTag()))
                 {
                   System.out.print("W?");
                 }
-                inst_act_libs.get(inst, act).increNumberOfEntry(1L);
-                inst_act_libs.get(inst, act).mPeptides.add( A.getAssignment().getBackboneCutPattern(false));
-                inst_act_libs.get(inst, act).mPeptideZs.add(A.getAssignment().getUniqueTag());
-                inst_act_libs.get(inst, act).mPeptideSeqs.add( A.getAssignment().getSequence());
+                inst_act_libs.cells(inst, act).increNumberOfEntry(1L);
+                inst_act_libs.cells(inst, act).mPeptides.add( A.getAssignment().getBackboneCutPattern(false));
+                inst_act_libs.cells(inst, act).mPeptideZs.add(A.getAssignment().getUniqueTag());
+                inst_act_libs.cells(inst, act).mPeptideSeqs.add( A.getAssignment().getSequence());
               }
               else throw new RuntimeException("Unable to write an assignment with " + inst + " and " + act + " to the lib output!");
             }
@@ -1792,21 +1792,21 @@ public class MIMSL
     dic.write(indices);
     indices.close();
   }
-  public int getSignatureSize(Long id) { return mIdSigsize != null ? mIdSigsize.get(id) : null; }
-  public static MsMsDictionary get(String name)
+  public int getSignatureSize(Long id) { return mIdSigsize != null ? mIdSigsize.cells(id) : null; }
+  public static MsMsDictionary cells(String name)
   {
-    // settle for no PTM for now because we can;t get to the Spectre_PTM outside of SPECTRE
+    // settle for no PTM for now because we can;t cells to the Spectre_PTM outside of SPECTRE
     return prepare(name, true, null);
   }
   public static MsMsDictionary prepare(String name, boolean wait, Collection<PTM> ptms)
   {
     if (!Toolbox.isSet(name)) throw new RuntimeException("NULL library");
 
-    MsMsDictionary dic = sLibrary.get(name);
+    MsMsDictionary dic = sLibrary.cells(name);
     if (dic == null)
     {
       // do we have it started already
-      Future<MsMsDictionary> future = sFutures.get(name);
+      Future<MsMsDictionary> future = sFutures.cells(name);
       if (future == null)
         sFutures.put(name, Executors.newFixedThreadPool(1).submit(
           //new MsMsDictionary(name, Spectre_PTM.getAllasPTM().values())));
@@ -1816,25 +1816,25 @@ public class MIMSL
       {
         try
         {
-          sLibrary.put(name, sFutures.get(name).get()); // let's wait for it
+          sLibrary.put(name, sFutures.cells(name).cells()); // let's wait for it
           sFutures.remove(name);
         }
         catch (Exception e) { throw new RuntimeException(e); }
       }
     }
 
-    return sLibrary.get(name);
+    return sLibrary.cells(name);
   }
   public static boolean isReady(String name)
   {
-    return (sFutures.get(name) == null || sFutures.get(name).isDone());
+    return (sFutures.cells(name) == null || sFutures.cells(name).isDone());
   }
   public long size() { return mPrecursors.size(); }
   public MsMsDictionary setName(String s) { mName = s; return this; }
   public String getName() { return mName; }
   public MsMsDictionary setSpectralLib(String s) { mSpectralLib = s; return this; }
 
-  synchronized public MsMsAssignment get(Long offset)
+  synchronized public MsMsAssignment cells(Long offset)
   {
     String binfile = libsdir + mSpectralLib;
     try
@@ -1923,7 +1923,7 @@ public class MIMSL
     System.out.println("\n" + title);
     for (Long id : ids)
     {
-      MsMsAssignment assignment = get(id);
+      MsMsAssignment assignment = cells(id);
       if (assignment != null)
         System.out.println("m/z" + Toolbox.d2s(assignment.getMsMs().getPrecursorMz(), 2) + ",+" +
           assignment.getMsMs().getPrecursorCharge() + ", " +
@@ -1947,7 +1947,7 @@ public class MIMSL
     long      freemem0 = Runtime.getRuntime().freeMemory();
     MsMsDictionary dic = new MsMsDictionary();
 
-    String lib = sLibraryName.get(libname);
+    String lib = sLibraryName.cells(libname);
     if      (lib == null) throw new RuntimeException("Unknown library: " + libname);
 
     File libfile = new File(libsdir + lib + ".indices");
@@ -1977,7 +1977,7 @@ public class MIMSL
   public static MsMsDictionary index(String libname, double min_snr, double half_width, int tops, String... sequences) throws Exception
   {
     MsMsDictionary dic = new MsMsDictionary();
-    dic.index(new BinPepLibFile(libsdir + sLibraryName.get(libname) + ".bin"), min_snr, half_width, tops, sequences);
+    dic.index(new BinPepLibFile(libsdir + sLibraryName.cells(libname) + ".bin"), min_snr, half_width, tops, sequences);
 
     return dic;
   }

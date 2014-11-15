@@ -1,7 +1,8 @@
 package org.ms2ms.utils;
 
 import com.google.common.collect.*;
-import org.ms2ms.data.MultiTreeTable;
+import org.ms2ms.Disposable;
+import org.ms2ms.data.collect.MultiTreeTable;
 
 import java.util.*;
 
@@ -17,11 +18,12 @@ public class Tools
   public static <T> boolean isSet(Collection<T>  s) { return s!=null && s.size()>0; }
   public static <T> boolean isSet(Map            s) { return s!=null && s.size()>0; }
   public static <T> boolean isSet(MultiTreeTable s) { return s!=null && s.size()>0; }
-  public static <T> boolean isSet(TreeMultimap   s) { return s!=null && s.size()>0; }
+  public static <T> boolean isSet(Multimap       s) { return s!=null && s.size()>0; }
   public static <T> boolean isSet(T[]            s) { return s!=null && s.length>0; }
   public static <T> boolean isSet(double[]       s) { return s!=null && s.length>0; }
   public static     boolean isSet(int[]          s) { return s!=null && s.length>0; }
   public static     boolean isSet(Table          s) { return s!=null && s.size()>0; }
+  public static     boolean isSet(long[]         s) { return s!=null && s.length>0; }
 
   public static <T> T front(Collection<T> s)
   {
@@ -161,25 +163,35 @@ public class Tools
     for (T b : B) if (A.equals(b)) return true;
     return false;
   }
-  public static Collection dispose(Collection s)
+  public static void dispose(Collection... ss)
   {
-    if (s!=null) { s.clear(); s=null; }
-    return null;
+    if (isSet(ss))
+      for (Collection s : ss)
+        if (s!=null) { s.clear(); s=null; }
   }
-  public static Collection dispose(Map s)
+  public static void dispose(Map... ss)
   {
-    if (s!=null) { s.clear(); s=null; }
-    return null;
+    if (isSet(ss))
+      for (Map s : ss)
+        if (s!=null) { s.clear(); s=null; }
   }
-  public static Collection dispose(Multimap s)
+  public static void dispose(Multimap... ss)
   {
-    if (s!=null) { s.clear(); s=null; }
-    return null;
+    if (isSet(ss))
+      for (Multimap s : ss)
+        if (s!=null) { s.clear(); s=null; }
   }
-  public static Collection dispose(Table s)
+  public static void dispose(Table... ss)
   {
-    if (s!=null) { s.clear(); s=null; }
-    return null;
+    if (isSet(ss))
+      for (Table s : ss)
+        if (s!=null) { s.clear(); s=null; }
+  }
+  public static void dispose(Disposable... ss)
+  {
+    if (isSet(ss))
+      for (Disposable s : ss)
+        if (s!=null) { s.dispose(); s=null; }
   }
   public static Map putNotNull(Map m, Object k, Object v)
   {
@@ -240,6 +252,63 @@ public class Tools
 
     return A;
   }
-  public static boolean equals(Object A, Object B) { return A!=null&&B!=null?A.equals(B):false; }
-  public static boolean equalsCaseless(String A, String B) { return A!=null&&B!=null?A.equalsIgnoreCase(B):false; }
+  public static boolean equals(Map A, Map B)
+  {
+    if (A==null && B==null) return true;
+    if (A==null || B==null || A.size()!=B.size() || A.keySet().size()!=B.keySet().size()) return false;
+
+    for (Object k1 : A.keySet())
+      if (!B.containsKey(k1) || !equals(A.get(k1), B.get(k1))) return false;
+
+    return true;
+  }
+  public static boolean equals(Object A, Object B)
+  {
+    if (A==null && B==null) return true;
+    return A!=null&&B!=null?A.equals(B):false;
+  }
+  public static boolean equalsCaseless(String A, String B)
+  {
+    if (A==null && B==null) return true;
+    return A!=null&&B!=null?A.equalsIgnoreCase(B):false;
+  }
+  public static <T> boolean contains(Collection<T> vals, T s)
+  {
+    if (vals==null || s==null) return false;
+    for (T t : vals)
+      if (equals(t, s)) return true;
+
+    return false;
+  }
+  public static <T> Collection<T> overlap(Collection<T> A, Collection<T> B)
+  {
+    if (A==null || B==null) return null;
+
+    Collection<T> shared = new ArrayList<T>();
+    for (T t1 : A)
+      if (contains(B, t1)) shared.add(t1);
+
+    return shared;
+  }
+  public static Number negates(Number s)
+  {
+    if (s!=null)
+    {
+      if      (s instanceof Double)  return -((Double )s);
+      else if (s instanceof Float )  return -((Float  )s);
+      else if (s instanceof Integer) return -((Integer)s);
+      else if (s instanceof Long   ) return -((Long   )s);
+    }
+
+    return s;
+  }
+  public static <V> SortedSetMultimap<Double, V> reverse(SortedSetMultimap<Double, V> s)
+  {
+    if (s==null) return s;
+
+    SortedSetMultimap<Double, V> reversed = TreeMultimap.create();
+    for (Double k : s.keys()) reversed.putAll(-k, s.get(k));
+
+    return reversed;
+  }
 }

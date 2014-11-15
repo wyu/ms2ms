@@ -1,4 +1,4 @@
-package org.ms2ms.data;
+package org.ms2ms.io;
 
 /**Adapted from MaxQuantFilesReader by Da Qi for maxquantmzquantmlconvertor project
  *
@@ -352,7 +352,7 @@ public class MaxquantReader
         csvReader = new CSVReader(br, '\t');
 
                 /*
-                 * get the column number for required fields
+                 * cells the column number for required fields
                  */
         int posMajProtIds = 0, posProtInt = 0, posUniqPep = 0;
         nextLine = csvReader.readNext();
@@ -435,7 +435,7 @@ public class MaxquantReader
       csvReader = new CSVReader(br, '\t');
 
             /*
-             * get the column number for required fields
+             * cells the column number for required fields
              */
       nextLine = csvReader.readNext();
       int posEvd = 0;

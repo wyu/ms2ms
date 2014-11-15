@@ -9,6 +9,7 @@ import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakAnnotation;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
+import org.ms2ms.data.ms.MsSpectrum;
 import org.ms2ms.mzjava.AnnotatedSpectrum;
 import org.ms2ms.utils.Tools;
 
@@ -20,7 +21,7 @@ import java.util.UUID;
  *
  * Created by wyu on 4/18/14.
  */
-public final class HBasePeakList implements Serializable
+public final class HBasePeakList extends MsSpectrum
 {
   private static final long serialVersionUID = 8472732522296541667L;
 
@@ -43,21 +44,25 @@ public final class HBasePeakList implements Serializable
   static public byte[] SPEC_TRAP_ETD = Bytes.toBytes("e");
   static public byte[] SPEC_QTOF     = Bytes.toBytes("q");
 
-  private      int size,              // length of the peak list
-                   cursor,            // current position of the peak
-                   precursorZ;        // the precursor charge
-  private double[] mzList;            // m/z of the peaks
-  private  short[] intensityList;     // relative intensities of the peaks
+  protected int cursor;            // current position of the peak
   private   byte[] ppmList, flucList; // the variances of the peaks in m/z and intensity
   private   String peptide, protein;
 
-  // the upper bound of the peak intensity and variance in m/z and intensity
-  private float maxIntensity, maxPPM, maxFluc, precursorAi;
-  private double precursorMz;         // the precursor charge
+  protected float maxPPM;
+  protected float maxFluc;
 
   public <A extends PeakAnnotation> HBasePeakList(PeakList<A> src)
   {
-    super();
+    super(src);
+    // the stats
+
+    if (src instanceof LibrarySpectrum)
+    {
+      peptide = ((LibrarySpectrum )src).getPeptide().toString().replace("(Carbamidomethyl)", "");
+      protein = Tools.front(((LibrarySpectrum) src).getProteinAccessionNumbers());
+    }
+/*
+
     // TODO copy the data from the source
     precursorMz =        src.getPrecursor().getMz();
     precursorAi =(float )src.getPrecursor().getIntensity();
@@ -79,22 +84,7 @@ public final class HBasePeakList implements Serializable
       mzList[       i]=src.getMz(i);
       intensityList[i]=(short )(src.getIntensity(i)*Short.MAX_VALUE/maxIntensity+Short.MIN_VALUE);
     }
-  }
-
-  /** compression and uncompression routines  **/
-  private double getMz(int i)
-  {
-    rangeCheck(i); return mzList[i];
-  }
-  private double getIntensity(int i)
-  {
-    rangeCheck(i);
-    return maxIntensity * (intensityList[i]-Short.MIN_VALUE)/(2d*Short.MAX_VALUE);
-  }
-
-  private void rangeCheck(int index)
-  {
-    if (index >= size) throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + size);
+*/
   }
 
   public <A extends PeakAnnotation> DoublePeakList<A> toPeakList()
