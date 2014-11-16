@@ -1,12 +1,9 @@
 package org.ms2ms.test.r;
 
-import org.expasy.mzjava.core.ms.PpmTolerance;
-import org.expasy.mzjava.core.ms.Tolerance;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.ms2ms.r.Dataframe;
-import org.ms2ms.runner.Aligner;
 import org.ms2ms.test.TestAbstract;
 import org.ms2ms.utils.Stats;
 
@@ -28,7 +25,7 @@ public class DataframeTest extends TestAbstract
   {
     animals   = Dataframe.readtable(true, "size   type   name\nsmall  cat    lynx\nbig    cat    tiger\nsmall  dog    chihuahua\nbig    dog   greatdane");
     obs1      = Dataframe.readtable(true, "number size  type\n1      big   cat\n2      small dog\n3      small dog\n4      big   dog");
-    obs2      = Dataframe.readtable(true, "number  size    type\n1       big     cat\n2       small   dog\n3       small   dog\n4       big     dog\n5       big     dog\n6       big     dog");
+    obs2      = Dataframe.readtable(true, "number  size    type\n1       big     cat\n2       small   dog\n3       small   dog\n4       big     dog\n5       medium     dog\n6       big     tiger");
   }
 
   @Test
@@ -127,17 +124,20 @@ public class DataframeTest extends TestAbstract
     System.out.println(obs1.display());
     System.out.println(obs2.display());
 
-    Dataframe m1 = Dataframe.merge(animals, obs1, false);
-    Dataframe m2 = Dataframe.merge(animals, obs2, false);
-    Dataframe m3 = Dataframe.merge(animals, obs2, false, "size");
+    Dataframe m1 = Dataframe.merge(animals, obs1, false, false);
+    Dataframe m2 = Dataframe.merge(animals, obs2, false, false);
+    Dataframe m3 = Dataframe.merge(animals, obs2, false, false, "size");
+    Dataframe m4 = Dataframe.merge(animals, obs2, false, true, "size");
 
     System.out.println(m1.display());
     System.out.println(m2.display());
     System.out.println(m3.display());
+    System.out.println(m4.display());
 
     Assert.assertEquals(m1.rows().size(), 4);
     Assert.assertEquals(m2.rows().size(), 12);
-    Assert.assertEquals(m3.rows().size(), 8);
+    Assert.assertEquals(m3.rows().size(), 10);
+    Assert.assertEquals(m4.rows().size(), 9);
   }
 
   /**

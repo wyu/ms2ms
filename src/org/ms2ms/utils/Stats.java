@@ -1,6 +1,7 @@
 package org.ms2ms.utils;
 
 import com.google.common.collect.*;
+import com.google.common.primitives.Chars;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
 import org.apache.commons.math.MathException;
@@ -102,8 +103,10 @@ public class Stats
         String val = Strs.trim((String )s);
         if ((val.charAt(0)=='"'  && val.charAt(val.length()-1)=='"') ||
             (val.charAt(0)=='\'' && val.charAt(val.length()-1)=='\'')) return val.substring(1, val.length()-1);
+
+        boolean isNum = (val.charAt(0)>='0' && val.charAt(0)<='9');
+        return isNum && val.indexOf('.')>=0 ? NumberUtils.createDouble(val) : (isNum?NumberUtils.createLong(val):val);
       }
-      return NumberUtils.createNumber((String )s);
     }
     catch (Exception e) {}
     return s;

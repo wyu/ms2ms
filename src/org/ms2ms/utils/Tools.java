@@ -302,7 +302,7 @@ public class Tools
 
     return s;
   }
-  public static <V> SortedSetMultimap<Double, V> reverse(SortedSetMultimap<Double, V> s)
+  public static <V extends Comparable> SortedSetMultimap<Double, V> reverse(SortedSetMultimap<Double, V> s)
   {
     if (s==null) return s;
 

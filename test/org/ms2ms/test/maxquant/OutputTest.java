@@ -4,7 +4,7 @@ import org.expasy.mzjava.core.ms.PpmTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.junit.Before;
 import org.junit.Test;
-import org.ms2ms.io.MaxQuant;
+import org.ms2ms.data.ms.MaxQuant;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.r.Var;
 import org.ms2ms.runner.Aligner;
@@ -12,7 +12,6 @@ import org.ms2ms.test.TestAbstract;
 import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Stats;
 
-import java.io.FileWriter;
 import java.util.Map;
 
 /**
@@ -55,6 +54,18 @@ public class OutputTest extends TestAbstract
     evidences.renameCol("Mass", "Mass-predicted");
   }
   @Test
+  public void mergeMQnSurvey() throws Exception
+  {
+    mq = new MaxQuant(root, "/media/data/test/mzXML/");
+
+//    Dataframe msms = Dataframe.readtable(root+"mergedScans.txt",    '\t').setTitle("msms+"),
+    Dataframe msms = mq.readMsMsWithAnnotations(),
+            survey = Dataframe.readtable(root+"scan_survey.txt",    '\t').setTitle("survey"),
+           offsets = Dataframe.merge(msms, survey, true, true, "Raw file", "Scan number").setTitle("offsets");
+
+    IOs.write(root+"composite_scans.txt", offsets.display().toString());
+  }
+  @Test
   public void newMQ() throws Exception
   {
     mq = new MaxQuant(root, "/media/data/test/mzXML/");
@@ -75,12 +86,12 @@ public class OutputTest extends TestAbstract
          msms.init(Var.VarType.CATEGORICAL, "Evidence ID");
     evidences.init(Var.VarType.CATEGORICAL, "Evidence ID");
     // join the msms table with the evidence table, which contains the annotated LCMS features by the Evidence ID
-    Dataframe annotations = Dataframe.merge(msms, evidences, true, "Evidence ID").setTitle("annot");
+    Dataframe annotations = Dataframe.merge(msms, evidences, true, false, "Evidence ID").setTitle("annot");
     // msms.txt contains only the annotated scans, msmsScans.txt has all the scans
-    Dataframe out = Dataframe.merge(annotations, scans, true, "Raw file","Scan number");
+    Dataframe out = Dataframe.merge(annotations, scans, true, false, "Raw file","Scan number");
 
-    IOs.write(root + "mergedAnnotAll.txt", annotations.display("\t").toString());
-    IOs.write(root + "mergedScansAll.txt", out.display("\t").toString());
+    IOs.write(root + "mergedAnnotAll.txt", annotations.display("\t", "").toString());
+    IOs.write(root + "mergedScansAll.txt", out.display("\t", "").toString());
   }
   @Test
   public void interpolating() throws Exception

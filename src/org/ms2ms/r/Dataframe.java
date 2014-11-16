@@ -25,6 +25,7 @@ public class Dataframe implements Disposable
   private List<String>               mRowIDs, mColIDs;
   private Map<String, Var>           mNameVar;
   private Table<String, String, Object> mData;
+  private String[]                   mKeyCols;
 
   public Dataframe()                                         { super(); }
   public Dataframe(String s)                                 { super(); setTitle(s); }
@@ -88,8 +89,11 @@ public class Dataframe implements Disposable
   public Dataframe put(int row, String col, Object val) { return put(row+"", col, val); }
   public Dataframe put(String row, String col, Object val)
   {
-    if (mData  ==null) mData = HashBasedTable.create();
-    mData.put(row, col, val);
+    if (row!=null && col!=null && val!=null)
+    {
+      if (mData  ==null) mData = HashBasedTable.create();
+      mData.put(row, col, val);
+    }
 
     return this;
   }
@@ -168,8 +172,8 @@ public class Dataframe implements Disposable
     return this;
   }
   // simulate optional var so it's OK to call display(). Only the first element of the array is used
-  public StringBuffer display() { return display("\t"); }
-  public StringBuffer display(String delim)
+  public StringBuffer display() { return display("\t", ""); }
+  public StringBuffer display(String delim, String empty)
   {
     StringBuffer buf = new StringBuffer();
     buf.append("rowid" + Strs.toString(cols(), delim) + "\n");
@@ -177,7 +181,7 @@ public class Dataframe implements Disposable
     {
       buf.append(id);
       for (String v : cols())
-        buf.append(delim + (cells(id, v)!=null&& cells(id, v)[0]!=null? cells(id, v)[0]:"--"));
+        buf.append(delim + (cells(id, v)!=null&& cells(id, v)[0]!=null? cells(id, v)[0]:empty));
 
       buf.append("\n");
     }
@@ -206,7 +210,7 @@ public class Dataframe implements Disposable
   {
     try
     {
-      writer.write(display(delim) + "\n");
+      writer.write(display(delim, "") + "\n");
     }
     catch (IOException io)
     {
@@ -244,6 +248,17 @@ public class Dataframe implements Disposable
     for (int i=0; i<rows().size(); i++)
     {
       ys[i] = Stats.toLong(cell(rows().get(i), y));
+    }
+    return ys;
+  }
+  public long[] getLongCol(String y, Collection<String> rs)
+  {
+    if (!Tools.isSet(mData) || !hasVars(y)) return null;
+
+    long[] ys = new long[rs.size()]; int i=0;
+    for (String r : rs)
+    {
+      ys[i++] = Stats.toLong(cell(r, y));
     }
     return ys;
   }
@@ -751,11 +766,13 @@ public class Dataframe implements Disposable
 
   /** Merge two data frames by common columns or row names, or do other versions of database join operations.
 
+   *
    * @param x and y : the data frames to be merged
 //   * @param allx and ally : TRUE if the rows from x/y will be added to the output that contains no matching in the other.
+   * @param all is true is the unmatched rows are to be placed in the merged data frame
    * @return the dataframe with the merge data
    */
-  public static Dataframe merge(Dataframe x, Dataframe y, boolean combineSharedCol, String... by)
+  public static Dataframe merge(Dataframe x, Dataframe y, boolean combineSharedCol, boolean all, String... by)
   {
     if (x==null || y==null) return null;
     // cells the shared cols
@@ -797,6 +814,29 @@ public class Dataframe implements Disposable
             for (String v : y.cols())
               out.put(row, xy_var_col.get(2, v), y.cell(yrow, v));
           }
+      else if (all)
+      {
+        // singleton, not matched between x and y
+        for (Integer xy : id_x_y.get(id).keySet())
+        {
+          for (String xyrow : id_x_y.get(id, xy))
+          {
+            String row = (xy==1?(xyrow+"."):("."+xyrow));
+            out.addRowId(row);
+            if (xy==1)
+            {
+              for (String v : x.cols())
+                out.put(row, xy_var_col.get(xy, v), x.cell(xyrow, v));
+            }
+            else if (xy==2)
+            {
+              for (String v : y.cols())
+                out.put(row, xy_var_col.get(xy, v), y.cell(xyrow, v));
+            }
+          }
+        }
+
+      }
     }
     // combined the shared cols bot in 'by' if asked
     if (combineSharedCol && shared!=null && shared.length>by.length)

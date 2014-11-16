@@ -2,13 +2,12 @@ package org.ms2ms.test.ms;
 
 import com.google.common.collect.Range;
 import com.google.common.collect.SortedSetMultimap;
-import com.google.common.collect.Table;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.proteomics.ms.cluster.KMeansPeakListClusterer;
 import org.expasy.mzjava.proteomics.ms.cluster.MSTPeakListClusterer;
 import org.junit.Test;
 import org.ms2ms.data.collect.MultiTreeTable;
-import org.ms2ms.io.MaxQuant;
+import org.ms2ms.data.ms.MaxQuant;
 import org.ms2ms.io.MsIO;
 import org.ms2ms.io.MsReaders;
 import org.ms2ms.r.Dataframe;
@@ -18,9 +17,7 @@ import org.ms2ms.utils.Tools;
 
 import java.io.RandomAccessFile;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
-import java.util.RandomAccess;
 
 /**
  * Created with IntelliJ IDEA.
@@ -42,15 +39,19 @@ public class ClusteringTest extends TestAbstract
     SortedSetMultimap<     Double, String> tic_row   = Tools.reverse(msms.index(MaxQuant.V_TIC));
 
     double mztol=0.05, rttol=1.5;
-    RandomAccessFile bin = new RandomAccessFile("/tmp/survey01.ms2", "r");
+    RandomAccessFile bin = new RandomAccessFile("/media/data/test/mzXML/cache435790877685301.ms2", "r");
     // starting from the most intense scan
+    int counts=0;
     for (Double t : tic_row.keySet())
     {
       for (String r : tic_row.get(t))
       {
         double mz = Stats.toDouble(msms.cell(r, MaxQuant.V_MZ)), rt = Stats.toDouble(msms.cell(r, MaxQuant.V_RT));
         Collection<String>  slice = mz_rt_row.subset(mz-mztol, mz+mztol, rt-rttol,rt+rttol);
-        List<MsnSpectrum> spectra = MsIO.readSpectra(bin, msms.getLongCol(MaxQuant.V_FOFFSET));
+        List<MsnSpectrum> spectra = MsIO.readSpectra(bin, msms.getLongCol(MaxQuant.V_OFFSET, slice));
+        MsIO.writeSpectra("/tmp/examples_"+spectra.size()+"_"+Tools.d2s(mz, 4)+"_"+Tools.d2s(rt, 2)+".ms2", spectra);
+        System.out.println(spectra.size()+"...");
+        if (++counts>5) return;
       }
     }
     System.out.println();

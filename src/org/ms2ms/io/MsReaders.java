@@ -118,7 +118,7 @@ public class MsReaders
           if (!Tools.isSet(mslevel) || Tools.contains(mslevel, spec.getMsLevel()))
           {
             // write the spectrum to the file
-            if (!ms_bin.containsKey(spec.getMsLevel())) ms_bin.put(spec.getMsLevel(), new RandomAccessFile(cache+".ms"+spec.getMsLevel(), "rw"));
+            if (!ms_bin.containsKey(spec.getMsLevel())) ms_bin.put(spec.getMsLevel(), new RandomAccessFile(root+"/"+cache+".ms"+spec.getMsLevel(), "rw"));
 
             RandomAccessFile ms = ms_bin.get(spec.getMsLevel());
             MsIO.write(ms, spec);

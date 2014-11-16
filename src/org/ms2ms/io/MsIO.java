@@ -145,4 +145,32 @@ public class MsIO extends IOs
     }
     return spectra;
   }
+  public static void writeSpectra(String s, List<MsnSpectrum> spectra) throws IOException
+  {
+    if (s==null || !Tools.isSet(spectra)) return;
+    // the output
+    RandomAccessFile F = null;
+    try
+    {
+      try
+      {
+        F = new RandomAccessFile(s, "rw");
+        for (MsnSpectrum m : spectra)
+        {
+          write(F, m);
+        }
+        F.close();
+        return;
+      }
+      catch (FileNotFoundException fne)
+      {
+        throw new RuntimeException("Not able to locate the file: " + s, fne);
+      }
+      finally
+      {
+        if (F!=null) F.close();
+      }
+    }
+    catch (IOException ie) { throw new RuntimeException("Error while writing the spectra", ie); }
+  }
 }
