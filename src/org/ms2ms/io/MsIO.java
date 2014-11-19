@@ -110,6 +110,7 @@ public class MsIO extends IOs
     }
     return ms;
   }
+  public static List<MsnSpectrum> readSpectra(String s) { return readSpectra(s, null); }
   public static List<MsnSpectrum> readSpectra(String s, long[] offsets)
   {
     RandomAccessFile F = null;
@@ -118,13 +119,13 @@ public class MsIO extends IOs
       try
       {
         F = new RandomAccessFile(s, "r");
-        List<MsnSpectrum> spec = readSpectra(F, offsets);
+        List<MsnSpectrum> spec = Tools.isSet(offsets) ? readSpectra(F, offsets) : readSpectra(F);
         F.close();
         return spec;
       }
       catch (FileNotFoundException fne)
       {
-        throw new RuntimeException("Not able to location the file: " + s, fne);
+        throw new RuntimeException("Not able to locate the file: " + s, fne);
       }
       finally
       {
@@ -132,6 +133,21 @@ public class MsIO extends IOs
       }
     }
     catch (IOException ie) { throw new RuntimeException("Error while reading the spectra", ie); }
+  }
+  public static List<MsnSpectrum> readSpectra(RandomAccessFile s) throws IOException
+  {
+    if (s==null) return null;
+    // the output
+    List<MsnSpectrum> spectra = new ArrayList<>();
+    try
+    {
+      while (1==1)
+      {
+        spectra.add(read(s, new MsnSpectrum()));
+      }
+    }
+    catch (IOException ie) {}
+    return spectra;
   }
   public static List<MsnSpectrum> readSpectra(RandomAccessFile s, long[] offsets) throws IOException
   {

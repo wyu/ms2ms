@@ -4,14 +4,9 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.expasy.mzjava.core.ms.AbsoluteTolerance;
-import org.expasy.mzjava.core.ms.PpmTolerance;
-import org.expasy.mzjava.core.ms.peaklist.PeakList;
-import org.expasy.mzjava.proteomics.mol.modification.Modification;
-import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
-import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
+import org.expasy.mzjava.proteomics.ms.consensus.PeptideConsensusSpectrum;
 import org.junit.Test;
 import org.ms2ms.alg.Peaks;
-import org.ms2ms.mimsl.MIMSL;
 import org.ms2ms.mzjava.AnnotatedSpectrum;
 import org.ms2ms.nosql.HBase;
 import org.ms2ms.nosql.HBasePeakList;
@@ -36,9 +31,9 @@ public class SpLibsTest extends TestAbstract
   @Test
   public void readMsp() throws IOException
   {
-//    Collection<LibrarySpectrum> spectra = SpLibs.readMsp(new File("/media/data/splib/human_crp_consensus_final_true_lib.msp"));
-//    Collection<LibrarySpectrum> spectra = SpLibs.readMsp(new File("/media/data/splib/nist_nci_stdmix_consensus_final_true_lib.msp"));
-    Collection<LibrarySpectrum> spectra = SpLibs.readMsp(new File("/media/data/splib/NIST_human_IT_2012-05-30.msp"));
+//    Collection<PeptideConsensusSpectrum> spectra = SpLibs.readMsp(new File("/media/data/splib/human_crp_consensus_final_true_lib.msp"));
+//    Collection<PeptideConsensusSpectrum> spectra = SpLibs.readMsp(new File("/media/data/splib/nist_nci_stdmix_consensus_final_true_lib.msp"));
+    Collection<PeptideConsensusSpectrum> spectra = SpLibs.readMsp(new File("/media/data/splib/NIST_human_IT_2012-05-30.msp"));
 
     // save the spectrum and indice to HBase
     HBaseProteomics.index(spectra, HBasePeakList.SPEC_TRAP_CID, 50d, 450d, 7, 4d);

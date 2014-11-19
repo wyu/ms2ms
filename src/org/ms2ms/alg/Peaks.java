@@ -172,15 +172,6 @@ public class Peaks
 
       buf = printIon(buf, msms.getMz(i),msms.getIntensity(i), 0); buf.append(", ");
       if (annot) buf = printAnnot(buf, msms.getAnnotations(i));
-//
-//      if (msms.getAnnotations(i)!=null)
-//        for (PepLibPeakAnnotation anno : msms.getAnnotations(i))
-//        {
-//          PepFragAnnotation f = anno.getOptFragmentAnnotation().cells();
-//          double loss = f.getNeutralLoss().getMolecularMass();
-//          buf.append("+" + f.getCharge() +
-//            "," + f.getIonType() + (loss!=0?(loss>0?"+":"")+Math.round(loss):"") + ", " + Tools.d2s(f.getTheoreticalMz(), 4) + ", " + f.getFragment() + ", " + f.getIsotopeComposition() + "; ");
-//        }
       buf.append("\n");
     }
 
@@ -390,30 +381,5 @@ public class Peaks
 
      return found;
   }
-
-//  public static String toString(Peak... peaks)
-//  {
-//    String out=null;
-//    if (peaks!=null)
-//      for (Peak p : peaks)
-//        out = Tools.extend(out, Tools.d2s(p.getMz(), 5)p.toString(), "; ");
-//
-//    return out;
-//  }
-/*
-  public static AnnotatedSpectrum newPeakList(String frags)
-  {
-    PeakList<PepLibPeakAnnotation> spec = new DoublePeakList<PepLibPeakAnnotation>();
-    try
-    {
-      ions.setPrecursor(new Peak(Double.valueOf(pmz), 0, pz));
-      String[] fs=frags.split(";|,|\\s");
-      for (String f : fs)
-        ions.add(Double.valueOf(f), 0d);
-    }
-    catch (Exception e) {}
-    return ions;
-  }
-*/
 }
 

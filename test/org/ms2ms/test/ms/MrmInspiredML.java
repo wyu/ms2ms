@@ -1,37 +1,19 @@
 package org.ms2ms.test.ms;
 
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HConnectionManager;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.core.ms.PpmTolerance;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
-import org.expasy.mzjava.proteomics.io.ms.spectrum.MsLibReader;
-import org.expasy.mzjava.proteomics.io.ms.spectrum.SptxtReader;
-import org.expasy.mzjava.proteomics.mol.modification.Modification;
-import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodModificationResolver;
-import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
-import org.expasy.mzjava.utils.URIBuilder;
 import org.junit.Test;
 import org.ms2ms.alg.Peaks;
 import org.ms2ms.mimsl.MIMSL;
 import org.ms2ms.mimsl.MimslSettings;
-import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.mzjava.AnnotatedSpectrum;
-import org.ms2ms.nosql.HBase;
 import org.ms2ms.nosql.HBasePeakList;
 import org.ms2ms.nosql.HBaseProteomics;
-import org.ms2ms.nosql.HBaseSpLib;
 import org.ms2ms.test.TestAbstract;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.List;
 
 /** Test the application logic

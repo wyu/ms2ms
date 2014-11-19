@@ -6,7 +6,7 @@ import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.expasy.mzjava.proteomics.mol.AAMassCalculator;
-import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
+import org.expasy.mzjava.proteomics.ms.consensus.PeptideConsensusSpectrum;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepFragAnnotation;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
 import org.ms2ms.alg.Peaks;
@@ -38,9 +38,9 @@ public class MIMSL
     long nsec = System.nanoTime();
 
     List<AnnotatedSpectrum> candidates = new ArrayList<AnnotatedSpectrum>();
-    candidates.addAll(setStatus(HBaseProteomics.query(precursors, settings, 0d, frags), LibrarySpectrum.Status.NORMAL));
+    candidates.addAll(setStatus(HBaseProteomics.query(precursors, settings, 0d, frags), PeptideConsensusSpectrum.Status.NORMAL));
     // add 7 da offset to simulate decoy matches since this is not a common offset due to mod or mutation
-    candidates.addAll(setStatus(HBaseProteomics.query(precursors, settings, 7d, frags), LibrarySpectrum.Status.DECOY));
+    candidates.addAll(setStatus(HBaseProteomics.query(precursors, settings, 7d, frags), PeptideConsensusSpectrum.Status.DECOY));
     System.out.println("Query time: " + Tools.d2s(1E-9*(System.nanoTime()-nsec), 2) + " sec.");
 
     // calculate the score by hypergeometric model
@@ -60,9 +60,9 @@ public class MIMSL
     long nsec = System.nanoTime();
 
     List<AnnotatedSpectrum> candidates = new ArrayList<AnnotatedSpectrum>();
-    candidates.addAll(setStatus(HBaseProteomics.query(ions, spec_type, precursor, 0d), LibrarySpectrum.Status.NORMAL));
+    candidates.addAll(setStatus(HBaseProteomics.query(ions, spec_type, precursor, 0d), PeptideConsensusSpectrum.Status.NORMAL));
     // add 7 da offset to simulate decoy matches since this is not a common offset due to mod or mutation
-    candidates.addAll(setStatus(HBaseProteomics.query(ions, spec_type, precursor, 7d), LibrarySpectrum.Status.DECOY));
+    candidates.addAll(setStatus(HBaseProteomics.query(ions, spec_type, precursor, 7d), PeptideConsensusSpectrum.Status.DECOY));
     System.out.println("Query time: " + Tools.d2s(1E-9*(System.nanoTime()-nsec), 2) + " sec. m/z" +
         Tools.d2s(precursor.getMin(ions.getPrecursor().getMz()),4) + " to " + Tools.d2s(precursor.getMax(ions.getPrecursor().getMz()),4));
 
@@ -207,7 +207,7 @@ public class MIMSL
     }
     return Tools.merge(slices);
   }
-  public static <T extends LibrarySpectrum> Collection<T> setStatus(Collection<T> spectra, LibrarySpectrum.Status status)
+  public static <T extends PeptideConsensusSpectrum> Collection<T> setStatus(Collection<T> spectra, PeptideConsensusSpectrum.Status status)
   {
     if (Tools.isSet(spectra))
       for (T spec : spectra) spec.setStatus(status);
@@ -249,7 +249,7 @@ public class MIMSL
     for (AnnotatedSpectrum candidate : candidates)
     {
       String[] peptide = candidate.getComment().split("\\^");
-      boolean decoy = (candidate.getStatus().equals(LibrarySpectrum.Status.DECOY));
+      boolean decoy = (candidate.getStatus().equals(PeptideConsensusSpectrum.Status.DECOY));
       buf.append(Tools.d2s(candidate.getScore(AnnotatedSpectrum.SCR_MIMSL),       2) + "\t");
       buf.append(Tools.d2s(candidate.getScore(AnnotatedSpectrum.SCR_MIMSL_DELTA), 2) + "\t");
       buf.append(candidate.getIonMatched() + "\t");

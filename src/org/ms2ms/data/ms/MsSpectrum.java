@@ -3,11 +3,9 @@ package org.ms2ms.data.ms;
 import org.expasy.mzjava.core.ms.peaklist.PeakAnnotation;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
-import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
 import org.ms2ms.Disposable;
-import org.ms2ms.utils.Tools;
 
-import java.io.Serializable;
+import java.io.*;
 
 /** Copyright 2014-2015 ms2ms.org
  * <p/>
@@ -71,4 +69,39 @@ public class MsSpectrum  implements Serializable, Disposable
     intensityList=null; mzList=null;
   }
   public static MsSpectrum adopt(MsnSpectrum s) { return new MsSpectrum(s); }
+  public static MsSpectrum fromBytes(byte[] s)
+  {
+    try
+    {
+      ByteArrayInputStream bai = new ByteArrayInputStream(s);
+      ObjectInputStream in = new ObjectInputStream(bai);
+      MsSpectrum          e = (MsSpectrum ) in.readObject();
+      in.close(); bai.close();
+      return e;
+    }
+    catch(IOException i)
+    {
+      i.printStackTrace();
+    }
+    catch(ClassNotFoundException c)
+    {
+      System.out.println("Employee class not found");
+      c.printStackTrace();
+    }
+    return null;
+  }
+  public static byte[] toBytes(MsSpectrum s)
+  {
+    ByteArrayOutputStream bao = new ByteArrayOutputStream();
+    try
+    {
+      ObjectOutputStream out = new ObjectOutputStream(bao);
+      out.writeObject(s);
+      out.close(); bao.close();
+    }
+    catch (IOException e)
+    { throw new RuntimeException("Error during persistence", e); }
+
+    return bao.toByteArray();
+  }
 }

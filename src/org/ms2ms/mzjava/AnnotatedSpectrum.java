@@ -3,7 +3,7 @@ package org.ms2ms.mzjava;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.proteomics.mol.AminoAcid;
 import org.expasy.mzjava.proteomics.mol.Peptide;
-import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
+import org.expasy.mzjava.proteomics.ms.consensus.PeptideConsensusSpectrum;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -11,7 +11,7 @@ import java.util.Map;
 /**
  * Created by wyu on 4/28/14.
  */
-public class AnnotatedSpectrum extends LibrarySpectrum
+public class AnnotatedSpectrum extends PeptideConsensusSpectrum
 {
   public static final String SCR_MIMSL       = "MIMSL";
   public static final String SCR_MIMSL_DELTA = "Delta MIMSL";
@@ -23,7 +23,7 @@ public class AnnotatedSpectrum extends LibrarySpectrum
 
   public AnnotatedSpectrum()     { super(new Peptide(AminoAcid.X)); }
   public AnnotatedSpectrum(Peptide peptide)     { super(peptide); }
-  public AnnotatedSpectrum(LibrarySpectrum src) { super(src); }
+//  public AnnotatedSpectrum(PeptideConsensusSpectrum src) { super(src); }
 
   public AnnotatedSpectrum(Peptide peptide, Precision precision)
   {

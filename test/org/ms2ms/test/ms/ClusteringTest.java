@@ -1,15 +1,20 @@
 package org.ms2ms.test.ms;
 
-import com.google.common.collect.Range;
 import com.google.common.collect.SortedSetMultimap;
+import org.expasy.mzjava.core.ms.AbsoluteTolerance;
+import org.expasy.mzjava.core.ms.cluster.DenseSimilarityGraph;
+import org.expasy.mzjava.core.ms.cluster.MSTClusterBuilder;
+import org.expasy.mzjava.core.ms.cluster.SimEdge;
+import org.expasy.mzjava.core.ms.cluster.SimilarityGraph;
+import org.expasy.mzjava.core.ms.spectrasim.DpSimFunc;
+import org.expasy.mzjava.core.ms.spectrasim.NdpSimFunc;
+import org.expasy.mzjava.core.ms.spectrasim.SimFunc;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
-import org.expasy.mzjava.proteomics.ms.cluster.KMeansPeakListClusterer;
-import org.expasy.mzjava.proteomics.ms.cluster.MSTPeakListClusterer;
+import org.junit.Assert;
 import org.junit.Test;
 import org.ms2ms.data.collect.MultiTreeTable;
 import org.ms2ms.data.ms.MaxQuant;
 import org.ms2ms.io.MsIO;
-import org.ms2ms.io.MsReaders;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.test.TestAbstract;
 import org.ms2ms.utils.Stats;
@@ -18,6 +23,7 @@ import org.ms2ms.utils.Tools;
 import java.io.RandomAccessFile;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created with IntelliJ IDEA.
@@ -31,7 +37,7 @@ public class ClusteringTest extends TestAbstract
   String root = "/Users/hliu/Desktop/Apps/2014/data/mzXML-centroid/";
 
   @Test
-  public void precluster() throws Exception
+  public void preclusterByMzRT() throws Exception
   {
     Dataframe msms = Dataframe.readtable("/media/data/maxquant/20081129_Orbi6_NaNa_SA_FASP_out/combined/txt/composite_scans.txt",'\t').setTitle("msms");
 
@@ -49,45 +55,59 @@ public class ClusteringTest extends TestAbstract
         double mz = Stats.toDouble(msms.cell(r, MaxQuant.V_MZ)), rt = Stats.toDouble(msms.cell(r, MaxQuant.V_RT));
         Collection<String>  slice = mz_rt_row.subset(mz-mztol, mz+mztol, rt-rttol,rt+rttol);
         List<MsnSpectrum> spectra = MsIO.readSpectra(bin, msms.getLongCol(MaxQuant.V_OFFSET, slice));
-        MsIO.writeSpectra("/tmp/examples_"+spectra.size()+"_"+Tools.d2s(mz, 4)+"_"+Tools.d2s(rt, 2)+".ms2", spectra);
+        MsIO.writeSpectra("/media/data/tmp/examples_"+spectra.size()+"_"+Tools.d2s(mz, 4)+"_"+Tools.d2s(rt, 2)+".ms2", spectra);
         System.out.println(spectra.size()+"...");
         if (++counts>5) return;
       }
     }
     System.out.println();
   }
-
-  @Test
-  public void prepare() throws Exception
+//  @Test
+//  public void Kmean() throws Exception
+//  {
+//    List<MsnSpectrum> spectra = MsIO.readSpectra("/tmp/examples_13_425.7649_41.43.ms2");
+//
+//    int minCountAbs=1; double minSim=0.5d, mzTol=0.05d, maxConsPkGrpMzWidth=0.05d, minCountPct=50d;
+//    KMeansPeakListClusterer kmean = new KMeansPeakListClusterer(minSim, mzTol, maxConsPkGrpMzWidth, minCountAbs, minCountPct);
+//
+//    for (MsnSpectrum spec : spectra)
+//    {
+//      kmean.add(spec);
+//    }
+//    kmean.cluster();
+//    System.out.println(kmean.getClusterMembers().size());
+//  }
+  public SimilarityGraph<MsnSpectrum> newSimGraph(Collection<MsnSpectrum> spectra)
   {
-    List<MsnSpectrum> spectra = MsReaders.readMzXML(root + "20081129_Orbi6_NaNa_SA_FASP_blacktips_01.mzXML", Range.closed(20d, 21d), 2);
+    if (!Tools.isSet(spectra)) return null;
 
-    int minCountAbs=1; double minSim=0.5d, mzTol=0.05d, maxConsPkGrpMzWidth=0.05d, minCountPct=50d;
-    KMeansPeakListClusterer kmean = new KMeansPeakListClusterer(minSim, mzTol, maxConsPkGrpMzWidth, minCountAbs, minCountPct);
-    MSTPeakListClusterer      mst = new MSTPeakListClusterer(   minSim, mzTol, maxConsPkGrpMzWidth, minCountAbs, minCountPct);
-
-    for (MsnSpectrum spec : spectra)
+    DenseSimilarityGraph.Builder<MsnSpectrum> builder = new DenseSimilarityGraph.Builder<MsnSpectrum>();
+    SimFunc                                       sim = new NdpSimFunc(50, new AbsoluteTolerance(0.5));
+    for (MsnSpectrum A : spectra)
     {
-      kmean.add(spec);
+      for (MsnSpectrum B : spectra)
+      {
+        if (A!=B)
+        {
+          SimEdge<MsnSpectrum> edge = builder.add(A, B, sim.calcSimilarity(A, B));
+          System.out.println(edge.getVertex1().getScanNumbers().toString()+" --> " + edge.getVertex2().getScanNumbers().toString() + ":" +Tools.d2s(edge.getScore(), 2));
+        }
+      }
     }
-    kmean.cluster();
-    System.out.println();
+
+    return builder.build();
   }
-
   @Test
-  public void Kmean() throws Exception
+  public void mst() throws Exception
   {
-    List<MsnSpectrum> spectra = MsReaders.readMzXML(root + "20081129_Orbi6_NaNa_SA_FASP_blacktips_01.mzXML", Range.closed(20d, 21d), 2);
+    List<MsnSpectrum> spectra = MsIO.readSpectra("/media/data/tmp/examples_13_425.7649_41.43.ms2");
+    SimilarityGraph<MsnSpectrum> graph = newSimGraph(spectra);
+    MSTClusterBuilder clusterer = new MSTClusterBuilder(0.5);
 
-    int minCountAbs=1; double minSim=0.5d, mzTol=0.05d, maxConsPkGrpMzWidth=0.05d, minCountPct=50d;
-    KMeansPeakListClusterer kmean = new KMeansPeakListClusterer(minSim, mzTol, maxConsPkGrpMzWidth, minCountAbs, minCountPct);
-    MSTPeakListClusterer      mst = new MSTPeakListClusterer(   minSim, mzTol, maxConsPkGrpMzWidth, minCountAbs, minCountPct);
+    Collection<Set<String>> clusters = clusterer.cluster(graph);
 
-    for (MsnSpectrum spec : spectra)
-    {
-      kmean.add(spec);
-    }
-    kmean.cluster();
-    System.out.println();
+    System.out.println(clusters.size());
+    Assert.assertEquals(clusters.size(), 5);
+//    int minCountAbs=1; double minSim=0.5d, mzTol=0.05d, maxConsPkGrpMzWidth=0.05d, minCountPct=50d;
   }
 }

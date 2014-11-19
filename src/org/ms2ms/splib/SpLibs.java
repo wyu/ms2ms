@@ -4,7 +4,7 @@ import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.peaklist.PeakProcessorChain;
 import org.expasy.mzjava.proteomics.io.ms.spectrum.MsLibReader;
 import org.expasy.mzjava.proteomics.io.ms.spectrum.msp.MspCommentParser;
-import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
+import org.expasy.mzjava.proteomics.ms.consensus.PeptideConsensusSpectrum;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
 import org.expasy.mzjava.utils.URIBuilder;
 import org.ms2ms.mzjava.MspAnnotationResolver2;
@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 /** collection of algorithms and utilities related to spectral libraries
  *
@@ -25,10 +24,10 @@ import java.util.regex.Pattern;
  */
 public class SpLibs
 {
-  public static Collection<LibrarySpectrum> readMsp(File src) throws IOException
+  public static Collection<PeptideConsensusSpectrum> readMsp(File src) throws IOException
   {
     //BufferedReader reader = new BufferedReader(new FileReader("/media/data/splib/human_crp_consensus_final_true_lib.msp"));
-    Collection<LibrarySpectrum> spectra = new ArrayList<LibrarySpectrum>();
+    Collection<PeptideConsensusSpectrum> spectra = new ArrayList<>();
     BufferedReader               reader = new BufferedReader(new FileReader(src));
     MsLibReader                     msp = new MsLibReader(reader, URIBuilder.UNDEFINED_URI,
       PeakList.Precision.FLOAT,
@@ -38,11 +37,11 @@ public class SpLibs
 
     while (msp.hasNext())
     {
-      LibrarySpectrum spec = msp.next();
+      PeptideConsensusSpectrum spec = msp.next();
       spec.setId(UUID.randomUUID());
       spectra.add(spec);
 /*
-      LibrarySpectrum spec = msp.next();
+      PeptideConsensusSpectrum spec = msp.next();
       HBasePeakList test = new HBasePeakList(spec);
       byte[] b = HBasePeakList.toBytes(test);
       HBasePeakList test2 = HBasePeakList.fromBytes(b);

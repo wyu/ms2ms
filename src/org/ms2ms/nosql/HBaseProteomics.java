@@ -13,12 +13,9 @@ import org.expasy.mzjava.core.ms.peaklist.PeakProcessorChain;
 import org.expasy.mzjava.proteomics.io.ms.spectrum.MsLibReader;
 import org.expasy.mzjava.proteomics.io.ms.spectrum.SptxtReader;
 import org.expasy.mzjava.proteomics.io.ms.spectrum.msp.MspCommentParser;
-import org.expasy.mzjava.proteomics.io.ms.spectrum.sptxt.AnnotationResolver;
-import org.expasy.mzjava.proteomics.io.ms.spectrum.sptxt.SpectraLibCommentParser;
 import org.expasy.mzjava.proteomics.mol.modification.Modification;
-import org.expasy.mzjava.proteomics.mol.modification.ModificationResolver;
 import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodModificationResolver;
-import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
+import org.expasy.mzjava.proteomics.ms.consensus.PeptideConsensusSpectrum;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
 import org.expasy.mzjava.utils.URIBuilder;
 import org.ms2ms.mimsl.MIMSL;
@@ -70,7 +67,7 @@ public class HBaseProteomics extends HBase
     }
     conn.close();
   }
-  public static void save(Collection<LibrarySpectrum> spectra) throws IOException
+  public static void save(Collection<PeptideConsensusSpectrum> spectra) throws IOException
   {
     // ensure that the table contains been created
     ensureTables();
@@ -87,7 +84,7 @@ public class HBaseProteomics extends HBase
     HTableInterface table = conn.getTable(HBasePeakList.TBL_PEAKLIST);
 
     // save the spectra to the table
-    for (LibrarySpectrum spec : spectra)
+    for (PeptideConsensusSpectrum spec : spectra)
       HBasePeakList.save(table, spec);
 
     // just flushes outstanding commit, no futher cleanup needed, can be omitted.
@@ -95,7 +92,7 @@ public class HBaseProteomics extends HBase
     table.close(); conn.close(); // done with the cluster, release resources
   }
   // MIMSL
-  public static void index(Collection<LibrarySpectrum> spectra, byte[] spec_type, double half_width, double min_mz, int min_pk, double min_snr) throws IOException
+  public static void index(Collection<PeptideConsensusSpectrum> spectra, byte[] spec_type, double half_width, double min_mz, int min_pk, double min_snr) throws IOException
   {
     // ensure that the table contains been created
     ensureTables();
@@ -107,7 +104,7 @@ public class HBaseProteomics extends HBase
 
     // save the spectra to the table
     long counts=0;
-    for (LibrarySpectrum spec : spectra)
+    for (PeptideConsensusSpectrum spec : spectra)
     {
       if (++counts%100 ==0) System.out.print(".");
       if (++counts%5000==0) System.out.print("\n");
@@ -117,7 +114,7 @@ public class HBaseProteomics extends HBase
     peaklist.close(); indice.close(); conn.close(); // release resources
   }
   public static void index(HTableInterface peaklist, HTableInterface indice, byte[] spec_type,
-                           LibrarySpectrum spec, List<AnnotatedPeak> sigs) throws IOException
+                           PeptideConsensusSpectrum spec, List<AnnotatedPeak> sigs) throws IOException
   {
     spec.setId(UUID.randomUUID());
     HBasePeakList.save(peaklist, spec);
@@ -350,7 +347,7 @@ public class HBaseProteomics extends HBase
       Pattern.compile("^([+-]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)?)\\s+([+-]?\\d+\\.?\\d*(?:[eE][-+]?\\d+)?)\\s+\"([^\"]+)\"$"),
       new PeakProcessorChain<PepLibPeakAnnotation>());
 
-    long counts=0; LibrarySpectrum spec = null;
+    long counts=0; PeptideConsensusSpectrum spec = null;
     while (msp.hasNext())
     {
       if (++counts%1000  ==0) System.out.print(".");
@@ -447,7 +444,7 @@ public class HBaseProteomics extends HBase
 *//*
 
 
-    long counts=0; LibrarySpectrum spec = null;
+    long counts=0; PeptideConsensusSpectrum spec = null;
     while (splib.hasNext())
     {
       if (++counts%1000  ==0) System.out.print(".");
@@ -498,7 +495,7 @@ public class HBaseProteomics extends HBase
 
     System.out.println("Preparing " + src);
 
-    long counts=0; LibrarySpectrum spec = null;
+    long counts=0; PeptideConsensusSpectrum spec = null;
     while (splib.hasNext())
     {
       if (++counts%1000  ==0) System.out.print(".");
@@ -545,20 +542,20 @@ public class HBaseProteomics extends HBase
 
     return Tools.front(id_candidate.keySet());
   }
-  public static Map<LibrarySpectrum.Status, LibrarySpectrum> sampleRecovery(String src, int nsig, int interval, MimslSettings settings) throws IOException
+  public static Map<PeptideConsensusSpectrum.Status, PeptideConsensusSpectrum> sampleRecovery(String src, int nsig, int interval, MimslSettings settings) throws IOException
   {
     // connection to the cluster
     HConnection          conn = HBase.getConnection();
     MsLibReader         splib = HBaseProteomics.newLibReader(src);
     Random               rand = new Random(System.nanoTime());
-    LibrarySpectrum      spec = null;
+    PeptideConsensusSpectrum      spec = null;
     List<AnnotatedPeak> peaks = null;
     Peak[]            sampled = new Peak[nsig];
 
     System.out.println("Sampling " + src);
 
     long counts=0;
-    Map<LibrarySpectrum.Status, LibrarySpectrum> findings = new HashMap<LibrarySpectrum.Status, LibrarySpectrum>();
+    Map<PeptideConsensusSpectrum.Status, PeptideConsensusSpectrum> findings = new HashMap<PeptideConsensusSpectrum.Status, PeptideConsensusSpectrum>();
     while (splib.hasNext())
     {
       if (++counts%1000  ==0) System.out.print(".");
@@ -586,7 +583,7 @@ public class HBaseProteomics extends HBase
               if (candidates.get(i).getPeptide().equals(spec.getPeptide())) rank=i;
 
           spec.setMsLevel(rank); // save the ranking
-          spec.setStatus(rank==0?LibrarySpectrum.Status.SINGLETON:(rank<0? LibrarySpectrum.Status.UNKNOWN: LibrarySpectrum.Status.CONFLICTING_ID));
+          spec.setStatus(rank==0?PeptideConsensusSpectrum.Status.SINGLETON:(rank<0? PeptideConsensusSpectrum.Status.UNKNOWN: PeptideConsensusSpectrum.Status.CONFLICTING_ID));
           findings.put(spec.getStatus(), spec);
         }
         spec=null; peaks=null;

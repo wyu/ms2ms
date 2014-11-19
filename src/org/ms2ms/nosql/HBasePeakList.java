@@ -8,7 +8,7 @@ import org.expasy.mzjava.core.ms.peaklist.DoublePeakList;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakAnnotation;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
-import org.expasy.mzjava.proteomics.ms.spectrum.LibrarySpectrum;
+import org.expasy.mzjava.proteomics.ms.consensus.PeptideConsensusSpectrum;
 import org.ms2ms.data.ms.MsSpectrum;
 import org.ms2ms.mzjava.AnnotatedSpectrum;
 import org.ms2ms.utils.Tools;
@@ -56,10 +56,10 @@ public final class HBasePeakList extends MsSpectrum
     super(src);
     // the stats
 
-    if (src instanceof LibrarySpectrum)
+    if (src instanceof PeptideConsensusSpectrum)
     {
-      peptide = ((LibrarySpectrum )src).getPeptide().toString().replace("(Carbamidomethyl)", "");
-      protein = Tools.front(((LibrarySpectrum) src).getProteinAccessionNumbers());
+      peptide = ((PeptideConsensusSpectrum )src).getPeptide().toString().replace("(Carbamidomethyl)", "");
+      protein = Tools.front(((PeptideConsensusSpectrum) src).getProteinAccessionNumbers());
     }
 /*
 
@@ -71,10 +71,10 @@ public final class HBasePeakList extends MsSpectrum
     maxIntensity=(float )src.getBasePeakIntensity();
     size        =        src.size();
 
-    if (src instanceof LibrarySpectrum)
+    if (src instanceof PeptideConsensusSpectrum)
     {
-      peptide = ((LibrarySpectrum )src).getPeptide().toString().replace("(Carbamidomethyl)", "");
-      protein = Tools.front(((LibrarySpectrum) src).getProteinAccessionNumbers());
+      peptide = ((PeptideConsensusSpectrum )src).getPeptide().toString().replace("(Carbamidomethyl)", "");
+      protein = Tools.front(((PeptideConsensusSpectrum) src).getProteinAccessionNumbers());
     }
 
     mzList        = new double[src.size()];
