@@ -32,11 +32,36 @@ public class MsReaderTest extends TestAbstract
   // peak processing takes lots of time!
 
   @Test
+  public void serializingViaBytes() throws Exception
+  {
+    // grab a new scan
+    MsnSpectrum[] scans  = firstScan(root+"20081129_Orbi6_NaNa_SA_FASP_blacktips_01.mzXML", 2, 2);
+    MsnSpectrum scan=scans[0], scan2 = scans[1];
+
+    RandomAccessFile f = new RandomAccessFile("/tmp/myobject2.data", "rw");
+
+    // Write object out to disk
+    long p1 = MsIO.write(f, MsSpectrum.adopt(scan));
+    long p2 = MsIO.write(f, MsSpectrum.adopt(scan2));
+
+    f.close();
+
+    f = new RandomAccessFile("/tmp/myobject2.data", "r");
+    MsSpectrum m1 = MsIO.read(f);
+    f.close();
+
+    f = new RandomAccessFile("/tmp/myobject2.data", "r");
+    MsSpectrum m3 = MsIO.read(f, p1);
+    MsSpectrum m4 = MsIO.read(f, p2);
+
+    f.close();
+  }
+  @Test
   public void serializing() throws Exception
   {
     // grab a new scan
-    MsnSpectrum scan  = firstScan();
-    MsnSpectrum scan2 = firstScan();
+    MsnSpectrum[] scans  = firstScan(root+"20081129_Orbi6_NaNa_SA_FASP_blacktips_01.mzXML", 2, 2);
+    MsnSpectrum scan=scans[0], scan2 = scans[1];
 
     FileOutputStream f_out = new FileOutputStream("/tmp/myobject.data");
 
@@ -125,15 +150,28 @@ public class MsReaderTest extends TestAbstract
 
     System.out.println(spectra.size());
   }
-  private MsnSpectrum firstScan() throws IOException
+  private MsnSpectrum[] firstScan(String file, int msLevel, int len) throws IOException
   {
     Logger.getLogger(MzxmlReader.class.getName()).setLevel(Level.SEVERE);
 
-    File          data = new File(root+"20081129_Orbi6_NaNa_SA_FASP_blacktips_01.mzXML");
+//    File          data = new File(root+"20081129_Orbi6_NaNa_SA_FASP_blacktips_01.mzXML");
+    int order = 0;
+    File        data = new File(file);
+    MsnSpectrum[] spectra = new MsnSpectrum[len];
     MzxmlReader reader = MzxmlReader.newTolerantReader(data, PeakList.Precision.FLOAT);
-    MsnSpectrum spec = reader.next();
+    while (reader.hasNext())
+    {
+      if (order>=len) break;
+
+      MsnSpectrum spec = reader.next();
+      if (spec!=null && spec.getMsLevel()==msLevel)
+      {
+        spectra[order] = spec;
+        order++;
+      }
+    }
     reader.close();
 
-    return spec;
+    return spectra;
   }
 }

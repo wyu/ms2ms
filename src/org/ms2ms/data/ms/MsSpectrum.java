@@ -19,33 +19,57 @@ public class MsSpectrum  implements Serializable, Disposable
   private static final long serialVersionUID = 8472752523296641667L;
 
   protected int precursorZ;        // the precursor charge
-  protected double[] mzList;            // m/z of the peaks
-  protected short[] intensityList;     // relative intensities of the peaks
+  protected float[] mzList;            // m/z of the peaks
+  protected float[] intensityList;     // relative intensities of the peaks
   protected float precursorAi;
   protected double precursorMz;         // the precursor charge
   protected int size;              // length of the peak list
   // the upper bound of the peak intensity and variance in m/z and intensity
-  protected float maxIntensity;
+  protected float maxIntensity, rt;
+  protected String scan;
 
   public <A extends PeakAnnotation> MsSpectrum(PeakList<A> src)
   {
-    super();
+    super(); init(src);
+//    // TODO copy the data from the source
+//    precursorMz =        src.getPrecursor().getMz();
+//    precursorAi =(float )src.getPrecursor().getIntensity();
+//    precursorZ  =        src.getPrecursor().getCharge();
+//    maxIntensity=(float )src.getBasePeakIntensity();
+//
+//    mzList        = new float[src.size()];
+//    intensityList = new float[ src.size()];
+//    for (int i=0; i<src.size(); i++)
+//    {
+//      mzList[       i]=(float )src.getMz(i);
+//      intensityList[i]=(float )src.getIntensity(i);
+//    }
+//    size = src.size();
+  }
+  public <A extends PeakAnnotation> MsSpectrum(MsnSpectrum<A> src)
+  {
+    super(); init(src);
+    scan = src.getScanNumbers().toString();
+    rt   = (float )src.getRetentionTimes().getFirst().getTime() / 60f;
+  }
+
+  private <A extends PeakAnnotation> void init(PeakList<A> src)
+  {
     // TODO copy the data from the source
     precursorMz =        src.getPrecursor().getMz();
     precursorAi =(float )src.getPrecursor().getIntensity();
     precursorZ  =        src.getPrecursor().getCharge();
+    maxIntensity=(float )src.getBasePeakIntensity();
 
-    mzList        = new double[src.size()];
-    intensityList = new short[ src.size()];
+    mzList        = new float[src.size()];
+    intensityList = new float[ src.size()];
     for (int i=0; i<src.size(); i++)
     {
-      mzList[       i]=src.getMz(i);
-      intensityList[i]=(short )(src.getIntensity(i)*Short.MAX_VALUE/maxIntensity+Short.MIN_VALUE);
+      mzList[       i]=(float )src.getMz(i);
+      intensityList[i]=(float )src.getIntensity(i);
     }
-    maxIntensity=(float )src.getBasePeakIntensity();
-    size        =        src.size();
+    size = src.size();
   }
-
   /** compression and uncompression routines  **/
   protected double getMz(int i)
   {
@@ -54,8 +78,8 @@ public class MsSpectrum  implements Serializable, Disposable
 
   protected double getIntensity(int i)
   {
-    rangeCheck(i);
-    return maxIntensity * (intensityList[i]-Short.MIN_VALUE)/(2d*Short.MAX_VALUE);
+    rangeCheck(i); return intensityList[i];
+//    return maxIntensity * (intensityList[i]-Short.MIN_VALUE)/(2d*Short.MAX_VALUE);
   }
 
   private void rangeCheck(int index)

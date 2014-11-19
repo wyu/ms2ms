@@ -5,6 +5,7 @@ import org.expasy.mzjava.core.io.ms.spectrum.MzxmlReader;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.ms2ms.alg.Spectra;
+import org.ms2ms.data.ms.MsSpectrum;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.data.HData;
 import org.ms2ms.data.ms.LcMsMsDataset;
@@ -121,16 +122,17 @@ public class MsReaders
             if (!ms_bin.containsKey(spec.getMsLevel())) ms_bin.put(spec.getMsLevel(), new RandomAccessFile(root+"/"+cache+".ms"+spec.getMsLevel(), "rw"));
 
             RandomAccessFile ms = ms_bin.get(spec.getMsLevel());
-            MsIO.write(ms, spec);
             // populate the stats
             stats.put(tinrange,"TIC", Tools.d2s(spec.getTotalIonCurrent(), 1));
             stats.put(tinrange,"Raw file",rawfile);
             stats.put(tinrange,"Scan number",spec.getScanNumbers().getFirst().getValue());
-            stats.put(tinrange,"FilePointer",ms.getFilePointer());
+//            stats.put(tinrange,"FilePointer",ms.getFilePointer());
+            stats.put(tinrange,"FilePointer",MsIO.write(ms, MsSpectrum.adopt(spec)));
             stats.put(tinrange,"m/z",Tools.d2s(spec.getPrecursor().getMz(), 4));
             stats.put(tinrange,"Charge",spec.getPrecursor().getCharge());
             stats.put(tinrange,"RT",spec.getRetentionTimes().toString());
             inrange++; tinrange++;
+//            MsIO.write(ms, spec);
           }
           else { spec.clear(); spec=null; }
         }

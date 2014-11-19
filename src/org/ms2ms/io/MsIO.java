@@ -18,43 +18,51 @@ import java.util.List;
  */
 public class MsIO extends IOs
 {
-/*
-  public static void read(RandomAccessFile w)
+  public static MsSpectrum read(RandomAccessFile w, long offset)
   {
     try
     {
-      MsSpectrum
-      ByteArrayInputStream bai = new ByteArrayInputStream(s);
-      ObjectInputStream     in = new ObjectInputStream(w);
-      MsSpectrum          e = (MsSpectrum ) in.readObject();
-      in.close(); bai.close();
-      return;
+      w.seek(offset);
+      return read(w);
     }
     catch(IOException i)
     {
       i.printStackTrace();
     }
-    catch(ClassNotFoundException c)
-    {
-      System.out.println("Employee class not found");
-      c.printStackTrace();
-    }
-    return;
+    return null;
   }
-  public static long write(ObjectOutputStream w, MsnSpectrum ms)
+
+  public static MsSpectrum read(RandomAccessFile w)
   {
     try
     {
-      long pos = w.;
-      MsSpectrum m = new MsSpectrum(ms);
-      // Write object out to disk
-      w.writeObject (m);
-      Tools.dispose( m);
+      byte[] bs = new byte[w.readInt()]; w.read(bs);
+      MsSpectrum spec = MsSpectrum.fromBytes(bs); bs=null;
+      return spec;
+    }
+    catch(IOException i)
+    {
+      i.printStackTrace();
+    }
+    return null;
+//    catch(ClassNotFoundException c)
+//    {
+//      System.out.println("Employee class not found");
+//      c.printStackTrace();
+//    }
+  }
+  public static long write(RandomAccessFile w, MsSpectrum ms)
+  {
+    try
+    {
+      long p1 = w.getFilePointer();
+      byte[] bs = MsSpectrum.toBytes(ms);
+      w.writeInt(bs.length); w.write(bs); bs=null;
+      return p1;
     }
     catch (IOException e)
     { throw new RuntimeException("Error during persistence", e); }
   }
-*/
 
   // BufferedWriter
   public static void write(DataOutput w, PeakList ms) throws IOException
