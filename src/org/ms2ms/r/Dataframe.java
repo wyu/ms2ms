@@ -269,7 +269,7 @@ public class Dataframe implements Disposable
    */
   public Map<Long, String> getLongColRow(String y, Collection<String> rs)
   {
-    if (!Tools.isSet(mData) || !hasVars(y)) return null;
+    if (mData==null || !hasVars(y)) return null;
 
     Map<Long, String> xy = new HashMap<Long, String>(); int i=0;
     for (String r : rs)
