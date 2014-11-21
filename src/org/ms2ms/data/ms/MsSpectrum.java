@@ -1,8 +1,12 @@
 package org.ms2ms.data.ms;
 
+import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakAnnotation;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
+import org.expasy.mzjava.core.ms.spectrum.RetentionTimeDiscrete;
+import org.expasy.mzjava.core.ms.spectrum.ScanNumberDiscrete;
+import org.expasy.mzjava.core.ms.spectrum.TimeUnit;
 import org.ms2ms.Disposable;
 
 import java.io.*;
@@ -18,15 +22,15 @@ public class MsSpectrum  implements Serializable, Disposable
 {
   private static final long serialVersionUID = 8472752523296641667L;
 
-  protected int precursorZ;        // the precursor charge
+  protected int precursorZ, msLevel;   // the precursor charge
   protected float[] mzList;            // m/z of the peaks
   protected float[] intensityList;     // relative intensities of the peaks
   protected float precursorAi;
   protected double precursorMz;         // the precursor charge
-  protected int size;              // length of the peak list
+  protected int size, scan;              // length of the peak list
   // the upper bound of the peak intensity and variance in m/z and intensity
   protected float maxIntensity, rt;
-  protected String scan;
+//  protected String scan;
 
   public <A extends PeakAnnotation> MsSpectrum(PeakList<A> src)
   {
@@ -49,8 +53,11 @@ public class MsSpectrum  implements Serializable, Disposable
   public <A extends PeakAnnotation> MsSpectrum(MsnSpectrum<A> src)
   {
     super(); init(src);
-    scan = src.getScanNumbers().toString();
-    rt   = (float )src.getRetentionTimes().getFirst().getTime() / 60f;
+    scan    = src.getScanNumbers().getFirst().getValue();
+    msLevel = src.getMsLevel();
+    // assume the time is in seconds
+    if (src.getRetentionTimes()!=null)
+      rt    = (float )src.getRetentionTimes().getFirst().getTime() / 60f;
   }
 
   private <A extends PeakAnnotation> void init(PeakList<A> src)
@@ -59,7 +66,8 @@ public class MsSpectrum  implements Serializable, Disposable
     precursorMz =        src.getPrecursor().getMz();
     precursorAi =(float )src.getPrecursor().getIntensity();
     precursorZ  =        src.getPrecursor().getCharge();
-    maxIntensity=(float )src.getBasePeakIntensity();
+
+    if (src.size()>0) maxIntensity=(float )src.getBasePeakIntensity();
 
     mzList        = new float[src.size()];
     intensityList = new float[ src.size()];
@@ -93,6 +101,20 @@ public class MsSpectrum  implements Serializable, Disposable
     intensityList=null; mzList=null;
   }
   public static MsSpectrum adopt(MsnSpectrum s) { return new MsSpectrum(s); }
+  public MsnSpectrum toMsnSpectrum()
+  {
+    MsnSpectrum out = new MsnSpectrum();
+    out.setMsLevel(msLevel);
+    out.setPrecursor(new Peak(precursorMz, precursorAi, precursorZ));
+    for (int i=0; i<mzList.length; i++)
+    {
+      out.add(mzList[i], intensityList[i]);
+    }
+    out.addScanNumber(scan);
+    out.addRetentionTime(new RetentionTimeDiscrete(rt, TimeUnit.MINUTE));
+
+    return out;
+  }
   public static MsSpectrum fromBytes(byte[] s)
   {
     try

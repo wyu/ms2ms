@@ -9,7 +9,9 @@ import org.ms2ms.utils.Tools;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /** Responsible for writing out the MS objects in binary format. Not to be confused with import duty
  *
@@ -42,7 +44,7 @@ public class MsIO extends IOs
     }
     catch(IOException i)
     {
-      i.printStackTrace();
+//      i.printStackTrace();
     }
     return null;
 //    catch(ClassNotFoundException c)
@@ -83,7 +85,7 @@ public class MsIO extends IOs
   }
   public static void write(DataOutput w, MsnSpectrum ms) throws IOException
   {
-    write(w, (PeakList)ms);
+    write(w, (PeakList) ms);
 
     int counts = ms.getRetentionTimes()!=null&&ms.getRetentionTimes().size()>0?ms.getRetentionTimes().size():0;
     w.writeInt(counts);
@@ -151,10 +153,10 @@ public class MsIO extends IOs
     {
       while (1==1)
       {
-        spectra.add(read(s, new MsnSpectrum()));
+        spectra.add(read(s).toMsnSpectrum());
       }
     }
-    catch (IOException ie) {}
+    catch (Exception ie) {}
     return spectra;
   }
   public static List<MsnSpectrum> readSpectra(RandomAccessFile s, long[] offsets) throws IOException
@@ -165,11 +167,24 @@ public class MsIO extends IOs
     for (long offset : offsets)
     {
       s.seek(offset);
-      spectra.add(read(s, new MsnSpectrum()));
+      spectra.add(read(s).toMsnSpectrum());
     }
     return spectra;
   }
-  public static void writeSpectra(String s, List<MsnSpectrum> spectra) throws IOException
+  public static List<MsnSpectrum> readSpectra(RandomAccessFile s, Map<Long, String> offset_row) throws IOException
+  {
+    if (s==null || !Tools.isSet(offset_row)) return null;
+    // the output
+    List<MsnSpectrum> spectra = new ArrayList<>(offset_row.size());
+    for (Long offset : offset_row.keySet())
+    {
+      s.seek(offset);
+      MsnSpectrum spec = read(s).toMsnSpectrum();
+      spec.setComment(offset_row.get(offset)); spectra.add(spec);
+    }
+    return spectra;
+  }
+  public static void writeSpectra(String s, Collection<MsnSpectrum> spectra) throws IOException
   {
     if (s==null || !Tools.isSet(spectra)) return;
     // the output
@@ -181,7 +196,7 @@ public class MsIO extends IOs
         F = new RandomAccessFile(s, "rw");
         for (MsnSpectrum m : spectra)
         {
-          write(F, m);
+          write(F, MsSpectrum.adopt(m));
         }
         F.close();
         return;

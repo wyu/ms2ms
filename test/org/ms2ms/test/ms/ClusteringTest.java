@@ -1,29 +1,28 @@
 package org.ms2ms.test.ms;
 
+import com.google.common.collect.Multimap;
 import com.google.common.collect.SortedSetMultimap;
 import org.expasy.mzjava.core.ms.AbsoluteTolerance;
-import org.expasy.mzjava.core.ms.cluster.DenseSimilarityGraph;
-import org.expasy.mzjava.core.ms.cluster.MSTClusterBuilder;
-import org.expasy.mzjava.core.ms.cluster.SimEdge;
-import org.expasy.mzjava.core.ms.cluster.SimilarityGraph;
+import org.expasy.mzjava.core.ms.cluster.*;
 import org.expasy.mzjava.core.ms.spectrasim.DpSimFunc;
 import org.expasy.mzjava.core.ms.spectrasim.NdpSimFunc;
 import org.expasy.mzjava.core.ms.spectrasim.SimFunc;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.junit.Assert;
 import org.junit.Test;
+import org.ms2ms.alg.Spectra;
 import org.ms2ms.data.collect.MultiTreeTable;
 import org.ms2ms.data.ms.MaxQuant;
+import org.ms2ms.data.ms.MsSpectrum;
 import org.ms2ms.io.MsIO;
 import org.ms2ms.r.Dataframe;
+import org.ms2ms.r.Var;
 import org.ms2ms.test.TestAbstract;
 import org.ms2ms.utils.Stats;
 import org.ms2ms.utils.Tools;
 
 import java.io.RandomAccessFile;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created with IntelliJ IDEA.
@@ -37,15 +36,101 @@ public class ClusteringTest extends TestAbstract
   String root = "/Users/hliu/Desktop/Apps/2014/data/mzXML-centroid/";
 
   @Test
-  public void preclusterByMzRT() throws Exception
+  public void clustering() throws Exception
   {
-    Dataframe msms = Dataframe.readtable("/media/data/maxquant/20081129_Orbi6_NaNa_SA_FASP_out/combined/txt/composite_scans.txt",'\t').setTitle("msms");
+    // we're going to attempt total clustering. Just the first pass without optimization
+    String[] selected = { MaxQuant.V_MZ,MaxQuant.V_RT,MaxQuant.V_TIC,MaxQuant.V_MSEQ,MaxQuant.V_SEQ,MaxQuant.V_OFFSET,MaxQuant.V_RAWFILE,MaxQuant.V_SCAN };
+    Dataframe msms = Dataframe.readtable("/media/data/maxquant/20081129_Orbi6_NaNa_SA_FASP_out/combined/txt/composite_scans.txt", selected,'\t', true).setTitle("msms");
 
     MultiTreeTable<Double, Double, String> mz_rt_row = msms.index(MaxQuant.V_MZ,MaxQuant.V_RT);
     SortedSetMultimap<     Double, String> tic_row   = Tools.reverse(msms.index(MaxQuant.V_TIC));
 
     double mztol=0.05, rttol=1.5;
-    RandomAccessFile bin = new RandomAccessFile("/media/data/test/mzXML/cache435790877685301.ms2", "r");
+    Set<String> plural = new HashSet<>();
+    RandomAccessFile bin = new RandomAccessFile("/media/data/test/mzXML/cache173190685179316.ms2", "r");
+    GlobalThresholdClusterBuilder<MsnSpectrum> clusterer = new GlobalThresholdClusterBuilder<MsnSpectrum>(0.5);
+
+    System.out.println("\nClustering the total MS/MS collection: " + msms.size());
+
+    // starting from the most intense scan
+    int counts=0, cluster_id=0;
+    for (Double t : tic_row.keySet())
+    {
+      if (++counts%100 ==0) System.out.print(".");
+      if (  counts%5000==0) System.out.println(cluster_id+"@"+Tools.d2s(100d*counts/tic_row.keySet().size(), 1)+"%");
+      for (String r : tic_row.get(t))
+      {
+        if (plural.contains(r)) continue;
+
+        double mz = Stats.toDouble(msms.cell(r, MaxQuant.V_MZ)), rt = Stats.toDouble(msms.cell(r, MaxQuant.V_RT));
+        Collection<String>  slice = mz_rt_row.subset(mz-mztol, mz+mztol, rt-rttol,rt+rttol);
+        // remove the rows already in the clusters (plural)
+        Iterator<String> itr = slice.iterator();
+        while (itr.hasNext())
+        {
+          if (plural.contains(itr.next())) itr.remove();
+        }
+        // compute the pair-wise sim scores and construct a simGraph. The rowid is stored as "Comment" with the spectrum
+        SimilarityGraph<MsnSpectrum> graph = newSimGraph(MsIO.readSpectra(bin, msms.getLongColRow(MaxQuant.V_OFFSET, slice)));
+        // form the clusters
+        Collection<Set<MsnSpectrum>> clusters = clusterer.cluster(graph);
+        // tag the spectra in cluster
+        for (Set<MsnSpectrum> cluster : clusters)
+        {
+          if (cluster.size()<=1) continue;
+          // start the cluster ID at 1
+          cluster_id++;
+          for (MsnSpectrum member : cluster)
+          {
+            // put it in the set so we can exclude them from further consideration
+            plural.add(member.getComment());
+            msms.put(member.getComment(), MaxQuant.V_CLUSTER, cluster_id);
+          }
+        }
+      }
+    }
+    msms.init(Var.VarType.CATEGORICAL, MaxQuant.V_CLUSTER);
+    System.out.println("Number of clusters: " + cluster_id);
+  }
+
+  @Test
+  public void preclusterByMSeq() throws Exception
+  {
+    String[] selected = { MaxQuant.V_MZ,MaxQuant.V_RT,MaxQuant.V_TIC,MaxQuant.V_MSEQ,MaxQuant.V_SEQ,MaxQuant.V_OFFSET,MaxQuant.V_Z };
+    Dataframe msms = Dataframe.readtable("/media/data/maxquant/20081129_Orbi6_NaNa_SA_FASP_out/combined/txt/composite_scans.txt", selected,'\t', true).setTitle("msms");
+
+    Multimap<String, String> seq_row   = msms.factorize(MaxQuant.V_MSEQ);
+
+    RandomAccessFile bin = new RandomAccessFile("/media/data/test/mzXML/cache173190685179316.ms2", "r");
+    // starting from the most intense scan
+    int counts=0;
+    for (String seq : seq_row.keySet())
+    {
+      if (seq_row.get(seq).size()<36) continue;
+
+      Collection<String>  slice = seq_row.get(seq);
+      Multimap<Integer, MsnSpectrum> z_spec = Spectra.toChargePeakList(MsIO.readSpectra(bin, msms.getLongCol(MaxQuant.V_OFFSET, slice)));
+      for (Integer z : z_spec.keySet())
+      {
+        String fname = "/media/data/tmp/examples_"+z_spec.get(z).size()+"_"+seq+"_z"+z+".ms2";
+        MsIO.writeSpectra(fname, z_spec.get(z));
+        System.out.println("Writing to " + fname);
+      }
+      if (++counts>5) return;
+    }
+    System.out.println();
+  }
+  @Test
+  public void preclusterByMzRT() throws Exception
+  {
+    String[] selected = { MaxQuant.V_MZ,MaxQuant.V_RT,MaxQuant.V_TIC,MaxQuant.V_MSEQ,MaxQuant.V_SEQ,MaxQuant.V_OFFSET };
+    Dataframe msms = Dataframe.readtable("/media/data/maxquant/20081129_Orbi6_NaNa_SA_FASP_out/combined/txt/composite_scans.txt", selected,'\t', true).setTitle("msms");
+
+    MultiTreeTable<Double, Double, String> mz_rt_row = msms.index(MaxQuant.V_MZ,MaxQuant.V_RT);
+    SortedSetMultimap<     Double, String> tic_row   = Tools.reverse(msms.index(MaxQuant.V_TIC));
+
+    double mztol=0.05, rttol=1.5;
+    RandomAccessFile bin = new RandomAccessFile("/media/data/test/mzXML/cache173190685179316.ms2", "r");
     // starting from the most intense scan
     int counts=0;
     for (Double t : tic_row.keySet())
@@ -81,7 +166,7 @@ public class ClusteringTest extends TestAbstract
   {
     if (!Tools.isSet(spectra)) return null;
 
-    DenseSimilarityGraph.Builder<MsnSpectrum> builder = new DenseSimilarityGraph.Builder<MsnSpectrum>();
+    DenseSimilarityGraph.Builder<MsnSpectrum> builder = new DenseSimilarityGraph.Builder<>();
     SimFunc                                       sim = new NdpSimFunc(50, new AbsoluteTolerance(0.5));
     for (MsnSpectrum A : spectra)
     {
@@ -90,7 +175,7 @@ public class ClusteringTest extends TestAbstract
         if (A!=B)
         {
           SimEdge<MsnSpectrum> edge = builder.add(A, B, sim.calcSimilarity(A, B));
-          System.out.println(edge.getVertex1().getScanNumbers().toString()+" --> " + edge.getVertex2().getScanNumbers().toString() + ":" +Tools.d2s(edge.getScore(), 2));
+//          System.out.println(edge.getVertex1().getScanNumbers().toString()+" --> " + edge.getVertex2().getScanNumbers().toString() + ":" +Tools.d2s(edge.getScore(), 2));
         }
       }
     }
@@ -100,9 +185,41 @@ public class ClusteringTest extends TestAbstract
   @Test
   public void mst() throws Exception
   {
-    List<MsnSpectrum> spectra = MsIO.readSpectra("/media/data/tmp/examples_13_425.7649_41.43.ms2");
+    List<MsnSpectrum> spectra = MsIO.readSpectra("/media/data/tmp/examples_58__AAVPSGASTGIYEALELR__z2.ms2");
     SimilarityGraph<MsnSpectrum> graph = newSimGraph(spectra);
     MSTClusterBuilder clusterer = new MSTClusterBuilder(0.5);
+
+    Collection<Set<String>> clusters = clusterer.cluster(graph);
+
+    System.out.println(clusters.size());
+    Assert.assertEquals(clusters.size(), 5);
+//    int minCountAbs=1; double minSim=0.5d, mzTol=0.05d, maxConsPkGrpMzWidth=0.05d, minCountPct=50d;
+  }
+  @Test
+  public void mstAllZ() throws Exception
+  {
+    List<MsnSpectrum> spectra = MsIO.readSpectra("/media/data/tmp/examples_16__AAELIANSLATAGDGLIELR__z2.ms2");
+    spectra.addAll(MsIO.readSpectra("/media/data/tmp/examples_25__AAELIANSLATAGDGLIELR__z3.ms2"));
+
+    SimilarityGraph<MsnSpectrum> graph = newSimGraph(spectra);
+
+    MSTClusterBuilder<MsnSpectrum> clusterer = new MSTClusterBuilder<MsnSpectrum>(0.5);
+
+    Collection<Set<MsnSpectrum>> clusters = clusterer.cluster(graph);
+
+    System.out.println(clusters.size());
+    Assert.assertEquals(clusters.size(), 5);
+//    int minCountAbs=1; double minSim=0.5d, mzTol=0.05d, maxConsPkGrpMzWidth=0.05d, minCountPct=50d;
+  }
+  @Test
+  public void thresholdAllZ() throws Exception
+  {
+    List<MsnSpectrum> spectra = MsIO.readSpectra("/media/data/tmp/examples_16__AAELIANSLATAGDGLIELR__z2.ms2");
+    spectra.addAll(MsIO.readSpectra("/media/data/tmp/examples_25__AAELIANSLATAGDGLIELR__z3.ms2"));
+
+    SimilarityGraph<MsnSpectrum> graph = newSimGraph(spectra);
+    GlobalThresholdClusterBuilder clusterer = new GlobalThresholdClusterBuilder(0.5);
+//    MSTClusterBuilder clusterer = new MSTClusterBuilder(0.5);
 
     Collection<Set<String>> clusters = clusterer.cluster(graph);
 

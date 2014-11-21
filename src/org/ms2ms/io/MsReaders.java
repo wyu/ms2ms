@@ -43,8 +43,8 @@ public class MsReaders
   public static HData readMaxquantScans(String rootdir) throws IOException
   {
     HData data = new HData();
-    Dataframe scans = Dataframe.csv(rootdir+"/msmsScans.txt", '\t', "Raw file","Scan number"),
-              annot = Dataframe.csv(rootdir+"/msms.txt", '\t', "Raw file","Scan number");
+    Dataframe scans = Dataframe.readtable(rootdir+"/msmsScans.txt", '\t', "Raw file","Scan number"),
+              annot = Dataframe.readtable(rootdir+"/msms.txt", '\t', "Raw file","Scan number");
 
 
     return data;

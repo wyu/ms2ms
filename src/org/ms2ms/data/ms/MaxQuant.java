@@ -16,12 +16,18 @@ import java.util.Map;
  */
 public class MaxQuant
 {
-  public static final String V_RT     = "RT-MS2.scan"; // not calibrated
-  public static final String V_MZ     = "m/z"; // not calibrated
-  public static final String V_TIC    = "Total ion current";
-  public static final String V_OFFSET = "FilePointer";
+  public static final String V_RT      = "RT-MS2.scan"; // not calibrated
+  public static final String V_MZ      = "m/z"; // not calibrated
+  public static final String V_TIC     = "Total ion current";
+  public static final String V_OFFSET  = "FilePointer";
+  public static final String V_MSEQ    = "Modified sequence";
+  public static final String V_SEQ     = "Sequence";
+  public static final String V_Z       = "Charge";
+  public static final String V_CLUSTER = "ClusterID";
+  public static final String V_RAWFILE = "Raw file";
+  public static final String V_SCAN    = "Scan number";
 
-  public static String[] sRmdEvidence = {"Sequence","Length","Modifications","Oxidation (M) Probabilities","Oxidation (M) Score Diffs","Acetyl (Protein N-term)","Oxidation (M)","Missed cleavages","Proteins","Leading Proteins","Leading Razor Protein","TypeMatch time difference","Match m/z difference","Match q-value","Match score","PIF","Fraction of total spectrum","Base peak fraction","Reverse","Contaminant","Combinatorics","AIF MS/MS IDs","Oxidation (M) site IDs","Type","Protein group IDs","Match time difference","Scan event number","Scan index"};
+  public static String[] sRmdEvidence = {"Length","Modifications","Oxidation (M) Probabilities","Oxidation (M) Score Diffs","Acetyl (Protein N-term)","Oxidation (M)","Missed cleavages","Proteins","Leading Proteins","Leading Razor Protein","TypeMatch time difference","Match m/z difference","Match q-value","Match score","PIF","Fraction of total spectrum","Base peak fraction","Reverse","Contaminant","Combinatorics","AIF MS/MS IDs","Oxidation (M) site IDs","Type","Protein group IDs","Match time difference","Scan event number","Scan index"};
   public static String[] sRmdMsms     = {"Precursor","Sequence","Length","Missed cleavages","Modifications","Oxidation (M) Probabilities","Oxidation (M) Score Diffs","Acetyl (Protein N-term)","Oxidation (M)","Proteins","Fragmentation","Mass analyzer","Type","Score diff","Localization prob","Combinatorics","PIF","Fraction of total spectrum","Base peak fraction","Precursor Full ScanNumber","Precursor Intensity","Precursor Apex Fraction","Precursor Apex Offset","Precursor Apex Offset Time","Matches","Intensities","Mass Deviations [Da]","Mass Deviations [ppm]","Masses","Neutral loss level","ETD identification type","Reverse","All scores","All sequences","All modified sequences","Oxidation (M) site IDs","Scan type","Modified sequence","PEP","Score","Delta score","Protein group IDs","Scan event number","Scan index"};
   public static String[] sRmdScan     = {"Collision energy","Summations","Identified","MS/MS IDs","Sequence","Length","Mass analyzer","Parent intensity fraction","Fraction of total spectrum","Base peak fraction","Precursor full scan number","Precursor intensity","Precursor apex fraction","Precursor apex offset","Precursor apex offset time","Proteins","Score","Intens Comp Factor","CTCD Comp","RawOvFtT","AGC Fill","Modified sequence","PEP","Score","Delta score","Protein group IDs","Scan event number","Scan index"};
 
@@ -54,9 +60,9 @@ public class MaxQuant
   {
     mResultDir = root;
 
-    Dataframe evidences = Dataframe.readtable(root+"evidence.txt",  '\t').removeCols(MaxQuant.sRmdEvidence).setTitle("evidence");
-    Dataframe msms      = Dataframe.readtable(root+"msms.txt",      '\t').removeCols(MaxQuant.sRmdMsms).setTitle("msms");
-    Dataframe scans     = Dataframe.readtable(root+"msmsScans.txt", '\t').removeCols(MaxQuant.sRmdScan).setTitle("scan");
+    Dataframe evidences = Dataframe.readtable(root+"evidence.txt",  '\t', false).removeCols(MaxQuant.sRmdEvidence).setTitle("evidence");
+    Dataframe msms      = Dataframe.readtable(root+"msms.txt",      '\t', false).removeCols(MaxQuant.sRmdMsms).setTitle("msms");
+    Dataframe scans     = Dataframe.readtable(root+"msmsScans.txt", '\t', false).removeCols(MaxQuant.sRmdScan).setTitle("scan");
 
     // replace the "id" variable with "Evidence ID" so they can be joint
     evidences.renameCol("id", "Evidence ID");

@@ -33,10 +33,10 @@ public class OutputTest extends TestAbstract
   public void setUp()
   {
     // allPeptides100.txt  evidence100.txt  msms100.txt  msmsScans100.txt
-    evidences = Dataframe.readtable(root+"evidence1k.txt",    '\t').setTitle("evidence");
-    peptides  = Dataframe.readtable(root+"allPeptides1k.txt", '\t').setTitle("peptide");
-    msms      = Dataframe.readtable(root+"msms1k.txt",        '\t').setTitle("msms");
-    scans     = Dataframe.readtable(root+"msmsScans1k.txt",   '\t').setTitle("scan");
+    evidences = Dataframe.readtable(root+"evidence1k.txt",    '\t', false).setTitle("evidence");
+    peptides  = Dataframe.readtable(root+"allPeptides1k.txt", '\t', false).setTitle("peptide");
+    msms      = Dataframe.readtable(root+"msms1k.txt",        '\t', false).setTitle("msms");
+    scans     = Dataframe.readtable(root+"msmsScans1k.txt",   '\t', false).setTitle("scan");
 
 //    evidences = Dataframe.readtable(root+"evidence.txt",    '\t');
 //    msms      = Dataframe.readtable(root+"msms.txt", '\t');
@@ -86,9 +86,9 @@ public class OutputTest extends TestAbstract
          msms.init(Var.VarType.CATEGORICAL, "Evidence ID");
     evidences.init(Var.VarType.CATEGORICAL, "Evidence ID");
     // join the msms table with the evidence table, which contains the annotated LCMS features by the Evidence ID
-    Dataframe annotations = Dataframe.merge(msms, evidences, true, false, "Evidence ID").setTitle("annot");
+    Dataframe annotations = Dataframe.merge(msms, evidences, true, true, "Evidence ID").setTitle("annot");
     // msms.txt contains only the annotated scans, msmsScans.txt has all the scans
-    Dataframe out = Dataframe.merge(annotations, scans, true, false, "Raw file","Scan number");
+    Dataframe out = Dataframe.merge(annotations, scans, true, true, "Raw file","Scan number");
 
     IOs.write(root + "mergedAnnotAll.txt", annotations.display("\t", "").toString());
     IOs.write(root + "mergedScansAll.txt", out.display("\t", "").toString());

@@ -29,18 +29,26 @@ public class Dataframe implements Disposable
 
   public Dataframe()                                         { super(); }
   public Dataframe(String s)                                 { super(); setTitle(s); }
-  public Dataframe(String cvs, char delim, String... idcols) { super(); readTable(cvs, delim, idcols); setTitle(cvs); }
+  public Dataframe(String cvs, char delim, String... idcols) { super(); readTable(cvs, null, delim, idcols); setTitle(cvs); }
+  public Dataframe(String cvs, String[] selected_cols, char delim, String... idcols)
+  { super(); readTable(cvs, selected_cols, delim, idcols); setTitle(cvs); }
 
   public Dataframe setRowIds(List<String> s) { mRowIDs=s; return this; }
   public Dataframe setColIds(List<String> s) { mColIDs=s; return this; }
 
   //** factory method **//
-  public static Dataframe csv(String csv, char delim, String... idcols)
-  {
-    Dataframe data = new Dataframe();
-    data.readTable(csv, delim, idcols); data.setTitle(csv);
-    return data;
-  }
+//  public static Dataframe csv(String csv, char delim, String... idcols)
+//  {
+//    Dataframe data = new Dataframe();
+//    data.readTable(csv, null, delim, idcols); data.setTitle(csv);
+//    return data;
+//  }
+//  public static Dataframe csv(String csv, String[] selected_cols, char delim, String... idcols)
+//  {
+//    Dataframe data = new Dataframe();
+//    data.readTable(csv, selected_cols, delim, idcols); data.setTitle(csv);
+//    return data;
+//  }
 
   //** Getters the Setters **//
   public int size() { return mData!=null?mData.rowKeySet().size():0; }
@@ -142,13 +150,6 @@ public class Dataframe implements Disposable
   {
     return (s!=null && mNameVar!=null && mNameVar.values().contains(s));
   }
-//  public Object[] cells(String rowid, Var... vs)
-//  {
-//    Object[] lead = new Object[vs.length];
-//    for (int i=0; i<vs.length; i++) lead[i]=row(rowid).get(vs[i]);
-//
-//    return lead;
-//  }
   public Object[] cells(String rowid, String... vs)
   {
     Object[] lead = new Object[vs.length];
@@ -156,9 +157,6 @@ public class Dataframe implements Disposable
 
     return lead;
   }
-//  public Object get(String rowid, Var v) { return row(rowid).get(v); }
-//  public Object get(String rowid, String v) { return row(rowid).get(getVar(v)); }
-//  public Object cell(String rowid, Var v) { return mData!=null?mData.get(rowid,v):null; }
   public Object cell(String rowid, String s) { return mData!=null?mData.get(rowid,s):null; }
   public List<String> cols() { return mColIDs; }
   public List<String> rows() { return mRowIDs; }
@@ -262,6 +260,24 @@ public class Dataframe implements Disposable
     }
     return ys;
   }
+
+  /** Grab the long col while keeping the correspondence with the row_id in rs
+   *
+   * @param y is the col name where the LONG value will be taken from
+   * @param rs contains the row ids
+   * @return
+   */
+  public Map<Long, String> getLongColRow(String y, Collection<String> rs)
+  {
+    if (!Tools.isSet(mData) || !hasVars(y)) return null;
+
+    Map<Long, String> xy = new HashMap<Long, String>(); int i=0;
+    for (String r : rs)
+    {
+      xy.put(Stats.toLong(cell(r, y)), r);
+    }
+    return xy;
+  }
   public String[] getStrCol(String y)
   {
     if (!Tools.isSet(mData) || !hasVars(y)) return null;
@@ -332,8 +348,8 @@ public class Dataframe implements Disposable
 
     return this;
   }
-  //** builders **//
-  public void readTable(String src, char delimiter, String... idcols)
+  //** builders, no variable init here **//
+  public void readTable(String src, String[] selected_cols, char delimiter, String... idcols)
   {
     if (!IOs.exists(src)) return;
 
@@ -345,7 +361,11 @@ public class Dataframe implements Disposable
       // convert the header to variables
       mColIDs = new ArrayList<>();
       mData    = HashBasedTable.create();
-      for (String col : csv.getHeaders()) addVar(new Variable(col));
+
+      // keep only the selected cols if specified
+      for (String col : (Tools.isSet(selected_cols)?selected_cols:csv.getHeaders()))
+        if (Tools.contains(csv.getHeaders(), col)) addVar(new Variable(col));
+
       // going thro the rows
       long row_counts = 0;
       while (csv.hasNext())
@@ -365,16 +385,14 @@ public class Dataframe implements Disposable
         for (String v : cols()) mData.put(id, v, csv.get(v));
       }
       csv.close();
-      // setup the types
-      init();
+      setupVars();
     }
     catch (IOException ioe)
     {
       throw new RuntimeException("Unable to access file: " + src, ioe);
     }
   }
-  // go thro the table to determine the type of the variables. Convert them to number if necessary
-  public Dataframe init()
+  public Dataframe setupVars()
   {
     if (!Tools.isSet(mData)) return this;
     if (mRowIDs ==null) { mRowIDs  = new ArrayList<>(mData.rowKeySet()); Collections.sort(mRowIDs); }
@@ -384,10 +402,26 @@ public class Dataframe implements Disposable
       mNameVar = new HashMap<>(mColIDs.size());
       for (String v : mColIDs) mNameVar.put(v, new Variable(v));
     }
-    for (String v : mColIDs)
-    {
-      asVar(v).setFactors(null); init(asVar(v));
-    }
+    return this;
+  }
+  // go thro the table to determine the type of the variables. Convert them to number if necessary
+  public Dataframe init()
+  {
+    if (!Tools.isSet(mData)) return this;
+
+    setupVars();
+//    if (mRowIDs ==null) { mRowIDs  = new ArrayList<>(mData.rowKeySet()); Collections.sort(mRowIDs); }
+//    if (mColIDs ==null)
+//    {
+//      mColIDs  = new ArrayList<>(mData.columnKeySet());
+//      mNameVar = new HashMap<>(mColIDs.size());
+//      for (String v : mColIDs) mNameVar.put(v, new Variable(v));
+//    }
+    if (Tools.isSet(mColIDs))
+      for (String v : mColIDs)
+      {
+        asVar(v).setFactors(null); init(asVar(v));
+      }
 //    System.out.println();
     return this;
   }
@@ -525,14 +559,23 @@ public class Dataframe implements Disposable
       for (int j=0; j<fields.length; j++)
         f.put(i+"", headers[j], fields[j]);
     }
-    f.init();
-
-    return f;
+    return f.setupVars();
   }
   public static Dataframe readtable(String src, char delimiter, String... idcols)
   {
+    return readtable(src, delimiter, true, idcols);
+//    Dataframe f = new Dataframe(src, delimiter, idcols);
+//    return f;
+  }
+  public static Dataframe readtable(String src, char delimiter, boolean init, String... idcols)
+  {
     Dataframe f = new Dataframe(src, delimiter, idcols);
-    return f;
+    return init?f.init():f;
+  }
+  public static Dataframe readtable(String src, String[] selected_cols, char delimiter, boolean init, String... idcols)
+  {
+    Dataframe f = new Dataframe(src, selected_cols, delimiter, idcols);
+    return init?f.init():f;
   }
 
   //********** R or Matlab style algorithms ***************//
@@ -668,6 +711,19 @@ public class Dataframe implements Disposable
     out.reorder(ObjectArrays.concat(rows, Strs.toStringArray(asVar(col).getFactors()), String.class));
 
     return out;
+  }
+  public Multimap<String, String> factorize(String row)
+  {
+    if (!hasVars(row)) return null;
+
+    Multimap<String, String> indice = TreeMultimap.create();
+    for (String rowid : rows())
+    {
+      Object v = cell(rowid, row);
+      if (v instanceof String && Tools.isSet((String)v)) indice.put((String )v, rowid);
+    }
+
+    return indice;
   }
   public MultiTreeTable<Double, Double, String> index(String row, String col)
   {
