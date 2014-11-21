@@ -18,6 +18,7 @@ import org.ms2ms.io.MsIO;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.r.Var;
 import org.ms2ms.test.TestAbstract;
+import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Stats;
 import org.ms2ms.utils.Tools;
 
@@ -91,6 +92,8 @@ public class ClusteringTest extends TestAbstract
     }
     msms.init(Var.VarType.CATEGORICAL, MaxQuant.V_CLUSTER);
     System.out.println("Number of clusters: " + cluster_id);
+
+    IOs.write("/media/data/test/mzXML/composite_scans_clusters.txt", msms.display("\t", "").toString());
   }
 
   @Test
