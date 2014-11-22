@@ -3,6 +3,7 @@ package org.ms2ms.data.ms;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.ms2ms.alg.Peaks;
+import org.ms2ms.alg.Similarity;
 import org.ms2ms.utils.Tools;
 
 import java.util.List;
@@ -49,7 +50,7 @@ public class IsoEnvelope extends Peak
       //if (!found) return false;
       if (!found) { A.add(k); B.add(new Peak(k.getMz(), 0d, 1)); }
     }
-    return Peaks.dp(A, B)>0.9;
+    return Similarity.dp(A, B)>0.9;
   }
   public double      getScore()          { return mScore; }
   public double      getChargeScore()    { return mChargeScore; }

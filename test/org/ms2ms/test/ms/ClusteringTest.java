@@ -37,6 +37,14 @@ public class ClusteringTest extends TestAbstract
   String root = "/Users/hliu/Desktop/Apps/2014/data/mzXML-centroid/";
 
   @Test
+  public void clusterQC() throws Exception
+  {
+    String[] selected = { MaxQuant.V_MZ,MaxQuant.V_RT,MaxQuant.V_TIC,MaxQuant.V_MSEQ,MaxQuant.V_SEQ,MaxQuant.V_OFFSET,MaxQuant.V_RAWFILE,MaxQuant.V_SCAN,MaxQuant.V_CLUSTER };
+    Dataframe msms = Dataframe.readtable("/media/data/test/mzXML/composite_scans_clusters.txt", selected,'\t', true).setTitle("msms");
+
+    // check the quality of the cluster using the peptide IDs
+  }
+  @Test
   public void clustering() throws Exception
   {
     // we're going to attempt total clustering. Just the first pass without optimization
@@ -57,8 +65,8 @@ public class ClusteringTest extends TestAbstract
     int counts=0, cluster_id=0;
     for (Double t : tic_row.keySet())
     {
-      if (++counts%100 ==0) System.out.print(".");
-      if (  counts%5000==0) System.out.println(cluster_id+"@"+Tools.d2s(100d*counts/tic_row.keySet().size(), 1)+"%");
+      if (++counts%100  ==0) System.out.print(".");
+      if (  counts%10000==0) System.out.println(cluster_id+"@"+Tools.d2s(100d*counts/tic_row.keySet().size(), 1)+"%");
       for (String r : tic_row.get(t))
       {
         if (plural.contains(r)) continue;

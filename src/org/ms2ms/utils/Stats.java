@@ -7,6 +7,7 @@ import org.apache.commons.lang.math.NumberUtils;
 import org.apache.commons.math.MathException;
 import org.apache.commons.math.analysis.interpolation.LoessInterpolator;
 import org.apache.commons.math.analysis.polynomials.PolynomialSplineFunction;
+import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.stats.Histogram;
 import org.expasy.mzjava.stats.HistogramImpl;
 
@@ -33,7 +34,16 @@ public class Stats
     for (Double v : s) avg+=v;
     return avg/(double )s.size();
   }
+  public static double mean(double[] s, int up_to)
+  {
+    if (!Tools.isSet(s)) return 0;
+
+    double avg = 0d;
+    for (int i=0; i<up_to; i++) avg+=s[i];
+    return avg/(double )s.length;
+  }
   public static double stdev(Collection<Double> s) { return Math.sqrt(variance(s)); }
+  public static double stdev(double[] s, int up_to) { return Math.sqrt(variance(s, up_to)); }
   public static double variance(Collection<Double> s)
   {
     if (!Tools.isSet(s) || s.size()==1) return 0;
@@ -42,6 +52,15 @@ public class Stats
     for (Double v : s) { var+= (v-avg)*(v-avg); }
 
     return var/((double )s.size()-1d);
+  }
+  public static double variance(double[] s, int up_to)
+  {
+    if (!Tools.isSet(s) || s.length==1) return 0;
+
+    double avg=mean(s, up_to), var=0d;
+    for (int i=0; i<up_to; i++) { var+= (s[i]-avg)*(s[i]-avg); }
+
+    return var/((double )s.length-1d);
   }
   public static long factorial(long n)
   {
@@ -125,7 +144,7 @@ public class Stats
   public static Long toLong(Object s)
   {
     if (s==null) return null;
-    if      (s instanceof String)  return NumberUtils.createLong((String )s);
+    if      (s instanceof String)  return NumberUtils.createLong((String) s);
     else if (s instanceof Long  )  return ((Long   )s);
     else if (s instanceof Integer) return ((Integer )s).longValue();
 
@@ -210,5 +229,32 @@ public class Stats
     for (int i=start; i<end; i++) out[i-start]=i;
 
     return out;
+  }
+  public static <T extends Peak> Peak upperOutliers(Collection<T> A, double stdev_multiple, int rounds)
+  {
+    int      ys_i = 0;
+    double[] ys   = new double[A.size()];
+    double    avg = 0, bound = Double.MAX_VALUE;
+
+    for (T t : A) t.setMzAndCharge(Math.abs(t.getMz()));
+
+    for (int i = 0; i < rounds; i++)
+    {
+      ys_i = 0;
+      for (T t : A) if (t.getMz() >= 0d && Math.abs(t.getIntensity() - avg) <= bound) ys[ys_i++] = t.getIntensity();
+
+      avg   = mean( ys, ys_i);
+      bound = stdev(ys, ys_i) * stdev_multiple;
+      // are you converge yet?
+
+      // remove the outlier from the consideration
+      for (T t : A)
+        if (t.getIntensity() - avg > bound)
+          t.setMzAndCharge(Math.abs(t.getMz()) * -1d);
+    }
+
+    for (T t : A) t.setMzAndCharge(Math.abs(t.getMz()));
+
+    return new Peak(avg, bound);
   }
 }

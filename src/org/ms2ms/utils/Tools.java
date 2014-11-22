@@ -311,4 +311,14 @@ public class Tools
 
     return reversed;
   }
+  public static Range<Double> window(Range<Double> slice,
+                                     double center, double dx,
+                                     double lower, double upper)
+  {
+    if      (center - dx < lower) return Range.closed(lower, lower + dx);
+    else if (center + dx > upper) return Range.closed(upper - dx,  upper);
+    else Range.closed(center - dx, center + dx);
+
+    return slice;
+  }
 }

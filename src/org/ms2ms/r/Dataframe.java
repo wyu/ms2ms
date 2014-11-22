@@ -251,7 +251,7 @@ public class Dataframe implements Disposable
   }
   public long[] getLongCol(String y, Collection<String> rs)
   {
-    if (!Tools.isSet(mData) || !hasVars(y)) return null;
+    if (mData==null || !hasVars(y)) return null;
 
     long[] ys = new long[rs.size()]; int i=0;
     for (String r : rs)
@@ -280,7 +280,7 @@ public class Dataframe implements Disposable
   }
   public String[] getStrCol(String y)
   {
-    if (!Tools.isSet(mData) || !hasVars(y)) return null;
+    if (mData==null || !hasVars(y)) return null;
 
     String[] ys = new String[rows().size()];
     for (int i=0; i<rows().size(); i++)
@@ -463,6 +463,8 @@ public class Dataframe implements Disposable
 
     for (String s : vs)
     {
+      // add the var if necessary
+      if (!hasVars(s)) addVar(new Variable(s));
       Var v = asVar(s);
       if (Tools.equals(type, Var.VarType.CATEGORICAL))
       {

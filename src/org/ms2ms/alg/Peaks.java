@@ -1,6 +1,7 @@
 package org.ms2ms.alg;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Range;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.DoublePeakList;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
@@ -32,6 +33,7 @@ public class Peaks
 
   static class IntensityDesendComparator implements Comparator<Peak> { public int compare(Peak o1, Peak o2) { return o1!=null && o2!=null ? Double.compare(o2.getIntensity(), o1.getIntensity()):0; } }
   static class IntensityAscendComparator implements Comparator<Peak> { public int compare(Peak o1, Peak o2) { return o1!=null && o2!=null ? Double.compare(o1.getIntensity(), o2.getIntensity()):0; } }
+  static class MzAscendComparator        implements Comparator<Peak> { public int compare(Peak o1, Peak o2) { return o1!=null && o2!=null ? Double.compare(o1.getMz(), o2.getMz()):0; } }
 
   public static boolean isType(PepLibPeakAnnotation s, IonType... types)
   {
@@ -124,6 +126,27 @@ public class Peaks
     return Tools.isSet(baselines) ? -1d* getMeanIntensity(Lists.partition(baselines, 3).get(0)) : 0;
   }
   public static boolean isValidIntensity(double s) { return s>0; }
+  public static void invalidate(Peak... s)
+  {
+    if (s!=null) for (Peak a : s) a.setIntensity(Math.abs(a.getIntensity())*-1d);
+  }
+  public static void   validate(Peak... s)
+  {
+    if (s!=null) for (Peak a : s) a.setIntensity(Math.abs(a.getIntensity()));
+  }
+  public static void validate(List<? extends Peak>... As)
+  {
+    if (As!=null)
+      for (List<? extends Peak> A : As)
+        for (Peak a : A) validate(a);
+  }
+  public static void invalidate(List<? extends Peak>... As)
+  {
+    if (As!=null)
+      for (List<? extends Peak> A : As)
+        for (Peak a : A) invalidate(a);
+  }
+  public static boolean isValid(Peak s) { return s.getIntensity()>0; }
 
   public static StringBuffer printIon(StringBuffer buf, double mz, double ai, int z)
   {
@@ -230,107 +253,6 @@ public class Peaks
     }
     return peaks;
   }
-  /**
-      * Check for the positive evidence of duplicated spectrum using dot-product
-      * algorithm as outlined by
-      *     Stein, SE, Scott DR. "Optimization and Testing of Mass Spectral Library
-      *     Search Algorithms for Compound Identification", JASMS 1994, 5, 859-866
-      *
-      *  porting notes: the minor peaks are expected to be tagged via 'invalidate()'
-      *                 prior to the call.
-      *
-      * @param             A = Profile A
-      * @param             B = Profile B
-      * @param           tol = m/z tolerance in dalton
-      * @param        sqrted = transform the Y by sqrt() if TRUE
-      *
-      * @return dot-product from A to B, 0 if not enough matching points or empty profile in A or B
-      */
-  public static double dp(List<? extends Peak> A, List<? extends Peak> B, Tolerance tol, boolean highest, boolean sqrted)
-  {
-    boolean verbose = false;
-
-    // false if one of the spectra is empty
-    if (A == null || A.isEmpty() || B == null || B.isEmpty()) return 0;
-    // the variables Peak           a, b;
-    int    match_cnt = 0, ia     = 0, ib         = 0, start_b;
-    double dp        = 0, best_Y = 0, best_error = 1E23, abs_err,
-           sum_a     = 0, sum_b  = 0, sum_ab     = 0;
-
-    while (ia < A.size())
-    {
-      // ignore any invalidated point
-      // if (!A.cells(ia).isValid()) { ++ia; continue; }
-      if (verbose) System.out.print(">>" + A.get(ia).getMz() + ", " + A.get(ia).getIntensity());
-      // reset the goalposts
-      best_Y = 0; best_error = 1E23; start_b = -1;
-      // recycle to avoid access violation
-      if (ib >= B.size()) ib = 0;
-      while (ib < B.size())
-      {
-        // skip the minor points that's labled
-        // if (!B.cells(ib).isValid())                               { ++ib; continue; }
-        if ( B.get(ib).getMz() > tol.getMax(A.get(ia).getMz()) + 0.1) break;
-        if (!tol.withinTolerance(A.get(ia).getMz(), B.get(ib).getMz())) { ++ib; continue; }
-        if (start_b == -1) start_b = ib;
-        // find the highest peak in the matching window
-        if   ( highest && (B.get(ib).getIntensity() > best_Y))
-          best_Y = B.get(ib).getIntensity();
-          // WYU 10-13-2000, option for matching the closest
-        else
-        {
-          abs_err = Math.abs(B.get(ib).getMz() - A.get(ia).getMz());
-          if (!highest && (abs_err  < best_error))
-          { best_Y = B.get(ib).getIntensity(); best_error  = abs_err; }
-        }
-        ++ib;
-      }
-      if (verbose) System.out.println("    !!" + best_Y);
-      if (best_Y > 0) match_cnt++;
-      // calculate the summation terms with sqrt() scaling of abundance
-      if (sqrted)
-      {
-        sum_a  +=   A.get(ia).getIntensity();
-        sum_b  +=           best_Y;
-        sum_ab += Math.sqrt(best_Y * A.get(ia).getIntensity());
-      }
-      else
-      {
-        sum_a  +=   A.get(ia).getIntensity() * A.get(ia).getIntensity();
-        sum_b  +=           best_Y   * best_Y;
-        sum_ab +=   A.get(ia).getIntensity() * best_Y;
-      }
-      // increment the outer loop
-      ++ia;
-      // move the b iterator back a little
-      if (start_b > 0) { ib = start_b - 1; start_b = -1; } else ib = 0;
-    }
-    // calculating the dot-product
-    if (sum_a > 0 && sum_b > 0)
-      dp = sum_ab * sum_ab / (sum_a * sum_b);
-
-    return dp;
-  }
-  /** Assuming that the registration is already done.
-   *
-   * @param A
-   * @param B
-   * @return dot-product
-   */
-  public static double dp(List<? extends Peak> A, List<? extends Peak> B)
-  {
-    // false if one of the spectra is empty or with diff dimension
-    if (A.isEmpty() || B.isEmpty() || A.size() != B.size()) return 0;
-
-    double dp = 0, sum_a = 0, sum_b = 0, sum_ab = 0;
-    for (int ia = 0; ia < A.size(); ia++) {
-       sum_a  +=   A.get(ia).getIntensity() * A.get(ia).getIntensity();
-       sum_b  +=   B.get(ia).getIntensity() * B.get(ia).getIntensity();
-       sum_ab +=   A.get(ia).getIntensity() * B.get(ia).getIntensity();
-    }
-    // calculating the dot-product
-    return sum_ab * sum_ab / (sum_a * sum_b);
-  }
 
   public static <T extends Peak> T getBasePeak(Collection<T> data)
   {
@@ -381,5 +303,307 @@ public class Peaks
 
      return found;
   }
+  /** Remove the insignificant peaks from further consideration
+   *  The peak significance is local context dependent.
+   *
+   * @param            A = Profile
+   * @param         span = half-width of the local window in dalton
+   * @param cream_of_top = # of top peaks in each local window to be kept
+   * @param sigma
+   *@param set_bias = whether to set the local noise level @return Numbers of the validated points from the profile
+   */
+  public static <T extends Peak> List<T> local_noise(List<T> A, double span, Integer cream_of_top, double sigma, boolean set_bias)
+  {
+    if (!Tools.isSet(A) || span == 0 || cream_of_top == null) return A;
+
+    // make sure the points are in order
+    Collections.sort(A, new MzAscendComparator());
+    // make sure the span is smaller than the total mass range
+    if (Tools.back(A).getMz()-Tools.front(A).getMz() <= span) return A;
+
+    invalidate(A);
+
+    // make a queue for the locals
+    LinkedList<T> locals   = new LinkedList<>();
+    LinkedList<T> tops    = new LinkedList<>();
+
+    // the range of the locals in Z
+    int          size_a = A.size();
+    Range<Double> slice = null;
+    Double         base = 0d; // set the lowest base at 0 to validate sparse peaks at the front
+    double         xmin = Tools.front(A).getMz(), xmax = Tools.back(A).getMz();
+    Double    min_noise = Double.MAX_VALUE, min_med = Double.MAX_VALUE;
+
+    Collection<Peak> locals_prev = new HashSet<>();
+
+    // going through the points
+    for (int i = 0; i < size_a; i++)
+    {
+      // setup the local window in X
+      slice = Tools.window(slice, A.get(i).getMz(), span, xmin, xmax);
+      // strip the front if necessary
+      while (locals.size() > 0 &&
+          locals.get(0).getMz() < slice.lowerEndpoint())
+      {
+        if (Tools.isSet(tops)) tops.remove(locals.getFirst());
+        locals.removeFirst();
+      }
+      // refill the locals
+      for (int j = i; j < size_a; j++)
+      {
+        if (Tools.isSet(locals) && A.get(j).getMz() <= locals.getLast().getMz()) continue;
+        if (A.get(j).getMz() > slice.upperEndpoint()) break;
+        locals.add(A.get(j));
+
+        // populate the "tops" list, which contains the same neighboring peaks in the order of their intensities
+        boolean added = false;
+        if (!Tools.isSet(tops)) { tops.add(A.get(j)); added = true; }
+        else
+        {
+          for (int k = 0; k < tops.size(); k++)
+            if (A.get(j).getIntensity() < tops.get(k).getIntensity())
+            {
+              tops.add(k, A.get(j));
+              added = true;
+              break;
+            }
+        }
+        if (!added) tops.add(A.get(j));
+      }
+
+      // tag any points in top-xx as valid
+      if (locals.size() > cream_of_top)
+      {
+        Peak bound = Stats.upperOutliers(tops, sigma, 2);
+        base = bound.getMz() + bound.getIntensity();
+
+        if (base          < min_noise) min_noise = base;
+        if (bound.getMz() < min_med)   min_med   = bound.getMz();
+
+        // clear out the prior peaks that couldn't made the cut
+        if (Tools.isSet(locals_prev))
+        {
+          for (Peak t : locals_prev) if (t.getIntensity() > base) validate(t);
+          locals_prev.clear();
+        }
+      }
+      else
+      {
+        //for (XYPoint t : locals) t.validate();
+      }
+      if (base != null && Tools.isSet(locals))
+      {
+        for (Peak t : locals) if (t.getIntensity() > base) validate(t);
+      }
+      else
+      {
+        locals_prev.addAll(locals);
+      }
+    }
+    // any leftover should be kept around by default
+    if (Tools.isSet(locals_prev))
+      for (Peak t : locals_prev) validate(t);
+
+    if (set_bias)
+    {
+      // setup the baseline
+      List<Peak> baseline = new ArrayList<>(size_a);
+      Peak    ion      = null;
+      Range<T> bound    = null;
+      double   min_base = Double.MAX_VALUE;
+
+      for (int i = 0; i < size_a; i++)
+      {
+        if (isValid(A.get(i))) continue;
+        if (A.get(i).getIntensity() < min_base) min_base = A.get(i).getIntensity();
+        baseline.add(new Peak(A.get(i).getMz(), A.get(i).getIntensity()));
+      }
+      smoothBySG5(baseline);
+
+      // use the min_noise instead
+      min_base = min_med;
+
+      if (min_base < Double.MAX_VALUE)
+      {
+        int starter = 0;
+        for (int i = 0; i < size_a; i++)
+        {
+          try                 { ion = A.get(i); }
+          catch (Exception e) { ion = null; }
+
+          if (ion != null)
+          {
+            bound=null;
+//            bound.setLower(null);
+//            bound.setUpper(null);
+            for (int k = starter; k < baseline.size() - 1; k++)
+            {
+              if (ion.getMz() >= baseline.get(k).getMz() && ion.getMz() < baseline.get(k+1).getMz())
+              {
+                starter = k;
+                bound = Range.closed((T )baseline.get(k),(T )baseline.get(k+1));
+//                bound.setLower((T )baseline.get(k));
+//                bound.setUpper((T )baseline.get(k+1));
+                break;
+              }
+            }
+            if (bound==null) bound = Range.closed((T )new Peak(A.get(0).getMz(), min_base),(T )new Peak(A.get(size_a-1).getMz(), min_base));
+            base = interpolateForY(bound, A.get(i).getMz());
+            base = ((base != null && base > min_base) ? base : min_base);
+            if (base != 0) ion.setIntensity(ion.getIntensity()/base);
+          }
+        }
+      }
+    }
+
+    return A;
+  }
+  public static <T extends Peak> double filter(List<T> A, int index_begin, double[] filters)
+  {
+    double Y = 0d;
+    for (int i = 0; i < filters.length; i++)
+      Y += A.get(i + index_begin).getIntensity() * filters[i];
+
+    return Y;
+  }
+
+  //--------------------------------------------------------------------------
+  /** Apply the pre-calculated coeffs to the data according to "http://www.ma.utexas.edu/documentation/nr/bookcpdf/c14-8.pdf"
+   *
+   M nL nR Sample Savitzky-Golay Coefficients
+   2 2 2 ?0.086 0.343 0.486 0.343 ?0.086
+   2 3 1 ?0.143 0.171 0.343 0.371 0.257
+   2 4 0 0.086 ?0.143 ?0.086 0.257 0.886
+   2 5 5 ?0.084 0.021 0.103 0.161 0.196 0.207 0.196 0.161 0.103 0.021 ?0.084
+   4 4 4 0.035 ?0.128 0.070 0.315 0.417 0.315 0.070 ?0.128 0.035
+   4 5 5 0.042 ?0.105 ?0.023 0.140 0.280 0.333 0.280 0.140 ?0.023 ?0.105 0.042
+   *
+   * @param A
+   */
+  public static <T extends Peak> List<T> smoothBySG5(List<T> A)
+  {
+    // Do nothing if the set isn't big enough to smooth.
+    if (null == A || A.size() < 6) return A;
+
+    // store the smoothed data separately
+    List<T> smoothed = new ArrayList<T>(A.size());
+    T       cloned   = null;
+
+    // special handling for the edge points
+    cloned = (T )new Peak(A.get(0));
+    cloned.setIntensity(filter(A, 0, new double[] {0.886,0.257,-0.086,-0.143,0.086}));
+    smoothed.add(cloned);
+
+    cloned = (T )new Peak(A.get(1));
+    cloned.setIntensity(filter(A, 0, new double[] {0.257,0.371,0.343,0.171,-0.143}));
+    smoothed.add(cloned);
+
+    for (int i = 2; i < A.size() - 2; i++)
+    {
+      cloned = (T )new Peak(A.get(i));
+      cloned.setIntensity(filter(A, i-2, new double[] {-0.086,0.343,0.486,0.343,-0.086}));
+      smoothed.add(cloned);
+    }
+
+    // special handling for the edge points
+    cloned = (T )new Peak(A.get(A.size()-2));
+    cloned.setIntensity(filter(A, A.size()-6, new double[] {-0.143,0.171,0.343,0.371,0.257}));
+    smoothed.add(cloned);
+
+    cloned = (T )new Peak(A.get(A.size()-1));
+    cloned.setIntensity(filter(A, A.size()-6, new double[] {0.086,-0.143,-0.086,0.257,0.886}));
+    smoothed.add(cloned);
+
+    for (int i = 0; i < A.size(); i++)
+      A.get(i).setIntensity(smoothed.get(i).getIntensity());
+
+    return A;
+  }
+  public static <T extends Peak> Double interpolateForY(Range<T> bound, Double x)
+  {
+    if (bound            == null) return null;
+    return interpolateForY(bound.lowerEndpoint(), bound.upperEndpoint(), x);
+  }
+  public static <T extends Peak> Double interpolateForY(T t0, T t1, Double x)
+  {
+    if (t0 == null ||
+        t1 == null ||
+        x  == null) return null;
+
+    if (x < t0.getMz() || x > t1.getMz()) return null;
+
+    return (t0.getIntensity()+(t1.getIntensity()-t0.getIntensity())*(x-t0.getMz()) /(t1.getMz()-t0.getMz()));
+  }
+  public static <T extends Peak> Double interpolateForX(T t0, T t1, Double y)
+  {
+    if (t0 == null ||
+        t1 == null ||
+        y  == null || t1.getIntensity() == t0.getIntensity()) return null;
+
+    return (t0.getMz()+(t1.getMz()-t0.getMz())*(y-t0.getIntensity())/(t1.getIntensity()-t0.getIntensity()));
+  }
+  public static Map<Peak, Peak> overlap(List<? extends Peak> A, List<? extends Peak> B, double delta,
+                                        boolean matchHighest, boolean keep_unmatched, Map<Peak, Peak> outcomes)
+  {
+    boolean verbose = false;
+
+    // false if one of the spectra is empty
+    if (A==null || A.isEmpty() || B==null || B.isEmpty()) return null;
+
+    if (outcomes == null) outcomes = new TreeMap<Peak, Peak>(); else outcomes.clear();
+
+    int    ia     = 0, ib         = 0, start_b;
+    double best_Y = 0, best_error = 1E23, abs_err;
+
+    while (ia < A.size()) {
+      // ignore any invalidated point
+      if (!isValid(A.get(ia))) { ++ia; continue; }
+//      if (verbose) System.out.print(">>" + A.get(ia).getX() + ", " + A.get(ia).getY());
+      // reset the goalposts
+      best_Y = 0; best_error = 1E23; start_b = -1;
+      // recycle to avoid access violation
+      if (ib >= B.size()) ib = 0;
+      while (ib < B.size()) {
+        // skip the minor points that's labled
+        if (!isValid(B.get(ib))) { ++ib; continue; }
+        if ( B.get(ib).getMz() > A.get(ia).getMz() + delta + 0.1) break;
+        if (!equivalent(A.get(ia),B.get(ib),(float )delta)) { ++ib; continue; }
+        if (start_b == -1) start_b = ib;
+        // find the highest peak in the matching window
+        if   ( matchHighest && (B.get(ib).getIntensity() > best_Y))
+        {
+          best_Y = B.get(ib).getIntensity();
+          if (outcomes != null) outcomes.put(A.get(ia), B.get(ib));
+        }
+        // WYU 10-13-2000, option for matching the closest
+        else {
+          abs_err = Math.abs(B.get(ib).getMz()-A.get(ia).getMz());
+          if (!matchHighest && (abs_err<best_error))
+          {
+            best_Y     = B.get(ib).getIntensity();
+            best_error = abs_err;
+            if (outcomes != null) outcomes.put(A.get(ia), B.get(ib));
+          }
+        }
+        ++ib;
+      }
+      if (best_Y == 0 && keep_unmatched)
+      {
+        if (outcomes != null) outcomes.put(A.get(ia), new Peak(0d, 0d));
+      }
+
+      // increment the outer loop
+      ++ia;
+      // move the b iterator back a little
+      if (start_b > 0) { ib = start_b - 1; start_b = -1; } else ib = 0;
+    }
+
+    return outcomes;
+  }
+  public static boolean equivalent(Peak A, Peak B, float tol)
+  {
+    return A!=null && B!=null && Math.abs(A.getMz()-B.getMz())<=tol;
+  }
+  public static boolean isC12(Peak p) { return p.getCharge()>=0; }
 }
 
