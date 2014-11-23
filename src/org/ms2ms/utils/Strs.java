@@ -318,5 +318,35 @@ public class Strs
     String        hoursStr = (hours<10 ? "0" : "")+hours;
     return new String(hoursStr+":"+minutesStr+":"+secondsStr+"."+millisecondsStr);
   }
+  public static boolean isIsobaric(String seq1, String seq2)
+  {
+    return Tools.equals(seq1, seq2) ||
+           isIsobaricTo(seq1, seq2) ||
+           isIsobaricTo(seq2, seq1);
+  }
+  public static boolean isIsobaricTo(String seq1, String seq2)
+  {
+    // consider only the single residue change
+    boolean matched = false;
+    String regex = seq2.replaceAll("[IL]", "[IL]").replaceAll("[QK]", "[QK]");
+    matched = seq1.matches(regex);
 
+    // let's consider the di-one residue mapping (Kinter, p83)
+    /*if (!matched)
+    {
+      matched = (seq1.matches(seq2.replaceAll("(GG)", "[(GG)|N]"))           ||
+                 seq1.matches(seq2.replaceAll("[(GA)|(AG)]", "[(GA)|(AG)|Q|K]")) ||
+                 seq1.matches(seq2.replaceAll("[(GV)|(VG)]", "[(GV)|(VG)|R]"))   ||
+                 seq1.matches(seq2.replaceAll("[(GE)|(AD)|(SV)|(EG)|(DA)|(VS)]", "[(GE)|(AD)|(SV)|(EG)|(DA)|(VS)|W]")));
+    } */
+    // the last check for 2-to-2 mapping
+    if (!matched)
+    {
+      matched = (seq1.equals(seq2.replace("NQ", "LE")) ||
+          seq1.equals(seq2.replace("QN", "LE")) ||
+          seq1.equals(seq2.replace("NQ", "EL")) ||
+          seq1.equals(seq2.replace("QN", "EL")));
+    }
+    return matched;
+  }
 }

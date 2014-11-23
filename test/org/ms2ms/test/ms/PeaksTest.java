@@ -1,6 +1,5 @@
 package org.ms2ms.test.ms;
 
-import hep.aida.ref.Test;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.ms2ms.io.MsIO;
 import org.ms2ms.test.TestAbstract;
@@ -24,10 +23,10 @@ public class PeaksTest extends TestAbstract
     spectra = MsIO.readSpectra("data/examples_16__AAELIANSLATAGDGLIELR__z2.ms2");
   }
 
-  @Test
-  public void baseline() throws Exception
-  {
-     assert(1==1);
-  }
+//  @Test
+//  public void baseline() throws Exception
+//  {
+//     assert(1==1);
+//  }
 
 }

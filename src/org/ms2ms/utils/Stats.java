@@ -257,4 +257,92 @@ public class Stats
 
     return new Peak(avg, bound);
   }
+  public static Peak accumulate(Peak A, Peak B)
+  {
+    if (A == null || B == null) return A;
+
+    // assuming the check and balance already done entering the call
+    double    sum = A.getIntensity()+B.getIntensity(),
+      sum_product = A.getIntensity()*A.getMz()+B.getIntensity()*B.getMz();
+
+    A.setMzAndCharge(sum_product / sum);
+    A.setIntensity(sum);
+
+    return A;
+  }
+  public static double median(double[] ys)
+  {
+    if (ys == null || ys.length == 0) return Double.NaN;
+    if (ys.length == 1) return ys[0];
+    Arrays.sort(ys);
+    if (ys.length % 2 == 0) return (ys[(int )(ys.length * 0.5)    ] +
+        ys[(int )(ys.length * 0.5) - 1]) * 0.5;
+    return ys[(int )(ys.length * 0.5)];
+  }
+  public static double median(List<Double> ys)
+  {
+    if (ys.size() == 1) return Tools.front(ys);
+    Collections.sort(ys);
+    if (ys.size() % 2 == 0) return (ys.get((int )(ys.size() * 0.5)    ) +
+        ys.get((int )(ys.size() * 0.5) - 1)) * 0.5;
+    return ys.get((int )(ys.size() * 0.5));
+  }
+  public static <T extends Peak> double median(Collection<T> ys)
+  {
+    if (ys.size() == 1) return Tools.front(ys).getIntensity();
+
+    double[] pts = new double[ys.size()];
+    int    order = 0;
+    for (T t : ys) pts[order++] = t.getIntensity();
+
+    return median(pts);
+  }
+  public static <T extends Peak> double stdevY(Collection<T> ys) { return Math.sqrt(varianceY(ys)); }
+  public static <T extends Peak> double varianceY(Collection<T> ys)
+  {
+    if (ys.size() == 1) return -1;
+    if (ys.size() == 1) return 0;
+
+    double s = 0, ss = 0;
+    for (T y : ys) { s += y.getIntensity(); ss += y.getIntensity() * y.getIntensity(); }
+    return (ys.size() * ss - s * s) / (ys.size() * (ys.size() - 1));
+  }
+  public static <T extends Peak> Double meanIntensity(Collection<T> ys)
+  {
+    if (ys        == null) return null;
+    if (ys.size() == 0)    return 0d;
+
+    double s = 0;
+    for (T y : ys) { s += y.getIntensity(); }
+    return s / ys.size();
+  }
+  public static <T extends Peak> Double meanMz(Collection<T> ys)
+  {
+    if (ys        == null) return null;
+    if (ys.size() == 0)    return 0d;
+
+    double s = 0;
+    for (T y : ys) { s += y.getMz(); }
+    return s / ys.size();
+  }
+  public static <T extends Peak> Double centroid(Collection<T> points)
+  {
+    return centroid(points, null, null);
+  }
+  public static <T extends Peak> Double centroid(Collection<T> points, Double x0, Double x1)
+  {
+    if (! Tools.isSet(points)) return null;
+
+    double sumXY = 0, sumY = 0;
+    for (Peak xy : points)
+    {
+      if ((x0 == null || xy.getMz() >= x0) &&
+          (x1 == null || xy.getMz() <= x1))
+      {
+        sumXY += xy.getMz() * xy.getIntensity();
+        sumY  += xy.getMz();
+      }
+    }
+    return sumY != 0 ? sumXY / sumY : null;
+  }
 }
