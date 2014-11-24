@@ -230,32 +230,33 @@ public class Stats
 
     return out;
   }
-  public static <T extends Peak> Peak upperOutliers(Collection<T> A, double stdev_multiple, int rounds)
+  /** Estimates the mean and stdev of intensities after 'rounds' of outlier rejections.
+   *  The outliers are defined as those outside of the 'stdevs' multiples of the calculated stdev
+   *
+   * @param intensities are the intensities of the points to be considered
+   * @param stdevs is the multiple of stdev that define the boundary for the outliers
+   * @param rounds is the number of times the outlier rejections will be attempted.
+   * @return a double array where mean is followed by stdev of the intensities excluding the outliers
+   */
+  public static double[] outliers_rejected(Collection<Double> intensities, double stdevs, int rounds)
   {
-    int      ys_i = 0;
-    double[] ys   = new double[A.size()];
-    double    avg = 0, bound = Double.MAX_VALUE;
+    // deal with null or singleton first
+    if (intensities==null)    return null;
+    if (intensities.size()<2) return new double[] { Tools.front(intensities), 0d};
 
-    for (T t : A) t.setMzAndCharge(Math.abs(t.getMz()));
+    double avg=0, bound=Double.MAX_VALUE;
 
     for (int i = 0; i < rounds; i++)
     {
-      ys_i = 0;
-      for (T t : A) if (t.getMz() >= 0d && Math.abs(t.getIntensity() - avg) <= bound) ys[ys_i++] = t.getIntensity();
+      Iterator<Double> itr = intensities.iterator();
+      while (itr.hasNext())
+        if (Math.abs(itr.next()-avg)>bound) itr.remove();
 
-      avg   = mean( ys, ys_i);
-      bound = stdev(ys, ys_i) * stdev_multiple;
-      // are you converge yet?
-
-      // remove the outlier from the consideration
-      for (T t : A)
-        if (t.getIntensity() - avg > bound)
-          t.setMzAndCharge(Math.abs(t.getMz()) * -1d);
+      avg   = mean(intensities);
+      bound = stdev(intensities) * stdevs;
     }
 
-    for (T t : A) t.setMzAndCharge(Math.abs(t.getMz()));
-
-    return new Peak(avg, bound);
+    return new double[] {avg, bound};
   }
   public static Peak accumulate(Peak A, Peak B)
   {
@@ -344,5 +345,35 @@ public class Stats
       }
     }
     return sumY != 0 ? sumXY / sumY : null;
+  }
+  public static double filter(List<Double> A, int index_begin, double[] filters)
+  {
+    double Y = 0d;
+    for (int i = 0; i < filters.length; i++)
+      Y += A.get(i + index_begin) * filters[i];
+
+    return Y;
+  }
+  public static List<Double> smoothBySG5(List<Double> A)
+  {
+    // Do nothing if the set isn't big enough to smooth.
+    if (null==A || A.size()<6) return A;
+
+    // store the smoothed data separately
+    List<Double> smoothed = new ArrayList<>(A.size());
+
+    // special handling for the edge points
+    smoothed.add(filter(A, 0, new double[] {0.886,0.257,-0.086,-0.143,0.086}));
+    smoothed.add(filter(A, 0, new double[] {0.257,0.371,0.343,0.171,-0.143}));
+
+    // the mid section
+    for (int i=2; i < A.size()-2; i++)
+      smoothed.add(filter(A, i-2, new double[] {-0.086,0.343,0.486,0.343,-0.086}));
+
+    // special handling for the edge points
+    smoothed.add(filter(A, A.size()-6, new double[] {-0.143,0.171,0.343,0.371,0.257}));
+    smoothed.add(filter(A, A.size()-6, new double[] {0.086,-0.143,-0.086,0.257,0.886}));
+
+    return smoothed;
   }
 }

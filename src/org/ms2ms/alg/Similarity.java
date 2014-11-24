@@ -3,6 +3,8 @@ package org.ms2ms.alg;
 import com.google.common.collect.Range;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
+import org.expasy.mzjava.core.ms.peaklist.PeakList;
+import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.ms2ms.utils.Stats;
 import org.ms2ms.utils.Tools;
 
@@ -278,8 +280,8 @@ public class Similarity
 
     return indices;
   }
-  // hypergeometric distribution: scores overlap between the position of predicted and observed peaks
-  public static double hg_similarity(List<? extends Peak> A, List<? extends Peak> B,
+  // hyper-geometric distribution: scores overlap between the position of predicted and observed peaks
+  public static double similarity_hg(List<? extends Peak> A, List<? extends Peak> B,
                                      double delta, long n_bins, boolean matchHighest, Map<Peak, Peak> outcomes)
   {
     outcomes = Peaks.overlap(A, B, delta, matchHighest, false, outcomes);
@@ -293,12 +295,25 @@ public class Similarity
 
     return -1 * Stats.hypergeometricPval1(matched, nb, nb, n_bins);
   }
-  public static double hg_similarity(List<? extends Peak> A, List<? extends Peak> B, double delta)
+  public static double similarity_hg(List<? extends Peak> A, List<? extends Peak> B, double delta)
   {
     Range<Double> mz_range = Range.closed(Math.min(Tools.front(A).getMz(), Tools.front(B).getMz()),
                                           Math.max(Tools.back( A).getMz(), Tools.back( B).getMz()));
     Map<Peak, Peak> outcomes = Peaks.overlap(A, B, delta, true, false, null);
     return -1 * Stats.hypergeometricPval1(outcomes.size(), A.size(), B.size(),
         (long )((mz_range.upperEndpoint() - mz_range.lowerEndpoint()) / delta));
+  }
+  public static boolean condition(PeakList msms, double pct_cutoff, int min_peaks)
+  {
+    if (msms==null || msms.size()==0) return false;
+
+    // always assume the peak list is already sorted by m/z
+    msms = Spectra.denoise_local(msms, 25d, 15, 1.67d, true);
+
+    // notch the precursor ions and
+    Spectra.notch(msms, Range.closed(msms.getPrecursor().getMz()-5.0d, msms.getPrecursor().getMz()+5.0d));
+    Spectra.capBasePeak(msms, pct_cutoff, min_peaks);
+
+    return Spectra.validPeaks(msms)>=min_peaks;
   }
 }

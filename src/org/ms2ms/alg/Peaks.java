@@ -374,7 +374,7 @@ public class Peaks
       // tag any points in top-xx as valid
       if (locals.size() > cream_of_top)
       {
-        Peak bound = Stats.upperOutliers(tops, sigma, 2);
+        Peak bound = outliers_rejected(tops, sigma, 2);
         base = bound.getMz() + bound.getIntensity();
 
         if (base          < min_noise) min_noise = base;
@@ -605,5 +605,69 @@ public class Peaks
     return A!=null && B!=null && Math.abs(A.getMz()-B.getMz())<=tol;
   }
   public static boolean isC12(Peak p) { return p.getCharge()>=0; }
+  public static <T extends Peak> Peak outliers_rejected(Collection<T> A, double stdev_multiple, int rounds)
+  {
+    int      ys_i = 0;
+    double[] ys   = new double[A.size()];
+    double    avg = 0, bound = Double.MAX_VALUE;
+
+    for (T t : A) t.setMzAndCharge(Math.abs(t.getMz()));
+
+    for (int i = 0; i < rounds; i++)
+    {
+      ys_i = 0;
+      for (T t : A) if (t.getMz() >= 0d && Math.abs(t.getIntensity() - avg) <= bound) ys[ys_i++] = t.getIntensity();
+
+      avg   = Stats.mean( ys, ys_i);
+      bound = Stats.stdev(ys, ys_i) * stdev_multiple;
+      // are you converge yet?
+
+      // remove the outlier from the consideration
+      for (T t : A)
+        if (t.getIntensity() - avg > bound)
+          t.setMzAndCharge(Math.abs(t.getMz()) * -1d);
+    }
+
+    for (T t : A) t.setMzAndCharge(Math.abs(t.getMz()));
+
+    return new Peak(avg, bound);
+  }
+  /** Tag the points around a location as invalid, in the manner of a notch filter
+   *  Typically used to remove precursor ion from further consideration
+   *
+   * @param A is a list of peaks, not necessary sorted by m/z
+   * @param bound define the lower and upper limit of the m/z
+   */
+  public static void notch(Collection<? extends Peak> A, Range<Double> bound)
+  {
+    if (Tools.isSet(A) && Tools.isSet(bound))
+      for (Peak p : A)
+        if (bound.contains(p.getMz())) invalidate(p);
+  }
+  public static void unnotch(Collection<? extends Peak> A, Range<Double> bound)
+  {
+    if (Tools.isSet(A) && Tools.isSet(bound))
+      for (Peak p : A)
+        if (!bound.contains(p.getMz())) validate(p);
+  }
+  public static void notchUpto(Collection<? extends Peak> A, double x) { notch(A, Range.closed(0d, x)); }
+  /** Find an abundance threshold given a max peak count */
+  public static double threshold(List<? extends Peak> data,
+                                 double base, int max_count, double start_mz,
+                                 double first_cut, double ratio, int repeat)
+  {
+    int     count = 0;
+    double  cut   = first_cut * base / 100;
+
+    for (int i = 0; i < repeat; i++)
+    {
+      count = 0;
+      for (Peak p : data)
+        if ((isValid(p) && p.getIntensity()>cut) && (p.getMz()>start_mz)) ++count;
+      if (count >= max_count) break;
+      cut /= ratio;
+    }
+    if (count >= max_count) return cut; else return -1;
+  }
 }
 

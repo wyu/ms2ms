@@ -7,20 +7,25 @@ import org.ms2ms.alg.Peaks;
 import org.ms2ms.nosql.HBasePeakList;
 import org.ms2ms.utils.Settings;
 
-/**
- * Created with IntelliJ IDEA.
+/** Parameters associated with a single stage of MS analyzer
+ *
  * User: wyu
  * Date: 5/24/14
- * Time: 11:20 PM
- * To change this template use File | Settings | File Templates.
  */
 public class MsSettings extends Settings
 {
   public static final String TOL_PREC  = "PrecTol";
   public static final String TOL_FRAG  = "FragTol";
+  public static final String ISOLATION_PREC  = "Precursor isolation";
   public static final String FRAG_MODE = "FragMode";
+  public static final String Z_FLOAT    = "Zfloat";
 
-  public MsSettings() { super(); properties.put(ClusteringSettings.Z_FLOAT, 0); }
+  public static final MsSettings LTQ          = new MsSettings(HBasePeakList.SPEC_TRAP_CID, new AbsoluteTolerance(0.5d), new AbsoluteTolerance(0.5d),  Peaks.CID);
+  public static final MsSettings ORBITRAP     = new MsSettings(HBasePeakList.SPEC_TRAP_CID, new PpmTolerance(15d), new AbsoluteTolerance(0.5d),  Peaks.CID);
+  public static final MsSettings ORBITRAP_HR  = new MsSettings(HBasePeakList.SPEC_TRAP_CID, new PpmTolerance(15d), new AbsoluteTolerance(0.05d), Peaks.CID);
+  public static final MsSettings ORBITRAP_HCD = new MsSettings(HBasePeakList.SPEC_TRAP_HCD, new PpmTolerance(15d), new AbsoluteTolerance(0.05d), Peaks.HCD);
+
+  public MsSettings() { super(); properties.put(Z_FLOAT, 0); }
   public MsSettings(byte[] type, Tolerance precursor, Tolerance frag, String mode)
   {
     super();
@@ -30,6 +35,7 @@ public class MsSettings extends Settings
   }
 
   public Tolerance getPrecursorTol() { return properties!=null?(Tolerance )properties.get(TOL_PREC):null; }
+  public Tolerance getPrecursorIsolation()  { return properties!=null?(Tolerance )properties.get(ISOLATION_PREC):null; }
   public Tolerance getFragmentTol()  { return properties!=null?(Tolerance )properties.get(TOL_FRAG):null; }
   public String    getFragMode()     { return getString(FRAG_MODE); }
 }
