@@ -75,8 +75,8 @@ public class LcMsMsDataset implements Dataset
   public Collection<Long> getFileoffsetsByMzRt(double mz, double rt)
   {
     return getMzRtFileOffset()!=null ? getMzRtFileOffset().subset(
-        getClusteringSettings().getPrecursorTol().getMin(mz),
-        getClusteringSettings().getPrecursorTol().getMax(mz),
+        getClusteringSettings().getInstrument().getPrecursorTol().getMin(mz),
+        getClusteringSettings().getInstrument().getPrecursorTol().getMax(mz),
         getClusteringSettings().getRtWindow().getMin(rt),
         getClusteringSettings().getRtWindow().getMax(rt)) : null;
 

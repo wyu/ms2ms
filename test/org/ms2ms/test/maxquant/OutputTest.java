@@ -54,6 +54,21 @@ public class OutputTest extends TestAbstract
     evidences.renameCol("Mass", "Mass-predicted");
   }
   @Test
+  public void RtCalibration() throws Exception
+  {
+    // Dataframe pivot(String col, String val, Stats.Aggregator func, String... rows)
+    double xs[] = evidences.getDoubleCol("Retention time");
+    double ys[] = evidences.getDoubleCol("Retention time calibration");
+    double Xs[] = evidences.getDoubleCol("Calibrated retention time start");
+
+    double[] Ys = Stats.interpolate(xs, ys, 0.3, Xs);
+
+    evidences.addVar("interpolated", Ys);
+    System.out.println("\n" + evidences.display());
+
+    evidences.addVar("Calibrated RT", Stats.sum(evidences.getDoubleCol("Retention time"), evidences.getDoubleCol("Retention time calibration")));
+  }
+  @Test
   public void mergeMQnSurvey() throws Exception
   {
     mq = new MaxQuant(root, "/media/data/test/mzXML/");

@@ -46,7 +46,7 @@ public class MimslSettings extends MsSettings
   {
     super(type, precursor, frag, mode);
     properties.put(ClusteringSettings.SPEC_TYPE, type);
-    properties.put(ClusteringSettings.Z_FLOAT,   0);
+    properties.put(MsSettings.Z_FLOAT,   0);
   }
   public static MimslSettings valueOf(String s)
   {
@@ -67,5 +67,5 @@ public class MimslSettings extends MsSettings
   public double getMinSNR()    { return min_snr; }
   public int    getMinPeaks()  { return min_pk; }
   public byte[] getSpecType()  { return getBytes(ClusteringSettings.SPEC_TYPE); }
-  public int    getZFloat()    { return getInteger(ClusteringSettings.Z_FLOAT); }
+  public int    getZFloat()    { return getInteger(MsSettings.Z_FLOAT); }
 }

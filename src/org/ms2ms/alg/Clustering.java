@@ -66,12 +66,15 @@ public class Clustering
     }
     return data;
   }
-  public static void QC() throws Exception
+  public static void QC(Dataframe data) throws Exception
   {
-    String[] selected = { MaxQuant.V_MZ,MaxQuant.V_RT,MaxQuant.V_TIC,MaxQuant.V_MSEQ,MaxQuant.V_SEQ,MaxQuant.V_OFFSET,MaxQuant.V_RAWFILE,MaxQuant.V_SCAN,MaxQuant.V_CLUSTER };
-    Dataframe msms = Dataframe.readtable("/media/data/test/mzXML/composite_scans_clusters.txt", selected,'\t', true).setTitle("msms");
+    // check the readiness of the incoming data
+    if (data==null || !data.hasVars(MaxQuant.V_CLUSTER,MaxQuant.V_MSEQ)) return;
 
     // check the quality of the cluster using the peptide IDs
+    Multimap<String, String> seq_row = data.factorize(MaxQuant.V_MSEQ);
+
+    //
   }
 
   public static <T extends MsnSpectrum> Dataframe cluster(Dataframe msms, RandomAccessFile bin, ClusterBuilder<MsnSpectrum> clusterer, SimFunc sim, ClusteringSettings settings) throws Exception
