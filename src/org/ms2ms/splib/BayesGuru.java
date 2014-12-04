@@ -2,12 +2,8 @@ package org.ms2ms.splib;
 
 import com.google.common.collect.Range;
 import org.expasy.mzjava.stats.Histogram;
-import org.expasy.mzjava.stats.HistogramImpl;
-import org.ms2ms.utils.Stats;
+import org.ms2ms.alg.MsStats;
 import org.ms2ms.utils.Tools;
-
-import java.awt.Point;
-import java.util.List;
 
 /**
  * User: hliu
@@ -27,8 +23,8 @@ public class BayesGuru
     {
       super();
       mTitle=title; mBins=bins; mBound=bound;
-      mPositives=Stats.newHistogram("Positives", mBins, mBound);
-      mNegatives=Stats.newHistogram("Negatives", mBins, mBound);
+      mPositives= MsStats.newHistogram("Positives", mBins, mBound);
+      mNegatives= MsStats.newHistogram("Negatives", mBins, mBound);
     }
 
     public String      getTitle()      { return mTitle; }
@@ -39,12 +35,12 @@ public class BayesGuru
 
     public void addPositive(double data)
     {
-      if (mPositives == null) mPositives=Stats.newHistogram("Positives", mBins, mBound);
+      if (mPositives == null) mPositives= MsStats.newHistogram("Positives", mBins, mBound);
       mPositives.addData(data);
     }
     public void addNegative(double data)
     {
-      if (mNegatives == null) mNegatives=Stats.newHistogram("Negatives", mBins, mBound);
+      if (mNegatives == null) mNegatives= MsStats.newHistogram("Negatives", mBins, mBound);
       mNegatives.addData(data);
     }
 
@@ -58,7 +54,7 @@ public class BayesGuru
       if      (x>=Tools.back( mTransitXs)) return Tools.back( mTransitYs);
       else if (x<=Tools.front(mTransitXs)) return Tools.front(mTransitYs);
 
-      return Stats.interpolate(mTransitXs, mTransitYs, 0.5d, x)[0]; // ignore zero?
+      return MsStats.interpolate(mTransitXs, mTransitYs, 0.5d, x)[0]; // ignore zero?
     }
     private void toTransition(double p_pos, double p_neg)
     {

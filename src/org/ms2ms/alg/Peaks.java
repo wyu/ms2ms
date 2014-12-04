@@ -10,7 +10,6 @@ import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepFragAnnotation;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
 import org.ms2ms.mzjava.AnnotatedPeak;
-import org.ms2ms.utils.Stats;
 import org.ms2ms.utils.Tools;
 
 import java.util.*;
@@ -121,7 +120,7 @@ public class Peaks
     {
       Collection<Double> pts = new ArrayList<Double>();
       for (int i=0; i<baselines.size()-top; i++) pts.add(baselines.get(i).getIntensity());
-      return Stats.mean(pts) + Stats.stdev(pts);
+      return MsStats.mean(pts) + MsStats.stdev(pts);
     }
     return Tools.isSet(baselines) ? -1d* getMeanIntensity(Lists.partition(baselines, 3).get(0)) : 0;
   }
@@ -618,8 +617,8 @@ public class Peaks
       ys_i = 0;
       for (T t : A) if (t.getMz() >= 0d && Math.abs(t.getIntensity() - avg) <= bound) ys[ys_i++] = t.getIntensity();
 
-      avg   = Stats.mean( ys, ys_i);
-      bound = Stats.stdev(ys, ys_i) * stdev_multiple;
+      avg   = MsStats.mean(ys, ys_i);
+      bound = MsStats.stdev(ys, ys_i) * stdev_multiple;
       // are you converge yet?
 
       // remove the outlier from the consideration

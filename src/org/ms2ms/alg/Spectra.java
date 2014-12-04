@@ -3,14 +3,11 @@ package org.ms2ms.alg;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
-import com.google.common.collect.TreeMultimap;
-import org.apache.hadoop.hbase.util.Hash;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakAnnotation;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeList;
-import org.ms2ms.utils.Stats;
 import org.ms2ms.utils.Tools;
 
 import java.util.*;
@@ -175,7 +172,7 @@ public class Spectra
       // tag any points in top-xx as valid
       if (locals.size() > cream_of_top)
       {
-        double[] bound = Stats.outliers_rejected(intensities(A, tops), sigma, 2);
+        double[] bound = MsStats.outliers_rejected(intensities(A, tops), sigma, 2);
         base = bound[0]+bound[1];
 
         if (base     < min_noise) min_noise = base;

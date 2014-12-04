@@ -13,7 +13,7 @@ import org.ms2ms.alg.Peaks;
 import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.mzjava.AnnotatedSpectrum;
 import org.ms2ms.nosql.ms.HBaseProteomics;
-import org.ms2ms.utils.Stats;
+import org.ms2ms.alg.MsStats;
 import org.ms2ms.utils.Tools;
 
 import java.io.IOException;
@@ -223,9 +223,9 @@ public class MIMSL
       long bins = Math.round(1000 / (tol.getMax(spec.getPrecursor().getMz())- tol.getMin(spec.getPrecursor().getMz())));
       int nmatch = spec.getIonMatched(), nfrag = spec.getIonQueried(), nsig = spec.getIonIndexed();
       // long success, long trials, long success_population, long population
-      spec.setScore(AnnotatedSpectrum.SCR_MIMSL,       -1d * Stats.hypergeometricPval1(nmatch, nfrag, nsig, bins));
+      spec.setScore(AnnotatedSpectrum.SCR_MIMSL,       -1d * MsStats.hypergeometricPval1(nmatch, nfrag, nsig, bins));
       if (nsig > 1) nsig--; else if (nfrag > 1) nfrag--;
-      spec.setScore(AnnotatedSpectrum.SCR_MIMSL_DELTA, -1d * Stats.hypergeometricPval1(nmatch, nfrag, nsig, bins) - spec.getScore(AnnotatedSpectrum.SCR_MIMSL));
+      spec.setScore(AnnotatedSpectrum.SCR_MIMSL_DELTA, -1d * MsStats.hypergeometricPval1(nmatch, nfrag, nsig, bins) - spec.getScore(AnnotatedSpectrum.SCR_MIMSL));
     }
     return candidates;
   }

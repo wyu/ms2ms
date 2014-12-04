@@ -1,9 +1,9 @@
 package org.ms2ms.test.maxquant;
 
 import org.junit.Test;
+import org.ms2ms.alg.MsStats;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.test.TestAbstract;
-import org.ms2ms.utils.Stats;
 import uk.ac.liv.jmzqml.model.mzqml.*;
 import uk.ac.liv.jmzqml.xml.io.MzQuantMLMarshaller;
 import uk.ac.liv.maxquantmzquantmlconvertor.utilities.MaxquantFilesReader;
@@ -28,8 +28,8 @@ public class MaxQuantTest extends TestAbstract
   {
     Dataframe evidences = new Dataframe(root+"evidence100.txt", '\t');
 
-    // Dataframe pivot(String col, String val, Stats.Aggregator func, String... rows)
-    Dataframe out = evidences.pivot("Raw file", "Retention time calibration", Stats.Aggregator.MEAN, "Modified sequence", "Retention time");
+    // Dataframe pivot(String col, String val, MsStats.Aggregator func, String... rows)
+    Dataframe out = evidences.pivot("Raw file", "Retention time calibration", MsStats.Aggregator.MEAN, "Modified sequence", "Retention time");
     //System.out.println("\n" + out.display());
   }
 

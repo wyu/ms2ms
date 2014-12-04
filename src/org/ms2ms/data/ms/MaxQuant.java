@@ -1,10 +1,10 @@
 package org.ms2ms.data.ms;
 
+import org.ms2ms.alg.MsStats;
 import org.ms2ms.io.MsReaders;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.r.Var;
 import org.ms2ms.utils.IOs;
-import org.ms2ms.utils.Stats;
 
 import java.util.Map;
 
@@ -97,9 +97,9 @@ public class MaxQuant
       double ys[] = d.getDoubleCol("Retention time calibration");
       double Xs[] = d.getDoubleCol("Calibrated retention time start");
 
-      double[] Ys = Stats.interpolate(xs, ys, rttol, Xs);
+      double[] Ys = MsStats.interpolate(xs, ys, rttol, Xs);
       d.addVar("interpolated", Ys);
-      d.addVar("Calibrated RT", Stats.sum(d.getDoubleCol("Retention time"), d.getDoubleCol("Retention time calibration")));
+      d.addVar("Calibrated RT", MsStats.sum(d.getDoubleCol("Retention time"), d.getDoubleCol("Retention time calibration")));
     }
   }
 }

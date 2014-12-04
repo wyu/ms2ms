@@ -4,13 +4,13 @@ import org.expasy.mzjava.core.ms.PpmTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.junit.Before;
 import org.junit.Test;
+import org.ms2ms.alg.MsStats;
 import org.ms2ms.data.ms.MaxQuant;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.r.Var;
 import org.ms2ms.runner.Aligner;
 import org.ms2ms.test.TestAbstract;
 import org.ms2ms.utils.IOs;
-import org.ms2ms.utils.Stats;
 
 import java.util.Map;
 
@@ -56,17 +56,17 @@ public class OutputTest extends TestAbstract
   @Test
   public void RtCalibration() throws Exception
   {
-    // Dataframe pivot(String col, String val, Stats.Aggregator func, String... rows)
+    // Dataframe pivot(String col, String val, MsStats.Aggregator func, String... rows)
     double xs[] = evidences.getDoubleCol("Retention time");
     double ys[] = evidences.getDoubleCol("Retention time calibration");
     double Xs[] = evidences.getDoubleCol("Calibrated retention time start");
 
-    double[] Ys = Stats.interpolate(xs, ys, 0.3, Xs);
+    double[] Ys = MsStats.interpolate(xs, ys, 0.3, Xs);
 
     evidences.addVar("interpolated", Ys);
     System.out.println("\n" + evidences.display());
 
-    evidences.addVar("Calibrated RT", Stats.sum(evidences.getDoubleCol("Retention time"), evidences.getDoubleCol("Retention time calibration")));
+    evidences.addVar("Calibrated RT", MsStats.sum(evidences.getDoubleCol("Retention time"), evidences.getDoubleCol("Retention time calibration")));
   }
   @Test
   public void mergeMQnSurvey() throws Exception
@@ -111,17 +111,17 @@ public class OutputTest extends TestAbstract
   @Test
   public void interpolating() throws Exception
   {
-    // Dataframe pivot(String col, String val, Stats.Aggregator func, String... rows)
+    // Dataframe pivot(String col, String val, MsStats.Aggregator func, String... rows)
     double xs[] = evidences.getDoubleCol("Retention time");
     double ys[] = evidences.getDoubleCol("Retention time calibration");
     double Xs[] = evidences.getDoubleCol("Calibrated retention time start");
 
-    double[] Ys = Stats.interpolate(xs, ys, 0.3, Xs);
+    double[] Ys = MsStats.interpolate(xs, ys, 0.3, Xs);
 
     evidences.addVar("interpolated", Ys);
     System.out.println("\n" + evidences.display());
 
-    evidences.addVar("Calibrated RT", Stats.sum(evidences.getDoubleCol("Retention time"), evidences.getDoubleCol("Retention time calibration")));
+    evidences.addVar("Calibrated RT", MsStats.sum(evidences.getDoubleCol("Retention time"), evidences.getDoubleCol("Retention time calibration")));
   }
   @Test
   public void aligning() throws Exception

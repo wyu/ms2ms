@@ -4,25 +4,21 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.SortedSetMultimap;
 import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.core.ms.cluster.*;
-import org.expasy.mzjava.core.ms.spectrasim.DpSimFunc;
 import org.expasy.mzjava.core.ms.spectrasim.NdpSimFunc;
-import org.expasy.mzjava.core.ms.spectrasim.SimFunc;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.junit.Assert;
 import org.junit.Test;
 import org.ms2ms.alg.Clustering;
+import org.ms2ms.alg.MsStats;
 import org.ms2ms.alg.Spectra;
 import org.ms2ms.data.collect.MultiTreeTable;
 import org.ms2ms.data.ms.ClusteringSettings;
 import org.ms2ms.data.ms.MaxQuant;
 import org.ms2ms.data.ms.MsSettings;
-import org.ms2ms.data.ms.MsSpectrum;
 import org.ms2ms.io.MsIO;
 import org.ms2ms.r.Dataframe;
-import org.ms2ms.r.Var;
 import org.ms2ms.test.TestAbstract;
 import org.ms2ms.utils.IOs;
-import org.ms2ms.utils.Stats;
 import org.ms2ms.utils.Tools;
 
 import java.io.RandomAccessFile;
@@ -81,7 +77,7 @@ public class ClusteringTest extends TestAbstract
       {
         if (plural.contains(r)) continue;
 
-        double mz = Stats.toDouble(msms.cell(r, MaxQuant.V_MZ)), rt = Stats.toDouble(msms.cell(r, MaxQuant.V_RT));
+        double mz = MsStats.toDouble(msms.cell(r, MaxQuant.V_MZ)), rt = MsStats.toDouble(msms.cell(r, MaxQuant.V_RT));
         Collection<String>  slice = mz_rt_row.subset(mz-mztol, mz+mztol, rt-rttol,rt+rttol);
         // remove the rows already in the clusters (plural)
         Iterator<String> itr = slice.iterator();
@@ -159,7 +155,7 @@ public class ClusteringTest extends TestAbstract
     {
       for (String r : tic_row.get(t))
       {
-        double mz = Stats.toDouble(msms.cell(r, MaxQuant.V_MZ)), rt = Stats.toDouble(msms.cell(r, MaxQuant.V_RT));
+        double mz = MsStats.toDouble(msms.cell(r, MaxQuant.V_MZ)), rt = MsStats.toDouble(msms.cell(r, MaxQuant.V_RT));
         Collection<String>  slice = mz_rt_row.subset(mz-mztol, mz+mztol, rt-rttol,rt+rttol);
         List<MsnSpectrum> spectra = MsIO.readSpectra(bin, msms.getLongCol(MaxQuant.V_OFFSET, slice));
         MsIO.writeSpectra("/media/data/tmp/examples_"+spectra.size()+"_"+Tools.d2s(mz, 4)+"_"+Tools.d2s(rt, 2)+".ms2", spectra);

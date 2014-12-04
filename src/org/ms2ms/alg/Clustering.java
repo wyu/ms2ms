@@ -2,12 +2,9 @@ package org.ms2ms.alg;
 
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SortedSetMultimap;
-import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.core.ms.cluster.*;
-import org.expasy.mzjava.core.ms.spectrasim.NdpSimFunc;
 import org.expasy.mzjava.core.ms.spectrasim.SimFunc;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
-import org.junit.Test;
 import org.ms2ms.data.collect.MultiTreeTable;
 import org.ms2ms.data.ms.ClusteringSettings;
 import org.ms2ms.data.ms.LcMsMsDataset;
@@ -15,8 +12,6 @@ import org.ms2ms.data.ms.MaxQuant;
 import org.ms2ms.io.MsIO;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.r.Var;
-import org.ms2ms.utils.IOs;
-import org.ms2ms.utils.Stats;
 import org.ms2ms.utils.Tools;
 
 import java.io.IOException;
@@ -103,7 +98,7 @@ public class Clustering
       {
         if (plural.contains(r)) continue;
 
-        double mz = Stats.toDouble(msms.cell(r, MaxQuant.V_MZ)), rt = Stats.toDouble(msms.cell(r, MaxQuant.V_RT));
+        double mz = MsStats.toDouble(msms.cell(r, MaxQuant.V_MZ)), rt = MsStats.toDouble(msms.cell(r, MaxQuant.V_RT));
 
         Collection<String>  slice = mz_rt_row.subset(
             settings.getInstrument().getPrecursorTol().getMin(mz), settings.getInstrument().getPrecursorTol().getMax(mz),

@@ -5,8 +5,7 @@ import org.apache.commons.math3.distribution.NormalDistribution;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.data.Features;
-import org.ms2ms.r.Var;
-import org.ms2ms.utils.Stats;
+import org.ms2ms.alg.MsStats;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
@@ -95,7 +94,7 @@ public class Aligner
     double score = 1d;
     for (int i=0; i<mCols.length; i++)
     {
-      double x0 = Stats.toDouble(A.cell(rowidA, mCols[i])), delta = Math.abs(x0 - Stats.toDouble(B.cell(rowidB, mCols[i])));
+      double x0 = MsStats.toDouble(A.cell(rowidA, mCols[i])), delta = Math.abs(x0 - MsStats.toDouble(B.cell(rowidB, mCols[i])));
       NormalDistribution norm = new NormalDistribution(0, (mTols[i].getMax(x0)-mTols[i].getMin(x0))/1.77d);
       score *= norm.density(delta); norm=null;
     }
@@ -123,7 +122,7 @@ public class Aligner
         if (mIndice.size()>0)
           for (int k=0; k<getNumVars(); k++)
           {
-            Double                x = Stats.toDouble(traces[i].cell(rowid,mCols[k]));
+            Double                x = MsStats.toDouble(traces[i].cell(rowid, mCols[k]));
             Map<Double, Long> slice = mIndice.get(k).subMap(mTols[k].getMin(x), mTols[k].getMax(x));
             if (slice==null)
             {
@@ -171,7 +170,7 @@ public class Aligner
         for (int k=0; k<getNumVars(); k++)
         {
           if (mIndice.size()-1<k) mIndice.add(new TreeMap<Double, Long>());
-          mIndice.get(k).put(Stats.toDouble(traces[i].cell(rowid,mCols[k])), target.getID2());
+          mIndice.get(k).put(MsStats.toDouble(traces[i].cell(rowid, mCols[k])), target.getID2());
         }
 
         processedRows++;

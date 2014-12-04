@@ -5,7 +5,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.test.TestAbstract;
-import org.ms2ms.utils.Stats;
+import org.ms2ms.alg.MsStats;
 
 import java.util.Map;
 
@@ -157,7 +157,7 @@ public class DataframeTest extends TestAbstract
   @Test
   public void pivoting() throws Exception
   {
-    Dataframe out = animals.pivot("type", "size", Stats.Aggregator.COUNT);
+    Dataframe out = animals.pivot("type", "size", MsStats.Aggregator.COUNT);
     System.out.println("\n" + out.display());
   }
 
