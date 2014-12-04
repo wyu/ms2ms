@@ -5,9 +5,9 @@ import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.ms2ms.nosql.HBase;
-import org.ms2ms.nosql.HBasePeakList;
-import org.ms2ms.nosql.HBaseProteomics;
-import org.ms2ms.nosql.HBaseSpLib;
+import org.ms2ms.nosql.ms.HBasePeakList;
+import org.ms2ms.nosql.ms.HBaseProteomics;
+import org.ms2ms.nosql.ms.HBaseSpLib;
 import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
 

@@ -1,4 +1,4 @@
-package org.ms2ms.nosql;
+package org.ms2ms.nosql.ms;
 
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -11,6 +11,7 @@ import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.proteomics.ms.consensus.PeptideConsensusSpectrum;
 import org.ms2ms.data.ms.MsSpectrum;
 import org.ms2ms.mzjava.AnnotatedSpectrum;
+import org.ms2ms.nosql.HBase;
 import org.ms2ms.utils.Tools;
 
 import java.io.*;

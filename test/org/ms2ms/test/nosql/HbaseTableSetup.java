@@ -1,7 +1,7 @@
 package org.ms2ms.test.nosql;
 
 import org.junit.Test;
-import org.ms2ms.nosql.HBaseProteomics;
+import org.ms2ms.nosql.ms.HBaseProteomics;
 import org.ms2ms.test.TestAbstract;
 
 import java.io.IOException;

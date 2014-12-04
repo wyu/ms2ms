@@ -5,7 +5,7 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 import org.ms2ms.nosql.HBase;
-import org.ms2ms.nosql.HBasePeakList;
+import org.ms2ms.nosql.ms.HBasePeakList;
 import org.ms2ms.test.TestAbstract;
 
 public class HBaseHouseKeeping extends TestAbstract

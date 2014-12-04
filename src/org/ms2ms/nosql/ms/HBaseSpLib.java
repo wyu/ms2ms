@@ -1,8 +1,9 @@
-package org.ms2ms.nosql;
+package org.ms2ms.nosql.ms;
 
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.ms2ms.nosql.HBase;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -40,7 +41,7 @@ public class HBaseSpLib implements Serializable
   {
     if (row==null) return;
     // process the row
-    spectype = HBase.get(row, HBase.FAM_PROP, HBase.COL_SPECTYPE,spectype);
+    spectype = HBase.get(row, HBase.FAM_PROP, HBase.COL_SPECTYPE, spectype);
     name     = HBase.get(row, HBase.FAM_PROP, HBase.COL_NAME,    name);
     source   = HBase.get(row, HBase.FAM_PROP, HBase.COL_SOURCE,  source);
     organism = HBase.get(row, HBase.FAM_PROP, HBase.COL_ORGANISM,organism);

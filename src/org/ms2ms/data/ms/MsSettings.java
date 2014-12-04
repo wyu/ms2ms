@@ -4,7 +4,7 @@ import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.core.ms.PpmTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.ms2ms.alg.Peaks;
-import org.ms2ms.nosql.HBasePeakList;
+import org.ms2ms.nosql.ms.HBasePeakList;
 import org.ms2ms.utils.Settings;
 
 /** Parameters associated with a single stage of MS analyzer

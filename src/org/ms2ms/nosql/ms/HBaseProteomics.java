@@ -1,4 +1,4 @@
-package org.ms2ms.nosql;
+package org.ms2ms.nosql.ms;
 
 import com.google.common.collect.Range;
 import org.apache.hadoop.hbase.HColumnDescriptor;
@@ -21,23 +21,37 @@ import org.expasy.mzjava.utils.URIBuilder;
 import org.ms2ms.mimsl.MIMSL;
 import org.ms2ms.mimsl.MimslSettings;
 import org.ms2ms.mzjava.*;
+import org.ms2ms.nosql.HBase;
 import org.ms2ms.utils.Tools;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.Reader;
 import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
-import java.util.regex.Pattern;
 
 /**
  * Created by wyu on 4/20/14.
  */
 public class HBaseProteomics extends HBase
 {
+  static public String HUMAN  = "Homo Sapians";
+  static public String MOUSE  = "Mouse";
+  static public String ECOLI  = "EColi";
+  static public String YEAST  = "Yeast";
+  static public String MM     = "Msmegmatis";
+  static public String WORM   = "Ce";
+  static public String DM     = "Dm";
+  static public String BOVINE = "Bovine";
+  static public String CHICK  = "Chicken";
+  static public String DRADI  = "Dradiodurans";
+  static public String DROSO  = "Drosophila";
+  static public String RAT    = "Rat";
+  static public String MIXED  = "Mixed";
+  static public String POMBE  = "S.Pombe";
+
   public static void ensureTables() throws IOException
   {
     // make sures the tables were properly created

@@ -9,8 +9,8 @@ import org.ms2ms.alg.Peaks;
 import org.ms2ms.mimsl.MIMSL;
 import org.ms2ms.mimsl.MimslSettings;
 import org.ms2ms.mzjava.AnnotatedSpectrum;
-import org.ms2ms.nosql.HBasePeakList;
-import org.ms2ms.nosql.HBaseProteomics;
+import org.ms2ms.nosql.ms.HBasePeakList;
+import org.ms2ms.nosql.ms.HBaseProteomics;
 import org.ms2ms.test.TestAbstract;
 
 import java.io.IOException;
