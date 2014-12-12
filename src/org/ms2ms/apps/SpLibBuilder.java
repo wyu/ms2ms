@@ -1,17 +1,14 @@
 package org.ms2ms.apps;
 
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.ms2ms.nosql.HBase;
+import org.ms2ms.nosql.HBases;
 import org.ms2ms.nosql.ms.HBasePeakList;
 import org.ms2ms.nosql.ms.HBaseProteomics;
 import org.ms2ms.nosql.ms.HBaseSpLib;
 import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
-
-import java.io.IOException;
 
 /**
  * Created with IntelliJ IDEA.
@@ -34,7 +31,7 @@ public class SpLibBuilder extends Apps
     for (int i = 0; i < args.length; i++)
     {
       if (args[i].length() == 0) continue;
-//      HBaseSpLib.set(table, "NIST", "msp", HBase.HUMAN, "JUN2013", HBasePeakList.SPEC_TRAP_HCD, "human_hcd_selected_final_true_lib");
+//      HBaseSpLib.set(table, "NIST", "msp", HBases.HUMAN, "JUN2013", HBasePeakList.SPEC_TRAP_HCD, "human_hcd_selected_final_true_lib");
 //      mLibSource   = option(mLibSource, "Source of the spectral library such as NIST", args, i, "-s", "-source");
 //      mLibFormat   = option(mLibFormat, "Format such as MSP", args, i, "-f", "-format");
 //      mLibOrganism = option(mLibOrganism, "Organism", args, i, "-g", "-organism");
@@ -50,10 +47,10 @@ public class SpLibBuilder extends Apps
   {
     if (!Tools.isSet(mLibList)) return false;
 
-    HBase.verifyConnection();
+    HBases.verifyConnection();
     HBaseProteomics.ensureTables();
 
-    HConnection      conn = HConnectionManager.createConnection(HBase.conf);
+    HConnection      conn = HConnectionManager.createConnection(HBases.conf);
     HTableInterface table = conn.getTable(HBaseSpLib.TBL_SPLIB);
 
     TabFile cfg = new TabFile(mLibList, TabFile.comma);

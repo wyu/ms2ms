@@ -1,7 +1,7 @@
 package org.ms2ms.io;
 
 import org.expasy.mzjava.core.ms.spectrum.Spectrum;
-import org.ms2ms.alg.XMLs;
+import org.ms2ms.data.XMLs;
 
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;

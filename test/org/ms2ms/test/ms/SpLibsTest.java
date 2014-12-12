@@ -8,7 +8,7 @@ import org.expasy.mzjava.proteomics.ms.consensus.PeptideConsensusSpectrum;
 import org.junit.Test;
 import org.ms2ms.alg.Peaks;
 import org.ms2ms.mzjava.AnnotatedSpectrum;
-import org.ms2ms.nosql.HBase;
+import org.ms2ms.nosql.HBases;
 import org.ms2ms.nosql.ms.HBasePeakList;
 import org.ms2ms.nosql.ms.HBaseProteomics;
 import org.ms2ms.nosql.ms.HBaseSpLib;
@@ -35,7 +35,7 @@ public class SpLibsTest extends TestAbstract
 //    Collection<PeptideConsensusSpectrum> spectra = SpLibs.readMsp(new File("/media/data/splib/nist_nci_stdmix_consensus_final_true_lib.msp"));
     Collection<PeptideConsensusSpectrum> spectra = SpLibs.readMsp(new File("/media/data/splib/NIST_human_IT_2012-05-30.msp"));
 
-    // save the spectrum and indice to HBase
+    // save the spectrum and indice to HBases
     HBaseProteomics.index(spectra, HBasePeakList.SPEC_TRAP_CID, 50d, 450d, 7, 4d);
     HBaseProteomics.listTables();
 
@@ -98,7 +98,7 @@ public class SpLibsTest extends TestAbstract
     Scan             scan = new Scan();
 
     scan.setCaching(1); scan.setBatch(1);
-    scan.addColumn(HBase.FAM_ID, HBase.COL_ENDID);
+    scan.addColumn(HBases.FAM_ID, HBases.COL_ENDID);
 
     int rows = 0;
     ResultScanner resultScanner = table.getScanner(scan);
@@ -125,12 +125,12 @@ public class SpLibsTest extends TestAbstract
   {
     HConnection conn = HConnectionManager.createConnection(HBaseConfiguration.create());
     // cells the number of row. Can be very expansive for a large table!!
-    HTableInterface table = conn.getTable(HBase.TBL_MSMSINDEX);
+    HTableInterface table = conn.getTable(HBases.TBL_MSMSINDEX);
 
     Scan scan = new Scan();
     scan.setCaching(1);
     scan.setBatch(1);
-    scan.addFamily(HBase.FAM_PROP);
+    scan.addFamily(HBases.FAM_PROP);
 
     ResultScanner resultScanner = table.getScanner(scan);
     Iterator<Result> iterator = resultScanner.iterator();

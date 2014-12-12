@@ -3,7 +3,7 @@ package org.ms2ms.nosql.ms;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.ms2ms.nosql.HBase;
+import org.ms2ms.nosql.HBases;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 
-/** Representation of spectral library in HBase
+/** Representation of spectral library in HBases
  *  User: wyu
  *  Date: 5/14/14
  */
@@ -41,14 +41,14 @@ public class HBaseSpLib implements Serializable
   {
     if (row==null) return;
     // process the row
-    spectype = HBase.get(row, HBase.FAM_PROP, HBase.COL_SPECTYPE, spectype);
-    name     = HBase.get(row, HBase.FAM_PROP, HBase.COL_NAME,    name);
-    source   = HBase.get(row, HBase.FAM_PROP, HBase.COL_SOURCE,  source);
-    organism = HBase.get(row, HBase.FAM_PROP, HBase.COL_ORGANISM,organism);
-    version  = HBase.get(row, HBase.FAM_PROP, HBase.COL_VERSION, version);
-    format   = HBase.get(row, HBase.FAM_PROP, HBase.COL_FORMAT,  format);
-    entries  = HBase.get(row, HBase.FAM_PROP, HBase.COL_ENTRIES, entries);
-//    id       = HBase.cells(row, HBase.FAM_ID,   HBase.COL_ENDID,   id);
+    spectype = HBases.get(row, HBases.FAM_PROP, HBases.COL_SPECTYPE, spectype);
+    name     = HBases.get(row, HBases.FAM_PROP, HBases.COL_NAME, name);
+    source   = HBases.get(row, HBases.FAM_PROP, HBases.COL_SOURCE, source);
+    organism = HBases.get(row, HBases.FAM_PROP, HBases.COL_ORGANISM, organism);
+    version  = HBases.get(row, HBases.FAM_PROP, HBases.COL_VERSION, version);
+    format   = HBases.get(row, HBases.FAM_PROP, HBases.COL_FORMAT, format);
+    entries  = HBases.get(row, HBases.FAM_PROP, HBases.COL_ENTRIES, entries);
+//    id       = HBases.cells(row, HBases.FAM_ID,   HBases.COL_ENDID,   id);
   }
   public String getName()     { return name; }
   public byte[] getSpecType() { return spectype; }
@@ -62,15 +62,15 @@ public class HBaseSpLib implements Serializable
   }
 //  public static long increID(String tbl, long block) throws IOException
 //  {
-//    return incre(Bytes.toBytes(tbl), HBase.FAM_ID, HBase.COL_ENDID, block);
+//    return incre(Bytes.toBytes(tbl), HBases.FAM_ID, HBases.COL_ENDID, block);
 //  }
 //  public static long increID(byte[] lib, long block) throws IOException
 //  {
-//    return HBase.incre(TBL_SPLIB, lib, HBase.FAM_ID, HBase.COL_ENDID, block);
+//    return HBases.incre(TBL_SPLIB, lib, HBases.FAM_ID, HBases.COL_ENDID, block);
 //  }
   public static long increEntries(byte[] lib, long incre) throws IOException
   {
-    return HBase.incre(TBL_SPLIB, lib, HBase.FAM_PROP, HBase.COL_ENTRIES, incre);
+    return HBases.incre(TBL_SPLIB, lib, HBases.FAM_PROP, HBases.COL_ENTRIES, incre);
   }
 
   public static HBaseSpLib set(HTableInterface tbl, String source, String format,
@@ -80,13 +80,13 @@ public class HBaseSpLib implements Serializable
 //    int id = (int )increID(tbl.getTableName(), 1l);
     Put row = new Put(Bytes.toBytes(name));
     // byte[] family, byte[] qualifier, byte[] value
-//    row.add(HBase.FAM_ID,   HBase.COL_ENDID,   Bytes.toBytes(id));
-    row.add(HBase.FAM_PROP, HBase.COL_NAME,    Bytes.toBytes(name));
-    row.add(HBase.FAM_PROP, HBase.COL_SOURCE,  Bytes.toBytes(source));
-    row.add(HBase.FAM_PROP, HBase.COL_ORGANISM,Bytes.toBytes(organism));
-    row.add(HBase.FAM_PROP, HBase.COL_VERSION, Bytes.toBytes(version));
-    row.add(HBase.FAM_PROP, HBase.COL_SPECTYPE,spectype);
-    row.add(HBase.FAM_PROP, HBase.COL_FORMAT,  Bytes.toBytes(format));
+//    row.add(HBases.FAM_ID,   HBases.COL_ENDID,   Bytes.toBytes(id));
+    row.add(HBases.FAM_PROP, HBases.COL_NAME,    Bytes.toBytes(name));
+    row.add(HBases.FAM_PROP, HBases.COL_SOURCE,  Bytes.toBytes(source));
+    row.add(HBases.FAM_PROP, HBases.COL_ORGANISM,Bytes.toBytes(organism));
+    row.add(HBases.FAM_PROP, HBases.COL_VERSION, Bytes.toBytes(version));
+    row.add(HBases.FAM_PROP, HBases.COL_SPECTYPE,spectype);
+    row.add(HBases.FAM_PROP, HBases.COL_FORMAT,  Bytes.toBytes(format));
 
     tbl.put(row);
     return new HBaseSpLib(name, source, organism, version, format, 0, spectype);
@@ -104,7 +104,7 @@ public class HBaseSpLib implements Serializable
       Scan             scan = new Scan();
 
       scan.setCaching(1); scan.setBatch(1);
-      scan.addColumn(HBase.FAM_PROP, HBase.COL_NAME);
+      scan.addColumn(HBases.FAM_PROP, HBases.COL_NAME);
 
       int rows = 0;
       ResultScanner resultScanner = table.getScanner(scan);

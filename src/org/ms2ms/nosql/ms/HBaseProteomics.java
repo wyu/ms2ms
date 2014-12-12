@@ -21,7 +21,7 @@ import org.expasy.mzjava.utils.URIBuilder;
 import org.ms2ms.mimsl.MIMSL;
 import org.ms2ms.mimsl.MimslSettings;
 import org.ms2ms.mzjava.*;
-import org.ms2ms.nosql.HBase;
+import org.ms2ms.nosql.HBases;
 import org.ms2ms.utils.Tools;
 
 import java.io.BufferedReader;
@@ -35,7 +35,7 @@ import java.util.*;
 /**
  * Created by wyu on 4/20/14.
  */
-public class HBaseProteomics extends HBase
+public class HBaseProteomics extends HBases
 {
   static public String HUMAN  = "Homo Sapians";
   static public String MOUSE  = "Mouse";
@@ -55,10 +55,10 @@ public class HBaseProteomics extends HBase
   public static void ensureTables() throws IOException
   {
     // make sures the tables were properly created
-    createTable(HBasePeakList.TBL_PEAKLIST, HBase.FAM_FLAG, HBasePeakList.FAM_PRECURSOR, HBase.FAM_PROP);
-    createTable(HBase.TBL_MSMSINDEX, HBase.FAM_ID, HBase.FAM_PROP);
-    createTable(HBase.TBL_TABLE,    HBase.FAM_ID, HBase.FAM_PROP);
-    createTable(Bytes.toString(HBaseSpLib.TBL_SPLIB), HBase.FAM_ID, HBase.FAM_PROP);
+    createTable(HBasePeakList.TBL_PEAKLIST, HBases.FAM_FLAG, HBasePeakList.FAM_PRECURSOR, HBases.FAM_PROP);
+    createTable(HBases.TBL_MSMSINDEX, HBases.FAM_ID, HBases.FAM_PROP);
+    createTable(HBases.TBL_TABLE,    HBases.FAM_ID, HBases.FAM_PROP);
+    createTable(Bytes.toString(HBaseSpLib.TBL_SPLIB), HBases.FAM_ID, HBases.FAM_PROP);
   }
   public static void listTables() throws IOException
   {
@@ -114,7 +114,7 @@ public class HBaseProteomics extends HBase
     HConnection conn = getConnection();
 
     HTableInterface peaklist = conn.getTable(HBasePeakList.TBL_PEAKLIST),
-                      indice = conn.getTable(HBase.TBL_MSMSINDEX);
+                      indice = conn.getTable(HBases.TBL_MSMSINDEX);
 
     // save the spectra to the table
     long counts=0;
@@ -143,18 +143,18 @@ public class HBaseProteomics extends HBase
       // TODO need to work out the composite key incoporating the n/c and mod flag
       Put row = new Put(HBasePeakList.row4MsMsIndex(spec_type, (float )spec.getPrecursor().getMz(), (byte )spec.getPrecursor().getCharge()));
       // byte[] family, byte[] qualifier, byte[] value
-      row.add(HBase.FAM_ID,   HBasePeakList.COL_UUID, Bytes.toBytes(spec.getId().toString()));
-      row.add(HBase.FAM_PROP, HBasePeakList.COL_MZ,   Bytes.toBytes(sig.getMz()));
-      row.add(HBase.FAM_PROP, HBasePeakList.COL_SNR,  Bytes.toBytes(sig.getSNR()));
-      row.add(HBase.FAM_PROP, HBasePeakList.COL_Z,    Bytes.toBytes(sig.getCharge()));
-      row.add(HBase.FAM_PROP, HBasePeakList.COL_IONS, Bytes.toBytes(sigs.size()));
+      row.add(HBases.FAM_ID,   HBasePeakList.COL_UUID, Bytes.toBytes(spec.getId().toString()));
+      row.add(HBases.FAM_PROP, HBasePeakList.COL_MZ,   Bytes.toBytes(sig.getMz()));
+      row.add(HBases.FAM_PROP, HBasePeakList.COL_SNR,  Bytes.toBytes(sig.getSNR()));
+      row.add(HBases.FAM_PROP, HBasePeakList.COL_Z,    Bytes.toBytes(sig.getCharge()));
+      row.add(HBases.FAM_PROP, HBasePeakList.COL_IONS, Bytes.toBytes(sigs.size()));
       // TODO row.add(Bytes.toBytes(HBasePeakList.FAM_MZ), Bytes.toBytes(HBasePeakList.COL_MMOD), Bytes.toBytes(spec.getPrecursor().getCharge()));
       indice.put(row);
     }
     //if (verbose && Tools.isSet(sigs)) System.out.println();
   }
 
-  /** Query the HBase for the candidates. No scoring in this call
+  /** Query the HBases for the candidates. No scoring in this call
    *
    * @param signatures
    */
@@ -166,7 +166,7 @@ public class HBaseProteomics extends HBase
     // setup the HTable for query
     HConnection conn = getConnection();
     // cells the number of row. Can be very expansive for a large table!!
-    HTableInterface tbl = conn.getTable(HBase.TBL_MSMSINDEX);
+    HTableInterface tbl = conn.getTable(HBases.TBL_MSMSINDEX);
 
     Map<UUID, AnnotatedSpectrum> id_candidate = new HashMap<UUID, AnnotatedSpectrum>();
     Collection<Range<Peak>> slices = MIMSL.enumeratePrecursors(tol, 0, signatures.getPrecursor());
@@ -181,8 +181,8 @@ public class HBaseProteomics extends HBase
         {
           // set the range of row keys
           filters.add(new FilterList(FilterList.Operator.MUST_PASS_ALL,
-            new SingleColumnValueFilter(HBase.FAM_PROP, HBasePeakList.COL_MZ, CompareFilter.CompareOp.GREATER_OR_EQUAL, new BinaryComparator(Bytes.toBytes(tol.getMin(signatures.getMz(k))))),
-            new SingleColumnValueFilter(HBase.FAM_PROP, HBasePeakList.COL_MZ, CompareFilter.CompareOp.LESS_OR_EQUAL,    new BinaryComparator(Bytes.toBytes(tol.getMax(signatures.getMz(k)))))));
+            new SingleColumnValueFilter(HBases.FAM_PROP, HBasePeakList.COL_MZ, CompareFilter.CompareOp.GREATER_OR_EQUAL, new BinaryComparator(Bytes.toBytes(tol.getMin(signatures.getMz(k))))),
+            new SingleColumnValueFilter(HBases.FAM_PROP, HBasePeakList.COL_MZ, CompareFilter.CompareOp.LESS_OR_EQUAL,    new BinaryComparator(Bytes.toBytes(tol.getMax(signatures.getMz(k)))))));
         }
         FilterList filterList = new FilterList(FilterList.Operator.MUST_PASS_ONE, filters);
         scan.setFilter(filterList);
@@ -191,15 +191,15 @@ public class HBaseProteomics extends HBase
       ResultScanner scanner = tbl.getScanner(scan);
       for (Result rs = scanner.next(); rs != null; rs = scanner.next()) {
         UUID id = UUID.fromString(
-          HBase.getString(rs, HBase.FAM_ID, HBasePeakList.COL_UUID));
+          HBases.getString(rs, HBases.FAM_ID, HBasePeakList.COL_UUID));
         if (id_candidate.get(id) == null) id_candidate.put(id, new AnnotatedSpectrum());
         id_candidate.get(id).add(
-          HBase.getDouble(rs, HBase.FAM_PROP, HBasePeakList.COL_MZ),
-          HBase.getDouble(rs, HBase.FAM_PROP, HBasePeakList.COL_SNR));
+          HBases.getDouble(rs, HBases.FAM_PROP, HBasePeakList.COL_MZ),
+          HBases.getDouble(rs, HBases.FAM_PROP, HBasePeakList.COL_SNR));
         id_candidate.get(id).setId(id);
         // record the number the indice
         id_candidate.get(id).setIonIndexed(
-          HBase.getInt(rs, HBase.FAM_PROP, HBasePeakList.COL_IONS));
+          HBases.getInt(rs, HBases.FAM_PROP, HBasePeakList.COL_IONS));
         id_candidate.get(id).setIonQueried(signatures.size());
         id_candidate.get(id).setIonMatched(id_candidate.get(id).size());
         id_candidate.get(id).setPrecursor(signatures.getPrecursor());
@@ -226,7 +226,7 @@ public class HBaseProteomics extends HBase
     // setup the HTable for query
     HConnection conn = getConnection();
     // cells the number of row. Can be very expansive for a large table!!
-    HTableInterface tbl = conn.getTable(HBase.TBL_MSMSINDEX);
+    HTableInterface tbl = conn.getTable(HBases.TBL_MSMSINDEX);
 
     Map<UUID, AnnotatedSpectrum> id_candidate = new HashMap<UUID, AnnotatedSpectrum>();
     Collection<Range<Peak>> slices = MIMSL.enumeratePrecursors(settings.getPrecursorTol(), settings.getZFloat(), precursors);
@@ -246,9 +246,9 @@ public class HBaseProteomics extends HBase
         {
           // set the range of row keys
           filters.add(new FilterList(FilterList.Operator.MUST_PASS_ALL,
-              new SingleColumnValueFilter(HBase.FAM_PROP, HBasePeakList.COL_MZ, CompareFilter.CompareOp.GREATER_OR_EQUAL,
+              new SingleColumnValueFilter(HBases.FAM_PROP, HBasePeakList.COL_MZ, CompareFilter.CompareOp.GREATER_OR_EQUAL,
                   new BinaryComparator(Bytes.toBytes(settings.getFragmentTol().getMin(frags[k].getMz())))),
-              new SingleColumnValueFilter(HBase.FAM_PROP, HBasePeakList.COL_MZ, CompareFilter.CompareOp.LESS_OR_EQUAL,
+              new SingleColumnValueFilter(HBases.FAM_PROP, HBasePeakList.COL_MZ, CompareFilter.CompareOp.LESS_OR_EQUAL,
                   new BinaryComparator(Bytes.toBytes(settings.getFragmentTol().getMax(frags[k].getMz()))))));
         }
         FilterList filterList = new FilterList(FilterList.Operator.MUST_PASS_ONE, filters);
@@ -258,15 +258,15 @@ public class HBaseProteomics extends HBase
       ResultScanner scanner = tbl.getScanner(scan);
       for (Result rs = scanner.next(); rs != null; rs = scanner.next()) {
         UUID id = UUID.fromString(
-            HBase.getString(rs, HBase.FAM_ID, HBasePeakList.COL_UUID));
+            HBases.getString(rs, HBases.FAM_ID, HBasePeakList.COL_UUID));
         if (id_candidate.cells(id) == null) id_candidate.put(id, new AnnotatedSpectrum());
         id_candidate.cells(id).add(
-            HBase.getDouble(rs, HBase.FAM_PROP, HBasePeakList.COL_MZ),
-            HBase.getDouble(rs, HBase.FAM_PROP, HBasePeakList.COL_SNR));
+            HBases.getDouble(rs, HBases.FAM_PROP, HBasePeakList.COL_MZ),
+            HBases.getDouble(rs, HBases.FAM_PROP, HBasePeakList.COL_SNR));
         id_candidate.cells(id).setId(id);
         // record the number the indice
         id_candidate.cells(id).setIonIndexed(
-            HBase.getInt(rs, HBase.FAM_PROP, HBasePeakList.COL_IONS));
+            HBases.getInt(rs, HBases.FAM_PROP, HBasePeakList.COL_IONS));
         id_candidate.cells(id).setIonQueried(frags.length);
         id_candidate.cells(id).setIonMatched(id_candidate.cells(id).size());
         id_candidate.cells(id).setPrecursor(null);
@@ -300,9 +300,9 @@ public class HBaseProteomics extends HBase
       {
         // set the range of row keys
         filters.add(new FilterList(FilterList.Operator.MUST_PASS_ALL,
-            new SingleColumnValueFilter(HBase.FAM_PROP, HBasePeakList.COL_MZ, CompareFilter.CompareOp.GREATER_OR_EQUAL,
+            new SingleColumnValueFilter(HBases.FAM_PROP, HBasePeakList.COL_MZ, CompareFilter.CompareOp.GREATER_OR_EQUAL,
                 new BinaryComparator(Bytes.toBytes(frag.getMin(frags[k].getMz())))),
-            new SingleColumnValueFilter(HBase.FAM_PROP, HBasePeakList.COL_MZ, CompareFilter.CompareOp.LESS_OR_EQUAL,
+            new SingleColumnValueFilter(HBases.FAM_PROP, HBasePeakList.COL_MZ, CompareFilter.CompareOp.LESS_OR_EQUAL,
                 new BinaryComparator(Bytes.toBytes(frag.getMax(frags[k].getMz()))))));
       }
       FilterList filterList = new FilterList(FilterList.Operator.MUST_PASS_ONE, filters);
@@ -313,15 +313,15 @@ public class HBaseProteomics extends HBase
     Map<UUID, AnnotatedSpectrum> id_candidate = new HashMap<UUID, AnnotatedSpectrum>();
     for (Result rs = scanner.next(); rs != null; rs = scanner.next()) {
       UUID id = UUID.fromString(
-          HBase.getString(rs, HBase.FAM_ID, HBasePeakList.COL_UUID));
+          HBases.getString(rs, HBases.FAM_ID, HBasePeakList.COL_UUID));
       if (id_candidate.get(id) == null) id_candidate.put(id, new AnnotatedSpectrum());
       id_candidate.get(id).add(
-          HBase.getDouble(rs, HBase.FAM_PROP, HBasePeakList.COL_MZ),
-          HBase.getDouble(rs, HBase.FAM_PROP, HBasePeakList.COL_SNR));
+          HBases.getDouble(rs, HBases.FAM_PROP, HBasePeakList.COL_MZ),
+          HBases.getDouble(rs, HBases.FAM_PROP, HBasePeakList.COL_SNR));
       id_candidate.get(id).setId(id);
       // record the number the indice
       id_candidate.get(id).setIonIndexed(
-          HBase.getInt(rs, HBase.FAM_PROP, HBasePeakList.COL_IONS));
+          HBases.getInt(rs, HBases.FAM_PROP, HBasePeakList.COL_IONS));
       id_candidate.get(id).setIonQueried(frags.length);
       id_candidate.get(id).setIonMatched(id_candidate.get(id).size());
 //      id_candidate.cells(id).setPrecursor(null);
@@ -350,7 +350,7 @@ public class HBaseProteomics extends HBase
     HConnection conn = HConnectionManager.createConnection(conf);
 
     HTableInterface peaklist = conn.getTable(HBasePeakList.TBL_PEAKLIST),
-                      indice = conn.getTable(HBase.TBL_MSMSINDEX);
+                      indice = conn.getTable(HBases.TBL_MSMSINDEX);
 
     System.out.println("Preparing " + src.getAbsolutePath());
 
@@ -427,7 +427,7 @@ public class HBaseProteomics extends HBase
 
     System.out.println("Preparing " + src.getAbsolutePath());
     HTableInterface peaklist = conn.getTable(HBasePeakList.TBL_PEAKLIST),
-                      indice = conn.getTable(HBase.TBL_MSMSINDEX);
+                      indice = conn.getTable(HBases.TBL_MSMSINDEX);
     MsLibReader        splib = newLibReader(src);
 */
 /*
@@ -504,7 +504,7 @@ public class HBaseProteomics extends HBase
     HConnection         conn = getConnection();
     String               src = root+"/"+lib.getName()+(lib.isFormat(HBaseSpLib.LIB_MSP)?".msp":(lib.isFormat(HBaseSpLib.LIB_SPTXT)?".sptxt":""));
     HTableInterface peaklist = conn.getTable(HBasePeakList.TBL_PEAKLIST),
-                      indice = conn.getTable(HBase.TBL_MSMSINDEX);
+                      indice = conn.getTable(HBases.TBL_MSMSINDEX);
     MsLibReader        splib = newLibReader(src);
 
     System.out.println("Preparing " + src);
@@ -559,7 +559,7 @@ public class HBaseProteomics extends HBase
   public static Map<PeptideConsensusSpectrum.Status, PeptideConsensusSpectrum> sampleRecovery(String src, int nsig, int interval, MimslSettings settings) throws IOException
   {
     // connection to the cluster
-    HConnection          conn = HBase.getConnection();
+    HConnection          conn = HBases.getConnection();
     MsLibReader         splib = HBaseProteomics.newLibReader(src);
     Random               rand = new Random(System.nanoTime());
     PeptideConsensusSpectrum      spec = null;

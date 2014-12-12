@@ -11,13 +11,13 @@ import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.proteomics.ms.consensus.PeptideConsensusSpectrum;
 import org.ms2ms.data.ms.MsSpectrum;
 import org.ms2ms.mzjava.AnnotatedSpectrum;
-import org.ms2ms.nosql.HBase;
+import org.ms2ms.nosql.HBases;
 import org.ms2ms.utils.Tools;
 
 import java.io.*;
 import java.util.UUID;
 
-/** An Entity class for I/O with HBase database. Not to be used directly for data analysis
+/** An Entity class for I/O with HBases database. Not to be used directly for data analysis
  *  Only expose the PeakList for public consumption
  *
  * Created by wyu on 4/18/14.
@@ -162,14 +162,14 @@ public final class HBasePeakList extends MsSpectrum
     row.add(FAM_PRECURSOR, COL_MZ, Bytes.toBytes(spec.getPrecursor().getMz()));
     row.add(FAM_PRECURSOR, COL_Z,  Bytes.toBytes(spec.getPrecursor().getCharge()));
     // create the peaks bytes
-    row.add(HBase.FAM_PROP, COL_IONS, toBytes(new HBasePeakList(spec)));
+    row.add(HBases.FAM_PROP, COL_IONS, toBytes(new HBasePeakList(spec)));
 
     tbl.put(row);
   }
   public static HBasePeakList getPeakList(HTableInterface tbl, UUID id) throws IOException
   {
     Get g = new Get(row4PeakList(id));
-    byte[] value = tbl.get(g).getValue(HBase.FAM_PROP, COL_IONS);
+    byte[] value = tbl.get(g).getValue(HBases.FAM_PROP, COL_IONS);
     HBasePeakList peaks = HBasePeakList.fromBytes(value);
 
     return peaks;
