@@ -57,16 +57,16 @@ public class OutputTest extends TestAbstract
   public void RtCalibration() throws Exception
   {
     // Dataframe pivot(String col, String val, MsStats.Aggregator func, String... rows)
-    double xs[] = evidences.getDoubleCol("Retention time");
-    double ys[] = evidences.getDoubleCol("Retention time calibration");
-    double Xs[] = evidences.getDoubleCol("Calibrated retention time start");
+    double xs[] = evidences.getDoubleCol("Retention time", true);
+    double ys[] = evidences.getDoubleCol("Retention time calibration", true);
+    double Xs[] = evidences.getDoubleCol("Calibrated retention time start", true);
 
     double[] Ys = MsStats.interpolate(xs, ys, 0.3, Xs);
 
     evidences.addVar("interpolated", Ys);
     System.out.println("\n" + evidences.display());
 
-    evidences.addVar("Calibrated RT", MsStats.sum(evidences.getDoubleCol("Retention time"), evidences.getDoubleCol("Retention time calibration")));
+    evidences.addVar("Calibrated RT", MsStats.sum(evidences.getDoubleCol("Retention time", true), evidences.getDoubleCol("Retention time calibration", true)));
   }
   @Test
   public void mergeMQnSurvey() throws Exception
@@ -112,16 +112,16 @@ public class OutputTest extends TestAbstract
   public void interpolating() throws Exception
   {
     // Dataframe pivot(String col, String val, MsStats.Aggregator func, String... rows)
-    double xs[] = evidences.getDoubleCol("Retention time");
-    double ys[] = evidences.getDoubleCol("Retention time calibration");
-    double Xs[] = evidences.getDoubleCol("Calibrated retention time start");
+    double xs[] = evidences.getDoubleCol("Retention time", true);
+    double ys[] = evidences.getDoubleCol("Retention time calibration", true);
+    double Xs[] = evidences.getDoubleCol("Calibrated retention time start", true);
 
     double[] Ys = MsStats.interpolate(xs, ys, 0.3, Xs);
 
     evidences.addVar("interpolated", Ys);
     System.out.println("\n" + evidences.display());
 
-    evidences.addVar("Calibrated RT", MsStats.sum(evidences.getDoubleCol("Retention time"), evidences.getDoubleCol("Retention time calibration")));
+    evidences.addVar("Calibrated RT", MsStats.sum(evidences.getDoubleCol("Retention time", true), evidences.getDoubleCol("Retention time calibration", true)));
   }
   @Test
   public void aligning() throws Exception

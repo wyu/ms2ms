@@ -120,8 +120,8 @@ abstract public class Apps
     if (args[i].charAt(0)=='-' && Tools.isSet(args) && args.length>i+1 && Tools.isA(args[i], tags))
     {
       var=args[i+1];
-      if (mUsages==null) mUsages = new ArrayList<String>();
-      mUsages.add(Strs.toString(tags, "\t") + (Tools.isSet(usage) ? "\t:\t" + usage : ""));
+      if (mUsages==null) mUsages = new ArrayList<>();
+      mUsages.add(Strs.toString(tags, "\t") + (Strs.isSet(usage) ? "\t:\t" + usage : ""));
     }
     return var;
   }

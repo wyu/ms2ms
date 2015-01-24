@@ -26,6 +26,7 @@ public class MaxQuant
   public static final String V_CLUSTER = "ClusterID";
   public static final String V_RAWFILE = "Raw file";
   public static final String V_SCAN    = "Scan number";
+  public static final String V_ID_EVI  = "Evidence ID";
 
   public static String[] sRmdEvidence = {"Length","Modifications","Oxidation (M) Probabilities","Oxidation (M) Score Diffs","Acetyl (Protein N-term)","Oxidation (M)","Missed cleavages","Proteins","Leading Proteins","Leading Razor Protein","TypeMatch time difference","Match m/z difference","Match q-value","Match score","PIF","Fraction of total spectrum","Base peak fraction","Reverse","Contaminant","Combinatorics","AIF MS/MS IDs","Oxidation (M) site IDs","Type","Protein group IDs","Match time difference","Scan event number","Scan index"};
   public static String[] sRmdMsms     = {"Precursor","Sequence","Length","Missed cleavages","Modifications","Oxidation (M) Probabilities","Oxidation (M) Score Diffs","Acetyl (Protein N-term)","Oxidation (M)","Proteins","Fragmentation","Mass analyzer","Type","Score diff","Localization prob","Combinatorics","PIF","Fraction of total spectrum","Base peak fraction","Precursor Full ScanNumber","Precursor Intensity","Precursor Apex Fraction","Precursor Apex Offset","Precursor Apex Offset Time","Matches","Intensities","Mass Deviations [Da]","Mass Deviations [ppm]","Masses","Neutral loss level","ETD identification type","Reverse","All scores","All sequences","All modified sequences","Oxidation (M) site IDs","Scan type","Modified sequence","PEP","Score","Delta score","Protein group IDs","Scan event number","Scan index"};
@@ -65,7 +66,7 @@ public class MaxQuant
     Dataframe scans     = Dataframe.readtable(root+"msmsScans.txt", '\t', false).removeCols(MaxQuant.sRmdScan).setTitle("scan");
 
     // replace the "id" variable with "Evidence ID" so they can be joint
-    evidences.renameCol("id", "Evidence ID");
+    evidences.renameCol("id", V_ID_EVI);
     evidences.renameCol("m/z", "m/z-calibrated");
     evidences.renameCol("Mass", "Mass-predicted");
     evidences.renameCol("Retention time", "RT-feature-calibrated");
@@ -74,10 +75,10 @@ public class MaxQuant
     scans.renameCol("Retention time", "RT-MS2");
 
     // force the ID columns to be categorical
-    msms.init(     Var.VarType.CATEGORICAL, "Evidence ID");
-    evidences.init(Var.VarType.CATEGORICAL, "Evidence ID");
+    msms.init(     Var.VarType.CATEGORICAL, V_ID_EVI);
+    evidences.init(Var.VarType.CATEGORICAL, V_ID_EVI);
     // join the msms table with the evidence table, which contains the annotated LCMS features by the Evidence ID
-    Dataframe annotations = Dataframe.merge(msms, evidences, true, true, "Evidence ID").setTitle("annot");
+    Dataframe annotations = Dataframe.merge(msms, evidences, true, true, V_ID_EVI).setTitle("annot");
     // msms.txt contains only the annotated scans, msmsScans.txt has all the scans
     mMsMs = Dataframe.merge(annotations, scans, true, true, "Raw file","Scan number").setTitle("msms+");
 
@@ -93,13 +94,13 @@ public class MaxQuant
     // go thro the run separately
     for (Dataframe d : raw_data.values())
     {
-      double xs[] = d.getDoubleCol("Retention time");
-      double ys[] = d.getDoubleCol("Retention time calibration");
-      double Xs[] = d.getDoubleCol("Calibrated retention time start");
+      double xs[] = d.getDoubleCol("Retention time", true);
+      double ys[] = d.getDoubleCol("Retention time calibration", true);
+      double Xs[] = d.getDoubleCol("Calibrated retention time start", true);
 
       double[] Ys = MsStats.interpolate(xs, ys, rttol, Xs);
       d.addVar("interpolated", Ys);
-      d.addVar("Calibrated RT", MsStats.sum(d.getDoubleCol("Retention time"), d.getDoubleCol("Retention time calibration")));
+      d.addVar("Calibrated RT", MsStats.sum(d.getDoubleCol("Retention time", true), d.getDoubleCol("Retention time calibration", true)));
     }
   }
 }

@@ -10,6 +10,7 @@ import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepFragAnnotation;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
 import org.ms2ms.mzjava.AnnotatedPeak;
+import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
 import java.util.*;
@@ -242,7 +243,7 @@ public class Peaks
    */
   public static Peak[] newPeaks(String line, int z)
   {
-    if (!Tools.isSet(line)) return null;
+    if (!Strs.isSet(line)) return null;
     String[] strs = line.split(";|,|\\s");
     Peak[]  peaks = new Peak[strs.length];
     for (int i=0; i<strs.length; i++)

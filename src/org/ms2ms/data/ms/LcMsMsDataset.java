@@ -7,6 +7,7 @@ import org.ms2ms.data.Dataset;
 import org.ms2ms.data.HData;
 import org.ms2ms.data.collect.MultiTreeTable;
 import org.ms2ms.r.Dataframe;
+import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
 import java.io.IOException;
@@ -67,8 +68,8 @@ public class LcMsMsDataset implements Dataset
   }
   public RandomAccessFile getSpCacheFile(int mslevel) throws IOException
   {
-    if (!Tools.isSet(mSpCacheName))
-      mSpCacheName = (Tools.isSet(getName())?getName():System.nanoTime()+"");
+    if (!Strs.isSet(mSpCacheName))
+      mSpCacheName = (Strs.isSet(getName())?getName():System.nanoTime()+"");
 
     return new RandomAccessFile(sTempDir + mSpCacheName+".ms"+mslevel, "rw");
   }

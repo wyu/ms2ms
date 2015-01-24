@@ -7,6 +7,7 @@ import org.ms2ms.nosql.HBases;
 import org.ms2ms.nosql.ms.HBasePeakList;
 import org.ms2ms.nosql.ms.HBaseProteomics;
 import org.ms2ms.nosql.ms.HBaseSpLib;
+import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
 
@@ -45,7 +46,7 @@ public class SpLibBuilder extends Apps
   @Override
   protected boolean doRun() throws Exception
   {
-    if (!Tools.isSet(mLibList)) return false;
+    if (!Strs.isSet(mLibList)) return false;
 
     HBases.verifyConnection();
     HBaseProteomics.ensureTables();
