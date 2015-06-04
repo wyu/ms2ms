@@ -31,7 +31,7 @@ public class IsobaricsTest extends TestAbstract
     Multimap<String, String> grps = Strs.newMultimap('=',"Ctrl=S1;S2;S3;S4;S5;S6;F1;F2;F3;F4","COPD=CP1;CP2;CP3;CP4;CP5;CP6;CP7;CP8;CP9;CP10");
     Dataframe data = Isobarics.fromGeneExpt(peptides, grps);
 
-    FileWriter file = new FileWriter("/tmp/data.frm");
+    FileWriter file = new FileWriter("/home/wyu/Projects/reports/data.frm");
     file.write(data.display().toString());
     file.close();
 }
