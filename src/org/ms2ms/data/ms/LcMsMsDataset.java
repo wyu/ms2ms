@@ -6,6 +6,7 @@ import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.ms2ms.data.Dataset;
 import org.ms2ms.data.HData;
 import org.ms2ms.data.collect.MultiTreeTable;
+import org.ms2ms.nosql.ms.HBaseProteomics;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
@@ -24,6 +25,11 @@ import java.util.Collection;
 public class LcMsMsDataset implements Dataset
 {
   public static String sTempDir = "/tmp/";
+  public static String COL_MZ = "mz";
+  public static String COL_RT = "rt";
+  public static String COL_OFFSET = "offset";
+  public static String COL_TIC = "TIC";
+
   private String             mName, mSpCacheName, mRawfileRoot;
   private Collection<String> mRawFilenames;
   private Dataframe          mSummary;
@@ -45,24 +51,35 @@ public class LcMsMsDataset implements Dataset
   public TreeMultimap<  Double, Long>         getTicFileOffset( )     { return mTicFileOffset; }
   public ClusteringSettings                   getClusteringSettings() { return mSpSettings; }
   public Collection<String>                   getRawFilenames()       { return mRawFilenames; }
-  public String                               getmRawfileRoot()       { return mRawfileRoot; }
+  public String                               getRawfileRoot()        { return mRawfileRoot; }
+  public Dataframe                            getSummary()            { return mSummary; }
 
   public LcMsMsDataset setName(String    s) { mName = s; return this; }
   public LcMsMsDataset setRawFilename(String... s) { mRawFilenames = Lists.newArrayList(s); return this; }
   public LcMsMsDataset setRawFileRoot(String s)    { mRawfileRoot  = s; return this; }
+  public LcMsMsDataset setSummary(Dataframe s) { mSummary = s; return this; }
 
+  public static int seekRow(Dataframe data, String run, String scan)
+  {
+    return 0;
+  }
   /** more complex access functions **/
   public LcMsMsDataset add(MsnSpectrum ms, long offset)
   {
     if (ms!=null)
     {
-      if (mMzRtFileOffset==null) mMzRtFileOffset=MultiTreeTable.create();
-      if ( mTicFileOffset==null)  mTicFileOffset=TreeMultimap.create();
-      if (         mTicMz==null)          mTicMz=TreeMultimap.create();
-
-      mMzRtFileOffset.put(ms.getPrecursor().getMz(), ms.getRetentionTimes().getFirst().getTime(), offset);
-       mTicFileOffset.put(ms.getTotalIonCurrent()*-1d, offset);
-               mTicMz.put(ms.getTotalIonCurrent()*-1d, ms.getPrecursor().getMz());
+      int row = mSummary.rows().size()+1;
+      mSummary.put(row, MaxQuant.V_MZ, ms.getPrecursor().getMz()
+             ).put(row, MaxQuant.V_RT, ms.getRetentionTimes().getFirst().getTime()
+             ).put(row, MaxQuant.V_OFFSET, offset
+             ).put(row, MaxQuant.V_TIC, ms.getTotalIonCurrent());
+//      if (mMzRtFileOffset==null) mMzRtFileOffset=MultiTreeTable.create();
+//      if ( mTicFileOffset==null)  mTicFileOffset=TreeMultimap.create();
+//      if (         mTicMz==null)          mTicMz=TreeMultimap.create();
+//
+//      mMzRtFileOffset.put(ms.getPrecursor().getMz(), ms.getRetentionTimes().getFirst().getTime(), offset);
+//       mTicFileOffset.put(ms.getTotalIonCurrent()*-1d, offset);
+//               mTicMz.put(ms.getTotalIonCurrent()*-1d, ms.getPrecursor().getMz());
     }
     return this;
   }

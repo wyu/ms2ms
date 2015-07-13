@@ -162,7 +162,7 @@ public class MsReaders
       RandomAccessFile ms2 = data.getSpCacheFile(2);
       for (String rawfile : data.getRawFilenames())
       {
-        MzxmlReader reader = MzxmlReader.newTolerantReader(new File(data.getmRawfileRoot()+"/"+rawfile), PeakList.Precision.FLOAT);
+        MzxmlReader reader = MzxmlReader.newTolerantReader(new File(data.getRawfileRoot()+"/"+rawfile), PeakList.Precision.FLOAT);
         int counts=0;
         while (reader.hasNext())
         {
