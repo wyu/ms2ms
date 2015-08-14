@@ -14,7 +14,7 @@ import java.util.Map;
  * Author: wyu
  * Date:   11/6/14
  */
-public class MaxQuant
+public class MaxQuant extends LcMsMsDataset
 {
   public static final String V_RT      = "RT-MS2.scan"; // not calibrated
   public static final String V_MZ      = "m/z"; // not calibrated
@@ -32,38 +32,40 @@ public class MaxQuant
   public static String[] sRmdMsms     = {"Precursor","Sequence","Length","Missed cleavages","Modifications","Oxidation (M) Probabilities","Oxidation (M) Score Diffs","Acetyl (Protein N-term)","Oxidation (M)","Proteins","Fragmentation","Mass analyzer","Type","Score diff","Localization prob","Combinatorics","PIF","Fraction of total spectrum","Base peak fraction","Precursor Full ScanNumber","Precursor Intensity","Precursor Apex Fraction","Precursor Apex Offset","Precursor Apex Offset Time","Matches","Intensities","Mass Deviations [Da]","Mass Deviations [ppm]","Masses","Neutral loss level","ETD identification type","Reverse","All scores","All sequences","All modified sequences","Oxidation (M) site IDs","Scan type","Modified sequence","PEP","Score","Delta score","Protein group IDs","Scan event number","Scan index"};
   public static String[] sRmdScan     = {"Collision energy","Summations","Identified","MS/MS IDs","Sequence","Length","Mass analyzer","Parent intensity fraction","Fraction of total spectrum","Base peak fraction","Precursor full scan number","Precursor intensity","Precursor apex fraction","Precursor apex offset","Precursor apex offset time","Proteins","Score","Intens Comp Factor","CTCD Comp","RawOvFtT","AGC Fill","Modified sequence","PEP","Score","Delta score","Protein group IDs","Scan event number","Scan index"};
 
-  private String    mResultDir, mRawDir, mSpCache;
-  private Dataframe mSummary, mMsMs;
+//  private String    mResultDir/*, mRawDir, mSpCache*/;
+  private Dataframe mMsMs;
 
   public MaxQuant() { super(); }
+  public MaxQuant(String s) { super(s); }
   public MaxQuant(Dataframe msms) { super(); mMsMs=msms; }
-  public MaxQuant(String result, String raw) { mResultDir=result; mRawDir=raw; }
+  public MaxQuant(String result, String raw) { mResultRoot=result; mRawfileRoot=raw; }
 
   public void init()
   {
     // grab the summary first
-    mSummary = Dataframe.readtable(mResultDir+"summary.txt",'\t').setTitle("summary");
+    mSummary = Dataframe.readtable(mResultRoot+"/summary.txt",'\t').setTitle("summary");
     mSummary = mSummary.subset("Raw file!='Total'");
-    mSpCache = "cache"+System.nanoTime();
+    mSpCacheName = "cache"+System.nanoTime();
 
-    Dataframe survey = MsReaders.surveyMzXML(mSummary.getStrCol("Raw file"), mRawDir, mSpCache, null, 2);
+    Dataframe survey = MsReaders.surveyMzXML(mSummary.getStrCol("Raw file"), mRawfileRoot, mSpCacheName, null, 2);
 
-    IOs.write(mResultDir+"scan_survey.txt", survey.display("\t", "").toString());
+    IOs.write(mResultRoot + "scan_survey.txt", survey.display("\t", "").toString());
 
     // read the tables of MS/MS scans
     mMsMs = readMsMsWithAnnotations();
     Dataframe offsets = Dataframe.merge(mMsMs, survey, true, true, "Raw file", "Scan number").setTitle("offsets");
 
-    IOs.write(mResultDir+"/composite_scans.txt", offsets.display("\t", "").toString());
+    IOs.write(mResultRoot+"/composite_scans.txt", offsets.display("\t", "").toString());
   }
-  public Dataframe readMsMsWithAnnotations() { return readMsMsWithAnnotations(mResultDir); }
+
+  public Dataframe readMsMsWithAnnotations() { return readMsMsWithAnnotations(mResultRoot); }
   public Dataframe readMsMsWithAnnotations(String root)
   {
-    mResultDir = root;
+    mResultRoot = root;
 
-    Dataframe evidences = Dataframe.readtable(root+"evidence.txt",  '\t', false).removeCols(MaxQuant.sRmdEvidence).setTitle("evidence");
-    Dataframe msms      = Dataframe.readtable(root+"msms.txt",      '\t', false).removeCols(MaxQuant.sRmdMsms).setTitle("msms");
-    Dataframe scans     = Dataframe.readtable(root+"msmsScans.txt", '\t', false).removeCols(MaxQuant.sRmdScan).setTitle("scan");
+    Dataframe evidences = Dataframe.readtable(root+"/evidence.txt",  '\t', false).removeCols(MaxQuant.sRmdEvidence).setTitle("evidence");
+    Dataframe msms      = Dataframe.readtable(root+"/msms.txt",      '\t', false).removeCols(MaxQuant.sRmdMsms).setTitle("msms");
+    Dataframe scans     = Dataframe.readtable(root+"/msmsScans.txt", '\t', false).removeCols(MaxQuant.sRmdScan).setTitle("scan");
 
     // replace the "id" variable with "Evidence ID" so they can be joint
     evidences.renameCol("id", V_ID_EVI);

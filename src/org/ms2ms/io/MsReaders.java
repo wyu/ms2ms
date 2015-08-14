@@ -104,13 +104,16 @@ public class MsReaders
       int tinrange=0;
       for (String rawfile : rawfiles)
       {
-        MzxmlReader reader = MzxmlReader.newTolerantReader(new File(root+"/"+rawfile+".mzXML"), PeakList.Precision.FLOAT);
+        System.out.println("surveying " + rawfile);
+
+//        MzxmlReader reader = MzxmlReader.newTolerantReader(new File(root+"/"+rawfile+".mzXML"), PeakList.Precision.FLOAT);
+        mzXMLReader reader = mzXMLReader.newTolerantReader(new File(root+"/"+rawfile+".mzXML"), PeakList.Precision.FLOAT);
         int counts=0, inrange=0;
         while (reader.hasNext())
         {
           MsnSpectrum spec = reader.next();
-          if (++counts%100==0) System.out.print(".");
-          if (counts%10000==0) System.out.println(counts);
+          if (++counts%1000==0) System.out.print(".");
+          if (counts%100000==0) System.out.println(counts);
 
           // move on before we reach the lower bound of the RT range if requested
           if (rt!=null && Spectra.before(spec.getRetentionTimes(), rt.lowerEndpoint())) continue;
@@ -138,10 +141,13 @@ public class MsReaders
         }
         reader.close();
 
-        System.out.print("\n" + inrange+"/"+counts + " spectra recorded/surveyed");
+        System.out.print(inrange+"/"+counts + " spectra recorded/surveyed" + "\n");
       }
       // close the cache files
-      for (RandomAccessFile ms : ms_bin.values()) ms.close();
+      for (RandomAccessFile ms : ms_bin.values())
+      {
+        ms.close();
+      }
 
       System.out.println("\n" + tinrange + " spectra recorded");
     }
@@ -156,7 +162,7 @@ public class MsReaders
   {
     Logger.getLogger(MzxmlReader.class.getName()).setLevel(Level.SEVERE);
 
-    if (data==null) data=new LcMsMsDataset();
+//    if (data==null) data=new LcMsMsDataset();
     try
     {
       RandomAccessFile ms2 = data.getSpCacheFile(2);
@@ -184,7 +190,7 @@ public class MsReaders
         }
         reader.close();
 
-        System.out.println("\n" + data.getMzRtFileOffset().size() + " spectra imported");
+//        System.out.println("\n" + data.getMzRtFileOffset().size() + " spectra imported");
       }
       ms2.close();
     }

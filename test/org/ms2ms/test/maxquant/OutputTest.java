@@ -32,30 +32,40 @@ public class OutputTest extends TestAbstract
   @Before
   public void setUp()
   {
+/*
     // allPeptides100.txt  evidence100.txt  msms100.txt  msmsScans100.txt
     evidences = Dataframe.readtable(root+"evidence1k.txt",    '\t', false).setTitle("evidence");
     peptides  = Dataframe.readtable(root+"allPeptides1k.txt", '\t', false).setTitle("peptide");
     msms      = Dataframe.readtable(root+"msms1k.txt",        '\t', false).setTitle("msms");
     scans     = Dataframe.readtable(root+"msmsScans1k.txt",   '\t', false).setTitle("scan");
 
-//    evidences = Dataframe.readtable(root+"evidence.txt",    '\t');
-//    msms      = Dataframe.readtable(root+"msms.txt", '\t');
-//    scans     = Dataframe.readtable(root+"msmsScans.txt", '\t');
-
     evidences.removeCols(MaxQuant.sRmdEvidence);
     msms.removeCols(MaxQuant.sRmdMsms);
     scans.removeCols(MaxQuant.sRmdScan);
-//    evidences.removeCols("Sequence","Length","Modifications","Oxidation (M) Probabilities","Oxidation (M) Score Diffs","Acetyl (Protein N-term)","Oxidation (M)","Missed cleavages","Proteins","Leading Proteins","Leading Razor Protein","TypeMatch time difference","Match m/z difference","Match q-value","Match score","PIF","Fraction of total spectrum","Base peak fraction","Reverse","Contaminant","Combinatorics","AIF MS/MS IDs","Oxidation (M) site IDs","Type");
-//    msms.removeCols("Precursor","Sequence","Length","Missed cleavages","Modifications","Oxidation (M) Probabilities","Oxidation (M) Score Diffs","Acetyl (Protein N-term)","Oxidation (M)","Proteins","Fragmentation","Mass analyzer","Type","Score diff","Localization prob","Combinatorics","PIF","Fraction of total spectrum","Base peak fraction","Precursor Full ScanNumber","Precursor Intensity","Precursor Apex Fraction","Precursor Apex Offset","Precursor Apex Offset Time","Matches","Intensities","Mass Deviations [Da]","Mass Deviations [ppm]","Masses","Neutral loss level","ETD identification type","Reverse","All scores","All sequences","All modified sequences","Oxidation (M) site IDs","Scan type","Modified sequence","PEP","Score","Delta score","Protein group IDs");
-//    scans.removeCols("Collision energy","Summations","Identified","MS/MS IDs","Sequence","Length","Mass analyzer","Parent intensity fraction","Fraction of total spectrum","Base peak fraction","Precursor full scan number","Precursor intensity","Precursor apex fraction","Precursor apex offset","Precursor apex offset time","Proteins","Score","Intens Comp Factor","CTCD Comp","RawOvFtT","AGC Fill","Modified sequence","PEP","Score","Delta score","Protein group IDs");
-    // replace the "id" variable with "Evidence ID" so they can be joint
+
     evidences.renameCol("id", "Evidence ID");
     evidences.renameCol("m/z", "m/z-calibrated");
     evidences.renameCol("Mass", "Mass-predicted");
+*/
+  }
+  @Test
+  public void prepareMSnBin() throws Exception
+  {
+    // prepare the binary dump of MS/MS and composite dataframe
+    mq = new MaxQuant(root, "/media/data/test/mzXML/");
+
+//    Dataframe msms = Dataframe.readtable(root+"mergedScans.txt",    '\t').setTitle("msms+"),
+    Dataframe msms = mq.readMsMsWithAnnotations(),
+        survey = Dataframe.readtable(root+"scan_survey.txt",    '\t').setTitle("survey"),
+        offsets = Dataframe.merge(msms, survey, true, true, "Raw file", "Scan number").setTitle("offsets");
+
+    IOs.write(root+"composite_scans.txt", offsets.display().toString());
   }
   @Test
   public void RtCalibration() throws Exception
   {
+    prepare();
+
     // Dataframe pivot(String col, String val, MsStats.Aggregator func, String... rows)
     double xs[] = evidences.getDoubleCol("Retention time", true);
     double ys[] = evidences.getDoubleCol("Retention time calibration", true);
@@ -71,6 +81,8 @@ public class OutputTest extends TestAbstract
   @Test
   public void mergeMQnSurvey() throws Exception
   {
+    prepare();
+
     mq = new MaxQuant(root, "/media/data/test/mzXML/");
 
 //    Dataframe msms = Dataframe.readtable(root+"mergedScans.txt",    '\t').setTitle("msms+"),
@@ -83,12 +95,16 @@ public class OutputTest extends TestAbstract
   @Test
   public void newMQ() throws Exception
   {
+    prepare();
+
     mq = new MaxQuant(root, "/media/data/test/mzXML/");
     mq.init();
   }
   @Test
   public void summaryFile() throws Exception
   {
+    prepare();
+
     Dataframe summary = Dataframe.readtable(root+"summary.txt",    '\t').setTitle("summary");
     summary = summary.subset("Raw file!='Total'");
     System.out.println(summary.asVar("Raw file").getFactors().size());
@@ -97,6 +113,8 @@ public class OutputTest extends TestAbstract
   // create a composite view of MSMS scans with peptide annotation if available
   public void toMsMsComposite() throws Exception
   {
+    prepare();
+
     // force the ID columns to be categorical
          msms.init(Var.VarType.CATEGORICAL, "Evidence ID");
     evidences.init(Var.VarType.CATEGORICAL, "Evidence ID");
@@ -111,6 +129,8 @@ public class OutputTest extends TestAbstract
   @Test
   public void interpolating() throws Exception
   {
+    prepare();
+
     // Dataframe pivot(String col, String val, MsStats.Aggregator func, String... rows)
     double xs[] = evidences.getDoubleCol("Retention time", true);
     double ys[] = evidences.getDoubleCol("Retention time calibration", true);
@@ -126,6 +146,8 @@ public class OutputTest extends TestAbstract
   @Test
   public void aligning() throws Exception
   {
+    prepare();
+
     //Map<Object, Dataframe> outs = evidences.split("Raw file");
     Map<Object, Dataframe> outs = peptides.split("Raw file");
 
@@ -136,5 +158,21 @@ public class OutputTest extends TestAbstract
 
     for (Object obj : outs.keySet())
       System.out.println(obj.toString() + "\n" + outs.get(obj).display());
+  }
+  protected void prepare()
+  {
+    // allPeptides100.txt  evidence100.txt  msms100.txt  msmsScans100.txt
+    evidences = Dataframe.readtable(root+"evidence1k.txt",    '\t', false).setTitle("evidence");
+    peptides  = Dataframe.readtable(root+"allPeptides1k.txt", '\t', false).setTitle("peptide");
+    msms      = Dataframe.readtable(root+"msms1k.txt",        '\t', false).setTitle("msms");
+    scans     = Dataframe.readtable(root+"msmsScans1k.txt",   '\t', false).setTitle("scan");
+
+    evidences.removeCols(MaxQuant.sRmdEvidence);
+    msms.removeCols(MaxQuant.sRmdMsms);
+    scans.removeCols(MaxQuant.sRmdScan);
+
+    evidences.renameCol("id", "Evidence ID");
+    evidences.renameCol("m/z", "m/z-calibrated");
+    evidences.renameCol("Mass", "Mass-predicted");
   }
 }

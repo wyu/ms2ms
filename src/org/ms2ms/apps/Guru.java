@@ -11,7 +11,7 @@ import org.ms2ms.utils.Strs;
  * Author: wyu
  * Date:   6/9/15
  */
-public class Guru extends Apps
+public class Guru extends App
 {
   private String mIdRoot;
   public Guru() { super(); mAppName = "Guru"; mVersion = "v0.001"; mBuild="Jun 9, 2015"; }

@@ -6,8 +6,10 @@ import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.ms2ms.data.Dataset;
 import org.ms2ms.data.HData;
 import org.ms2ms.data.collect.MultiTreeTable;
+import org.ms2ms.io.MsReaders;
 import org.ms2ms.nosql.ms.HBaseProteomics;
 import org.ms2ms.r.Dataframe;
+import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
@@ -22,7 +24,7 @@ import java.util.Collection;
  * Date: 10/3/14
  * To change this template use File | Settings | File Templates.
  */
-public class LcMsMsDataset implements Dataset
+abstract public class LcMsMsDataset implements Dataset
 {
   public static String sTempDir = "/tmp/";
   public static String COL_MZ = "mz";
@@ -30,15 +32,15 @@ public class LcMsMsDataset implements Dataset
   public static String COL_OFFSET = "offset";
   public static String COL_TIC = "TIC";
 
-  private String             mName, mSpCacheName, mRawfileRoot;
+  protected String             mName, mSpCacheName, mRawfileRoot, mResultRoot;
   private Collection<String> mRawFilenames;
-  private Dataframe          mSummary;
+  protected Dataframe          mSummary, mSurvey;
   private HData              mData; // contains the sample, variable and intensities data for downstream analysis
   private ClusteringSettings mSpSettings;
 
-  private MultiTreeTable<Double, Double, Long> mMzRtFileOffset; // mz and RT index to the file offset for each MS/MS
-  private TreeMultimap<  Double, Long>         mTicFileOffset;  // negative TIC to put the most intense in the front
-  private TreeMultimap<  Double, Double>       mTicMz;          // negative TIC to put the most intense in the front
+//  private MultiTreeTable<Double, Double, Long> mMzRtFileOffset; // mz and RT index to the file offset for each MS/MS
+//  private TreeMultimap<  Double, Long>         mTicFileOffset;  // negative TIC to put the most intense in the front
+//  private TreeMultimap<  Double, Double>       mTicMz;          // negative TIC to put the most intense in the front
 
   /** the constructors **/
   public LcMsMsDataset()         { super(); }
@@ -47,39 +49,38 @@ public class LcMsMsDataset implements Dataset
   /** Simple getter and setters  **/
   public String                               getName()               { return mName; }
   public HData                                getData()               { return mData; }
-  public MultiTreeTable<Double, Double, Long> getMzRtFileOffset()     { return mMzRtFileOffset; }
-  public TreeMultimap<  Double, Long>         getTicFileOffset( )     { return mTicFileOffset; }
+  public MultiTreeTable<Double, Double, Long> getMzRtFileOffset()     { return null; }
+  public TreeMultimap<  Double, Long>         getTicFileOffset( )     { return null; }
   public ClusteringSettings                   getClusteringSettings() { return mSpSettings; }
   public Collection<String>                   getRawFilenames()       { return mRawFilenames; }
   public String                               getRawfileRoot()        { return mRawfileRoot; }
+  public String                               getResultRoot()         { return mResultRoot; }
   public Dataframe                            getSummary()            { return mSummary; }
 
   public LcMsMsDataset setName(String    s) { mName = s; return this; }
   public LcMsMsDataset setRawFilename(String... s) { mRawFilenames = Lists.newArrayList(s); return this; }
   public LcMsMsDataset setRawFileRoot(String s)    { mRawfileRoot  = s; return this; }
+  public LcMsMsDataset setResultsRoot(String s)    { mResultRoot  = s; return this; }
   public LcMsMsDataset setSummary(Dataframe s) { mSummary = s; return this; }
 
   public static int seekRow(Dataframe data, String run, String scan)
   {
     return 0;
   }
+  abstract public Dataframe readMsMsWithAnnotations();
+  abstract public void init();
+
   /** more complex access functions **/
   public LcMsMsDataset add(MsnSpectrum ms, long offset)
   {
     if (ms!=null)
     {
-      int row = mSummary.rows().size()+1;
-      mSummary.put(row, MaxQuant.V_MZ, ms.getPrecursor().getMz()
-             ).put(row, MaxQuant.V_RT, ms.getRetentionTimes().getFirst().getTime()
-             ).put(row, MaxQuant.V_OFFSET, offset
-             ).put(row, MaxQuant.V_TIC, ms.getTotalIonCurrent());
-//      if (mMzRtFileOffset==null) mMzRtFileOffset=MultiTreeTable.create();
-//      if ( mTicFileOffset==null)  mTicFileOffset=TreeMultimap.create();
-//      if (         mTicMz==null)          mTicMz=TreeMultimap.create();
-//
-//      mMzRtFileOffset.put(ms.getPrecursor().getMz(), ms.getRetentionTimes().getFirst().getTime(), offset);
-//       mTicFileOffset.put(ms.getTotalIonCurrent()*-1d, offset);
-//               mTicMz.put(ms.getTotalIonCurrent()*-1d, ms.getPrecursor().getMz());
+      if (mSurvey==null) mSurvey = new Dataframe("MS/MS Survey");
+      int row = mSurvey.rows().size()+1;
+      mSurvey.put(row, MaxQuant.V_MZ, ms.getPrecursor().getMz()
+            ).put(row, MaxQuant.V_RT, ms.getRetentionTimes().getFirst().getTime()
+            ).put(row, MaxQuant.V_OFFSET, offset
+            ).put(row, MaxQuant.V_TIC, ms.getTotalIonCurrent());
     }
     return this;
   }
@@ -92,12 +93,13 @@ public class LcMsMsDataset implements Dataset
   }
   public Collection<Long> getFileoffsetsByMzRt(double mz, double rt)
   {
-    return getMzRtFileOffset()!=null ? getMzRtFileOffset().subset(
-        getClusteringSettings().getInstrument().getPrecursorTol().getMin(mz),
-        getClusteringSettings().getInstrument().getPrecursorTol().getMax(mz),
-        getClusteringSettings().getRtWindow().getMin(rt),
-        getClusteringSettings().getRtWindow().getMax(rt)) : null;
+//    return getMzRtFileOffset()!=null ? getMzRtFileOffset().subset(
+//        getClusteringSettings().getInstrument().getPrecursorTol().getMin(mz),
+//        getClusteringSettings().getInstrument().getPrecursorTol().getMax(mz),
+//        getClusteringSettings().getRtWindow().getMin(rt),
+//        getClusteringSettings().getRtWindow().getMax(rt)) : null;
 
+    return null;
   }
 
   /*** Methods that apply directly to LcMsDataSet   *****

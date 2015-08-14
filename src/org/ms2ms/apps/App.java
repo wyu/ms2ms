@@ -16,7 +16,7 @@ import java.util.List;
  * Time: 11:06 PM
  * To change this template use File | Settings | File Templates.
  */
-abstract public class Apps
+abstract public class App
 {
   protected String                   mOutfileRoot;
   protected boolean                  mVerbose;
@@ -62,28 +62,25 @@ abstract public class Apps
   {
     for (int i = 0; i < args.length; i++)
     {
-      if (args[i].length() == 0) continue;
+      if (args[i].length() == 0 || args[i].charAt(0) != '-') continue;
 
       // Is the argument a command-line option (starts with a '-') ?
-      if (args[i].charAt(0) == '-')
+      if      (args[i].equals("-h") || args[i].equals("-help"))
       {
-        if      (args[i].equals("-h") || args[i].equals("-help"))
-        {
-          usage();
-          System.exit(0);
-        }
-        else if (args[i].equals("-d") || args[i].equals("-debug"))
-        {
-          setVerbose(true); // Turn verbose mode on
-        }
-        else if (args[i].equals("-v") || args[i].equals("-verbose"))
-        {
-          setVerbose(true); // Turn verbose mode on
-        }
-        else if (args[i].equals("-O") || args[i].equals("-outfile"))
-        {
-          mOutfileRoot = args[i+1];
-        }
+        usage();
+        System.exit(0);
+      }
+      else if (args[i].equals("-d") || args[i].equals("-debug"))
+      {
+        setVerbose(true); // Turn verbose mode on
+      }
+      else if (args[i].equals("-v") || args[i].equals("-verbose"))
+      {
+        setVerbose(true); // Turn verbose mode on
+      }
+      else if (args[i].equals("-o") || args[i].equals("-outfile"))
+      {
+        mOutfileRoot = args[i+1];
       }
     }
   }//--------------------------------------------------------------------------

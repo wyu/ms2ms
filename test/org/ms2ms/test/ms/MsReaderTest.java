@@ -7,6 +7,7 @@ import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.junit.Test;
 import org.ms2ms.data.ms.LcMsMsDataset;
+import org.ms2ms.data.ms.MaxQuant;
 import org.ms2ms.data.ms.MsSpectrum;
 import org.ms2ms.io.MsIO;
 import org.ms2ms.io.MsReaders;
@@ -25,11 +26,17 @@ import static org.junit.Assert.assertEquals;
 
 public class MsReaderTest extends TestAbstract
 {
-//  String root = "/Users/hliu/Desktop/Apps/2014/data/mzXML-centroid/";
+//  String root = "/Users/hliu/Desktop/App/2014/data/mzXML-centroid/";
   String root = "/media/data/test/mzXML/";
 
   // TODO: Need to modify or extend MzxmlReader to read only selected msLevel or RT range, etc
   // peak processing takes lots of time!
+
+  @Test
+  public void prepApp() throws Exception
+  {
+
+  }
 
   @Test
   public void serializingViaBytes() throws Exception
@@ -105,7 +112,7 @@ public class MsReaderTest extends TestAbstract
   @Test
   public void surveyMzXMLs() throws IOException
   {
-    LcMsMsDataset test = new LcMsMsDataset("survey");
+    LcMsMsDataset test = new MaxQuant("survey");
     test.setRawFilename(root+"20081129_Orbi6_NaNa_SA_FASP_blacktips_01.mzXML");
 
     test = MsReaders.surveyMzXML(test, null, 2);

@@ -1775,7 +1775,7 @@ public class MIMSL
     List<ProteinId> pids = null;
     if (Toolbox.isSet(dbfile))
     {
-      System.out.println("Prepare the protein IDs according to " + dbfile + "...");
+      System.out.println("Prep the protein IDs according to " + dbfile + "...");
       pids = ProteinId_Util.doProteinIds(Qualitative_Util.newProteinIDs(
         Sequence_Util.newProteins(dbfile)), outfile);
     }

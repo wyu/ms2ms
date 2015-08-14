@@ -9,7 +9,6 @@ import org.ms2ms.nosql.ms.HBaseProteomics;
 import org.ms2ms.nosql.ms.HBaseSpLib;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.TabFile;
-import org.ms2ms.utils.Tools;
 
 /**
  * Created with IntelliJ IDEA.
@@ -18,7 +17,7 @@ import org.ms2ms.utils.Tools;
  * Time: 11:09 PM
  * To change this template use File | Settings | File Templates.
  */
-public class SpLibBuilder extends Apps
+public class SpLibBuilder extends App
 {
   String mLibSource, mLibFormat, mLibOrganism, mLibVersion, mLibType, mLibName, mCfg, mLibList, mLibRoot;
 

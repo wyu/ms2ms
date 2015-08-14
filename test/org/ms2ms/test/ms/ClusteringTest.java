@@ -33,7 +33,7 @@ import java.util.*;
  */
 public class ClusteringTest extends TestAbstract
 {
-  String root = "/Users/hliu/Desktop/Apps/2014/data/mzXML-centroid/";
+  String root = "/Users/hliu/Desktop/App/2014/data/mzXML-centroid/";
 
   @Test
   public void clusterQC() throws Exception

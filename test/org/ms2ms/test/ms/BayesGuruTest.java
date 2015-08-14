@@ -38,7 +38,7 @@ public class BayesGuruTest extends TestAbstract
     Multimap<String, String> seq_row   = msms.factorize(MaxQuant.V_MSEQ);
     for (String f : dir_file.values())
     {
-      MsnSpectrum[] spectra = new MsnSpectrum[len];
+      //MsnSpectrum[] spectra = new MsnSpectrum[len];
       MzxmlReader reader = MzxmlReader.newTolerantReader(new File(f), PeakList.Precision.FLOAT);
       while (reader.hasNext())
       {
