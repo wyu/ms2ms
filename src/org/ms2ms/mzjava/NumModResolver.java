@@ -4,6 +4,8 @@ import com.google.common.base.Optional;
 import org.expasy.mzjava.core.mol.NumericMass;
 import org.expasy.mzjava.proteomics.mol.modification.Modification;
 import org.expasy.mzjava.proteomics.mol.modification.NumericModificationResolver;
+import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodModificationResolver;
+import org.ms2ms.utils.Strs;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -18,18 +20,29 @@ import java.util.regex.Pattern;
 public class NumModResolver extends NumericModificationResolver
 {
   private Pattern mModPattern = Pattern.compile("\\{?([-+]?\\d*\\.?\\d+)\\}?");
+  private UnimodModificationResolver mUnimod = new UnimodModificationResolver();
 
+  public NumModResolver()          { super(); }
   public NumModResolver(Pattern p) { super(); mModPattern = p; }
   public NumModResolver(String  s) { super(); mModPattern = Pattern.compile(s); }
 
   @Override
   public Optional<Modification> resolve(String input)
   {
+    // short circuit a mod check bug for MSGF+ generated mzid file
+    if (Strs.equals(input, "unknown modification")) return Optional.of(new Modification(input, new NumericMass(0d)));
+
     Matcher matcher = mModPattern.matcher(input);
     if (matcher.matches()) {
 
       double val = Double.parseDouble(matcher.group(1));
       return Optional.of(new Modification(input, new NumericMass(val)));
+    }
+    else
+    {
+      // default to Unimod entries
+      Optional<Modification> r = mUnimod.resolve(input);
+      if (r.isPresent()) return r;
     }
 
     return Optional.absent();

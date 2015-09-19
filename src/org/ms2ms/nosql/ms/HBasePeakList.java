@@ -52,7 +52,7 @@ public final class HBasePeakList extends MsSpectrum
   protected float maxPPM;
   protected float maxFluc;
 
-  public <A extends PeakAnnotation> HBasePeakList(PeakList<A> src)
+  public HBasePeakList(PeakList src)
   {
     super(src);
     // the stats

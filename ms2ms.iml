@@ -8,12 +8,11 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="hbase" level="project" />
-    <orderEntry type="library" exported="" name="mzJava" level="project" />
-    <orderEntry type="library" scope="TEST" name="hbase" level="project" />
-    <orderEntry type="library" name="libs" level="project" />
-    <orderEntry type="library" name="titan" level="project" />
+    <orderEntry type="library" exported="" name="libs" level="project" />
     <orderEntry type="module" module-name="javaRdata" />
+    <orderEntry type="library" exported="" name="nosql" level="project" />
+    <orderEntry type="library" exported="" name="apache" level="project" />
+    <orderEntry type="library" exported="" name="grph" level="project" />
+    <orderEntry type="library" exported="" name="sci" level="project" />
   </component>
 </module>
-

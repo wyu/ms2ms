@@ -6,7 +6,7 @@ import org.ms2ms.r.Dataframe;
 import org.ms2ms.test.TestAbstract;
 import uk.ac.liv.jmzqml.model.mzqml.*;
 import uk.ac.liv.jmzqml.xml.io.MzQuantMLMarshaller;
-import uk.ac.liv.maxquantmzquantmlconvertor.utilities.MaxquantFilesReader;
+import uk.ac.liv.mzqlib.maxquant.converter.MaxquantFilesReader;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -132,7 +132,7 @@ public class MaxQuantTest extends TestAbstract
     CvParam labelCvParam = new CvParam();
     labelCvParam.setAccession("MS:1002038");
     labelCvParam.setName("unlabeled sample");
-    labelCvParam.setCvRef(cv);
+    labelCvParam.setCv(cv);
     List<ModParam> modParams = label.getModification();
     ModParam modParam = new ModParam();
     modParam.setCvParam(labelCvParam);
@@ -182,8 +182,8 @@ public class MaxQuantTest extends TestAbstract
       analysisSummaryCv.setValue("false");
       analysisSummary.getParamGroup().add(analysisSummaryCv);
     }
-
-    qml.setAnalysisSummary(analysisSummary);
+    // TODO need to fix the error below
+    //qml.setAnalysisSummary(analysisSummary);
 
     /**
      * create AuditCollection
@@ -199,7 +199,7 @@ public class MaxQuantTest extends TestAbstract
     andy.setLastName("Jones");
 
     Affiliation aff = new Affiliation();
-    aff.setOrganizationRef(uol);
+    aff.setOrganization(uol);
     andy.getAffiliation().add(aff);
     andy.setId("PERS_ARJ");
     auditCollection.getPerson().add(andy);
@@ -271,7 +271,7 @@ public class MaxQuantTest extends TestAbstract
     db.setDatabaseName(dbName);
     UserParam dbNameParam = new UserParam();
     dbNameParam.setName("sgd_orfs_plus_ups_prots.fasta");
-    dbName.setParamGroup(dbNameParam);
+    dbName.setParam(dbNameParam);
 
     qml.setInputFiles(inputFiles);
 
@@ -302,7 +302,7 @@ public class MaxQuantTest extends TestAbstract
       String rawFileName = (String) maxRd.getAssayRawFileMap().get(assName);
       rawFilesGroup.setId("rg_" + rawFileNameIdMap.get(rawFileName).substring(4));
 
-      assay.setRawFilesGroupRef(rawFilesGroup);
+      assay.setRawFilesGroup(rawFilesGroup);
 
       //label free example
       if (maxRd.isLabelFree()) {
@@ -322,7 +322,7 @@ public class MaxQuantTest extends TestAbstract
           CvParam label_lysine = new CvParam();
           label_lysine.setAccession("MOD:00582");
           label_lysine.setName("6x(13)C,2x(15)N labeled L-lysine");
-          label_lysine.setCvRef(cv_mod);
+          label_lysine.setCv(cv_mod);
           label_lysine.setValue("Lys8");
 
           CvParam label_arginine = new CvParam();
@@ -366,7 +366,7 @@ public class MaxQuantTest extends TestAbstract
       studyVariable.setId("SV_" + key);
       ArrayList<String> value = entry.getValue();
       Iterator iV = value.iterator();
-      List<Object> assayRefList = studyVariable.getAssayRefs();
+      List assayRefList = studyVariable.getAssayRefs();
       while (iV.hasNext()) {
         Assay assay = new Assay();
         String assayName = (String) iV.next();
@@ -409,14 +409,14 @@ public class MaxQuantTest extends TestAbstract
         // TODO: to StudyVariable or Assay.
         // TODO: This is only fixed to H/L ratio
         // TODO: need to re-code
-        ArrayList<String> primeStudyVars = maxRd.getPrimeStudyVariableList();
+        ArrayList<String> primeStudyVars = (ArrayList<String> )maxRd.getPrimeStudyVariableList();
         for (String primeStudyVar : primeStudyVars) {
           if (ratioTitle.contains(primeStudyVar)) {
             for (StudyVariable sv : qml.getStudyVariableList().getStudyVariable()) {
               if (sv.getId().contains(primeStudyVar + "_H")) {
-                ratio.setNumeratorRef(sv);
+                ratio.setNumerator(sv);
               } else if (sv.getId().contains(primeStudyVar + "_L")) {
-                ratio.setDenominatorRef(sv);
+                ratio.setDenominator(sv);
               }
             }
           }
@@ -431,7 +431,7 @@ public class MaxQuantTest extends TestAbstract
      * *
      * create ProteinList
      */
-    HashMap<String, ArrayList<String>> proteinPeptidesMap = maxRd.getProteinPeptidesMap();
+    HashMap<String, ArrayList<String>> proteinPeptidesMap = (HashMap<String, ArrayList<String>> )maxRd.getProteinPeptidesMap();
 
     ProteinList proteins = new ProteinList();
     List<Protein> proteinList = proteins.getProtein();
@@ -456,11 +456,11 @@ public class MaxQuantTest extends TestAbstract
       protein.setId(protId);
       protein.setAccession(protAccession);
       proteinAccessionIdMap.put(protAccession, protId);
-      protein.setSearchDatabaseRef(db);
+      protein.setSearchDatabase(db);
 
       if (pepSequences != null) {
         Iterator iPep = pepSequences.iterator();
-        List<Object> peptideConsensusRefList = protein.getPeptideConsensusRefs();
+        List peptideConsensusRefList = protein.getPeptideConsensusRefs();
         ArrayList<String> pepIds = new ArrayList<String>();
         while (iPep.hasNext()) {
           PeptideConsensus peptideConsensus = new PeptideConsensus();
@@ -505,7 +505,7 @@ public class MaxQuantTest extends TestAbstract
       }
 
       DataMatrix protIntDM = new DataMatrix();
-      Iterator iProtInt = maxRd.getProteinIntensityMap().entrySet().iterator();
+      Iterator iProtInt = (Iterator )maxRd.getProteinIntensityMap().iterator();
       while (iProtInt.hasNext()) {
         Map.Entry<String, ArrayList<String>> entry = (Map.Entry<String, ArrayList<String>>) iProtInt.next();
         String key = entry.getKey();
@@ -514,7 +514,7 @@ public class MaxQuantTest extends TestAbstract
           Protein protein = new Protein();
           protein.setId(proteinId);
           Row row = new Row();
-          row.setObjectRef(protein);
+          row.setObject(protein);
 
           ArrayList<String> value = entry.getValue();
           Iterator iV = value.iterator();
@@ -552,7 +552,7 @@ public class MaxQuantTest extends TestAbstract
       }
 
       DataMatrix protIntDM = new DataMatrix();
-      Iterator iProtInt = maxRd.getProteinIntensityMap().entrySet().iterator();
+      Iterator iProtInt = (Iterator )maxRd.getProteinIntensityMap().iterator();
       while (iProtInt.hasNext()) {
         Map.Entry<String, ArrayList<String>> entry = (Map.Entry<String, ArrayList<String>>) iProtInt.next();
         String key = entry.getKey();
@@ -561,7 +561,7 @@ public class MaxQuantTest extends TestAbstract
           Protein protein = new Protein();
           protein.setId(proteinId);
           Row row = new Row();
-          row.setObjectRef(protein);
+          row.setObject(protein);
 
           ArrayList<String> value = entry.getValue();
           Iterator iV = value.iterator();
@@ -594,7 +594,7 @@ public class MaxQuantTest extends TestAbstract
       }
 
       DataMatrix protUniqPepDM = new DataMatrix();
-      Iterator iProtUniqPep = maxRd.getProteinUniquePeptiedsMap().entrySet().iterator();
+      Iterator iProtUniqPep = (Iterator )maxRd.getProteinUniquePeptiedsMap().iterator();
       while (iProtUniqPep.hasNext()) {
         Map.Entry<String, ArrayList<String>> entry = (Map.Entry<String, ArrayList<String>>) iProtUniqPep.next();
         String key = entry.getKey();
@@ -603,7 +603,7 @@ public class MaxQuantTest extends TestAbstract
           Protein protein = new Protein();
           protein.setId(proteinId);
           Row row = new Row();
-          row.setObjectRef(protein);
+          row.setObject(protein);
 
           ArrayList<String> value = entry.getValue();
           Iterator iV = value.iterator();
@@ -632,7 +632,7 @@ public class MaxQuantTest extends TestAbstract
     HashMap<String, ArrayList<String>> peptideAssaysMap = new HashMap<String, ArrayList<String>>();
     HashMap<String, String> featureAssNameMap = new HashMap<String, String>();
 
-    HashMap<String, ArrayList<String>> evidenceMap = maxRd.getEvidenceMap();
+    HashMap<String, ArrayList<String>> evidenceMap = (HashMap<String, ArrayList<String>> )maxRd.getEvidenceMap();
     Iterator iEvd = evidenceMap.entrySet().iterator();
     while (iEvd.hasNext()) {
       Map.Entry<String, ArrayList<String>> entry = (Map.Entry<String, ArrayList<String>>) iEvd.next();
@@ -705,7 +705,7 @@ public class MaxQuantTest extends TestAbstract
           features = new FeatureList();
           RawFilesGroup rawFilesGroup = new RawFilesGroup();
           rawFilesGroup.setId(rgId);
-          features.setRawFilesGroupRef(rawFilesGroup);
+          features.setRawFilesGroup(rawFilesGroup);
           String fListId = "Flist_" + rgId.substring(3);
           features.setId(fListId);
           rgIdFeatureListMap.put(rgId, features);
@@ -725,7 +725,7 @@ public class MaxQuantTest extends TestAbstract
           featureColumnIndex.getColumn().add(featureColumn_int);
 
           Row row = new Row();
-          row.setObjectRef(feature);
+          row.setObject(feature);
           row.getValue().add(intensity);
 
           DataMatrix dataMatrix = new DataMatrix();
@@ -733,7 +733,7 @@ public class MaxQuantTest extends TestAbstract
           featureQuantLayer.setDataMatrix(dataMatrix);
         } else {
           Row row = new Row();
-          row.setObjectRef(feature);
+          row.setObject(feature);
           row.getValue().add(intensity);
           features.getFeatureQuantLayer().get(0).getDataMatrix().getRow().add(row);
         }
@@ -841,7 +841,7 @@ public class MaxQuantTest extends TestAbstract
           features = new FeatureList();
           RawFilesGroup rawFilesGroup = new RawFilesGroup();
           rawFilesGroup.setId(rgId);
-          features.setRawFilesGroupRef(rawFilesGroup);
+          features.setRawFilesGroup(rawFilesGroup);
           String fListId = "Flist_" + rgId.substring(3);
           features.setId(fListId);
           rgIdFeatureListMap.put(rgId, features);
@@ -861,12 +861,12 @@ public class MaxQuantTest extends TestAbstract
           featureColumnIndex.getColumn().add(featureColumn_int);
 
           Row row_L = new Row();
-          row_L.setObjectRef(feature_L);
+          row_L.setObject(feature_L);
           row_L.getValue().add(intensityL);
 
           //TODO: this is artificial row for heavy label
           Row row_H = new Row();
-          row_H.setObjectRef(feature_H);
+          row_H.setObject(feature_H);
           row_H.getValue().add(intensityH);
 
           DataMatrix dataMatrix = new DataMatrix();
@@ -875,13 +875,13 @@ public class MaxQuantTest extends TestAbstract
           featureQuantLayer.setDataMatrix(dataMatrix);
         } else {
           Row row_L = new Row();
-          row_L.setObjectRef(feature_L);
+          row_L.setObject(feature_L);
           row_L.getValue().add(intensityL);
           features.getFeatureQuantLayer().get(0).getDataMatrix().getRow().add(row_L);
 
           //TODO: this is artificial row for heavy label
           Row row_H = new Row();
-          row_H.setObjectRef(feature_H);
+          row_H.setObject(feature_H);
           row_H.getValue().add(intensityH);
           features.getFeatureQuantLayer().get(0).getDataMatrix().getRow().add(row_H);
         }
@@ -902,7 +902,8 @@ public class MaxQuantTest extends TestAbstract
     List<PeptideConsensus> peptideList = peptideConsensuses.getPeptideConsensus();
 
     Iterator iPep = maxRd.getPeptideList().iterator();
-    HashMap<String, ArrayList<String>> peptideFeatureIdsMap = maxRd.getPeptideFeatureIdsMap();
+    // peptide feature id map
+    HashMap<String, ArrayList<String>> peptideFeatureIdsMap = (HashMap<String, ArrayList<String>> )maxRd.getPeptideEvidenceIdsMap();
 
     DataMatrix pep_IntDM = new DataMatrix();
     DataMatrix pep_RatioDM = new DataMatrix();
@@ -923,7 +924,7 @@ public class MaxQuantTest extends TestAbstract
 
           peptideConsensus.setId("pep_" + key);
           peptideConsensus.setPeptideSequence(key);
-          peptideConsensus.setSearchDatabaseRef(db);
+          peptideConsensus.setSearchDatabase(db);
         }
         // add Feature_refs to individual peptideConsensus
         ArrayList<Feature> fList = peptideFeaturesMap.get(key);
@@ -932,7 +933,7 @@ public class MaxQuantTest extends TestAbstract
           Feature f = (Feature) iFList.next();
 
           EvidenceRef evRef = new EvidenceRef();
-          evRef.setFeatureRef(f);
+          evRef.setFeature(f);
           peptideConsensus.getEvidenceRef().add(evRef);
 
           //add assay_refs
@@ -942,14 +943,14 @@ public class MaxQuantTest extends TestAbstract
           Assay tempAssay = new Assay();
           tempAssay.setId(ass_id);
           tempAssay.setName(assN);
-          evRef.getAssayRefs().add(tempAssay);
+          evRef.getAssays().add(tempAssay);
         }
 
         // create DataMatrix of AssayQuantLayer for intensity
         ArrayList intKeys = (ArrayList) maxRd.getPeptideIntensityMap().get(key);
         Iterator iInt = intKeys.iterator();
         Row row = new Row();
-        row.setObjectRef(peptideConsensus);
+        row.setObject(peptideConsensus);
         while (iInt.hasNext()) {
           String intKey = (String) iInt.next();
           row.getValue().add(intKey);
@@ -963,10 +964,10 @@ public class MaxQuantTest extends TestAbstract
 
         // create DataMatrix of RatioQuantLayer for non label free example
         if (!maxRd.isLabelFree()) {
-          HashMap<String, List<String>> peptideToRatioMap = maxRd.getPeptideRatioMap();
+          HashMap<String, List<String>> peptideToRatioMap = (HashMap<String, List<String>> )maxRd.getPeptideRatioMap();
           List<String> ratioValues = peptideToRatioMap.get(key);
           Row row_ratio = new Row();
-          row_ratio.setObjectRef(peptideConsensus);
+          row_ratio.setObject(peptideConsensus);
           row_ratio.getValue().addAll(ratioValues);
           pep_RatioDM.getRow().add(row_ratio);
         }
@@ -1007,8 +1008,8 @@ public class MaxQuantTest extends TestAbstract
       for (Ratio ratio : qml.getRatioList().getRatio()) {
         pepRQL.getColumnIndex().add(ratio);
       }
-
-      peptideConsensuses.setRatioQuantLayer(pepRQL);
+      // TODO need to fix this following error
+      //peptideConsensuses.setRatioQuantLayer(pepRQL);
     }
 
     peptideConsensuses.setId("PepList1");
@@ -1036,7 +1037,7 @@ public class MaxQuantTest extends TestAbstract
     DataProcessingList dataProcessingList = new DataProcessingList();
     DataProcessing dataProcessing = new DataProcessing();
     dataProcessing.setId("feature_quantification");
-    dataProcessing.setSoftwareRef(software);
+    dataProcessing.setSoftware(software);
     dataProcessing.setOrder(BigInteger.ONE);
     ProcessingMethod processingMethod = new ProcessingMethod();
     processingMethod.setOrder(BigInteger.ONE);
@@ -1064,7 +1065,7 @@ public class MaxQuantTest extends TestAbstract
     cp.setName(name);
     Cv cv = new Cv();
     cv.setId(cvRef);
-    cp.setCvRef(cv);
+    cp.setCv(cv);
     cp.setAccession(accession);
     return cp;
   }

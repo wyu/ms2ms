@@ -18,7 +18,7 @@ import java.util.EnumSet;
  * Time: 3:39 PM
  * To change this template use File | Settings | File Templates.
  */
-public class mzXMLReader<A extends PeakAnnotation> extends MzxmlReader<A>
+public class mzXMLReader extends MzxmlReader
 {
   // initialization if required
   static
@@ -30,9 +30,9 @@ public class mzXMLReader<A extends PeakAnnotation> extends MzxmlReader<A>
   {
     super(file, precision);
   }
-  public static <PA extends PeakAnnotation> mzXMLReader<PA> newTolerantReader(File file, PeakList.Precision precision) throws IOException {
+  public static mzXMLReader newTolerantReader(File file, PeakList.Precision precision) throws IOException {
 
-    mzXMLReader<PA> reader = new mzXMLReader<PA>(file, precision);
+    mzXMLReader reader = new mzXMLReader(file, precision);
 
     reader.removeConsistencyChecks(EnumSet.allOf(ConsistencyCheck.class));
     reader.acceptUnsortedSpectra();

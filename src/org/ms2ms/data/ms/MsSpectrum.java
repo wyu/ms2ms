@@ -50,7 +50,7 @@ public class MsSpectrum  implements Serializable, Disposable
 //    }
 //    size = src.size();
   }
-  public <A extends PeakAnnotation> MsSpectrum(MsnSpectrum<A> src)
+  public MsSpectrum(MsnSpectrum src)
   {
     super(); init(src);
     scan    = src.getScanNumbers().getFirst().getValue();

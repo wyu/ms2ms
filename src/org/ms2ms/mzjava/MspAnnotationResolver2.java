@@ -194,7 +194,7 @@ public class MspAnnotationResolver2 implements AnnotationResolver {
         break;
       case INTACT:
 
-        peptideFragment = peptide.copy();
+        peptideFragment = new Peptide(peptide);
         break;
       case INTERNAL:
       default:

@@ -2,6 +2,7 @@ package org.ms2ms.test.ms;
 
 import com.google.common.collect.Multimap;
 import info.monitorenter.cpdetector.io.FileFilterExtensions;
+import org.apache.commons.io.filefilter.NameFileFilter;
 import org.expasy.mzjava.core.io.ms.spectrum.MzxmlReader;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
@@ -14,6 +15,7 @@ import org.ms2ms.test.TestAbstract;
 import org.ms2ms.utils.IOs;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.RandomAccessFile;
 import java.util.Collection;
 
@@ -32,7 +34,7 @@ public class BayesGuruTest extends TestAbstract
   {
     String root = "/media/data/test/guru/blacktips/";
     String[] selected = { MaxQuant.V_MZ,MaxQuant.V_RT,MaxQuant.V_TIC,MaxQuant.V_MSEQ,MaxQuant.V_SEQ,MaxQuant.V_OFFSET,MaxQuant.V_Z };
-    Multimap<String, String> dir_file = IOs.listDirFilesByExt(root,"mzXML");
+    Multimap<String, String> dir_file = IOs.listDirFiles(root, new NameFileFilter("*.mzXML"));
     Dataframe msms = Dataframe.readtable(root+"composite_scans.txt", selected,'\t', true).setTitle("msms");
 
     Multimap<String, String> seq_row   = msms.factorize(MaxQuant.V_MSEQ);
