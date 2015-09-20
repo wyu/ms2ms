@@ -1,10 +1,7 @@
 package org.ms2ms.io;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Table;
+import com.google.common.collect.*;
 import info.monitorenter.cpdetector.io.FileFilterExtensions;
 import org.expasy.mzjava.core.mol.NumericMass;
 import org.expasy.mzjava.core.ms.spectrum.TimeUnit;
@@ -236,7 +233,7 @@ public class PsmReaders
 //      match.setTotalNumIons(new Integer(matched[1]));
       match.setNumMissedCleavages(file.getInt("# Missed Cleavages"));
       match.setRank(file.getInt("Rank"));
-      Peptides.addScore(match, "XCorr",              file.getDouble("XCorr"));
+      Peptides.addScore(match, "XCorr", file.getDouble("XCorr"));
       Peptides.addScore(match, "Percolator q-Value", file.getDouble("Percolator q-Value"));
       Peptides.addScore(match, "Percolator PEP",     file.getDouble("Percolator PEP"));
       Peptides.addScore(match, "DeltaScore",         file.getDouble("DeltaScore"));
@@ -248,6 +245,21 @@ public class PsmReaders
     }
 
     return id_match;
+  }
+  public static Multimap<SpectrumIdentifier, PeptideMatch> readMSGFplus(Collection<String> files) throws IOException
+  {
+    if (Tools.isSet(files))
+    {
+      // the totals
+      Multimap<SpectrumIdentifier, PeptideMatch> matches = HashMultimap.create();
+      for (String f : files)
+      {
+        System.out.println("Reading " + f);
+        matches.putAll(readMSGFplus(f));
+      }
+      return matches;
+    }
+    return null;
   }
   public static Multimap<SpectrumIdentifier, PeptideMatch> readMSGFplus(String filename) throws IOException
   {
