@@ -19,7 +19,7 @@ public class Engine implements Comparable<Engine>
                  mProb;            // A calibrated probability score for cross engine comparison
   public static final Engine MASCOT    = new Engine("Mascot", "IonScore");
   public static final Engine SEQUEST   = new Engine("Sequest", "XCorr");
-  public static final Engine MSGF      = new Engine("MSGF+", "MSGFScore");
+  public static final Engine MSGF      = new Engine("MSGF+", "MSGFScore", "QValue");
   public static final Engine ANDROMEDA = new Engine("Maxquant-Andromeda", "Score");
 
   // round out the parameters for the known engines
@@ -28,8 +28,9 @@ public class Engine implements Comparable<Engine>
 
   }
 
-  public Engine(String n)                   { mName=n; }
-  public Engine(String n, String canonical) { mName=n; mCanonicalScore=canonical; }
+  public Engine(String n)                     { mName=n; }
+  public Engine(String n, String canonical)   { mName=n; mCanonicalScore=canonical; }
+  public Engine(String n, String c, String q) { mName=n; mCanonicalScore=c; mProb=q; }
 
   public String getName()           { return mName; }
   public String getCanonicalScore() { return mCanonicalScore; }

@@ -5,7 +5,9 @@ import com.google.common.collect.Table;
 import com.google.common.collect.TreeBasedTable;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.expasy.mzjava.proteomics.ms.ident.SpectrumIdentifier;
+import org.ms2ms.alg.LCMSMS;
 import org.ms2ms.alg.Peptides;
+import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
 import java.util.Map;
@@ -38,12 +40,14 @@ public class MetaEngine
   {
     if (ms!=null && m!=null && engine!=null)
     {
-      mRunScanSpectrum.put(ms.getSpectrumFile().get(), ms.getScanNumbers().toString(), ms);
-      String p = Peptides.toNumModSequence(m);
+      mRunScanSpectrum.put(Strs.stripLastOf(ms.getSpectrumFile().get(), '.'), LCMSMS.toScanStr(ms.getScanNumbers()), ms);
+      String       p = Peptides.toNumModSequence(m);
+      PeptideMatch M = mPeptideEngineMatch.get(p, engine);
       // keep only the best one
-      if (!mPeptideEngineMatch.contains(p, engine) ||
-           mPeptideEngineMatch.get(p,m).getScore(engine.getCanonicalScore())<m.getScore(engine.getCanonicalScore()))
-           mPeptideEngineMatch.put(p, engine, m);
+      if (M==null ||
+         (M.hasScore(engine.getCanonicalScore()) &&
+          M.getScore(engine.getCanonicalScore())<m.getScore(engine.getCanonicalScore())))
+        mPeptideEngineMatch.put(p, engine, m);
     }
 
     return this;
@@ -57,7 +61,7 @@ public class MetaEngine
     if (engine!=null && Tools.isSet(id_match))
       for (SpectrumIdentifier id : id_match.keySet())
       {
-        String   row = id.getSpectrumFile().get()+"#"+id.getScanNumbers().toString();
+        String   row = id.getSpectrumFile().get()+"#"+ LCMSMS.toScanStr(id.getScanNumbers());
         MetaEngine E = row_matches.get(row);
         if (E==null) { E = new MetaEngine(); row_matches.put(row, E); }
         // add the contents of the matches
