@@ -1,17 +1,18 @@
 package org.ms2ms.io;
 
+import org.expasy.mzjava.core.io.ms.spectrum.MgfWriter;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.*;
 import org.ms2ms.data.ms.MsSpectrum;
+import org.ms2ms.math.Stats;
 import org.ms2ms.utils.IOs;
+import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
+import uk.ac.ebi.jmzml.model.mzml.*;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /** Responsible for writing out the MS objects in binary format. Not to be confused with import duty
  *
@@ -211,5 +212,65 @@ public class MsIO extends IOs
       }
     }
     catch (IOException ie) { throw new RuntimeException("Error while writing the spectra", ie); }
+  }
+  public static String get(Collection<CVParam> params, String key)
+  {
+    if (Tools.isSet(params) && Strs.isSet(key))
+      for (Iterator lCVParamIterator = params.iterator(); lCVParamIterator.hasNext();)
+      {
+        CVParam lCVParam = (CVParam) lCVParamIterator.next();
+        if (lCVParam.getAccession().equals(key))
+        {
+          return lCVParam.getValue().trim();
+        }
+      }
+    return null;
+  }
+  public static Integer getInt(   Collection<CVParam> params, String key) { return Stats.toInt(   get(params, key)); }
+  public static Double  getDouble(Collection<CVParam> params, String key) { return Stats.toDouble(get(params, key)); }
+
+  public static String getIf(Collection<CVParam> params, String tag_required, String val_required)
+  {
+    if (Tools.isSet(params) && Strs.isSet(tag_required) && Strs.isSet(val_required))
+      for (Iterator lCVParamIterator = params.iterator(); lCVParamIterator.hasNext();)
+      {
+        CVParam lCVParam = (CVParam) lCVParamIterator.next();
+        if (lCVParam.getAccession().equals(tag_required))
+        {
+          String unitRT = lCVParam.getUnitAccession().trim();
+          if (unitRT.equals(val_required)) //... Validating rt unit (mins or secs) ...//
+          {
+            return lCVParam.getValue().trim();
+          }
+        }
+      }
+    return null;
+  }
+  public static boolean hasAccession(Collection<CVParam> params, String tag_required)
+  {
+    if (Tools.isSet(params) && Strs.isSet(tag_required))
+      for (Iterator lCVParamIterator = params.iterator(); lCVParamIterator.hasNext();)
+      {
+        CVParam lCVParam = (CVParam) lCVParamIterator.next();
+        if (lCVParam.getAccession().equals(tag_required)) return true;
+      }
+    return false;
+  }
+  public static Integer ScanNumberFromSpectrumRef(String ref)
+  {
+    String[] ids = Strs.split(ref, ' ', true);
+    for (String id : ids)
+      if (id.indexOf("scan=")==0) return Stats.toInt(id.substring(5));
+
+    return null;
+  }
+  // write the content of the spectrum from an mzML file to another MGF file
+  public static void writeMGF(MgfWriter w, uk.ac.ebi.jmzml.model.mzml.Spectrum ms) throws IOException
+  {
+    if (w==null || ms==null) return;
+
+
+
+
   }
 }

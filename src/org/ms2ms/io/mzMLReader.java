@@ -8,10 +8,8 @@ import javax.xml.stream.XMLStreamReader;
 import java.io.IOException;
 
 /**
- * Created with IntelliJ IDEA.
- * User: hliu
- * Date: 8/19/14
- * Time: 5:10 PM
+ * Deprecated! Use jmzml reader instead
+ *
  * To change this template use File | Settings | File Templates.
  */
 public class mzMLReader extends mzReader
@@ -93,4 +91,5 @@ public class mzMLReader extends mzReader
 
   		return result;
   	}
+
 }

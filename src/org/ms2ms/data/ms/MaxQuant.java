@@ -81,7 +81,7 @@ public class MaxQuant extends LcMsMsDataset
     evidences.init(Var.VarType.CATEGORICAL, V_ID_EVI);
     // join the msms table with the evidence table, which contains the annotated LCMS features by the Evidence ID
     Dataframe annotations = Dataframe.merge(msms, evidences, true, true, V_ID_EVI).setTitle("annot");
-    // msms.txt contains only the annotated scans, msmsScans.txt has all the scans
+    // msms.txt contains only the annotated scans, msmsScans.txt hasAccession all the scans
     mMsMs = Dataframe.merge(annotations, scans, true, true, "Raw file","Scan number").setTitle("msms+");
 
     IOs.write(root + "mergedAnnots.txt", annotations.display().toString());

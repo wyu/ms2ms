@@ -6,9 +6,14 @@ import com.google.common.collect.Range;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakAnnotation;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
+import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeList;
+import org.ms2ms.io.MsIO;
+import org.ms2ms.math.Stats;
+import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
+import uk.ac.ebi.jmzml.model.mzml.Spectrum;
 
 import java.util.*;
 
@@ -266,7 +271,7 @@ public class Spectra
   {
     if (A!=null && Tools.isSet(bound))
       for (int i=0; i<A.size(); i++)
-        if (!bound.contains(A.getMz(i))) validate(A,i);
+        if (!bound.contains(A.getMz(i))) validate(A, i);
   }
   public static void notchUpto(PeakList A, double x) { notch(A, Range.closed(0d, x)); }
 

@@ -120,7 +120,7 @@ public class OutputTest extends TestAbstract
     evidences.init(Var.VarType.CATEGORICAL, "Evidence ID");
     // join the msms table with the evidence table, which contains the annotated LCMS features by the Evidence ID
     Dataframe annotations = Dataframe.merge(msms, evidences, true, true, "Evidence ID").setTitle("annot");
-    // msms.txt contains only the annotated scans, msmsScans.txt has all the scans
+    // msms.txt contains only the annotated scans, msmsScans.txt hasAccession all the scans
     Dataframe out = Dataframe.merge(annotations, scans, true, true, "Raw file","Scan number");
 
     IOs.write(root + "mergedAnnotAll.txt", annotations.display("\t", "").toString());

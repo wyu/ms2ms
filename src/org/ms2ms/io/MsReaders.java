@@ -1,20 +1,33 @@
 package org.ms2ms.io;
 
 import com.google.common.collect.Range;
+import com.sun.org.apache.xml.internal.resolver.helpers.FileURL;
 import org.expasy.mzjava.core.io.ms.spectrum.MzxmlReader;
+import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
+import org.expasy.mzjava.core.ms.spectrum.RetentionTimeDiscrete;
+import org.expasy.mzjava.core.ms.spectrum.ScanNumberDiscrete;
+import org.expasy.mzjava.core.ms.spectrum.TimeUnit;
 import org.ms2ms.alg.Spectra;
 import org.ms2ms.data.ms.MsSpectrum;
+import org.ms2ms.math.Stats;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.data.HData;
 import org.ms2ms.data.ms.LcMsMsDataset;
+import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
+import uk.ac.ebi.jmzml.model.mzml.BinaryDataArray;
+import uk.ac.ebi.jmzml.model.mzml.Precursor;
+import uk.ac.ebi.jmzml.model.mzml.Spectrum;
 
 import java.io.*;
+import java.net.URI;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.DataFormatException;
+import java.util.zip.Inflater;
 
 /**
  * User: wyu
@@ -204,5 +217,177 @@ public class MsReaders
   {
     Logger.getLogger(MzxmlReader.class.getName()).setLevel(Level.SEVERE);
     return reader.hasNext()?reader.next():null;
+  }
+  public static MsnSpectrum from(Spectrum ms)
+  {
+    if (ms==null) return null;
+
+    MsnSpectrum spec = new MsnSpectrum();
+
+    // populate the new spectrum with the old
+    spec.setMsLevel(MsIO.getInt(ms.getCvParam(), "MS:1000511"));
+    spec.setSpectrumIndex(ms.getIndex());
+    // set the scan filter:
+    // 'ITMS + c NSI r d Full ms2 838.7747@cid35.00 [226.0000-2000.0000]'
+    spec.setComment(MsIO.get(ms.getScanList().getScan().get(0).getCvParam(), "MS:1000512"));
+    if (spec.getMsLevel()==3)
+    {
+      // 'FTMS + p NSI sps d Full ms3 838.77@cid35.00 432.89@hcd40.00 [120.00-1800.00]'
+      String[] items = Strs.split(spec.getComment().substring(spec.getComment().indexOf("ms3"), spec.getComment().indexOf('[')), ' ', true);
+      // grab the MS2 info and change the precursor to that of the MS2
+      spec.setPrecursor(new Peak(Stats.toDouble(Strs.split(items[1], '@', true)[0]), 0));
+      // set the activation mode
+      spec.setFragMethod(Strs.split(items[2], '@', true)[1].substring(0, 3));
+      // no spectrumref avail for MS3
+    }
+    else if (spec.getMsLevel()>1)
+    {
+      Precursor p = ms.getPrecursorList().getPrecursor().get(0);
+      if (Strs.isSet(p.getSpectrumRef())) spec.setParentScanNumber(new ScanNumberDiscrete(MsIO.ScanNumberFromSpectrumRef(p.getSpectrumRef())));
+      spec.setFragMethod(MsIO.hasAccession(p.getActivation().getCvParam(), "MS:1000133") ? "cid" : "");
+      Double ai = MsIO.getDouble(p.getSelectedIonList().getSelectedIon().get(0).getCvParam(), "MS:1000042");
+      Integer z = MsIO.getInt(p.getSelectedIonList().getSelectedIon().get(0).getCvParam(), "MS:1000041");
+      spec.setPrecursor(new Peak(MsIO.getDouble(p.getSelectedIonList().getSelectedIon().get(0).getCvParam(), "MS:1000744"),
+                                 ai!=null?ai:0, z!=null?z:0));
+    }
+
+    // set the scan number
+    spec.addScanNumber(MsIO.ScanNumberFromSpectrumRef(ms.getId()));
+    spec.addRetentionTime(new RetentionTimeDiscrete(MsIO.getDouble(ms.getScanList().getScan().get(0).getCvParam(), "MS:1000016"), TimeUnit.MINUTE));
+
+    // read the ions
+    Number[] mzs=null, ais=null;
+    for (BinaryDataArray bin : ms.getBinaryDataArrayList().getBinaryDataArray())
+    {
+      int     precision = MsIO.hasAccession(bin.getCvParam(), "MS:1000521")?32:64;
+      String  compressionType=MsIO.hasAccession(bin.getCvParam(), "MS:1000574")?"zlib":"none";
+      try
+      {
+        if (MsIO.hasAccession(bin.getCvParam(), "MS:1000514"))
+        {
+          // decode the m/z string
+          mzs = bin.getBinaryDataAsNumberArray();
+        }
+        else if (MsIO.hasAccession(bin.getCvParam(), "MS:1000515"))
+        {
+          // decode the m/z string
+          ais = bin.getBinaryDataAsNumberArray();
+        }
+      }
+      catch (Exception e)
+      {
+        e.printStackTrace();
+      }
+    }
+    if (mzs!=null && ais!=null && mzs.length==ais.length)
+      for (int i=0; i<mzs.length; i++)
+      {
+        spec.add(mzs[i].doubleValue(), ais[i].doubleValue());
+      }
+
+    return spec;
+  }
+  /*******************
+   * Function returns an array of doubles that was decoded from the passed string
+   * https://github.com/dfermin/lucXor/blob/master/src/lucxor/mzMLreader.java
+   * @param peaks
+   * @return
+   * @throws IOException
+   * @throws DataFormatException
+   */
+  private static double[] decode_string(String peaks, int precision, boolean isBase64Encoded, String compressionType) throws IOException, DataFormatException
+  {
+    byte[] decoded;
+
+    if(isBase64Encoded) {
+      decoded = org.apache.commons.codec.binary.Base64.decodeBase64(peaks);
+    } else {
+      decoded = peaks.getBytes();
+    }
+
+    if(compressionType.equals("zlib")) { // need to decompress the bytes
+      decoded = zlibUncompressBuffer(decoded);
+    }
+
+    int decodedLen = decoded.length; // in bytes
+    int chunkSize = precision / 8;
+    int numPeaks = decodedLen / chunkSize;
+    double[] retAry = new double[numPeaks];
+
+    if (precision == 32) {
+
+      int asInt;
+      float asFloat = 0.0f;
+      int offset;
+
+      for (int i = 0; i < numPeaks; i++) {
+        offset = i * chunkSize;
+
+        asInt = (  (decoded[offset + 0] & 0xFF)) // zero shift
+            | ((decoded[offset + 1] & 0xFF) << 8)
+            | ((decoded[offset + 2] & 0xFF) << 16)
+            | ((decoded[offset + 3] & 0xFF) << 24);
+        asFloat = Float.intBitsToFloat(asInt);
+        retAry[i] = asFloat;
+      }
+    } else if (precision == 64) {
+      long asLong;
+      double asDouble = 0.0d;
+      int offset;
+
+      for (int i = 0; i < numPeaks; i++) {
+        offset = i * chunkSize;
+
+        asLong = ( (long) (decoded[offset + 0] & 0xFF)) // zero shift
+            | ((long) (decoded[offset + 1] & 0xFF) << 8)
+            | ((long) (decoded[offset + 2] & 0xFF) << 16)
+            | ((long) (decoded[offset + 3] & 0xFF) << 24)
+            | ((long) (decoded[offset + 4] & 0xFF) << 32)
+            | ((long) (decoded[offset + 5] & 0xFF) << 40)
+            | ((long) (decoded[offset + 6] & 0xFF) << 48)
+            | ((long) (decoded[offset + 7] & 0xFF) << 56);
+        asDouble = Double.longBitsToDouble(asLong);
+
+        retAry[i] = asDouble;
+      }
+    } else {
+      throw new IllegalArgumentException("Precision can only be 32 or 64 bits.");
+    }
+
+    return retAry;
+  }
+  /** https://github.com/dfermin/lucXor/blob/master/src/lucxor/mzMLreader.java
+   * Inflates zLib compressed byte[].
+   * @param compressed zLib compressed bytes
+   * @return inflated byte array
+   * @throws IOException should never happen, ByteArrayOutputStream is in-memory
+   * @throws DataFormatException in case of malformed input byte array
+   */
+  public static byte[] zlibUncompressBuffer(byte[] compressed) throws IOException, DataFormatException
+  {
+
+    Inflater decompressor = new Inflater();
+    decompressor.setInput(compressed);
+
+    ByteArrayOutputStream bos = new ByteArrayOutputStream(compressed.length);
+    byte[] buf = new byte[decompressor.getRemaining() * 2];
+    try {
+      // Decompress the data
+      while (decompressor.getRemaining() > 0) {
+        int count = decompressor.inflate(buf);
+        bos.write(buf, 0, count);
+      }
+
+    } finally {
+      try {
+        bos.close();
+      } catch (IOException nope) {
+        // This exception doesn't matter, but it totally should not happen
+        throw nope;
+      }
+    }
+    decompressor.end();
+    byte[] result = bos.toByteArray();
+    return result;
   }
 }
