@@ -1,6 +1,6 @@
 package org.ms2ms.data.ms;
 
-import org.ms2ms.alg.MsStats;
+import org.ms2ms.algo.MsStats;
 import org.ms2ms.io.MsReaders;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.r.Var;

@@ -1,4 +1,4 @@
-package org.ms2ms.alg;
+package org.ms2ms.algo;
 
 import com.google.common.collect.Multimap;
 import org.ms2ms.data.collect.MultiTreeTable;

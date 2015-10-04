@@ -9,11 +9,11 @@ import org.expasy.mzjava.proteomics.mol.AAMassCalculator;
 import org.expasy.mzjava.proteomics.ms.consensus.PeptideConsensusSpectrum;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepFragAnnotation;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
-import org.ms2ms.alg.Peaks;
+import org.ms2ms.algo.Peaks;
 import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.mzjava.AnnotatedSpectrum;
 import org.ms2ms.nosql.ms.HBaseProteomics;
-import org.ms2ms.alg.MsStats;
+import org.ms2ms.algo.MsStats;
 import org.ms2ms.utils.Tools;
 
 import java.io.IOException;

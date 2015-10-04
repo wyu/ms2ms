@@ -1,7 +1,7 @@
 package org.ms2ms.test.maxquant;
 
 import org.junit.Test;
-import org.ms2ms.alg.MsStats;
+import org.ms2ms.algo.MsStats;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.test.TestAbstract;
 import uk.ac.liv.jmzqml.model.mzqml.*;

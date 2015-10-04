@@ -5,8 +5,8 @@ import com.google.common.collect.Table;
 import com.google.common.collect.TreeBasedTable;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.expasy.mzjava.proteomics.ms.ident.SpectrumIdentifier;
-import org.ms2ms.alg.LCMSMS;
-import org.ms2ms.alg.Peptides;
+import org.ms2ms.algo.LCMSMS;
+import org.ms2ms.algo.Peptides;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 

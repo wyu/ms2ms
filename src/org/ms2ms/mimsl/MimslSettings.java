@@ -5,7 +5,7 @@ import org.expasy.mzjava.core.ms.PpmTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.ms2ms.data.ms.ClusteringSettings;
 import org.ms2ms.data.ms.MsSettings;
-import org.ms2ms.alg.Peaks;
+import org.ms2ms.algo.Peaks;
 import org.ms2ms.nosql.ms.HBasePeakList;
 
 /**

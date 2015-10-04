@@ -6,7 +6,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.proteomics.ms.consensus.PeptideConsensusSpectrum;
 import org.junit.Test;
-import org.ms2ms.alg.Peaks;
+import org.ms2ms.algo.Peaks;
 import org.ms2ms.mzjava.AnnotatedSpectrum;
 import org.ms2ms.nosql.HBases;
 import org.ms2ms.nosql.ms.HBasePeakList;

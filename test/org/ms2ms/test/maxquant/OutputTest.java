@@ -4,7 +4,7 @@ import org.expasy.mzjava.core.ms.PpmTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.junit.Before;
 import org.junit.Test;
-import org.ms2ms.alg.MsStats;
+import org.ms2ms.algo.MsStats;
 import org.ms2ms.data.ms.MaxQuant;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.r.Var;

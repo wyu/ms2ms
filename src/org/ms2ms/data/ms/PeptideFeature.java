@@ -8,7 +8,7 @@ import org.expasy.mzjava.proteomics.mol.modification.Modification;
 import org.expasy.mzjava.proteomics.ms.ident.ModificationMatch;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideProteinMatch;
-import org.ms2ms.alg.Isobarics;
+import org.ms2ms.algo.Isobarics;
 import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;

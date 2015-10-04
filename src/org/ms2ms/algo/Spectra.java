@@ -1,4 +1,4 @@
-package org.ms2ms.alg;
+package org.ms2ms.algo;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -6,14 +6,9 @@ import com.google.common.collect.Range;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakAnnotation;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
-import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeList;
-import org.ms2ms.io.MsIO;
-import org.ms2ms.math.Stats;
-import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
-import uk.ac.ebi.jmzml.model.mzml.Spectrum;
 
 import java.util.*;
 

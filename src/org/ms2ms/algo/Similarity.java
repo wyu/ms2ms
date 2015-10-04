@@ -1,4 +1,4 @@
-package org.ms2ms.alg;
+package org.ms2ms.algo;
 
 import com.google.common.collect.Range;
 import org.expasy.mzjava.core.ms.Tolerance;

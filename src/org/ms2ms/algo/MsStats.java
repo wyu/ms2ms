@@ -1,15 +1,10 @@
-package org.ms2ms.alg;
+package org.ms2ms.algo;
 
 import com.google.common.collect.*;
-import org.apache.commons.lang.math.NumberUtils;
-import org.apache.commons.math.MathException;
-import org.apache.commons.math.analysis.interpolation.LoessInterpolator;
-import org.apache.commons.math.analysis.polynomials.PolynomialSplineFunction;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.stats.Histogram;
 import org.expasy.mzjava.stats.HistogramImpl;
 import org.ms2ms.math.Stats;
-import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
 import java.util.*;

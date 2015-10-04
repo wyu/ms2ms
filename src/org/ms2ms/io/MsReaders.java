@@ -1,7 +1,6 @@
 package org.ms2ms.io;
 
 import com.google.common.collect.Range;
-import com.sun.org.apache.xml.internal.resolver.helpers.FileURL;
 import org.expasy.mzjava.core.io.ms.spectrum.MzxmlReader;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
@@ -9,7 +8,7 @@ import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeDiscrete;
 import org.expasy.mzjava.core.ms.spectrum.ScanNumberDiscrete;
 import org.expasy.mzjava.core.ms.spectrum.TimeUnit;
-import org.ms2ms.alg.Spectra;
+import org.ms2ms.algo.Spectra;
 import org.ms2ms.data.ms.MsSpectrum;
 import org.ms2ms.math.Stats;
 import org.ms2ms.r.Dataframe;
@@ -22,7 +21,6 @@ import uk.ac.ebi.jmzml.model.mzml.Precursor;
 import uk.ac.ebi.jmzml.model.mzml.Spectrum;
 
 import java.io.*;
-import java.net.URI;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;

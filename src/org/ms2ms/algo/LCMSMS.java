@@ -1,4 +1,4 @@
-package org.ms2ms.alg;
+package org.ms2ms.algo;
 
 import org.expasy.mzjava.core.ms.spectrum.ScanNumber;
 import org.expasy.mzjava.core.ms.spectrum.ScanNumberList;

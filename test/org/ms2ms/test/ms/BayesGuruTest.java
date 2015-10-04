@@ -1,13 +1,12 @@
 package org.ms2ms.test.ms;
 
 import com.google.common.collect.Multimap;
-import info.monitorenter.cpdetector.io.FileFilterExtensions;
 import org.apache.commons.io.filefilter.NameFileFilter;
 import org.expasy.mzjava.core.io.ms.spectrum.MzxmlReader;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.junit.Test;
-import org.ms2ms.alg.Spectra;
+import org.ms2ms.algo.Spectra;
 import org.ms2ms.data.ms.MaxQuant;
 import org.ms2ms.io.MsIO;
 import org.ms2ms.r.Dataframe;
@@ -15,7 +14,6 @@ import org.ms2ms.test.TestAbstract;
 import org.ms2ms.utils.IOs;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.io.RandomAccessFile;
 import java.util.Collection;
 

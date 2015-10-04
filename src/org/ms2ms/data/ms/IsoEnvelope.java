@@ -2,8 +2,8 @@ package org.ms2ms.data.ms;
 
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
-import org.ms2ms.alg.Peaks;
-import org.ms2ms.alg.Similarity;
+import org.ms2ms.algo.Peaks;
+import org.ms2ms.algo.Similarity;
 import org.ms2ms.utils.Tools;
 
 import java.util.List;

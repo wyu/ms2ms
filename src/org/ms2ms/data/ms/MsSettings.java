@@ -3,7 +3,7 @@ package org.ms2ms.data.ms;
 import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.core.ms.PpmTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;
-import org.ms2ms.alg.Peaks;
+import org.ms2ms.algo.Peaks;
 import org.ms2ms.nosql.ms.HBasePeakList;
 import org.ms2ms.utils.Settings;
 

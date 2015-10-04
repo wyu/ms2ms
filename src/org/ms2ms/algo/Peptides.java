@@ -1,4 +1,4 @@
-package org.ms2ms.alg;
+package org.ms2ms.algo;
 
 import org.expasy.mzjava.proteomics.mol.modification.ModAttachment;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;

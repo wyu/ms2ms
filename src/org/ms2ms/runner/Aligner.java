@@ -5,7 +5,7 @@ import org.apache.commons.math3.distribution.NormalDistribution;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.data.Features;
-import org.ms2ms.alg.MsStats;
+import org.ms2ms.algo.MsStats;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 

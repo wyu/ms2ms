@@ -5,7 +5,7 @@ import org.expasy.mzjava.core.ms.PpmTolerance;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
 import org.junit.Test;
-import org.ms2ms.alg.Peaks;
+import org.ms2ms.algo.Peaks;
 import org.ms2ms.mimsl.MIMSL;
 import org.ms2ms.mimsl.MimslSettings;
 import org.ms2ms.mzjava.AnnotatedSpectrum;

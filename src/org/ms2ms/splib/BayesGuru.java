@@ -2,7 +2,7 @@ package org.ms2ms.splib;
 
 import com.google.common.collect.Range;
 import org.expasy.mzjava.stats.Histogram;
-import org.ms2ms.alg.MsStats;
+import org.ms2ms.algo.MsStats;
 import org.ms2ms.utils.Tools;
 
 /**

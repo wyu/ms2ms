@@ -2,7 +2,7 @@ package org.ms2ms.test.ms;
 
 import com.google.common.collect.Multimap;
 import org.junit.Test;
-import org.ms2ms.alg.Isobarics;
+import org.ms2ms.algo.Isobarics;
 import org.ms2ms.data.collect.MultiTreeTable;
 import org.ms2ms.data.ms.PeptideFeature;
 import org.ms2ms.r.Dataframe;
