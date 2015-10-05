@@ -8,6 +8,7 @@ import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeDiscrete;
 import org.expasy.mzjava.core.ms.spectrum.ScanNumberDiscrete;
 import org.expasy.mzjava.core.ms.spectrum.TimeUnit;
+import org.ms2ms.algo.LCMSMS;
 import org.ms2ms.algo.Spectra;
 import org.ms2ms.data.ms.MsSpectrum;
 import org.ms2ms.math.Stats;
@@ -233,7 +234,7 @@ public class MsReaders
       // 'FTMS + p NSI sps d Full ms3 838.77@cid35.00 432.89@hcd40.00 [120.00-1800.00]'
       String[] items = Strs.split(spec.getComment().substring(spec.getComment().indexOf("ms3"), spec.getComment().indexOf('[')), ' ', true);
       // grab the MS2 info and change the precursor to that of the MS2
-      spec.setPrecursor(new Peak(Stats.toDouble(Strs.split(items[1], '@', true)[0]), 0));
+      spec.setPrecursor(new Peak(LCMSMS.parseNominalPrecursorMz(spec.getComment()), 0));
       // set the activation mode
       spec.setFragMethod(Strs.split(items[2], '@', true)[1].substring(0, 3));
       // no spectrumref avail for MS3

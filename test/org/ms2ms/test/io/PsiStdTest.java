@@ -7,6 +7,7 @@ import org.expasy.mzjava.core.io.ms.spectrum.MgfWriter;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.junit.Test;
+import org.ms2ms.algo.LCMSMS;
 import org.ms2ms.io.MsIO;
 import org.ms2ms.io.MsReaders;
 import org.ms2ms.test.TestAbstract;
@@ -35,7 +36,7 @@ public class PsiStdTest extends TestAbstract
   @Test
   public void splitMs2MS3() throws Exception
   {
-    String   root = "C:/local/data/TMT_MS3/TMT_MS3120_1800_55CE";
+    String   root = "C:/local/data/TMT_MS3/TMT_MS3120_1800_40CE";
     File  xmlFile = new File(root+".mzML");
     MgfWriter ms2 = new MgfWriter(new File(root+".ms2.mgf"), PeakList.Precision.FLOAT),
               ms3 = new MgfWriter(new File(root+".ms3.mgf"), PeakList.Precision.FLOAT);
@@ -55,18 +56,29 @@ public class PsiStdTest extends TestAbstract
       if      (ms.getMsLevel()==2)
       {
         ms2.write(ms);
-        cache.put(ms.getPrecursor().getMz(), ms.getScanNumbers().getFirst().getValue(), ms);
+        cache.put(LCMSMS.parseNominalPrecursorMz(ms.getComment()), ms.getScanNumbers().getFirst().getValue(), ms);
       }
       else if (ms.getMsLevel()==3)
       {
-        // figure out the parent MS2 scan
-        Integer parent = -1;
+        // figure out the parent MS2 scan within the isolation window
+        Integer parent = null; Double pmz=null;
         for (Double mz : cache.rowKeySet().subSet(ms.getPrecursor().getMz()-0.02, ms.getPrecursor().getMz()+0.02))
-          if (Collections.max(cache.row(mz).keySet())>parent) parent=Collections.max(cache.row(mz).keySet());
-
-        ms.setParentScanNumber(ms.getScanNumbers().getFirst());
-        ms.getScanNumbers().clear();
-        ms.addScanNumber(parent);
+          if (parent==null || Collections.max(cache.row(mz).keySet())>parent)
+          {
+            parent = Collections.max(cache.row(mz).keySet());
+            pmz    = cache.get(mz, parent).getPrecursor().getMz();
+          }
+        if (parent!=null)
+        {
+          ms.setParentScanNumber(ms.getScanNumbers().getFirst());
+          ms.getScanNumbers().clear();
+          ms.addScanNumber(parent);
+          if (pmz!=null) ms.getPrecursor().setMzAndCharge(pmz, ms.getPrecursor().getCharge());
+        }
+        else
+        {
+          System.out.println();
+        }
 
         ms3.write(ms);
       }

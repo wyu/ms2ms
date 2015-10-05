@@ -4,6 +4,7 @@ import com.google.common.collect.Multimap;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.expasy.mzjava.proteomics.ms.ident.SpectrumIdentifier;
 import org.junit.Test;
+import org.ms2ms.algo.LCMSMS;
 import org.ms2ms.io.PsmReaders;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.test.TestAbstract;
@@ -23,7 +24,7 @@ public class SearchOutputTest extends TestAbstract
         ms3ce40 = PsmReaders.readMSGFplus(root+"TMT_MS3120_1800_40CE.ms3.tsv");
 //    Multimap<SpectrumIdentifier, PeptideMatch> psm = PsmReaders.readMSGFplus(root+"ms2_only/CATSIgGTMTMS3.tsv");
 
-    Dataframe cuts = PsmReaders.cut(ms2ce40, "QValue", scale);
+    Dataframe cuts = LCMSMS.cut(ms2ce40, "QValue", scale);
 
     cuts.init();
   }
