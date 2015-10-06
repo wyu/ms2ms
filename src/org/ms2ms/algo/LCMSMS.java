@@ -78,7 +78,7 @@ public class LCMSMS
     return id_match;
   }
   // consider only the top-ranked
-  public static Dataframe cut(Multimap<SpectrumIdentifier, PeptideMatch> id_match, String score, double... qvals)
+  public static <K> Dataframe cut(Multimap<K, PeptideMatch> id_match, String score, double... qvals)
   {
     if (Tools.isSet(id_match))
     {
@@ -89,7 +89,7 @@ public class LCMSMS
       {
         System.out.print("Considering the threshold. ");
         long hits=0, decoys=0;
-        for (SpectrumIdentifier id : id_match.keySet())
+        for (K id : id_match.keySet())
         {
           for (PeptideMatch m : id_match.get(id))
             if (m.getRank()==1 && m.getScore(score)<=q)
@@ -136,12 +136,12 @@ public class LCMSMS
     }
     return id_match;
   }
-  public static Multimap<SpectrumIdentifier, PeptideMatch> byRank(Multimap<SpectrumIdentifier, PeptideMatch> id_match, int n)
+  public static <K> Multimap<K, PeptideMatch> byRank(Multimap<K, PeptideMatch> id_match, int n)
   {
     if (Tools.isSet(id_match))
     {
-      Multimap<SpectrumIdentifier, PeptideMatch> remain = HashMultimap.create();
-      for (SpectrumIdentifier id : id_match.keySet())
+      Multimap<K, PeptideMatch> remain = HashMultimap.create();
+      for (K id : id_match.keySet())
       {
         for (PeptideMatch m : id_match.get(id))
           if (m.getRank()<=n) remain.put(id, m);

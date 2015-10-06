@@ -4,10 +4,13 @@ import com.google.common.collect.RowSortedTable;
 import com.google.common.collect.Table;
 import com.google.common.collect.TreeBasedTable;
 import org.expasy.mzjava.core.io.ms.spectrum.MgfWriter;
+import org.expasy.mzjava.core.ms.peaklist.PeakAnnotation;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.junit.Test;
 import org.ms2ms.algo.LCMSMS;
+import org.ms2ms.algo.PurgingPeakProcessor;
+import org.ms2ms.algo.Spectra;
 import org.ms2ms.io.MsIO;
 import org.ms2ms.io.MsReaders;
 import org.ms2ms.test.TestAbstract;
@@ -37,6 +40,7 @@ public class PsiStdTest extends TestAbstract
   public void splitMs2MS3() throws Exception
   {
     String   root = "C:/local/data/TMT_MS3/TMT_MS3120_1800_40CE";
+//    String   root = "C:/local/data/TMT_MS3/TMT_MS3120_1800_55CE";
     File  xmlFile = new File(root+".mzML");
     MgfWriter ms2 = new MgfWriter(new File(root+".ms2.mgf"), PeakList.Precision.FLOAT),
               ms3 = new MgfWriter(new File(root+".ms3.mgf"), PeakList.Precision.FLOAT);
@@ -80,7 +84,10 @@ public class PsiStdTest extends TestAbstract
           System.out.println();
         }
 
-        ms3.write(ms);
+        // remove the reporter ions to avoid search interference
+        Spectra.notchUpto(ms, 150d);
+
+        ms3.write(ms.copy(new PurgingPeakProcessor<>()));
       }
     }
 
