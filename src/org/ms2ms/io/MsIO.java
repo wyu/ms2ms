@@ -1,16 +1,30 @@
 package org.ms2ms.io;
 
-import org.expasy.mzjava.core.io.ms.spectrum.MgfWriter;
+import com.google.common.base.Optional;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import org.expasy.mzjava.core.mol.NumericMass;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.*;
+import org.expasy.mzjava.proteomics.io.mol.FastaProteinReader;
+import org.expasy.mzjava.proteomics.mol.AminoAcid;
+import org.expasy.mzjava.proteomics.mol.Protein;
+import org.expasy.mzjava.proteomics.mol.modification.ModAttachment;
+import org.expasy.mzjava.proteomics.mol.modification.Modification;
+import org.expasy.mzjava.proteomics.ms.ident.ModificationMatch;
+import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
+import org.expasy.mzjava.proteomics.ms.ident.PeptideProteinMatch;
+import org.expasy.mzjava.proteomics.ms.ident.SpectrumIdentifier;
 import org.ms2ms.data.ms.MsSpectrum;
 import org.ms2ms.math.Stats;
+import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 import uk.ac.ebi.jmzml.model.mzml.*;
 
+import javax.annotation.Nonnull;
 import java.io.*;
 import java.util.*;
 
@@ -21,12 +35,12 @@ import java.util.*;
  */
 public class MsIO extends IOs
 {
-  public static MsSpectrum read(RandomAccessFile w, long offset)
+  public static MsSpectrum readSpectrumIdentifier(RandomAccessFile w, long offset)
   {
     try
     {
       w.seek(offset);
-      return read(w);
+      return readSpectrumIdentifier(w);
     }
     catch(IOException i)
     {
@@ -35,7 +49,7 @@ public class MsIO extends IOs
     return null;
   }
 
-  public static MsSpectrum read(RandomAccessFile w)
+  public static MsSpectrum readSpectrumIdentifier(RandomAccessFile w)
   {
     try
     {
@@ -72,7 +86,7 @@ public class MsIO extends IOs
   {
     w.writeDouble(ms.getPrecursor().getMz());
     w.writeDouble(ms.getPrecursor().getIntensity());
-    w.writeInt(   ms.getPrecursor().getCharge());
+    w.writeInt(ms.getPrecursor().getCharge());
 
     w.writeInt(   ms.size());
     if (ms.size()>0)
@@ -93,7 +107,7 @@ public class MsIO extends IOs
     if (counts>0)
       for (RetentionTime rt : ms.getRetentionTimes()) w.writeDouble(rt.getTime());
   }
-  public static PeakList read(DataInput w, PeakList ms) throws IOException
+  public static PeakList readSpectrumIdentifier(DataInput w, PeakList ms) throws IOException
   {
     if (ms!=null)
     {
@@ -106,11 +120,11 @@ public class MsIO extends IOs
     }
     return ms;
   }
-  public static MsnSpectrum read(DataInput w, MsnSpectrum ms) throws IOException
+  public static MsnSpectrum readSpectrumIdentifier(DataInput w, MsnSpectrum ms) throws IOException
   {
     if (ms!=null)
     {
-      ms = (MsnSpectrum )read(w, (PeakList)ms);
+      ms = (MsnSpectrum ) readSpectrumIdentifier(w, (PeakList) ms);
 
       int counts = w.readInt();
       // clear the content of the retention times if necessary
@@ -154,7 +168,7 @@ public class MsIO extends IOs
     {
       while (1==1)
       {
-        spectra.add(read(s).toMsnSpectrum());
+        spectra.add(readSpectrumIdentifier(s).toMsnSpectrum());
       }
     }
     catch (Exception ie) {}
@@ -168,7 +182,7 @@ public class MsIO extends IOs
     for (long offset : offsets)
     {
       s.seek(offset);
-      spectra.add(read(s).toMsnSpectrum());
+      spectra.add(readSpectrumIdentifier(s).toMsnSpectrum());
     }
     return spectra;
   }
@@ -180,7 +194,7 @@ public class MsIO extends IOs
     for (Long offset : offset_row.keySet())
     {
       s.seek(offset);
-      MsnSpectrum spec = read(s).toMsnSpectrum();
+      MsnSpectrum spec = readSpectrumIdentifier(s).toMsnSpectrum();
       spec.setComment(offset_row.get(offset)); spectra.add(spec);
     }
     return spectra;
@@ -212,6 +226,285 @@ public class MsIO extends IOs
       }
     }
     catch (IOException ie) { throw new RuntimeException("Error while writing the spectra", ie); }
+  }
+  public static void writeAAs(DataOutput w, @Nonnull List<AminoAcid> seqs) throws IOException
+  {
+    write(w, seqs.size());
+    for (int i=0; i<seqs.size(); i++) write(w, seqs.get(i).getSymbol());
+  }
+  public static void write(DataOutput w, @Nonnull Modification m) throws IOException
+  {
+    write(w, m.getLabel());
+    write(w, m.getMolecularMass());
+  }
+  public static Modification readModification(DataInput w) throws IOException
+  {
+    String label = read(w, "");
+    double  mass = read(w, 0d);
+
+    return new Modification(label, new NumericMass(mass));
+  }
+  public static void writeMods(DataOutput w, List<Modification> mods) throws IOException
+  {
+    write(w, mods.size());
+    for (int i=0; i<mods.size(); i++) write(w, mods.get(i));
+  }
+  public static List<AminoAcid> readAAs(DataInput w) throws IOException
+  {
+    int size = read(w, 0);
+    List<AminoAcid> seqs = new ArrayList<AminoAcid>(size);
+    for (int i=0; i<size; i++) seqs.add(AminoAcid.valueOf(read(w, "")));
+    return seqs;
+  }
+  public static void write(DataOutput w, ModificationMatch m) throws IOException
+  {
+    write(w, m.getMassShift());
+    write(w, m.getResidue().getSymbol());
+    write(w, m.getPosition());
+
+    write(w, m.getCandidateCount());
+    if (m.getCandidateCount()>0)
+      for (int i=0; i<m.getCandidateCount(); i++) write(w, m.getModificationCandidate(i));
+
+    write(w, m.getModAttachment().toString());
+  }
+  public static ModificationMatch readModificationWatch(DataInput w) throws IOException
+  {
+    double mass_shift = read(w, 0d);
+    String     symbol = read(w, "");
+    int      position = read(w, 0), counts = read(w, 0);
+
+    ModAttachment attachment = ModAttachment.valueOf(read(w, ""));
+    ModificationMatch      m = new ModificationMatch(mass_shift, AminoAcid.valueOf(symbol), position, attachment);
+
+    if (counts>0)
+      for (int i=0; i<counts; i++)
+        m.addPotentialModification(readModification(w));
+
+    return m;
+  }
+  public static void writeModMatches(DataOutput w, @Nonnull Collection<ModificationMatch> mods) throws IOException
+  {
+    write(w, mods.size());
+    if (mods.size()>0)
+      for (ModificationMatch m : mods) write(w, m);
+  }
+  public static Collection<ModificationMatch> readModMatches(DataInput w) throws IOException
+  {
+    Collection<ModificationMatch> mods = new ArrayList<>();
+    int size = read(w, 0);
+    if (size>0)
+      for (int i=0; i<size; i++) mods.add(readModificationWatch(w));
+
+    return mods;
+  }
+/*
+  public static void writeSidechainMatches(DataOutput w, ListMultimap<Integer, ModificationMatch> map) throws IOException
+  {
+    write(w, map.keySet().size());
+
+    if (map.size()>0)
+      for (Integer i : map.keySet())
+      {
+        write(w, i); write(w, map.get(i).size());
+        for (ModificationMatch m : map.get(i)) write(w, m);
+      }
+  }
+  public static ListMultimap<Integer, ModificationMatch> readSidechainMatches(DataInput w) throws IOException
+  {
+    int size = readSpectrumIdentifier(w, 0);
+    ListMultimap<Integer, ModificationMatch> map = ArrayListMultimap.create();
+
+    if (size>0)
+      for (int i=0; i<size; i++)
+      {
+        Integer k=readSpectrumIdentifier(w, 0), s=readSpectrumIdentifier(w, 0);
+        for (int j=0; j<s; j++)
+          map.put(k, readModificationWatch(w));
+      }
+
+    return map;
+  }
+  public static void writeTermMatches(DataOutput w, ListMultimap<ModAttachment, ModificationMatch> map) throws IOException
+  {
+    write(w, map.keySet().size());
+
+    if (map.size()>0)
+      for (ModAttachment i : map.keySet())
+      {
+        write(w, i.toString()); write(w, map.get(i).size());
+        for (ModificationMatch m : map.get(i)) write(w, m);
+      }
+  }
+  public static ListMultimap<ModAttachment, ModificationMatch> readTermMatches(DataInput w) throws IOException
+  {
+    int size = readSpectrumIdentifier(w, 0);
+    ListMultimap<ModAttachment, ModificationMatch> map = ArrayListMultimap.create();
+
+    if (size>0)
+      for (int i=0; i<size; i++)
+      {
+        ModAttachment mt = ModAttachment.valueOf(readSpectrumIdentifier(w, "")); Integer s=readSpectrumIdentifier(w, 0);
+        for (int j=0; j<s; j++)
+          map.put(mt, readModificationWatch(w));
+      }
+
+    return map;
+  }
+*/
+  public static void write(DataOutput w, @Nonnull PeptideProteinMatch pm) throws IOException
+  {
+    write(w, pm.getHitType().toString());
+    write(w, pm.getAccession());
+    write(w, pm.getStart());
+    write(w, pm.getEnd());
+
+    writeOpStr(w, pm.getSearchDatabase());
+    writeOpStr(w, pm.getPreviousAA());
+    writeOpStr(w, pm.getNextAA());
+  }
+  public static PeptideProteinMatch readPeptideProteinMatch(DataInput w) throws IOException
+  {
+    PeptideProteinMatch.HitType hitType = PeptideProteinMatch.HitType.valueOf(read(w, ""));
+    String accession = read(w, "");
+    int start=read(w, 0), end=read(w, 0);
+
+    Optional<String> db=readOpStr(w), prev=readOpStr(w), next=readOpStr(w);
+
+    return new PeptideProteinMatch(accession, db, prev, next, start, end, hitType);
+  }
+  public static void write(DataOutput w, PeptideMatch m) throws IOException
+  {
+    write(w, m.toSymbolString());
+    write(w, m.getRank());
+    write(w, m.getNumMatchedIons());
+    write(w, m.getTotalNumIons());
+    write(w, m.getMassDiff());
+    write(w, m.getNumMissedCleavages());
+    write(w, m.isRejected());
+    write(w, m.getNeutralPeptideMass());
+    writeModMatches(w, m.getModifications(ModAttachment.all));
+
+    List<PeptideProteinMatch> matches = m.getProteinMatches();
+    write(w, matches!=null?matches.size():0);
+    for (PeptideProteinMatch pm : matches) write(w, pm);
+
+    write(w, m.getScoreMap()!=null?m.getScoreMap().keySet().size():0);
+    for (String tag : m.getScoreMap().keySet())
+    {
+      write(w, tag); write(w, m.getScore(tag));
+    }
+  }
+  public static PeptideMatch readPeptideMatch(DataInput w) throws IOException
+  {
+    PeptideMatch pm = new PeptideMatch(read(w, ""));
+
+    pm.setRank(read(w, 0));
+    pm.setNumMatchedIons(read(w, 0));
+    pm.setTotalNumIons(read(w, 0));
+    pm.setMassDiff(read(w, 0d));
+    pm.setNumMissedCleavages(read(w, 0));
+    pm.setRejected(read(w, false));
+    pm.setNeutralPeptideMass(read(w, 0d));
+
+    Collection<ModificationMatch> matches = readModMatches(w);
+    if (Tools.isSet(matches))
+      for (ModificationMatch m : matches)
+        // TODO, not sure whether position is the same as index
+        pm.addModificationMatch(m.getPosition(), m);
+
+    int n_pm = read(w, 0);
+    if (n_pm>0)
+    {
+      for (int i=0; i<n_pm; i++) pm.addProteinMatch(readPeptideProteinMatch(w));
+    }
+
+    int n_score = read(w, 0);
+    if (n_score>0)
+    {
+      for (int i=0; i<n_score; i++) pm.addScore(read(w, ""), read(w, 0d));
+    }
+    return pm;
+  }
+  public static <R extends RetentionTime> void write(DataOutput w, R rt) throws IOException
+  {
+    write(w, rt.getMinRetentionTime());
+    write(w, rt.getMaxRetentionTime());
+    write(w, rt.getTime());
+  }
+  public static void writeRetentionTimeList(DataOutput w, RetentionTimeList RL) throws IOException
+  {
+    write(w, RL!=null?RL.size():0);
+    for (int i=0; i<RL.size(); i++) write(w, RL.get(i));
+  }
+  public static <S extends ScanNumber> void write(DataOutput w, S scan) throws IOException
+  {
+    write(w, scan.getMinScanNumber());
+    write(w, scan.getMaxScanNumber());
+    write(w, scan.getValue());
+  }
+  public static void writeScanNumberList(DataOutput w, ScanNumberList scans) throws IOException
+  {
+    write(w, scans != null ? scans.size() : 0);
+    for (int i=0; i<scans.size(); i++) write(w, scans.get(i));
+  }
+  public static ScanNumber readScanNumber(DataInput w) throws IOException
+  {
+    // still need to readSpectrumIdentifier the int
+    int min=read(w, 0), max=read(w, 0), mid=read(w, 0);
+    return min==max?new ScanNumberDiscrete(mid):new ScanNumberInterval(min, max);
+  }
+  public static RetentionTime readRetentionTime(DataInput w) throws IOException
+  {
+    // still need to readSpectrumIdentifier the int
+    double min=read(w, 0d), max=read(w, 0d), mid=read(w, 0d);
+    return min==max?new RetentionTimeDiscrete(mid,      TimeUnit.SECOND):
+                    new RetentionTimeInterval(min, max, TimeUnit.SECOND);
+  }
+  public static RetentionTimeList readRetentionTimeList(DataInput w) throws IOException
+  {
+    int size = read(w, 0);
+    RetentionTimeList RT = new RetentionTimeList();
+    for (int i=0; i<size; i++) RT.add(readRetentionTime(w));
+
+    return RT;
+  }
+  public static ScanNumberList readScanNumberList(DataInput w) throws IOException
+  {
+    int size = read(w, 0);
+    ScanNumberList scans = new ScanNumberList();
+    for (int i=0; i<size; i++) scans.add(readScanNumber(w));
+
+    return scans;
+  }
+  public static void write(DataOutput w, SpectrumIdentifier id) throws IOException
+  {
+    write(        w, id.getSpectrum());
+    writeOpStr(w, id.getName());
+    writeOpDouble(w, id.getPrecursorNeutralMass());
+    writeOpDouble(w, id.getPrecursorIntensity());
+    writeOpDouble(w, id.getPrecursorMz());
+    writeOpInt(w, id.getAssumedCharge());
+    writeOpInt(w, id.getIndex());
+    writeOpStr(w, id.getSpectrumFile());
+    writeScanNumberList(w, id.getScanNumbers());
+    writeRetentionTimeList(w, id.getRetentionTimes());
+  }
+  public static SpectrumIdentifier readSpectrumIdentifier(DataInput w) throws IOException
+  {
+    SpectrumIdentifier id = new SpectrumIdentifier(read(w, ""));
+
+    id.setName(read(w, "unTitled"));
+    id.setPrecursorNeutralMass(read(w, 0d));
+    id.setPrecursorIntensity(read(w, 0d));
+    id.setPrecursorMz(read(w, 0d));
+    id.setAssumedCharge(read(w, 0));
+    id.setIndex(read(w, 0));
+    id.setSpectrumFile(read(w, ""));
+    id.addScanNumber(readScanNumberList(w));
+    id.addRetentionTime(readRetentionTime(w));
+
+    return id;
   }
   public static String get(Collection<CVParam> params, String key)
   {
@@ -264,13 +557,90 @@ public class MsIO extends IOs
 
     return null;
   }
-  // write the content of the spectrum from an mzML file to another MGF file
-  public static void writeMGF(MgfWriter w, uk.ac.ebi.jmzml.model.mzml.Spectrum ms) throws IOException
+//  // write the content of the spectrum from an mzML file to another MGF file
+//  public static void writeMGF(MgfWriter w, uk.ac.ebi.jmzml.model.mzml.Spectrum ms) throws IOException
+//  {
+//    if (w==null || ms==null) return;
+//
+//
+//
+//
+//  }
+  public static Multimap<String, Protein> readFASTA(String filename)
   {
-    if (w==null || ms==null) return;
+    FastaProteinReader fasta = null;
+    try
+    {
+      Multimap<String, Protein> seq_proteins = HashMultimap.create();
+      try
+      {
+        fasta = new FastaProteinReader(new File(filename));
+        while (fasta.hasNext())
+        {
+          Protein p = fasta.next();
+          seq_proteins.put(p.toSymbolString(), p);
+        }
+      }
+      finally
+      {
+        if (fasta!=null) fasta.close();
+      }
+      return seq_proteins;
+    }
+    catch (IOException e) {}
 
+    return null;
+  }
+  public static Dataframe writeScanPeptideMatches(
+       RandomAccessFile w, Multimap<SpectrumIdentifier, PeptideMatch> scan_matches) throws IOException
+  {
+    // create the binary dump and index
+    Dataframe index = new Dataframe("ScanIndex");
+    // order the scans first
+    SortedMap<Integer, SpectrumIdentifier> scan_id = new TreeMap<>();
+    for (SpectrumIdentifier id : scan_matches.keySet())
+      scan_id.put(id.getScanNumbers().getFirst().getValue(), id);
 
+    // write the scans sequentially
+    for (Integer scan : scan_id.keySet())
+    {
+      SpectrumIdentifier id = scan_id.get(scan);
+      // add the row to the index
+      index.addRow(
+          "Scan", scan,
+          "RT", id.getRetentionTimes().getFirst().getTime(),
+          "mz", id.getPrecursorMz(),
+          "z", id.getAssumedCharge().isPresent() ? id.getAssumedCharge().get() : 0,
+          "FileOffset", w.getFilePointer(),
+          "N.matches", scan_matches.get(id).size());
+      // dump the contents to the binary file
+      write(w, scan);
+      write(w, scan_matches.get(id).size());
+      write(w, id);
+      for (PeptideMatch m : scan_matches.get(id)) MsIO.write(w, m);
+    }
+    return index;
+  }
+  public static Multimap<SpectrumIdentifier, PeptideMatch>
+      readScanPeptideMatches(DataInput w, int n) throws IOException
+  {
+    Multimap<SpectrumIdentifier, PeptideMatch> scan_matches = HashMultimap.create();
+    // fetch as many batches as asked till the end of the file
+    try
+    {
+      for (int i=0; i<n; i++)
+      {
+        // dump the contents to the binary file
+        Integer scan = read(w, 0), nmatches = read(w, 0);
+        SpectrumIdentifier id = readSpectrumIdentifier(w);
+        for (int k=0; k<nmatches; k++)
+          scan_matches.put(id, readPeptideMatch(w));
+      }
+    }
+    catch (IOException e)
+    {
 
-
+    }
+    return scan_matches;
   }
 }

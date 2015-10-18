@@ -87,7 +87,7 @@ public class MspAnnotationResolver2 implements AnnotationResolver {
    *
    * @param annot the annotation to parse.
    * @return an annotation.
-   */ //todo this should read the stats and return a LibraryPeakAnnotations
+   */ //todo this should readSpectrumIdentifier the stats and return a LibraryPeakAnnotations
   public PepFragAnnotation parseAnnotation(final String annot, final Peptide peptide) {
 
     IonType ionType = null;

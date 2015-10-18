@@ -51,7 +51,7 @@ public class MaxQuant extends LcMsMsDataset
 
     IOs.write(mResultRoot + "scan_survey.txt", survey.display("\t", "").toString());
 
-    // read the tables of MS/MS scans
+    // readSpectrumIdentifier the tables of MS/MS scans
     mMsMs = readMsMsWithAnnotations();
     Dataframe offsets = Dataframe.merge(mMsMs, survey, true, true, "Raw file", "Scan number").setTitle("offsets");
 
@@ -101,8 +101,8 @@ public class MaxQuant extends LcMsMsDataset
       double Xs[] = d.getDoubleCol("Calibrated retention time start", true);
 
       double[] Ys = MsStats.interpolate(xs, ys, rttol, Xs);
-      d.addVar("interpolated", Ys);
-      d.addVar("Calibrated RT", MsStats.sum(d.getDoubleCol("Retention time", true), d.getDoubleCol("Retention time calibration", true)));
+      d.setVar("interpolated", Ys);
+      d.setVar("Calibrated RT", MsStats.sum(d.getDoubleCol("Retention time", true), d.getDoubleCol("Retention time calibration", true)));
     }
   }
 }

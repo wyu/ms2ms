@@ -16,7 +16,6 @@ import org.ms2ms.test.TestAbstract;
 import org.ms2ms.utils.IOs;
 
 import java.io.*;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
@@ -29,7 +28,7 @@ public class MsReaderTest extends TestAbstract
 //  String root = "/Users/hliu/Desktop/App/2014/data/mzXML-centroid/";
   String root = "/media/data/test/mzXML/";
 
-  // TODO: Need to modify or extend MzxmlReader to read only selected msLevel or RT range, etc
+  // TODO: Need to modify or extend MzxmlReader to readSpectrumIdentifier only selected msLevel or RT range, etc
   // peak processing takes lots of time!
 
   @Test
@@ -54,12 +53,12 @@ public class MsReaderTest extends TestAbstract
     f.close();
 
     f = new RandomAccessFile("/tmp/myobject2.data", "r");
-    MsSpectrum m1 = MsIO.read(f);
+    MsSpectrum m1 = MsIO.readSpectrumIdentifier(f);
     f.close();
 
     f = new RandomAccessFile("/tmp/myobject2.data", "r");
-    MsSpectrum m3 = MsIO.read(f, p1);
-    MsSpectrum m4 = MsIO.read(f, p2);
+    MsSpectrum m3 = MsIO.readSpectrumIdentifier(f, p1);
+    MsSpectrum m4 = MsIO.readSpectrumIdentifier(f, p2);
 
     f.close();
   }
@@ -124,7 +123,7 @@ public class MsReaderTest extends TestAbstract
     for (Long id : ids)
     {
       bin.seek(id);
-      MsnSpectrum ms = MsIO.read(bin, new MsnSpectrum());
+      MsnSpectrum ms = MsIO.readSpectrumIdentifier(bin, new MsnSpectrum());
       mgf.write(ms);
     }
     mgf.close(); bin.close();

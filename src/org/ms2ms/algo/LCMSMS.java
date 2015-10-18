@@ -2,6 +2,7 @@ package org.ms2ms.algo;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.TreeBasedTable;
 import com.google.common.collect.TreeMultimap;
 import org.expasy.mzjava.core.ms.spectrum.ScanNumber;
 import org.expasy.mzjava.core.ms.spectrum.ScanNumberList;
@@ -15,10 +16,7 @@ import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 import uk.ac.ebi.jmzidml.model.mzidml.SpectrumIdentification;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by yuw on 9/20/2015.
@@ -88,20 +86,37 @@ public class LCMSMS
       for (double q : qvals)
       {
         System.out.print("Considering the threshold. ");
-        long hits=0, decoys=0;
+        long hits=0, decoys=0, inProtein=0, inProteinTop=0, inProteinTopQual=0;
         for (K id : id_match.keySet())
         {
+          boolean inP=false;
           for (PeptideMatch m : id_match.get(id))
-            if (m.getRank()==1 && m.getScore(score)<=q)
+          {
+            // anywhere among the ranks
+            boolean inProt=Peptides.hasScoreAt(m, "inProtein", 1);
+            if (inProt) inP=true;
+            // only count the top ranked
+            if (m.getRank()==1 && inProt)
             {
-              if (m.getProteinMatches().get(0).getHitType().equals(PeptideProteinMatch.HitType.DECOY)) decoys++; else hits++;
-              break;
+              inProteinTop++;
+              if (m.getScore(score)<=q) inProteinTopQual++;
             }
+            if (m.getRank()==1 && m.hasScore(score) && m.getScore(score) <= q)
+            {
+              if (m.getProteinMatches().get(0).getHitType().equals(PeptideProteinMatch.HitType.DECOY)) decoys++;
+              else hits++;
+//              break;
+            }
+          }
+          if (inP) inProtein++;
         }
         // populate the data frame
         d.put(row, "Threshold", q);
         d.put(row, "Hits", hits);
         d.put(row, "Decoys", decoys);
+        d.put(row, "inProtein", inProtein);
+        d.put(row, "inProteinTop", inProteinTop);
+        d.put(row, "inProteinTopQual", inProteinTopQual);
         d.put(row, "MSMS", id_match.keySet().size());
 
         System.out.println("Threshold: " + q + ", Hits: " + hits + ", Decoys: " + decoys + ", MSMS: " + id_match.keySet().size());
@@ -170,4 +185,43 @@ public class LCMSMS
     }
     return null;
   }
+  // check the protein sequences to see if any peptide is a match
+  public static Multimap<String, PeptideMatch> byProteinSequence(Collection<String> sequences, Collection<PeptideMatch>... hits)
+  {
+    if (!Tools.isSet(hits) || !Tools.isSet(hits[0])) return null;
+
+    // let's build the index first
+    long inP=0, totals=0;
+    Multimap<String, PeptideMatch> seq_match = Peptides.toSequenceMap(hits);
+    for (String sequence : sequences)
+      for (String peptide : seq_match.keySet())
+      {
+        totals+=seq_match.get(peptide).size();
+        if (sequence.indexOf(peptide)>= 0)
+          for (PeptideMatch m : seq_match.get(peptide)) { inP++; m.addScore("inProtein", 1); }
+      }
+
+    System.out.println("Matches (inProtein/Totals): " + inP+"/"+totals);
+    return seq_match;
+  }
+  // merge the PSMs from Bs onto As, by their precursors information. The scan # was missing from the decoy PSMs export from SequestHT/PD
+/*
+  public static Multimap<String, PeptideMatch> mergeByPrecursor(Multimap<String, PeptideMatch> As, Multimap<String, PeptideMatch> Bs)
+  {
+    if (!Tools.isSet(As)) return Bs;
+    if (!Tools.isSet(Bs)) return As;
+
+    // let's create a index first
+    Table<Double, Integer, PeptideMatch> mass_match = TreeBasedTable.create();
+    for (PeptideMatch m : Bs.values())
+      mass_match.put(m.getNeutralPeptideMass(), m);
+
+    for (String id : As.keySet())
+    {
+      PeptideMatch m1 = Tools.front(As.get(id));
+      Collection<PeptideMatch> found = mass_match.get(m1.getNeutralPeptideMass());
+    }
+    return null;
+  }
+*/
 }

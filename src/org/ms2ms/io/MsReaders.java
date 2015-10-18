@@ -4,10 +4,11 @@ import com.google.common.collect.Range;
 import org.expasy.mzjava.core.io.ms.spectrum.MzxmlReader;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
-import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
-import org.expasy.mzjava.core.ms.spectrum.RetentionTimeDiscrete;
-import org.expasy.mzjava.core.ms.spectrum.ScanNumberDiscrete;
-import org.expasy.mzjava.core.ms.spectrum.TimeUnit;
+import org.expasy.mzjava.core.ms.spectrum.*;
+import org.expasy.mzjava.proteomics.io.ms.ident.MzIdentMlReader;
+import org.expasy.mzjava.proteomics.io.ms.ident.mzidentml.v110.AbstractParamType;
+import org.expasy.mzjava.proteomics.io.ms.ident.mzidentml.v110.CVParamType;
+import org.expasy.mzjava.proteomics.io.ms.ident.mzidentml.v110.UserParamType;
 import org.ms2ms.algo.LCMSMS;
 import org.ms2ms.algo.Spectra;
 import org.ms2ms.data.ms.MsSpectrum;
@@ -254,7 +255,7 @@ public class MsReaders
     spec.addScanNumber(MsIO.ScanNumberFromSpectrumRef(ms.getId()));
     spec.addRetentionTime(new RetentionTimeDiscrete(MsIO.getDouble(ms.getScanList().getScan().get(0).getCvParam(), "MS:1000016"), TimeUnit.MINUTE));
 
-    // read the ions
+    // readSpectrumIdentifier the ions
     Number[] mzs=null, ais=null;
     for (BinaryDataArray bin : ms.getBinaryDataArrayList().getBinaryDataArray())
     {
@@ -389,4 +390,79 @@ public class MsReaders
     byte[] result = bos.toByteArray();
     return result;
   }
+  public static <P extends AbstractParamType> Map<String, P> toCVMap(List<P> paramGroup)
+  {
+    if (paramGroup == null || paramGroup.isEmpty()) return null;
+
+    Map<String, P> paramMap = new HashMap<>();
+    for (P paramType : paramGroup)
+      if (paramType instanceof CVParamType)
+      {
+        paramMap.put(((CVParamType )paramType).getAccession(), paramType);
+      }
+      else if (paramType instanceof UserParamType)
+      {
+        paramMap.put("user:"+paramType.getName(), paramType);
+      }
+
+    return paramMap;
+  }
+  public static ScanNumberList newScanNumberList(Map<String, AbstractParamType> cvParamTypes)
+  {
+    AbstractParamType cvParamType = cvParamTypes.get(MzIdentMlReader.SCAN_NUMBER_CV);
+    if (cvParamType == null) return new ScanNumberList();
+
+    try
+    {
+      int scanNumber = Integer.parseInt(cvParamType.getValue());
+      return new ScanNumberList(scanNumber);
+    } catch (NumberFormatException e) {
+
+      throw new UnsupportedOperationException("Cannot yet parse scan number like " + cvParamType.getValue(), e);
+    }
+  }
+  public static RetentionTimeList newRetentionTimeList(Map<String, AbstractParamType> cvParamTypes)
+  {
+    AbstractParamType cvParamType = cvParamTypes.get(MzIdentMlReader.RETENTION_TIME_CV);
+    if (cvParamType == null) return new RetentionTimeList();
+
+    String unit = cvParamType.getUnitName();
+    TimeUnit timeUnit;
+    if ("second".equals(unit)) {
+
+      timeUnit = TimeUnit.SECOND;
+    } else {
+
+      throw new UnsupportedOperationException("Cannot parse units = " + unit);
+    }
+
+    double time;
+    try {
+      time = Double.parseDouble(cvParamType.getValue());
+    } catch (NumberFormatException e) {
+
+      throw new UnsupportedOperationException("Time values of " + cvParamType.getValue() + " are not yet suported", e);
+    }
+
+    RetentionTimeList retentionTimes = new RetentionTimeList();
+    retentionTimes.add(time, timeUnit);
+
+    return retentionTimes;
+  }
+//  private Map<String, CVParamType> toCVMap(List<AbstractParamType> paramGroup) {
+//
+//    if (paramGroup == null || paramGroup.isEmpty()) return new CVParamMap();
+//
+//    CVParamMap paramMap = new CVParamMap();
+//    for (AbstractParamType paramType : paramGroup) {
+//
+//      if (paramType instanceof CVParamType) {
+//
+//        CVParamType cvParamType = (CVParamType) paramType;
+//        paramMap.put(cvParamType.getAccession(), cvParamType);
+//      }
+//    }
+//
+//    return paramMap;
+//  }
 }

@@ -4,9 +4,14 @@ import com.google.common.base.Optional;
 import com.google.common.collect.*;
 import info.monitorenter.cpdetector.io.FileFilterExtensions;
 import org.expasy.mzjava.core.mol.NumericMass;
+import org.expasy.mzjava.core.ms.spectrum.RetentionTimeList;
+import org.expasy.mzjava.core.ms.spectrum.ScanNumber;
+import org.expasy.mzjava.core.ms.spectrum.ScanNumberList;
 import org.expasy.mzjava.core.ms.spectrum.TimeUnit;
 import org.expasy.mzjava.proteomics.io.ms.ident.MzIdentMlReader;
 import org.expasy.mzjava.proteomics.io.ms.ident.PSMReaderCallback;
+import org.expasy.mzjava.proteomics.io.ms.ident.mzidentml.v110.AbstractParamType;
+import org.expasy.mzjava.proteomics.io.ms.ident.mzidentml.v110.CVParamType;
 import org.expasy.mzjava.proteomics.mol.modification.ModAttachment;
 import org.expasy.mzjava.proteomics.mol.modification.Modification;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
@@ -55,7 +60,8 @@ public class PsmReaders
 
   public void parseMSGFplusMzID(String filename)
   {
-    MzIdentMlReader reader = new MzIdentMlReader(new NumModResolver());
+    MzIdentMLReader reader = new MzIdentMLReader(new NumModResolver());
+//    MzIdentMlReader reader = new MzIdentMlReader(new NumModResolver());
 
     FileInputStream file = null;
     try
@@ -159,10 +165,11 @@ public class PsmReaders
         run_scan_id.put(run, scan, id);
       }
       PeptideMatch match = new PeptideMatch(file.get("Annotated Sequence").toUpperCase());
-      String[] mods = Strs.split(file.get("Modifications"), ';');
+      String[]      mods = Strs.split(file.get("Modifications"), ';');
       if (Tools.isSet(mods))
         for (String mod : mods)
         {
+          if (!Strs.isSet(mod) || mod.indexOf('(')<0 || mod.indexOf('(')<0) continue;
           String tag = mod.substring(0, mod.indexOf('(')).trim(), m = mod.substring(mod.indexOf('(')+1, mod.indexOf(')'));
           if      (Strs.equals(tag, "N-Term")) match.addModificationMatch(ModAttachment.N_TERM, new Modification(m, new NumericMass(0d)));
           else if (Strs.equals(tag, "C-Term")) match.addModificationMatch(ModAttachment.C_TERM, new Modification(m, new NumericMass(0d)));
@@ -171,7 +178,7 @@ public class PsmReaders
             match.addModificationMatch(new Integer(tag.substring(1, tag.length()))-1, new Modification(m, new NumericMass(0d)));
           }
         }
-      match.addProteinMatch(new PeptideProteinMatch(file.get("Master Protein Accessions"),
+      match.addProteinMatch(new PeptideProteinMatch(file.getNotNull("Master Protein Accessions", "Protein Accessions"),
           Optional.of("-"), Optional.of("-"), Optional.of("-"), PeptideProteinMatch.HitType.TARGET));
 
 //      String[] matched = Strs.split(file.get("Ions Matched"), '/');
@@ -312,7 +319,9 @@ public class PsmReaders
         }
 
 //      String[] matched = Strs.split(file.get("Ions Matched"), '/');
-      match.setMassDiff(file.getDouble("PrecursorError(ppm)") * id.getPrecursorMz().get() * id.getAssumedCharge().get() * 1E-6);
+      if (file.getDouble("PrecursorError(ppm)")!=null) match.setMassDiff(file.getDouble("PrecursorError(ppm)") * id.getPrecursorMz().get() * id.getAssumedCharge().get() * 1E-6);
+      else match.setMassDiff(file.getDouble("PrecursorError(Da)"));
+
       Peptides.addScore(match, "DeNovoScore",  file.getDouble("DeNovoScore"));
       Peptides.addScore(match, "IsotopeError", file.getInt(   "IsotopeError"));
       Peptides.addScore(match, "MSGFScore",    file.getDouble("MSGFScore"));
@@ -330,6 +339,26 @@ public class PsmReaders
 
     return id_match;
   }
+  public static Multimap<SpectrumIdentifier, PeptideMatch> readMzID(String filename)
+  {
+    Multimap<SpectrumIdentifier, PeptideMatch> id_match = HashMultimap.create();
+
+    System.out.println("Reading " + filename);
+
+    PsmReaders readers = new PsmReaders();
+    readers.parseMSGFplusMzID(filename);
+
+    Iterator<SpectrumIdentifier> idr = readers.getResultMap().keySet().iterator();
+    while (idr.hasNext())
+    {
+      SpectrumIdentifier id = idr.next();
+      id_match.putAll(id, readers.getResultMap().get(id));
+      if (id_match.keySet().size()%1000==0) System.out.print(".");
+    }
+    System.out.print("\n --> " + readers.getResultMap().keySet().size() + "\n");
+    return id_match;
+  }
+
   // TODO. Need more work in the future
   public static Dataframe fetchMzID(String root, double q, boolean save_decoy)
   {

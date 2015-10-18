@@ -1184,7 +1184,7 @@ public class MIMSL
   {
     Multimap<String, MsMsAssignment> assignments = readNistPeptideLib(null, creation_date, new NistPepLibFile(datafile, ptms));
 
-    System.out.println("Assignment read: " + assignments.size());
+    System.out.println("Assignment readSpectrumIdentifier: " + assignments.size());
 
     MultiTreeMap<String, SQUID_Sequence>                    acc_seq = mapNistPeptideLib2Genes(assignments.values());
     Multimap<String, MsMsAssignment>                     acc_assign = HashMultimap.create();
@@ -1955,7 +1955,7 @@ public class MIMSL
     if (!libfile.exists()) throw new RuntimeException("The library index file was not found: " + libfile.getAbsolutePath());
 
     BufferedRandomAccessFile indices = new BufferedRandomAccessFile(libfile, "r"); // rw?
-    dic.read(indices);
+    dic.readSpectrumIdentifier(indices);
     if (dic != null) dic.setName(libname);
 
     indices.close();

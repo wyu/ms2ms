@@ -42,7 +42,7 @@ public class Aligner
     // print the headers
     for (Dataframe frm : cols)
     {
-      buf.append(Strs.rtuncate(frm.getTitle(), 4) + "\t");
+      buf.append(Strs.rtruncate(frm.getTitle(), 4) + "\t");
     }
     buf.append("\n");
 

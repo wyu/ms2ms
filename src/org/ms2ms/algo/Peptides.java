@@ -1,10 +1,15 @@
 package org.ms2ms.algo;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import org.expasy.mzjava.core.mol.SymbolSequence;
+import org.expasy.mzjava.proteomics.mol.Protein;
 import org.expasy.mzjava.proteomics.mol.modification.ModAttachment;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -82,5 +87,25 @@ public class Peptides
   {
     if (m!=null && s!=null && Strs.isSet(t)) m.addScore(t, s);
     return m;
+  }
+  public static <P extends SymbolSequence> Multimap<String, P> toSequenceMap(Collection<P>... proteins)
+  {
+    if (!Tools.isSet(proteins)) return null;
+    // create a map
+    Multimap<String, P> seq_prots = HashMultimap.create();
+    for (Collection<P> ps : proteins)
+      for (P p : ps) seq_prots.put(p.toSymbolString(), p);
+
+    return seq_prots;
+  }
+  public static boolean hasScoreAt(PeptideMatch m, String tag, double score)
+  {
+    // anywhere among the ranks
+    return (m!=null && m.hasScore(tag) && m.getScore(tag)==score);
+  }
+  public static boolean hasScoreAtBelow(PeptideMatch m, String tag, double score)
+  {
+    // anywhere among the ranks
+    return (m!=null && m.hasScore(tag) && m.getScore(tag)<=score);
   }
 }

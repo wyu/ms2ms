@@ -73,10 +73,10 @@ public class OutputTest extends TestAbstract
 
     double[] Ys = MsStats.interpolate(xs, ys, 0.3, Xs);
 
-    evidences.addVar("interpolated", Ys);
+    evidences.setVar("interpolated", Ys);
     System.out.println("\n" + evidences.display());
 
-    evidences.addVar("Calibrated RT", MsStats.sum(evidences.getDoubleCol("Retention time", true), evidences.getDoubleCol("Retention time calibration", true)));
+    evidences.setVar("Calibrated RT", MsStats.sum(evidences.getDoubleCol("Retention time", true), evidences.getDoubleCol("Retention time calibration", true)));
   }
   @Test
   public void mergeMQnSurvey() throws Exception
@@ -138,10 +138,10 @@ public class OutputTest extends TestAbstract
 
     double[] Ys = MsStats.interpolate(xs, ys, 0.3, Xs);
 
-    evidences.addVar("interpolated", Ys);
+    evidences.setVar("interpolated", Ys);
     System.out.println("\n" + evidences.display());
 
-    evidences.addVar("Calibrated RT", MsStats.sum(evidences.getDoubleCol("Retention time", true), evidences.getDoubleCol("Retention time calibration", true)));
+    evidences.setVar("Calibrated RT", MsStats.sum(evidences.getDoubleCol("Retention time", true), evidences.getDoubleCol("Retention time calibration", true)));
   }
   @Test
   public void aligning() throws Exception

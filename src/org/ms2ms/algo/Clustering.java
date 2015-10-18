@@ -48,7 +48,7 @@ public class Clustering
         // for each spectrum, cells a wide slice of spectra from the mz/rt index
         for (Long id : data.getTicFileOffset().get(tic))
         {
-          MsnSpectrum      ms  = MsIO.read(bin, new MsnSpectrum());
+          MsnSpectrum      ms  = MsIO.readSpectrumIdentifier(bin, new MsnSpectrum());
           Collection<Long> ids = data.getFileoffsetsByMzRt(ms.getPrecursor().getMz(),Tools.front(ms.getRetentionTimes()).getTime());
         }
       }
