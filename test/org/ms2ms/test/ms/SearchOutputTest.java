@@ -1,22 +1,13 @@
 package org.ms2ms.test.ms;
 
-import ch.epfl.lamp.compiler.msil.Assembly;
 import com.google.common.collect.Multimap;
-import org.expasy.mzjava.proteomics.io.mol.FastaProteinReader;
-import org.expasy.mzjava.proteomics.mol.Protein;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.expasy.mzjava.proteomics.ms.ident.SpectrumIdentifier;
 import org.junit.Test;
 import org.ms2ms.algo.LCMSMS;
-import org.ms2ms.io.MsIO;
 import org.ms2ms.io.PsmReaders;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.test.TestAbstract;
-
-import javax.sound.midi.Sequence;
-import java.io.File;
-import java.util.Collection;
-import java.util.HashSet;
 
 /**
  * Created by yuw on 10/3/2015.

@@ -382,7 +382,15 @@ public class MsIO extends IOs
     write(w, m.getMassDiff());
     write(w, m.getNumMissedCleavages());
     write(w, m.isRejected());
-    write(w, m.getNeutralPeptideMass());
+    try
+    {
+      // there is no way to get the Optional(Double) directly
+      write(w, m.getNeutralPeptideMass());
+    }
+    catch (IllegalStateException e)
+    {
+      write(w, 0d);
+    }
     writeModMatches(w, m.getModifications(ModAttachment.all));
 
     List<PeptideProteinMatch> matches = m.getProteinMatches();
@@ -405,7 +413,9 @@ public class MsIO extends IOs
     pm.setMassDiff(read(w, 0d));
     pm.setNumMissedCleavages(read(w, 0));
     pm.setRejected(read(w, false));
-    pm.setNeutralPeptideMass(read(w, 0d));
+
+    double nm = read(w, 0d);
+    if (nm>0) pm.setNeutralPeptideMass(nm);
 
     Collection<ModificationMatch> matches = readModMatches(w);
     if (Tools.isSet(matches))
@@ -608,7 +618,7 @@ public class MsIO extends IOs
       // add the row to the index
       index.addRow(
           "Scan", scan,
-          "RT", id.getRetentionTimes().getFirst().getTime(),
+          "RT", Tools.isSet(id.getRetentionTimes())?id.getRetentionTimes().getFirst().getTime():-1,
           "mz", id.getPrecursorMz(),
           "z", id.getAssumedCharge().isPresent() ? id.getAssumedCharge().get() : 0,
           "FileOffset", w.getFilePointer(),

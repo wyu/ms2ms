@@ -53,7 +53,6 @@ public class MzIdentMLReader extends MzIdentMlReader
     mScoreMap.put("MS:1001362", "number of unmatched peaks");
     mScoreMap.put("user:xcorr", "xcorr");
 //    mScoreMap.put("", "");
-//    mScoreMap.put("", "");
   }
   public MzIdentMLReader(ModificationResolver modResolver) { super(modResolver); }
 

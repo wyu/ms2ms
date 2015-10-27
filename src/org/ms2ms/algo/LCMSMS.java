@@ -16,6 +16,7 @@ import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 import uk.ac.ebi.jmzidml.model.mzidml.SpectrumIdentification;
 
+import javax.annotation.Nonnull;
 import java.util.*;
 
 /**
@@ -76,16 +77,19 @@ public class LCMSMS
     return id_match;
   }
   // consider only the top-ranked
-  public static <K> Dataframe cut(Multimap<K, PeptideMatch> id_match, String score, double... qvals)
+  public static <K> Dataframe cut(Multimap<K, PeptideMatch> id_match, String score, @Nonnull double... qvals)
   {
+    boolean below = qvals[0]>qvals[qvals.length-1];
     if (Tools.isSet(id_match))
     {
+      System.out.println("||"+score+"||Hits||Decoys||inProtein||inProteinTop||inProteinTopQual||MSMS||");
+
       id_match = byRank(id_match, 1);
       Dataframe d = new Dataframe("PSMs thresholded by " + score);
       int row=0;
       for (double q : qvals)
       {
-        System.out.print("Considering the threshold. ");
+//        System.out.print("Considering the threshold. ");
         long hits=0, decoys=0, inProtein=0, inProteinTop=0, inProteinTopQual=0;
         for (K id : id_match.keySet())
         {
@@ -93,15 +97,16 @@ public class LCMSMS
           for (PeptideMatch m : id_match.get(id))
           {
             // anywhere among the ranks
-            boolean inProt=Peptides.hasScoreAt(m, "inProtein", 1);
+            boolean inProt=PSMs.hasScoreAt(m, "inProtein", 1),
+              OK=m.hasScore(score)?(below?(m.getScore(score)<=q):(m.getScore(score)>=q)):false;
             if (inProt) inP=true;
             // only count the top ranked
             if (m.getRank()==1 && inProt)
             {
               inProteinTop++;
-              if (m.getScore(score)<=q) inProteinTopQual++;
+              if (OK) inProteinTopQual++;
             }
-            if (m.getRank()==1 && m.hasScore(score) && m.getScore(score) <= q)
+            if (m.getRank()==1 && OK)
             {
               if (m.getProteinMatches().get(0).getHitType().equals(PeptideProteinMatch.HitType.DECOY)) decoys++;
               else hits++;
@@ -119,7 +124,8 @@ public class LCMSMS
         d.put(row, "inProteinTopQual", inProteinTopQual);
         d.put(row, "MSMS", id_match.keySet().size());
 
-        System.out.println("Threshold: " + q + ", Hits: " + hits + ", Decoys: " + decoys + ", MSMS: " + id_match.keySet().size());
+        System.out.println("|"+q+"|"+hits+"|"+decoys+"|"+inProtein+"|"+inProteinTop+"|"+inProteinTopQual+"|"+id_match.keySet().size()+"|");
+//        System.out.println("Threshold: " + q + ", Hits: " + hits + ", Decoys: " + decoys + ", MSMS: " + id_match.keySet().size());
         row++;
       }
       return d;
@@ -132,21 +138,25 @@ public class LCMSMS
     {
       // sort out the rank of the matches first
       TreeMultimap<Double, PeptideMatch> score_match = TreeMultimap.create();
+      List<String> sequences = new ArrayList<>();
       for (SpectrumIdentifier id : id_match.keySet())
       {
         List<PeptideMatch> matches = new ArrayList<PeptideMatch>(id_match.get(id));
         Collections.sort(matches, new PeptideMatchComparator(score));
-        for (int i=0; i< matches.size(); i++) matches.get(i).setRank(i+1);
-/*
-        score_match.clear();
-        for (PeptideMatch m : id_match.get(id)) score_match.put(m.getScore(score)*-1d, m);
-        int rank=1;
-        for (Double scr : score_match.keySet())
+        sequences.clear();
+        for (int i=0; i< matches.size(); i++) sequences.add(matches.get(i).toBarePeptide().toSymbolString());
+        for (int i=0; i< matches.size(); i++)
         {
-          for (PeptideMatch m : score_match.get(scr)) m.setRank(rank);
-          rank++;
+          matches.get(i).setRank(i+1);
+          // looking for the lower ranked for delta score
+          if (i<matches.size()-1)
+            for (int j=i+1; j<matches.size(); j++)
+              if (!Strs.isIsobaric(sequences.get(i), sequences.get(j)))
+              {
+                matches.get(i).addScore(PSMs.SCR_DELTA+score, matches.get(i).getScore(score)-matches.get(j).getScore(score));
+                break;
+              }
         }
-*/
       }
     }
     return id_match;

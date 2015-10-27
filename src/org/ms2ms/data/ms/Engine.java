@@ -21,6 +21,8 @@ public class Engine implements Comparable<Engine>
   public static final Engine SEQUEST   = new Engine("Sequest", "XCorr");
   public static final Engine MSGF      = new Engine("MSGF+", "MSGFScore", "QValue");
   public static final Engine ANDROMEDA = new Engine("Maxquant-Andromeda", "Score");
+  public static final Engine CRUX      = new Engine("Crux-Tide", "xcorr score");
+  public static final Engine AMANDA    = new Engine("MS Amanda", "AmandaScore");
 
   // round out the parameters for the known engines
   static
