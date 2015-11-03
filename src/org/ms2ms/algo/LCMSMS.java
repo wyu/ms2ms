@@ -132,33 +132,38 @@ public class LCMSMS
     }
     return null;
   }
-  public static Multimap<SpectrumIdentifier, PeptideMatch> rank(Multimap<SpectrumIdentifier, PeptideMatch> id_match, String score)
+  public static Multimap<SpectrumIdentifier, PeptideMatch> rank(Multimap<SpectrumIdentifier, PeptideMatch> id_match, String score, boolean descending)
   {
-    if (Tools.isSet(id_match))
+    if (!Tools.isSet(id_match)) return id_match;
+
+    if (!descending)
+      for (PeptideMatch m : id_match.values()) m.addScore(score+"_rev", -1d*m.getScore(score));
+
+    // sort out the rank of the matches first
+//    TreeMultimap<Double, PeptideMatch> score_match = TreeMultimap.create();
+    List<String> sequences = new ArrayList<>();
+    for (SpectrumIdentifier id : id_match.keySet())
     {
-      // sort out the rank of the matches first
-      TreeMultimap<Double, PeptideMatch> score_match = TreeMultimap.create();
-      List<String> sequences = new ArrayList<>();
-      for (SpectrumIdentifier id : id_match.keySet())
+      List<PeptideMatch> matches = new ArrayList<PeptideMatch>(id_match.get(id));
+      Collections.sort(matches, new PeptideMatchComparator(descending?score:score+"_rev"));
+      sequences.clear();
+      for (int i=0; i< matches.size(); i++) sequences.add(matches.get(i).toBarePeptide().toSymbolString());
+      for (int i=0; i< matches.size(); i++)
       {
-        List<PeptideMatch> matches = new ArrayList<PeptideMatch>(id_match.get(id));
-        Collections.sort(matches, new PeptideMatchComparator(score));
-        sequences.clear();
-        for (int i=0; i< matches.size(); i++) sequences.add(matches.get(i).toBarePeptide().toSymbolString());
-        for (int i=0; i< matches.size(); i++)
-        {
-          matches.get(i).setRank(i+1);
-          // looking for the lower ranked for delta score
-          if (i<matches.size()-1)
-            for (int j=i+1; j<matches.size(); j++)
-              if (!Strs.isIsobaric(sequences.get(i), sequences.get(j)))
-              {
-                matches.get(i).addScore(PSMs.SCR_DELTA+score, matches.get(i).getScore(score)-matches.get(j).getScore(score));
-                break;
-              }
-        }
+        matches.get(i).setRank(i+1);
+        // looking for the lower ranked for delta score
+        if (i<matches.size()-1)
+          for (int j=i+1; j<matches.size(); j++)
+            if (!Strs.isIsobaric(sequences.get(i), sequences.get(j)))
+            {
+              matches.get(i).addScore(PSMs.SCR_DELTA+score, matches.get(i).getScore(score)-matches.get(j).getScore(score));
+              break;
+            }
       }
     }
+    if (!descending)
+      for (PeptideMatch m : id_match.values()) m.getScoreMap().remove(score+"_rev");
+
     return id_match;
   }
   public static <K> Multimap<K, PeptideMatch> byRank(Multimap<K, PeptideMatch> id_match, int n)

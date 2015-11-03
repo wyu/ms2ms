@@ -23,6 +23,7 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.transform.sax.SAXSource;
 import java.io.File;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -127,5 +128,23 @@ public class MzIdentMLReader extends MzIdentMlReader
         }
       }
     }
+  }
+  @Override
+  protected void readPeptideIDProteinPositionMap(MzIdentMLType doc)
+  {
+    // fix the syntax problem before calling the super()
+    SequenceCollectionType seqCollection = doc.getSequenceCollection();
+    if (seqCollection == null) return;
+
+    List<PeptideEvidenceType> peptideEvidences = seqCollection.getPeptideEvidence();
+    if (peptideEvidences == null || peptideEvidences.isEmpty()) return;
+
+    for (PeptideEvidenceType entry : peptideEvidences)
+    {
+      if (entry.getPost().length()>1) entry.setPost(entry.getPost().substring(0, 1));
+      if (entry.getPre( ).length()>1) entry.setPre( entry.getPre( ).substring(0, 1));
+    }
+
+    super.readPeptideIDProteinPositionMap(doc);
   }
 }
