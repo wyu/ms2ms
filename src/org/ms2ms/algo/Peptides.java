@@ -44,4 +44,14 @@ public class Peptides
     // the internal aligner the tolerance for aligning peaks
     return new PeptideFragmentAnnotator(fragmenter, new AbsoluteTolerance(0.1));
   }
+  public static String keepAAs(String seq)
+  {
+    String peptide=null;
+    if (Strs.isSet(seq))
+    {
+      for (char c : seq.toCharArray())
+        if (sAA.indexOf(c)>=0) peptide=Strs.extend(peptide, c+"","");
+    }
+    return peptide;
+  }
 }

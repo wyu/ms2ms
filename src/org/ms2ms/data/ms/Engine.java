@@ -29,6 +29,8 @@ public class Engine implements Comparable<Engine>
   public static final Engine AMANDA    = new Engine("MS Amanda", "AmandaScore");
   public static final Engine XTANDEM   = new Engine("X!Tandem", "X\\!Tandem:hyperscore", "X\\!Tandem:expect");
   public static final Engine OMSSA     = new Engine("OMSSA", "X\\!Tandem:hyperscore", "X\\!Tandem:expect");
+  public static final Engine PPILOT    = new Engine("ProteinPilot", "Sc", "Conf");
+  public static final Engine PEAKS     = new Engine("PEAKS", "PeakScore");
 
   // round out the parameters for the known engines
   static

@@ -1,5 +1,8 @@
 package org.ms2ms.io;
 
+import com.compomics.thermo_msf_parser_API.lowmeminstance.controllers.PeptideLowMemController;
+import com.compomics.thermo_msf_parser_API.lowmeminstance.model.MsfFile;
+import com.compomics.thermo_msf_parser_API.lowmeminstance.model.PeptideLowMem;
 import com.google.common.base.Optional;
 import com.google.common.collect.*;
 import info.monitorenter.cpdetector.io.FileFilterExtensions;
@@ -17,11 +20,9 @@ import org.expasy.mzjava.proteomics.ms.ident.PeptideProteinMatch;
 import org.expasy.mzjava.proteomics.ms.ident.SpectrumIdentifier;
 import org.ms2ms.algo.LCMSMS;
 import org.ms2ms.algo.PSMs;
+import org.ms2ms.algo.Peptides;
 import org.ms2ms.math.Stats;
-import org.ms2ms.mzjava.MaxQuantReader;
-import org.ms2ms.mzjava.NumModMatchResolver;
-import org.ms2ms.mzjava.NumModResolver;
-import org.ms2ms.mzjava.ProteinPilotReader;
+import org.ms2ms.mzjava.*;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
@@ -122,7 +123,7 @@ public class PsmReaders
       if (Tools.isSet(mods))
         for (String mod : mods)
         {
-          String tag = mod.substring(0, mod.indexOf('(')).trim(), m = mod.substring(mod.indexOf('(')+1, mod.indexOf(')'));
+          String tag = mod.substring(0, mod.indexOf('(')).trim(), m = mod.substring(mod.indexOf('(') + 1, mod.indexOf(')'));
           if      (Strs.equals(tag, "N-Term")) match.addModificationMatch(ModAttachment.N_TERM, new Modification(m, new NumericMass(0d)));
           else if (Strs.equals(tag, "C-Term")) match.addModificationMatch(ModAttachment.C_TERM, new Modification(m, new NumericMass(0d)));
           else
@@ -179,7 +180,7 @@ public class PsmReaders
         for (String mod : mods)
         {
           if (!Strs.isSet(mod) || mod.indexOf('(')<0 || mod.indexOf('(')<0) continue;
-          String tag = mod.substring(0, mod.indexOf('(')).trim(), m = mod.substring(mod.indexOf('(')+1, mod.indexOf(')'));
+          String tag = mod.substring(0, mod.indexOf('(')).trim(), m = mod.substring(mod.indexOf('(') + 1, mod.indexOf(')'));
           if      (Strs.equals(tag, "N-Term")) match.addModificationMatch(ModAttachment.N_TERM, new Modification(m, new NumericMass(0d)));
           else if (Strs.equals(tag, "C-Term")) match.addModificationMatch(ModAttachment.C_TERM, new Modification(m, new NumericMass(0d)));
           else
@@ -188,10 +189,10 @@ public class PsmReaders
           }
         }
       match.addProteinMatch(new PeptideProteinMatch(file.getNotNull("Master Protein Accessions", "Protein Accessions"),
-          Optional.of("-"), Optional.of("-"), Optional.of("-"), PeptideProteinMatch.HitType.TARGET));
+        Optional.of("-"), Optional.of("-"), Optional.of("-"), PeptideProteinMatch.HitType.TARGET));
 
 //      String[] matched = Strs.split(file.get("Ions Matched"), '/');
-      match.setMassDiff(file.getDouble("DeltaM [ppm]")*id.getPrecursorMz().get()*id.getAssumedCharge().get()*1E-6);
+      match.setMassDiff(file.getDouble("DeltaM [ppm]") * id.getPrecursorMz().get() * id.getAssumedCharge().get() * 1E-6);
 //      match.setNumMatchedIons(new Integer(matched[0]));
 //      match.setTotalNumIons(new Integer(matched[1]));
       match.setNumMissedCleavages(file.getInt("# Missed Cleavages"));
@@ -207,6 +208,162 @@ public class PsmReaders
       }
     }
 
+    return id_match;
+  }
+//  Peptide	-10lgP	Mass	Length	ppm	m/z	RT	Area	Scan	Accession	PTM	AScore
+//  S(+229.16)LGPNSC(+57.02)SAN(+.98)GPGLYLIHGPNLYC(+57.02)YSDVEK(+229.16)	149	3740.822	30	2.2	1247.9507	56.24	7.71E+07	16073	gi|11321561:gi|530395269	TMT6plex; Carbamidomethylation; Deamidation (NQ)	S1:TMT6plex:1000.00;C7:Carbamidomethylation:1000.00;N10:Deamidation (NQ):76.17;C24:Carbamidomethylation:1000.00;K30:TMT6plex:1000.00
+  public static Multimap<SpectrumIdentifier, PeptideMatch> readPEAKS(String filename) throws IOException
+  {
+    System.out.println("fetching the PSM from " + filename);
+
+    TabFile file = new TabFile(filename, TabFile.comma);
+    String   run = FilenameUtils.getBaseName(filename);
+    Table<String, String, SpectrumIdentifier> run_scan_id = HashBasedTable.create();
+    Multimap<SpectrumIdentifier, PeptideMatch> id_match   = HashMultimap.create();
+    while (file.hasNext())
+    {
+      String           scan = file.get("Scan");
+      SpectrumIdentifier id = run_scan_id.get(run, scan);
+      if (id==null)
+      {
+        id = new SpectrumIdentifier(run+"#"+scan);
+        id.setName(run + "#" + scan);
+        id.setAssumedCharge(Math.round(file.getFloat("Mass") / file.getFloat("m/z")));
+        id.setPrecursorMz(file.getDouble("m/z"));
+        if (file.getDouble("Area")!=null) id.setPrecursorIntensity(file.getDouble("Area"));
+        id.setSpectrumFile(run);
+        id.addRetentionTime(file.getDouble("RT"), TimeUnit.MINUTE);
+        id.addScanNumber(new Integer(scan));
+        run_scan_id.put(run, scan, id);
+      }
+      // Peptide: S(+229.16)LGPNSC(+57.02)SAN(+.98)GPGLYLIHGPNLYC(+57.02)YSDVEK(+229.16)
+      //     PTM: TMT6plex; Carbamidomethylation; Deamidation (NQ)
+      //  AScore: S1:TMT6plex:1000.00;C7:Carbamidomethylation:1000.00;N10:Deamidation (NQ):76.17;C24:Carbamidomethylation:1000.00;K30:TMT6plex:1000.00
+      PeptideMatch match = new PeptideMatch(Peptides.keepAAs(file.get("Peptide")));
+      String[]      mods = Strs.split(file.get("PTM"), ';', true), ascores = Strs.split(file.get("AScore"), ';', true);
+
+      UnimodModificationResolver unimod = new UnimodModificationResolver();
+      unimod.putTranslate("Carbamidomethylation",             "Carbamidomethyl");
+      unimod.putTranslate("Deamidation (NQ)",                 "Deamidated");
+      unimod.putTranslate("Oxidation (M)",                    "Oxidation");
+      unimod.putTranslate("Oxidation (HW)",                   "Oxidation");
+      unimod.putTranslate("Dihydroxy",                        "Dioxidation");
+      unimod.putTranslate("Phosphorylation (STY)",            "Phospho");
+      unimod.putTranslate("Sulphone",                         "Sulfo");
+      unimod.putTranslate("Dehydration",                      "Dehydrated");
+      unimod.putTranslate("Tryptophan oxidation to kynurenin","Trp->Kynurenin");
+      unimod.putTranslate("Methylmalonylation on Serine",     "Methylmalonylation"); // intrim name
+      unimod.putTranslate("Replacement of proton with ammonium ion","Ammonium");
+      unimod.putTranslate("Methyl ester",                     "Methyl");
+      unimod.putTranslate("2-amino-3-oxo-butanoic_acid",      "Didehydro");
+      unimod.putTranslate("Hex1HexNAc1NeuAc1",                "Hex(1)HexNAc(1)NeuAc(1)");
+      unimod.putTranslate("Deamidation followed by a methylation", "Methyl+Deamidated");
+      unimod.putTranslate("Tyrosine oxidation to 2-aminotyrosine", "Amino");
+      unimod.putTranslate("Fluorination",                      "Fluoro");
+      unimod.putTranslate("Pyro-glu from E",                   "Glu->pyro-Glu");
+      unimod.putTranslate("Pyro-glu from Q",                   "Gln->pyro-Glu");
+      unimod.putTranslate("Methylation",                       "Methyl");
+      unimod.putTranslate("Formylation (Protein N-term)",      "Formyl");
+      unimod.putTranslate("Formylation",                       "Formyl");
+      unimod.putTranslate("Carbamidomethylation (DHKE  X@N-term)","Carbamidomethyl");
+      unimod.putTranslate("Ammonia-loss (N)",                  "Ammonia-loss");
+      unimod.putTranslate("2 4-diacetamido-2 4 6-trideoxyglucopyranose","Bacillosamine");
+      unimod.putTranslate("Biotinylation",                     "Biotin");
+      unimod.putTranslate("Phosphorylation (HCDR)",            "Phospho");
+      unimod.putTranslate("Sodium adduct",                     "Cation:Na");
+      unimod.putTranslate("Amidation",                         "Amidated");
+      unimod.putTranslate("Persulfide",                        "Sulfide");
+      unimod.putTranslate("Deamidation (R)",                   "Deamidated");
+      unimod.putTranslate("2-OH-ethyl thio-Ser",               "MercaptoEthanol"); // intrim name
+      unimod.putTranslate("Aminoethylbenzenesulfonylation",    "AEBS");
+      unimod.putTranslate("HexNAcylation (ST)",                "HexNAc");
+      unimod.putTranslate("Acetylation (N-term)",              "Acetyl");
+      unimod.putTranslate("3-sulfanylpropanoyl",               "Thioacyl");
+      unimod.putTranslate("Proline oxidation to pyroglutamic acid","Pro->pyro-Glu");
+      unimod.putTranslate("Methylphosphonylation",             "Methylphosphonate"); // intrim name
+      unimod.putTranslate("Glycosyl-L-hydroxyproline",         "Glycosyl");
+      unimod.putTranslate("Tryptophan oxidation to oxolactone","Trp->Oxolactone");
+      unimod.putTranslate("Replacement of proton by lithium",  "Cation:Li");
+      unimod.putTranslate("S-Ethylcystine from Serine",        "Delta:H(4)C(2)O(-1)S(1)");
+      unimod.putTranslate("Carbamylation",                     "Carbamyl");
+      unimod.putTranslate("Hexose (NSY)",                      "Hex");
+      unimod.putTranslate("Nucleophilic addition to cytopiloyne+H2O","Cytopiloyne+water");
+      unimod.putTranslate("Ethyl amino",                       "ethylamino"); // intrim name
+      unimod.putTranslate("Replacement of 2 protons by calcium","Cation:Ca[II]"); // intrim name
+      unimod.putTranslate("Flavin mononucleotide",             "FMNH");
+      unimod.putTranslate("Glycerylphosphorylethanolamine",    "GlycerylPE");
+      unimod.putTranslate("Dithiothreitol (DTT)",              "DTT_C"); // intrim name
+      unimod.putTranslate("Hexosamine",                        "HexN");
+      unimod.putTranslate("Phosphorylation to pyridyl thiol",  "PET");
+      unimod.putTranslate("4-hydroxynonenal (HNE)",            "HNE");
+      unimod.putTranslate("Tryptophan oxidation to hydroxykynurenin","Trp->Hydroxykynurenin");
+      unimod.putTranslate("Acetaldehyde +26",                  "Delta:H(2)C(2)");
+      unimod.putTranslate("Carboxylation (E)","Carboxy");
+      unimod.putTranslate("N-glucuronylation","Glucuronyl");
+      unimod.putTranslate("Triglutamyl","GluGluGlu");
+      unimod.putTranslate("Deamidation followed by esterification with ethanol","Ethyl+Deamidated"); // intrim name
+      unimod.putTranslate("Tetraglutamyl","GluGluGluGlu");
+      unimod.putTranslate("Beta-methylthiolation (ND)","Methylthio");
+      unimod.putTranslate("Ethanolation (KR)","Ethanolyl");
+      unimod.putTranslate("Propionaldehyde +40","Delta:H(4)C(3)");
+      unimod.putTranslate("Dihydroxy methylglyoxal adduct","Dihydroxyimidazolidine"); // intrim name
+      unimod.putTranslate("Aminoethylcysteine","AEC-MAEC"); // intrim name
+      unimod.putTranslate("Fucose","dHex");
+      unimod.putTranslate("Dichlorination of tyrosine residues","dichlorination"); // intrim name
+      unimod.putTranslate("Nitroalkylation by Nitro Oleic Acid","NA-LNO2"); // intrim name
+      unimod.putTranslate("Chlorination of tyrosine residues","Chlorination"); // intrim name
+      unimod.putTranslate("Acetylation (TSCYH)","Acetyl");
+      unimod.putTranslate("Carboxylation (DKW)","Carboxy");
+      unimod.putTranslate("Carboxylation (E)","Carboxy");
+      unimod.putTranslate("2 3-dihydro-2 2-dimethyl-7-benzofuranol N-methyl carbamate","Carbofuran"); // intrim name
+      unimod.putTranslate("Ammonia-loss (C@N-term)","Ammonia-loss");
+      unimod.putTranslate("Dihydroxy methylglyoxal adduct","Dihydroxyimidazolidine"); // intrim name
+      unimod.putTranslate("Acetylation (Protein N-term)","Acetyl");
+      unimod.putTranslate("Phosphorylation to amine thiol","DAET");
+      unimod.putTranslate("O-Pinacolylmethylphosphonylation","O-pinacolylmethylphosphonate"); // intrim name
+      unimod.putTranslate("HexNAcylation (N)","HexNAc");
+      unimod.putTranslate("Pyrrolidone from Proline","Pro->Pyrrolidone");
+      unimod.putTranslate("Replacement of 2 protons by nickel","Cation:Ni[II]");  // intrim name
+      unimod.putTranslate("Biantennary","Hex(5)HexNAc(4)");
+      unimod.putTranslate("Proline oxidation to pyrrolidinone","Pro->Pyrrolidone");
+//      unimod.putTranslate("","");
+
+      // parse the mutation
+      // Peptide: V(+229.16)INLPQ(sub L)DSMAAPWETGDTFPDVVAIAPDVR
+      //     PTM: TMT6plex; Mutation
+      // AScores: V1:TMT6plex:1000.00
+      if (Tools.isSet(ascores))
+        // S1:TMT6plex:1000.00
+        for (String mod : ascores)
+        {
+          if (!Strs.isSet(mod)) continue;
+          String[] items = Strs.split(mod, ':');
+//          String AA = items[0].substring(0, 1);
+//          double ascore = Stats.toDouble(items[2]);
+          Optional<Modification> M = unimod.resolve(items[1]);
+          if (M.isPresent())
+          {
+            match.addModificationMatch(Stats.toInt(items[0].substring(1))-1, M.get());
+          }
+          else
+          {
+            System.out.println(items[1] + " can not be resolved by UniMod");
+          }
+//          if      (Strs.equals(tag, "N-Term")) match.addModificationMatch(ModAttachment.N_TERM, new Modification(m, new NumericMass(0d)));
+//          else if (Strs.equals(tag, "C-Term")) match.addModificationMatch(ModAttachment.C_TERM, new Modification(m, new NumericMass(0d)));
+        }
+      // set the protein info
+      match.addProteinMatch(new PeptideProteinMatch(file.get("Accession"),
+        Optional.of("-"), Optional.of("-"), Optional.of("-"), PeptideProteinMatch.HitType.TARGET));
+
+      match.setMassDiff(file.getDouble("ppm") * id.getPrecursorMz().get() * id.getAssumedCharge().get() * 1E-6);
+      match.addScore("PeakScore", file.getDouble("-10lgP"));
+
+      if (!id_match.put(id, match))
+      {
+//        System.out.println("Duplicated?");
+      }
+    }
     return id_match;
   }
   // TODO to be completed
@@ -370,10 +527,10 @@ public class PsmReaders
         }
 
       match.setNeutralPeptideMass(match.toPeptide(PSMs.sNumModResolver).getMolecularMass());
-      match.setMassDiff(id.getPrecursorNeutralMass().get()-match.getNeutralPeptideMass());
+      match.setMassDiff(id.getPrecursorNeutralMass().get() - match.getNeutralPeptideMass());
       match.setRank(Stats.toInt(file.get("Rank")));
 
-      PSMs.addScore(match, "AmandaScore",         file.getDouble("Amanda Score"));
+      PSMs.addScore(match, "AmandaScore", file.getDouble("Amanda Score"));
       PSMs.addScore(match, "WeightedProbability", file.getDouble("Weighted Probability"));
 
       // add as much information to the match as possible
@@ -442,9 +599,9 @@ public class PsmReaders
 
       PSMs.addScore(match, "DeNovoScore",  file.getDouble("DeNovoScore"));
       PSMs.addScore(match, "IsotopeError", file.getInt("IsotopeError"));
-      PSMs.addScore(match, "MSGFScore",    file.getDouble("MSGFScore"));
+      PSMs.addScore(match, "MSGFScore", file.getDouble("MSGFScore"));
       PSMs.addScore(match, "SpecEValue",   file.getDouble("SpecEValue"));
-      PSMs.addScore(match, "EValue",       file.getDouble("EValue"));
+      PSMs.addScore(match, "EValue", file.getDouble("EValue"));
       PSMs.addScore(match, "QValue", file.getDouble("QValue"));
       PSMs.addScore(match, "PepQValue", file.getDouble("PepQValue"));
 
@@ -494,7 +651,7 @@ public class PsmReaders
         for (String acc : accs)
         {
           boolean decoy = (acc.indexOf("XXX_")==0);
-          String[]  acs = Strs.split(decoy?acc.substring(4):acc, '|');
+          String[]  acs = Strs.split(decoy ? acc.substring(4) : acc, '|');
           int       pre = acc.indexOf("pre=")+4, post = acc.indexOf("post=")+5;
           try
           {
@@ -515,9 +672,9 @@ public class PsmReaders
 
       PSMs.addScore(match, "DeNovoScore",  file.getDouble("DeNovoScore"));
       PSMs.addScore(match, "IsotopeError", file.getInt("IsotopeError"));
-      PSMs.addScore(match, "MSGFScore",    file.getDouble("MSGFScore"));
-      PSMs.addScore(match, "SpecEValue",   file.getDouble("SpecEValue"));
-      PSMs.addScore(match, "EValue",       file.getDouble("EValue"));
+      PSMs.addScore(match, "MSGFScore", file.getDouble("MSGFScore"));
+      PSMs.addScore(match, "SpecEValue", file.getDouble("SpecEValue"));
+      PSMs.addScore(match, "EValue", file.getDouble("EValue"));
       PSMs.addScore(match, "QValue", file.getDouble("QValue"));
       PSMs.addScore(match, "PepQValue", file.getDouble("PepQValue"));
 
@@ -693,6 +850,34 @@ public class PsmReaders
 
     return id_match;
   }
+  public static Multimap<SpectrumIdentifier, PeptideMatch> readMSF(String filename) throws IOException
+  {
+    System.out.println("fetching the PSM from " + filename);
+
+    MsfFile msf = null;
+    try
+    {
+      msf = new MsfFile(new File(filename));
+      PeptideLowMemController instance = new PeptideLowMemController();
+      List<PeptideLowMem> result = instance.getPeptidesWithConfidenceLevel(1, msf);
+
+      // grab the details
+      for (PeptideLowMem peptide : result)
+      {
+        // TODO no additional info comine back. The query resulted in null 'rs' inside the call!
+        List info = instance.getInformationForPeptide(peptide.getPeptideId(), msf, true);
+        System.out.println(info.size());
+      }
+
+      System.out.println(result.size());
+    }
+    catch (Exception e)
+    {
+      e.printStackTrace();
+    }
+
+    return null;
+  }
 //  N       Unused  Total   %Cov    %Cov(50)        %Cov(95)        Accessions      Names   Used    Annotation      Contrib Conf    Sequence        Modifications   ProteinModifications    Cleavages       dMass   Obs MW  Obs m/z Theor MW        Theor m/z       Theor z Sc      Spectrum        Acq Time        Intensity (Peptide)     PrecursorIntensityAcquisition   Apex Time (Peptide)     Elution Peak Width (Peptide)    MS2Counts
 //  1       187.69  187.69  88.9800012111664        80.0999999046326        76.5500009059906        gi|253775383    DNA-directed RNA polymerase, beta' subunit [Escherichia coli BL21(DE3)]                 2       99.0000009536743        AAAESSIQVK                              -0.00113623996730894    1002.53344726563        502.274 1002.53454589844        502.274566650391        2       11      1.1.1.6275.1    29.61068        3.156882E+08
 // TODO to be completed
@@ -700,13 +885,7 @@ public class PsmReaders
   {
     System.out.println("fetching the PSM from " + filename);
 
-//    UnimodModificationResolver modResolver = new UnimodModificationResolver();
-//    modResolver.putTranslate("de", "Deamidated");
-//    modResolver.putTranslate("ox", "Oxidation");
-//    modResolver.putTranslate("ac", "Acetyl");
-//    modResolver.putTranslate("gl", "Gln->pyro-Glu");
-//
-    ProteinPilotReader ppReader = new ProteinPilotReader();
+    ProteinPilotReader ppReader = new ProteinPilotReader(new ProteinPilotModResolver());
     PsmReaders              psm = new PsmReaders();
     ppReader.parse(new File(filename), psm.insertIdMatch);
 
@@ -812,6 +991,11 @@ public class PsmReaders
       }
       // IETLMRNLM[15.9949]PWRK
       PeptideMatch match = PSMs.fromNumModSequence(file.get("sequence"));
+      // add the fixed Cys mods
+      for (int i=0; i<match.size(); i++)
+      {
+        if ("C".equals(match.getSymbol(i).getSymbol())) match.addModificationMatch(i, 57.02);
+      }
       // parse the protein names
       // XXX_gi|4826734|ref|NP_004951.1|(pre=K,post=W);XXX_gi|767988385|ref|XP_011544083.1|(pre=K,post=W);XXX_gi|283135173|ref|NP_001164408.1|(pre=K,post=W);XXX_gi|283135201|ref|NP_001164105.1|(pre=K,post=W);XXX_gi|530407875|ref|XP_005255290.1|(pre=K,post=W);XXX_gi|767988388|ref|XP_011544084.1|(pre=K,post=W)
       String flanking = file.get("flanking aa");
@@ -846,7 +1030,8 @@ public class PsmReaders
 
       // add as much information to the match as possible
       match.setNeutralPeptideMass(p.getMolecularMass());
-      match.setMassDiff(match.getNeutralPeptideMass() - p.getMolecularMass());
+//      match.setMassDiff(match.getNeutralPeptideMass() - p.getMolecularMass());
+      match.setMassDiff(file.getDouble("spectrum neutral mass") - file.getDouble("peptide mass"));
 
       PSMs.addScore(match, "^Charge", file.getInt("charge"));
 
