@@ -626,7 +626,7 @@ public class PsmReaders
       {
 //        System.out.println("Duplicated?");
       }
-      if (++counts%1000==0) System.out.print(".");
+      if (++counts%5000==0) System.out.print(".");
     }
     System.out.println();
 

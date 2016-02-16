@@ -234,7 +234,7 @@ public class PSMs
     if (!Tools.isSet(Bs)) return As;
     if (As==null) As = HashMultimap.create();
 
-    System.out.print(Bs.size() + " total PSMs from " + Bs.keySet().size() + "MS/MS");
+    System.out.print(Bs.size() + " total PSMs from " + Bs.keySet().size() + " MS/MS");
     // combine the PSMs
     PSMs.DesendCanonicalScorePeptideMatch sorter = new PSMs.DesendCanonicalScorePeptideMatch(score);
     List<PeptideMatch>                   matches = new ArrayList<>();
