@@ -8,6 +8,7 @@ import org.ms2ms.algo.LCMSMS;
 import org.ms2ms.io.PsmReaders;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.test.TestAbstract;
+import org.ms2ms.utils.TabFile;
 
 /**
  * Created by yuw on 10/3/2015.
@@ -20,8 +21,8 @@ public class SearchOutputTest extends TestAbstract
     String root = "c:/local/data/TMT_MS3/";
     double[] scale = new double[] {0.95,0.8,0.64, 0.32,0.16,0.08,0.04,0.02,0.01,0.005,0.0025,0.00125,0.00075,0.00025};
     Multimap<SpectrumIdentifier, PeptideMatch>
-        ms2ce40 = PsmReaders.readMSGFplus(root+"TMT_MS3120_1800_40CE.ms2.tsv"),
-        ms3ce40 = PsmReaders.readMSGFplus(root+"TMT_MS3120_1800_40CE.ms3.tsv");
+        ms2ce40 = PsmReaders.readMSGFplus(root+"TMT_MS3120_1800_40CE.ms2.tsv", TabFile.tabb),
+        ms3ce40 = PsmReaders.readMSGFplus(root+"TMT_MS3120_1800_40CE.ms3.tsv", TabFile.tabb);
 //    Multimap<SpectrumIdentifier, PeptideMatch> psm = PsmReaders.readMSGFplus(root+"ms2_only/CATSIgGTMTMS3.tsv");
 
     Dataframe cuts = LCMSMS.cut(ms2ce40, "QValue", scale);

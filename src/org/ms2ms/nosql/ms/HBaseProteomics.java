@@ -73,7 +73,7 @@ public class HBaseProteomics extends HBases
       for (Result rs = scanner.next(); rs != null; rs = scanner.next()) { counts++; }
       tbl.close();
 
-      System.out.println(table.getName() + " with " + table.getColumnFamilies().length + " Col families and " + counts + " Rows");
+      System.out.println(table.getTableName() + " with " + table.getColumnFamilies().length + " Col families and " + counts + " Rows");
       for (HColumnDescriptor col : table.getFamilies())
       {
         System.out.println("  " + col.getNameAsString());

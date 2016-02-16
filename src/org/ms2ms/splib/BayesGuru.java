@@ -78,7 +78,7 @@ public class BayesGuru
 
         double p = (pd_pos == 0 && pd_neg == 0) ? 0d : pd_pos * p_pos / (pd_pos * p_pos + pd_neg * p_neg);
 
-        if (p != Double.NaN)
+        if (!Double.isNaN(p))
         {
           mTransitXs[i]=x; mTransitYs[i]=p;
         }

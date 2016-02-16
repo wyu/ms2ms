@@ -13,6 +13,7 @@ import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -38,17 +39,25 @@ public class PeptideFeature extends PeptideMatch
   public String   getTitle()              { return mTitle; }
   public int      getCharge()             { return mCharge; }
   public Double   getAbundance(String s)  { return mExptAbundance.get(s); }
+  public Collection<String> getExperiments() { return mExptAbundance!=null?mExptAbundance.keySet():null; }
 
   public PeptideFeature setAbundance(String t, Double s){ mExptAbundance.put(t, s); return this; }
   public PeptideFeature setCharge(int s)                { mCharge=s; return this; }
   public PeptideFeature setTitle(String s)              { mTitle=s; return this; }
+  public PeptideFeature addAbundance(String t, Double s)
+  {
+    mExptAbundance.put(t, getAbundance(t)!=null?s+getAbundance(t):s);
+    return this;
+  }
 
   @Override
   public int compareTo(PeptideMatch o)
   {
     int OK = super.compareTo(o);
-    if (OK==0) OK = Double.compare(getScore(SCORE), o.getScore(SCORE));
-    if (OK==0) OK = Double.compare(Stats.sum(mExptAbundance.values()), Stats.sum(((PeptideFeature) o).mExptAbundance.values()));
+    if (OK==0 && hasScore(SCORE) && o.hasScore(SCORE))
+        OK = Double.compare(getScore(SCORE), o.getScore(SCORE));
+    if (OK==0 && Tools.isSet(mExptAbundance) && Tools.isSet(((PeptideFeature) o).mExptAbundance))
+        OK = Double.compare(Stats.sum(mExptAbundance.values()), Stats.sum(((PeptideFeature) o).mExptAbundance.values()));
     return OK;
   }
 
