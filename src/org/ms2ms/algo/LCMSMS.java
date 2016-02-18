@@ -132,7 +132,7 @@ public class LCMSMS
     }
     return null;
   }
-  public static Multimap<SpectrumIdentifier, PeptideMatch> rank(Multimap<SpectrumIdentifier, PeptideMatch> id_match, String score, boolean descending)
+  public static Multimap<SpectrumIdentifier, PeptideMatch> rank(Multimap<SpectrumIdentifier, PeptideMatch> id_match, String score, boolean descending, boolean check_isobaric)
   {
     if (!Tools.isSet(id_match)) return id_match;
 
@@ -140,7 +140,6 @@ public class LCMSMS
       for (PeptideMatch m : id_match.values()) m.addScore(score+"_rev", -1d*m.getScore(score));
 
     // sort out the rank of the matches first
-//    TreeMultimap<Double, PeptideMatch> score_match = TreeMultimap.create();
     List<String> sequences = new ArrayList<>();
     for (SpectrumIdentifier id : id_match.keySet())
     {
@@ -154,12 +153,14 @@ public class LCMSMS
         // looking for the lower ranked for delta score
         if (i<matches.size()-1)
           for (int j=i+1; j<matches.size(); j++)
-            if (!Strs.isIsobaric(sequences.get(i), sequences.get(j)))
+            // try to save some time if we dont have to check isobaric eqv, WYU 20160216
+            if ((check_isobaric && !Strs.isIsobaric(sequences.get(i), sequences.get(j))) || !Strs.equals(sequences.get(i), sequences.get(j)))
             {
               matches.get(i).addScore(PSMs.SCR_DELTA+score, matches.get(i).getScore(score)-matches.get(j).getScore(score));
               break;
             }
       }
+      Tools.dispose(matches);
     }
     if (!descending)
       for (PeptideMatch m : id_match.values()) m.getScoreMap().remove(score+"_rev");

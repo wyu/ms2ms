@@ -1,20 +1,12 @@
 package org.ms2ms.algo;
 
-import com.google.common.base.*;
 import com.google.common.collect.*;
-import gnu.trove.map.TObjectDoubleMap;
-import gnu.trove.map.hash.TObjectDoubleHashMap;
-import org.apache.commons.collections.map.HashedMap;
 import org.expasy.mzjava.core.ms.AbsoluteTolerance;
-import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
-import org.expasy.mzjava.proteomics.mol.AminoAcid;
 import org.expasy.mzjava.proteomics.mol.Peptide;
 import org.expasy.mzjava.proteomics.mol.modification.ModAttachment;
-import org.expasy.mzjava.proteomics.mol.modification.Modification;
-import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodManager;
 import org.expasy.mzjava.proteomics.ms.fragment.PeptideFragmentAnnotator;
 import org.expasy.mzjava.proteomics.ms.fragment.PeptideFragmenter;
 import org.expasy.mzjava.proteomics.ms.ident.*;
@@ -22,17 +14,11 @@ import org.expasy.mzjava.proteomics.ms.spectrum.PepFragAnnotation;
 import org.expasy.mzjava.proteomics.ms.spectrum.PeptideSpectrum;
 import org.ms2ms.data.ms.Engine;
 import org.ms2ms.data.ms.MetaPeptideMatch;
-import org.ms2ms.io.PsmReaders;
 import org.ms2ms.mzjava.NumModMatchResolver;
-import org.ms2ms.mzjava.SpectrumIdentifierByRunScan;
-import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
-import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
 
 import javax.annotation.Nonnull;
-import java.io.DataOutput;
-import java.io.IOException;
 import java.util.*;
 
 /** Routines about the peptide-spectrum-matches.
@@ -42,7 +28,7 @@ import java.util.*;
 public class PSMs
 {
   public static final String SCR_CANONICAL = "Canonical Score";
-  public static final String SCR_DELTA     = "Delta";
+  public static final String SCR_DELTA     = "DeltaScore";
 
   // the comparators
   public static class DesendCanonicalScorePeptideMatch implements Comparator<PeptideMatch>
@@ -86,9 +72,11 @@ public class PSMs
   {
     if (!Strs.isSet(p)) return null;
 
-    List<String> items = Strs.splits(p, "[+-.\\d]+");
+//    List<String> items = Strs.splits(p, "[+-.\\d]+");
+    List<String> items = Strs.splits(p, Strs.PTN_SIGNS_DGT);
     // an array of: "", +229.163, HMK, +229.163, K, +229.163, HAK, +229.163, K, +229.163, MK, +229.163, K, +229.163, QMK, +229.163, K, +229.163
-    String backbone = null;
+    // use StringBuffer instead of String to avoid GC overhead problem? WYU, 20160216
+    StringBuffer backbone = new StringBuffer(48);
     if (Tools.isSet(items))
     {
       // merge to the backbone first
@@ -96,39 +84,42 @@ public class PSMs
         if (Strs.isSet(items.get(i)))
           for (char c : items.get(i).toCharArray())
             if (Peptides.sAA.indexOf(c)>=0)
-              backbone = Strs.extend(backbone, c+"", "");
+              backbone.append(c);
 
-      PeptideMatch m = new PeptideMatch(backbone); backbone=null;
+      PeptideMatch m = new PeptideMatch(backbone.toString()); backbone=new StringBuffer(48);
       for (int i=0; i<items.size(); i+=2)
       {
         if (Strs.isSet(items.get(i)))
           for (char c : items.get(i).toCharArray())
             if (Peptides.sAA.indexOf(c)>=0)
-              backbone = Strs.extend(backbone, c+"", "");
-//        backbone = Strs.extend(backbone, items.get(i), "");
-        // update the peptide match
+              backbone.append(c);
 
         // the mod string
-        if (!Strs.isSet(backbone))
+        try
         {
-          try
+          // hope the pre-compiled regex will be faster
+          List<String> nmods = i+1<items.size()?Strs.split(items.get(i+1), Strs.PTN_SIGNS, true):null;
+          if (backbone.length()==0)
           {
-            List<String> nmods = Strs.split(items.get(i+1), "(?=[(+)(\\-)])", true);
             // N-term mod
             for (String nmod : nmods)
               m.addModificationMatch(ModAttachment.N_TERM, Double.valueOf(nmod));
           }
-          catch (Exception e)
+          else if (i+1<items.size() && nmods!=null)
           {
-            e.printStackTrace();
+            // Side-chain mod
+            for (String nmod : nmods)
+              m.addModificationMatch(backbone.length()-1, Double.valueOf(nmod));
           }
+          Tools.dispose(nmods);
         }
-        else if (i+1<items.size())
+        catch (Exception e)
         {
-          // Side-chain mod
-          m.addModificationMatch(backbone.length()-1, Double.valueOf(items.get(i+1)));
+          e.printStackTrace();
         }
       }
+      Tools.dispose(items); Tools.dispose(backbone);
+
       return m;
     }
     return null;
@@ -229,7 +220,7 @@ public class PSMs
   }
   public static Multimap<SpectrumIdentifier, PeptideMatch> accumulate(
       Multimap<SpectrumIdentifier, PeptideMatch> As,
-      Multimap<SpectrumIdentifier, PeptideMatch> Bs, int tops, String variety, String score)
+      Multimap<SpectrumIdentifier, PeptideMatch> Bs, int tops, String variety, String score, String delta_score)
   {
     if (!Tools.isSet(Bs)) return As;
     if (As==null) As = HashMultimap.create();
@@ -238,19 +229,43 @@ public class PSMs
     // combine the PSMs
     PSMs.DesendCanonicalScorePeptideMatch sorter = new PSMs.DesendCanonicalScorePeptideMatch(score);
     List<PeptideMatch>                   matches = new ArrayList<>();
+    Map<String, PeptideMatch>          seq_match = new HashMap<>();
     for (SpectrumIdentifier id : Bs.keySet())
     {
       // System.out.println(" --> " + As.size() + " total PSMs from " + As.keySet().size() + "MS/MS");
-      // tag the PSM to the search condition
-      for (PeptideMatch m : Bs.get(id)) m.addScore(variety, 1);
+      // tag the PSM to the search condition and keeping a map to sort out the PSM by their distinct sequence
+      seq_match.clear();
+      for (PeptideMatch m : Bs.get(id))
+      {
+        m.addScore(variety, 1);
+        seq_match.put(PSMs.toNumModSequence(m), m);
+      }
       // pool the matches for the scan together
-      matches.clear(); matches.addAll(Bs.get(id));
-      if (As.containsKey(id)) matches.addAll(As.get(id));
+      matches.clear(); matches.addAll(seq_match.values());
+      if (As.containsKey(id))
+        for (PeptideMatch m : As.get(id))
+        {
+          // making sure this is a new or better hit
+          String modseq = PSMs.toNumModSequence(m);
+          if (!seq_match.containsKey(modseq) ||
+               seq_match.get(modseq).getScore(score)<m.getScore(score)) matches.add(m);
+        }
       // rank the matches by the canonical score in desending order
       Collections.sort(matches, sorter);
+      // re-assign the rank
+      // TODO need to update the delta score as well
+      for (int i=0; i< matches.size(); i++)
+      {
+        matches.get(i).setRank(i+1);
+        if (Strs.isSet(delta_score) && i<matches.size()-1)
+        {
+          matches.get(i).getScoreMap().remove(delta_score);
+          matches.get(i).addScore(delta_score, matches.get(i).getScore(score)-matches.get(i+1).getScore(score));
+        }
+      }
       // keep only the top few to preserve the memory footprint
       As.removeAll(id);
-      As.putAll(id, matches.subList(0, tops<=matches.size()?tops:matches.size()));
+      As.putAll(id, matches.subList(0, tops <= matches.size() ? tops : matches.size()));
     }
     System.out.println(" --> " + As.size() + " total PSMs from " + As.keySet().size() + " MS/MS");
 

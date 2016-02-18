@@ -26,6 +26,7 @@ public class Engine implements Comparable<Engine>
   private boolean mIsDesending = true;
   private String mName,            // the name
                  mCanonicalScore,  // the main score used to rank the entries from the same engine
+                 mDeltaScore=PSMs.SCR_DELTA,
                  mProb;            // A calibrated probability score for cross engine comparison
   private String[] mPercolators = null;
 
@@ -60,13 +61,15 @@ public class Engine implements Comparable<Engine>
   public Engine(String n, String c, String q) { mName=n; mCanonicalScore=c; mProb=q; }
   public Engine(String n, String c, String q, boolean desending) { mName=n; mCanonicalScore=c; mProb=q; mIsDesending=desending; }
 
+  public String getDeltaScore()     { return mDeltaScore; }
   public String getName()           { return mName; }
   public String getCanonicalScore() { return mCanonicalScore; }
   public String getProbScore()      { return mProb; }
   public boolean isDesending()      { return mIsDesending; }
-  public String[] getPercolators() { return mPercolators; }
+  public String[] getPercolators()  { return mPercolators; }
 
-  public Engine isDesending(boolean s) { mIsDesending=s; return this; }
+  public Engine setDeltaScore(    String s) { mDeltaScore=s; return this; }
+  public Engine isDesending(     boolean s) { mIsDesending=s; return this; }
   public Engine setPercolators(String... s) { mPercolators=s; return this; }
 
   @Override
@@ -80,7 +83,7 @@ public class Engine implements Comparable<Engine>
   }
   public Multimap<SpectrumIdentifier, PeptideMatch> readPSMs(String s) throws IOException
   {
-    if      (Strs.equals( MSGF.getName(), mName)) return PsmReaders.readMSGFplus(s, TabFile.tabb);
+    if      (Strs.equals( MSGF.getName(), mName)) return PsmReaders.readMSGFplus(s, '\t');
     else if (Strs.equals(OMSSA.getName(), mName)) return PsmReaders.readOMSSA(s);
 
     return null;

@@ -21,8 +21,8 @@ public class SearchOutputTest extends TestAbstract
     String root = "c:/local/data/TMT_MS3/";
     double[] scale = new double[] {0.95,0.8,0.64, 0.32,0.16,0.08,0.04,0.02,0.01,0.005,0.0025,0.00125,0.00075,0.00025};
     Multimap<SpectrumIdentifier, PeptideMatch>
-        ms2ce40 = PsmReaders.readMSGFplus(root+"TMT_MS3120_1800_40CE.ms2.tsv", TabFile.tabb),
-        ms3ce40 = PsmReaders.readMSGFplus(root+"TMT_MS3120_1800_40CE.ms3.tsv", TabFile.tabb);
+        ms2ce40 = PsmReaders.readMSGFplus(root+"TMT_MS3120_1800_40CE.ms2.tsv", '\t'),
+        ms3ce40 = PsmReaders.readMSGFplus(root+"TMT_MS3120_1800_40CE.ms3.tsv", '\t');
 //    Multimap<SpectrumIdentifier, PeptideMatch> psm = PsmReaders.readMSGFplus(root+"ms2_only/CATSIgGTMTMS3.tsv");
 
     Dataframe cuts = LCMSMS.cut(ms2ce40, "QValue", scale);

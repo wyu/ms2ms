@@ -472,7 +472,7 @@ public class PsmReaders
       Multimap<SpectrumIdentifier, PeptideMatch> matches = HashMultimap.create();
       for (String f : files)
       {
-        matches.putAll(readMSGFplus(f, TabFile.tabb));
+        matches.putAll(readMSGFplus(f, '\t'));
       }
       return matches;
     }
@@ -481,11 +481,11 @@ public class PsmReaders
 //  Scan Number     Title   Sequence        Modifications   Protein Accessions      Amanda Score    Weighted Probability    Rank    m/z     Charge  RT      Filename
 //  20130510_EXQ1_IgPa_QC_UPS1_01.34.34.4   mFVcSDTDYcRQQSEAKNQ     M1(Oxidation|15.994915|variable);C4(Carbamidomethyl|57.021464|fixed);C10(Carbamidomethyl|57.021464|fixed)       gi|253775272    3.42563717374274        0.454397865483082       1       596.5   4       11.2614798      20130510_EXQ1_IgPa_QC_UPS1_01.mgf
 // TODO to be completed
-  public static Multimap<SpectrumIdentifier, PeptideMatch> readAmanda(String filename) throws IOException
+  public static Multimap<SpectrumIdentifier, PeptideMatch> readAmanda(String filename, int lowest_rank) throws IOException
   {
     System.out.println("fetching the PSM from " + filename);
 
-    TabFile file = new TabFile(filename, TabFile.tabb);
+    TabFile file = new TabFile(filename, TabFile.tabb, 1); int counts=0;
     Table<String, String, SpectrumIdentifier> run_scan_id = HashBasedTable.create();
     Multimap<SpectrumIdentifier, PeptideMatch> id_match   = HashMultimap.create();
     while (file.hasNext())
@@ -506,21 +506,43 @@ public class PsmReaders
         run_scan_id.put(run, scan, id);
       }
       PeptideMatch match = new PeptideMatch(file.get("Sequence").toUpperCase());
+      // grab the rank up-front so we can skip the rest if needed
+      match.setRank(Stats.toInt(file.get("Rank")));
+      if (match.getRank()>lowest_rank) continue;
+
       // Sequence	Modifications
       // mFVcSDTDYcRQQSEAKNQ	M1(Oxidation|15.994915|variable);C4(Carbamidomethyl|57.021464|fixed);C10(Carbamidomethyl|57.021464|fixed)
       String[] mods = Strs.isSet(file.get("Modifications"))?Strs.split(file.get("Modifications"), ';'):null;
       if (Tools.isSet(mods))
         for (String mod : mods)
         {
-          int left=mod.indexOf('('), right=mod.indexOf(')', left), pos = Stats.toInt(mod.substring(1, left));
-          String r=mod.substring(0, 1);
-          String[] def=Strs.split(mod.substring(left + 1, right), '|');
-          // TODO not optimal for terminal cases
-          match.addModificationMatch(pos-1, Stats.toDouble(def[1]));
+          int      left=mod.indexOf('('), right=mod.indexOf(')', left); Integer pos=-1;
+          String      r=mod.substring(0, 1), tag=mod.substring(0, left);
+          try
+          {
+            String[]  def=Strs.split(mod.substring(left + 1, right), '|');
+            double increM=Stats.toDouble(def[1]);
+
+            // TODO not optimal for terminal cases
+            if      (Strs.equals(tag,"N-Term")) match.addModificationMatch(ModAttachment.N_TERM, increM);
+            else if (Strs.equals(tag,"C-Term")) match.addModificationMatch(ModAttachment.C_TERM, increM);
+            else
+            {
+              pos = Stats.toInt(tag.substring(1));
+              //if (pos==null) pos = Stats.toInt(tag);
+              if (pos==null)
+                System.out.println();
+              else
+                match.addModificationMatch(pos-1, increM);
+            }
+          }
+          catch (Exception e)
+          {
+            e.printStackTrace();
+          }
         }
 
-      // parse the protein names
-      // gi|253775272
+      // parse the protein names: gi|253775272
       String[] accs = Strs.split(file.get("Protein Accessions"), ';');
       if (Tools.isSet(accs))
         for (String acc : accs)
@@ -541,7 +563,6 @@ public class PsmReaders
 
       match.setNeutralPeptideMass(match.toPeptide(PSMs.sNumModResolver).getMolecularMass());
       match.setMassDiff(id.getPrecursorNeutralMass().get() - match.getNeutralPeptideMass());
-      match.setRank(Stats.toInt(file.get("Rank")));
 
       PSMs.addScore(match, "AmandaScore", file.getDouble("Amanda Score"));
       PSMs.addScore(match, "WeightedProbability", file.getDouble("Weighted Probability"));
@@ -553,15 +574,15 @@ public class PsmReaders
       {
 //        System.out.println("Duplicated?");
       }
+      if (++counts%50000==0) System.out.print(".");
     }
-    //LCMSMS.rank(id_match, "MSGFScore");
 
     return id_match;
   }
 
   //  #SpecFile       SpecID  ScanNum FragMethod      Precursor       IsotopeError    PrecursorError(ppm)     Charge  Peptide Protein DeNovoScore     MSGFScore       SpecEValue      EValue  QValue  PepQValue
   //  20130510_EXQ1_IgPa_QC_UPS1_01.mzML      controllerType=0 controllerNumber=1 scan=61474  61474   HCD     1101.2928       0       10.197636       4       QVDPAALTVHYVTALGTDSFSQQMLDAWHGENVDTSLTQR        gi|253771643|ref|YP_003034474.1|(pre=R,post=M)  355     335     1.5431253692232283E-44  4.0382819349887276E-38  0.0     0.0
-  public static Multimap<SpectrumIdentifier, PeptideMatch> readMSGFplus(String filename, String delimiter) throws IOException
+  public static Multimap<SpectrumIdentifier, PeptideMatch> readMSGFplus(String filename, char delimiter) throws IOException
   {
     System.out.println("fetching the PSM from " + filename);
 
@@ -598,12 +619,17 @@ public class PsmReaders
             match.addProteinMatch(new PeptideProteinMatch(acs.length>1?acs[1]:"unknown",
                 Optional.of(acs[0]), Optional.of(acc.substring(pre,pre+1)), Optional.of(acc.substring(post,post+1)),
                 decoy? PeptideProteinMatch.HitType.DECOY:PeptideProteinMatch.HitType.TARGET));
+            // try to min the storage cost, WYU 20160216
+            if (match.getProteinMatches() instanceof ArrayList)
+              ((ArrayList )match.getProteinMatches()).trimToSize();
           }
           catch (ArrayIndexOutOfBoundsException e)
           {
             System.out.println(e.toString());
           }
+          acs=null;
         }
+      accs=null;
 
 //      String[] matched = Strs.split(file.get("Ions Matched"), '/');
       if (file.getDouble("PrecursorError(ppm)")!=null)
@@ -612,25 +638,29 @@ public class PsmReaders
 
       PSMs.addScore(match, "DeNovoScore",  file.getDouble("DeNovoScore"));
       PSMs.addScore(match, "IsotopeError", file.getInt("IsotopeError"));
-      PSMs.addScore(match, "MSGFScore", file.getDouble("MSGFScore"));
+      PSMs.addScore(match, "MSGFScore",    file.getDouble("MSGFScore"));
       PSMs.addScore(match, "SpecEValue",   file.getDouble("SpecEValue"));
-      PSMs.addScore(match, "EValue", file.getDouble("EValue"));
-      PSMs.addScore(match, "QValue", file.getDouble("QValue"));
-      PSMs.addScore(match, "PepQValue", file.getDouble("PepQValue"));
+      PSMs.addScore(match, "EValue",       file.getDouble("EValue"));
+      PSMs.addScore(match, "QValue",       file.getDouble("QValue"));
+      PSMs.addScore(match, "PepQValue",    file.getDouble("PepQValue"));
 
       // add as much information to the match as possible
       match.setNeutralPeptideMass(id.getPrecursorNeutralMass().get() + match.getMassDiff());
-      PSMs.addScore(match, "^Charge", file.getInt("Charge"));
+      PSMs.addScore(match, "^Charge",      file.getInt("Charge"));
 
       if (!id_match.put(id, match))
       {
 //        System.out.println("Duplicated?");
       }
+      run=null;
+
       if (++counts%5000==0) System.out.print(".");
     }
     System.out.println();
+    // make sure we clear the temp objects
+    file.close(); file=null; Tools.dispose(run_scan_id);
 
-    LCMSMS.rank(id_match, "MSGFScore", true);
+    LCMSMS.rank(id_match, "MSGFScore", true, false);
 
     return id_match;
   }
@@ -699,7 +729,7 @@ public class PsmReaders
 //        System.out.println("Duplicated?");
       }
     }
-    LCMSMS.rank(id_match, "MSGFScore", true);
+    LCMSMS.rank(id_match, "MSGFScore", true, false);
 
     return id_match;
   }
@@ -772,7 +802,7 @@ public class PsmReaders
 //        System.out.println("Duplicated?");
       }
     }
-    LCMSMS.rank(id_match, "MSGFScore", true);
+    LCMSMS.rank(id_match, "MSGFScore", true, false);
 
     return id_match;
   }
@@ -847,7 +877,7 @@ public class PsmReaders
 //        System.out.println("Duplicated?");
       }
     }
-    LCMSMS.rank(id_match, "MSGFScore", true);
+    LCMSMS.rank(id_match, "MSGFScore", true, false);
 
     return id_match;
   }
@@ -931,7 +961,7 @@ public class PsmReaders
 //        System.out.println("Duplicated?");
       }
     }
-    LCMSMS.rank(id_match, "OMSSA:EVal", false);
+    LCMSMS.rank(id_match, "OMSSA:EVal", false, false);
 
     return id_match;
   }
@@ -1125,7 +1155,7 @@ public class PsmReaders
 //        System.out.println("Duplicated?");
       }
     }
-    LCMSMS.rank(id_match, "xcorr score", true);
+    LCMSMS.rank(id_match, "xcorr score", true, false);
 
     return id_match;
   }
