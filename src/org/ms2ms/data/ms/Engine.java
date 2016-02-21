@@ -8,13 +8,11 @@ import org.ms2ms.algo.PSMs;
 import org.ms2ms.io.PsmReaders;
 import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Strs;
-import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 /** Information about the search engine
@@ -31,19 +29,21 @@ public class Engine implements Comparable<Engine>
   private String[] mPercolators = null;
 
   public static final Engine AMANDA    = new Engine("MS Amanda", "AmandaScore").setPercolators(
-      "SpecId", "Label", "ScanNr", "Charge1", "Charge2", "Charge3", "Charge4", "Mass", "PepLen", "enzC", "dM", "absdM",
+      "SpecId", "Label","ScanNr","ExpMass","CalcMass","Charge1", "Charge2", "Charge3", "Charge4", "Mass", "PepLen", "enzC", "dM", "absdM",
       "AmandaScore","WeightedProbability","yb", "Peptide", "Proteins");
   public static final Engine ANDROMEDA = new Engine("Maxquant-Andromeda", "Score");
   public static final Engine BYONIC    = new Engine("Byonic", "");
   public static final Engine CRUX      = new Engine("Crux-Tide", "xcorr score").setPercolators(
-      "SpecId", "Label", "ScanNr", "Charge1", "Charge2", "Charge3", "Charge4", "Mass", "PepLen", "enzN", "enzC", "dM", "absdM",
+      "SpecId", "Label", "ScanNr","ExpMass","CalcMass", "Charge1", "Charge2", "Charge3", "Charge4", "Mass", "PepLen", "enzN", "enzC", "dM", "absdM",
       PSMs.SCR_DELTA,"sp_score","xcorr_score","IonFrac","lnrSp", "yb", "Peptide", "Proteins");
   public static final Engine MASCOT    = new Engine("Mascot", "IonScore");
   public static final Engine MSGF      = new Engine("MSGF+", "MSGFScore", "QValue").setPercolators(
-    "SpecId","Label","ScanNr","Charge1","Charge2","Charge3","Charge4","Mass","PepLen","enzN","enzC","dM","absdM",
+    "SpecId","Label","ScanNr","ExpMass","CalcMass","Charge1","Charge2","Charge3","Charge4","Mass","PepLen","enzN","enzC","dM","absdM",
     "DeNovoScore","IsotopeError","MSGFScore","SpecEValue","EValue","QValue","PepQValue", "yb","Peptide","Proteins");
-  public static final Engine MYRIMATCH = new Engine("MyriMatch", "", "").setPercolators();
-  public static final Engine OMSSA     = new Engine("OMSSA", "X\\!Tandem:hyperscore", "X\\!Tandem:expect").setPercolators();
+  public static final Engine MYRIMATCH = new Engine("MyriMatch", "MyriMatch:MVH").setPercolators(
+      "SpecId","Label","ScanNr","ExpMass","CalcMass","Charge1","Charge2","Charge3","Charge4","Mass","PepLen","enzN","enzC","dM","absdM",
+      "xcorr","MyriMatch:mzFidelity","MyriMatch:MVH", "yb","Peptide","Proteins");
+  public static final Engine OMSSA     = new Engine("OMSSA", "dbEVal");
   public static final Engine PEAKS     = new Engine("PEAKS", "PeakScore");
   public static final Engine PPILOT    = new Engine("ProteinPilot", "Sc", "Conf");
   public static final Engine SEQUEST   = new Engine("Sequest", "XCorr");
@@ -81,10 +81,13 @@ public class Engine implements Comparable<Engine>
       Stats.compareTo(B.get(getCanonicalScore()), A.get(getCanonicalScore())):
       Stats.compareTo(A.get(getCanonicalScore()), B.get(getCanonicalScore())));
   }
-  public Multimap<SpectrumIdentifier, PeptideMatch> readPSMs(String s) throws IOException
+  public Multimap<SpectrumIdentifier, PeptideMatch> readPSMs(String s, int lowest_rank) throws IOException
   {
-    if      (Strs.equals( MSGF.getName(), mName)) return PsmReaders.readMSGFplus(s, '\t');
-    else if (Strs.equals(OMSSA.getName(), mName)) return PsmReaders.readOMSSA(s);
+    if      (Strs.equals(     MSGF.getName(), mName)) return PsmReaders.readMSGFplus(s, '\t', lowest_rank);
+    else if (Strs.equals(    OMSSA.getName(), mName)) return PsmReaders.readOMSSA(s);
+    else if (Strs.equals(     CRUX.getName(), mName)) return PsmReaders.readCrux(s);
+    else if (Strs.equals(MYRIMATCH.getName(), mName)) return PsmReaders.readMyriMatch(s, lowest_rank);
+    else if (Strs.equals(  XTANDEM.getName(), mName)) return PsmReaders.readXTandem(s, lowest_rank);
 
     return null;
   }
