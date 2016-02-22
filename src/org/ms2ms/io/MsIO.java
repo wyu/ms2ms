@@ -611,7 +611,7 @@ public class MsIO extends IOs
 
     return null;
   }
-  public static Dataframe writeScanPeptideMatches(
+  public static Dataframe writeScanPeptideMatchesForRun(
        RandomAccessFile w, Multimap<SpectrumIdentifier, PeptideMatch> scan_matches) throws IOException
   {
     // create the binary dump and index
@@ -621,6 +621,8 @@ public class MsIO extends IOs
     for (SpectrumIdentifier id : scan_matches.keySet())
       scan_id.put(id.getScanNumbers().getFirst().getValue(), id);
 
+    // write the number of spectrum ID first
+    write(w, scan_matches.keySet().size());
     // write the scans sequentially
     for (Integer scan : scan_id.keySet())
     {
@@ -641,11 +643,33 @@ public class MsIO extends IOs
     }
     return index;
   }
+  public static long writeScanPeptideMatches(
+      RandomAccessFile w, Multimap<SpectrumIdentifier, PeptideMatch> scan_matches) throws IOException
+  {
+    // write the number of spectrum ID first
+    write(w, scan_matches.keySet().size());
+
+    long counts=0;
+    // write the scans sequentially
+    for (SpectrumIdentifier id : scan_matches.keySet())
+    {
+      // dump the contents to the binary file
+      write(w, id.getScanNumbers().getFirst().getValue());
+      write(w, scan_matches.get(id).size());
+      write(w, id);
+      for (PeptideMatch m : scan_matches.get(id)) { counts++; MsIO.write(w, m); }
+    }
+    return counts;
+  }
   public static Multimap<SpectrumIdentifier, PeptideMatch> loadScanPeptideMatches(String filename)
   {
+    System.out.print("Loading the matches from " + filename);
     try (RandomAccessFile w = new RandomAccessFile(filename, "r"))
     {
-      return MsIO.readScanPeptideMatches(w, Integer.MAX_VALUE);
+      Multimap<SpectrumIdentifier, PeptideMatch> matches = MsIO.readScanPeptideMatches(w, Integer.MAX_VALUE);
+      System.out.print(" --> " + matches.keySet().size() + "/" + matches.size() + "\n");
+
+      return matches;
     }
     catch (Exception e)
     {
@@ -659,7 +683,9 @@ public class MsIO extends IOs
     // fetch as many batches as asked till the end of the file
     try
     {
-      for (int i=0; i<n; i++)
+      int spectra=0;
+      spectra = read(w, spectra);
+      for (int i=0; i<spectra; i++)
       {
         // dump the contents to the binary file
         Integer scan = read(w, 0), nmatches = read(w, 0);

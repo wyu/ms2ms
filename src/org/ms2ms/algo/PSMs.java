@@ -49,6 +49,10 @@ public class PSMs
     }
   }
 
+  public static Dataframe alignment(Dataframe consensus, Engine engine, Multimap<SpectrumIdentifier, PeptideMatch> matches)
+  {
+    return alignment(consensus, engine, engine.getName(), matches);
+  }
   // going thro the outputs from each engine and produce the alignment by run-scan-backbone
   public static Dataframe alignment(Dataframe consensus, Engine engine, String name, Multimap<SpectrumIdentifier, PeptideMatch> matches)
   {
@@ -61,14 +65,25 @@ public class PSMs
       String run = Strs.split(id.getSpectrum(), '#')[0];
       for (PeptideMatch m : matches.get(id))
       {
-        String row = id.getName().get()+"^"+m.toSymbolString();
+        String row = id.getSpectrum()+"^"+m.toSymbolString();
         // deposit some of the property cols
         consensus.put(row, "Run",     run);
         consensus.put(row, "Scan",    id.getScanNumbers().getFirst().getValue());
+        consensus.put(row, "m/z",     id.getPrecursorMz());
+        consensus.put(row, "z",       id.getAssumedCharge().isPresent()?id.getAssumedCharge():0);
         consensus.put(row, "Sequence", m.toSymbolString());
+
+        Integer n = consensus.cell(row, "Mods")!=null && consensus.cell(row, "Mods") instanceof Integer ? (Integer )consensus.cell(row, "Mods") : null;
+        if (m.getModificationCount()>0 && (n==null || n<m.getModificationCount()))
+        {
+          consensus.put("ModN", m.getModificationCount());
+          consensus.put("Peptide", PSMs.toNumModSequence(m));
+        }
+
         consensus.put(row, name,       m.getScore(engine.getCanonicalScore()));
       }
     }
+    System.out.println("Accumulation --> " + consensus.size());
 
     return consensus;
   }

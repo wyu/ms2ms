@@ -758,7 +758,7 @@ public class PsmReaders
 
   public static Multimap<SpectrumIdentifier, PeptideMatch> readPSMS(String filename, double qval) throws IOException
   {
-    System.out.println("fetching the PSM from " + filename);
+    System.out.print("Loading the PSM from " + filename);
 
     TabFile file = new TabFile(filename, '\t'); int counts=0;
     Table<String, String, SpectrumIdentifier> run_scan_id = HashBasedTable.create();
@@ -801,9 +801,9 @@ public class PsmReaders
 
       id_match.put(id, match);
 
-      if (++counts%5000==0) System.out.print(".");
+//      if (++counts%5000==0) System.out.print(".");
     }
-    System.out.println();
+    System.out.println(" --> " + id_match.keySet().size()+"/"+id_match.size());
     // make sure we clear the temp objects
     file.close(); file=null; Tools.dispose(run_scan_id);
 

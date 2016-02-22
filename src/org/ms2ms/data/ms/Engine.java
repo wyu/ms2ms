@@ -32,11 +32,12 @@ public class Engine implements Comparable<Engine>
       "SpecId", "Label","ScanNr","ExpMass","CalcMass","Charge1", "Charge2", "Charge3", "Charge4", "Mass", "PepLen", "enzC", "dM", "absdM",
       "AmandaScore","WeightedProbability","yb", "Peptide", "Proteins");
   public static final Engine ANDROMEDA = new Engine("Maxquant-Andromeda", "Score");
-  public static final Engine BYONIC    = new Engine("Byonic", "");
+  public static final Engine BYONIC    = new Engine("Byonic", "Score");
   public static final Engine CRUX      = new Engine("Crux-Tide", "xcorr_score").setPercolators(
       "SpecId", "Label", "ScanNr","ExpMass","CalcMass", "Charge1", "Charge2", "Charge3", "Charge4", "Mass", "PepLen", "enzN", "enzC", "dM", "absdM",
       PSMs.SCR_DELTA,"sp_score","xcorr_score","delta_cn","IonFrac","lnrSp", "yb", "Peptide", "Proteins");
   public static final Engine MASCOT    = new Engine("Mascot", "IonScore");
+  public static final Engine MAXQUANT    = new Engine("MaxQuant", "MQ:Score");
   public static final Engine MSGF      = new Engine("MSGF+", "MSGFScore", "QValue").setPercolators(
     "SpecId","Label","ScanNr","ExpMass","CalcMass","Charge1","Charge2","Charge3","Charge4","Mass","PepLen","enzN","enzC","dM","absdM",
     "DeNovoScore","IsotopeError","MSGFScore","SpecEValue","EValue","QValue","PepQValue", "yb","Peptide","Proteins");
@@ -119,6 +120,18 @@ public class Engine implements Comparable<Engine>
       Tools.add(engines, valueOf(name));
 
     return engines.toArray(new Engine[] {});
+  }
+
+  public static Engine[] values()
+  {
+    return new Engine[] {AMANDA,ANDROMEDA,BYONIC,CRUX,MASCOT,MAXQUANT,MSGF,MYRIMATCH,OMSSA,PEAKS,PERCOLATOR,PPILOT,SEQUEST,XTANDEM};
+  }
+  public static String[] names()
+  {
+    String[] names = new String[values().length];
+    for (int i=0; i< values().length; i++) names[i]=values()[i].getName();
+
+    return names;
   }
 
   @Override
