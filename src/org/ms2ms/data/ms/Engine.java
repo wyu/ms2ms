@@ -22,10 +22,10 @@ import java.util.List;
 public class Engine implements Comparable<Engine>
 {
   private boolean mIsDesending = true;
-  private String mName,            // the name
-                 mCanonicalScore,  // the main score used to rank the entries from the same engine
+  private String mName=null,            // the name
+                 mCanonicalScore=null,  // the main score used to rank the entries from the same engine
                  mDeltaScore=PSMs.SCR_DELTA,
-                 mProb;            // A calibrated probability score for cross engine comparison
+                 mProb=null;            // A calibrated probability score for cross engine comparison
   private String[] mPercolators = null;
 
   public static final Engine AMANDA    = new Engine("MS Amanda", "AmandaScore").setPercolators(
@@ -33,9 +33,9 @@ public class Engine implements Comparable<Engine>
       "AmandaScore","WeightedProbability","yb", "Peptide", "Proteins");
   public static final Engine ANDROMEDA = new Engine("Maxquant-Andromeda", "Score");
   public static final Engine BYONIC    = new Engine("Byonic", "");
-  public static final Engine CRUX      = new Engine("Crux-Tide", "xcorr score").setPercolators(
+  public static final Engine CRUX      = new Engine("Crux-Tide", "xcorr_score").setPercolators(
       "SpecId", "Label", "ScanNr","ExpMass","CalcMass", "Charge1", "Charge2", "Charge3", "Charge4", "Mass", "PepLen", "enzN", "enzC", "dM", "absdM",
-      PSMs.SCR_DELTA,"sp_score","xcorr_score","IonFrac","lnrSp", "yb", "Peptide", "Proteins");
+      PSMs.SCR_DELTA,"sp_score","xcorr_score","delta_cn","IonFrac","lnrSp", "yb", "Peptide", "Proteins");
   public static final Engine MASCOT    = new Engine("Mascot", "IonScore");
   public static final Engine MSGF      = new Engine("MSGF+", "MSGFScore", "QValue").setPercolators(
     "SpecId","Label","ScanNr","ExpMass","CalcMass","Charge1","Charge2","Charge3","Charge4","Mass","PepLen","enzN","enzC","dM","absdM",
@@ -45,9 +45,12 @@ public class Engine implements Comparable<Engine>
       "xcorr","MyriMatch:mzFidelity","MyriMatch:MVH", "yb","Peptide","Proteins");
   public static final Engine OMSSA     = new Engine("OMSSA", "dbEVal");
   public static final Engine PEAKS     = new Engine("PEAKS", "PeakScore");
+  public static final Engine PERCOLATOR= new Engine("Percolator", "qVal", "PEP");
   public static final Engine PPILOT    = new Engine("ProteinPilot", "Sc", "Conf");
   public static final Engine SEQUEST   = new Engine("Sequest", "XCorr");
-  public static final Engine XTANDEM   = new Engine("X!Tandem", "X\\!Tandem:hyperscore", "X\\!Tandem:expect");
+  public static final Engine XTANDEM   = new Engine("X!Tandem", "X\\!Tandem:hyperscore").setPercolators(
+      "SpecId","Label","ScanNr","ExpMass","CalcMass","Charge1","Charge2","Charge3","Charge4","Mass","PepLen","enzN","enzC","dM","absdM",
+      "X\\!Tandem:hyperscore", "X\\!Tandem:expect", "yb","Peptide","Proteins");
 
   // round out the parameters for the known engines
   static
@@ -85,7 +88,7 @@ public class Engine implements Comparable<Engine>
   {
     if      (Strs.equals(     MSGF.getName(), mName)) return PsmReaders.readMSGFplus(s, '\t', lowest_rank);
     else if (Strs.equals(    OMSSA.getName(), mName)) return PsmReaders.readOMSSA(s);
-    else if (Strs.equals(     CRUX.getName(), mName)) return PsmReaders.readCrux(s);
+    else if (Strs.equals(     CRUX.getName(), mName)) return PsmReaders.readCrux(s, lowest_rank);
     else if (Strs.equals(MYRIMATCH.getName(), mName)) return PsmReaders.readMyriMatch(s, lowest_rank);
     else if (Strs.equals(  XTANDEM.getName(), mName)) return PsmReaders.readXTandem(s, lowest_rank);
 

@@ -126,7 +126,7 @@ public class PsmReaders
   {
     System.out.println("fetching the PSM from " + filename);
 
-    TabFile file = new TabFile(filename, TabFile.comma);
+    TabFile file = new TabFile(filename, '\t');
     Table<String, String, SpectrumIdentifier> run_scan_id = HashBasedTable.create();
     Multimap<SpectrumIdentifier, PeptideMatch> id_match   = HashMultimap.create();
     while (file.hasNext())
@@ -166,7 +166,7 @@ public class PsmReaders
           Optional.of(file.get("Protein Descriptions")), Optional.of("-"), Optional.of("-"), PeptideProteinMatch.HitType.TARGET));
 
       String[] matched = Strs.split(file.get("Ions Matched"), '/');
-      match.setMassDiff(file.getDouble("?M [ppm]")*id.getPrecursorMz().get()*id.getAssumedCharge().get()*1E-6);
+      match.setMassDiff(file.getDouble("Delta Mass [PPM]")*id.getPrecursorMz().get()*id.getAssumedCharge().get()*1E-6);
       match.setNumMatchedIons(new Integer(matched[0]));
       match.setTotalNumIons(new Integer(matched[1]));
       match.setNumMissedCleavages(file.getInt("# Missed Cleavages"));
@@ -182,10 +182,6 @@ public class PsmReaders
       }
       // skip the row if quant cols are specified and "Quan Usage" is not "Used"
       if (!Tools.isSet(quant_cols) || Strs.equals("Used", file.get("Quan Usage"))) id_match.put(id, match);
-//      if (!id_match.put(id, match))
-//      {
-////        System.out.println("Duplicated?");
-//      }
     }
 
     return id_match;
@@ -251,29 +247,29 @@ public class PsmReaders
   }
 //  Peptide	-10lgP	Mass	Length	ppm	m/z	RT	Area	Scan	Accession	PTM	AScore
 //  S(+229.16)LGPNSC(+57.02)SAN(+.98)GPGLYLIHGPNLYC(+57.02)YSDVEK(+229.16)	149	3740.822	30	2.2	1247.9507	56.24	7.71E+07	16073	gi|11321561:gi|530395269	TMT6plex; Carbamidomethylation; Deamidation (NQ)	S1:TMT6plex:1000.00;C7:Carbamidomethylation:1000.00;N10:Deamidation (NQ):76.17;C24:Carbamidomethylation:1000.00;K30:TMT6plex:1000.00
-  public static Multimap<SpectrumIdentifier, PeptideMatch> readPEAKS(String filename) throws IOException
+  public static Multimap<SpectrumIdentifier, PeptideMatch> readPEAKS(String filename, Map<String, String> frac_run) throws IOException
   {
     System.out.println("fetching the PSM from " + filename);
 
     TabFile file = new TabFile(filename, TabFile.comma);
-    String   run = FilenameUtils.getBaseName(filename);
     Table<String, String, SpectrumIdentifier> run_scan_id = HashBasedTable.create();
     Multimap<SpectrumIdentifier, PeptideMatch> id_match   = HashMultimap.create();
     while (file.hasNext())
     {
-      String           scan = file.get("Scan");
-      SpectrumIdentifier id = run_scan_id.get(run, scan);
+      String[]        scans = Strs.split(file.get("Scan"), ':');
+      String            run = frac_run!=null?frac_run.get(scans[0]):FilenameUtils.getBaseName(filename);
+      SpectrumIdentifier id = run_scan_id.get(run, scans[1]);
       if (id==null)
       {
-        id = new SpectrumIdentifier(run+"#"+scan);
-        id.setName(run + "#" + scan);
+        id = new SpectrumIdentifier(run+"#"+scans[1]);
+        id.setName(run + "#" + scans[1]);
         id.setAssumedCharge(Math.round(file.getFloat("Mass") / file.getFloat("m/z")));
         id.setPrecursorMz(file.getDouble("m/z"));
         if (file.getDouble("Area")!=null) id.setPrecursorIntensity(file.getDouble("Area"));
         id.setSpectrumFile(run);
         id.addRetentionTime(file.getDouble("RT"), TimeUnit.MINUTE);
-        id.addScanNumber(new Integer(scan));
-        run_scan_id.put(run, scan, id);
+        id.addScanNumber(new Integer(scans[1]));
+        run_scan_id.put(run, scans[1], id);
       }
       // Peptide: S(+229.16)LGPNSC(+57.02)SAN(+.98)GPGLYLIHGPNLYC(+57.02)YSDVEK(+229.16)
       //     PTM: TMT6plex; Carbamidomethylation; Deamidation (NQ)
@@ -605,6 +601,78 @@ public class PsmReaders
 
     return id_match;
   }
+  //  Peptide	Mods	mz	z	ppm	Cleavage	Score	Delta	Delta.Mod	Prob.	Protein	GI	MSMS	Scan	RT
+  //  R.[+144.102]IFTVDN[+0.984]NLLPVGK[+144.102].T	.[144], K[+144], N[+1]	573.6687	3	-0.9	Specific	46.37	46.37	0	2.99	>gi|126518317|ref|NP_033908.2|C3$ complement C3 precursor [Mus musculus]	76476	Mouse_Plasma_LIRKO2_01_27Aug12_Lynx_12-06-05.9477.9477.3	9477	51.185
+  public static Multimap<SpectrumIdentifier, PeptideMatch> readByonic(String filename, int lowest_rank) throws IOException
+  {
+    System.out.println("fetching the PSM from " + filename);
+
+    TabFile file = new TabFile(filename, '\t'); int counts=0;
+    Table<String, String, SpectrumIdentifier> run_scan_id = HashBasedTable.create();
+    Multimap<SpectrumIdentifier, PeptideMatch> id_match   = HashMultimap.create();
+    while (file.hasNext())
+    {
+      String[] msms = Strs.split(file.get("MSMS"), '.');
+      String run = msms[0], scan = file.get("Scan");
+      SpectrumIdentifier id = run_scan_id.get(run, scan);
+      if (id==null)
+      {
+        id = new SpectrumIdentifier(run+"#"+scan);
+        id.setName(run + "#" + scan);
+        id.setAssumedCharge(file.getInt("z"));
+        id.setPrecursorMz(file.getDouble("mz"));
+        id.setPrecursorNeutralMass((id.getPrecursorMz().get() - 1.007825035d) * id.getAssumedCharge().get());
+        id.setSpectrumFile(run);
+        id.addScanNumber(new Integer(scan));
+        run_scan_id.put(run, scan, id);
+      }
+      String peptide = file.get("Peptide");
+      int left = peptide.indexOf('.'), right = peptide.lastIndexOf('.');
+      PeptideMatch match = PSMs.fromNumModSequence(peptide.substring(left+1,right));
+      // parse the protein names
+      // >gi|126518317|ref|NP_033908.2|C3$ complement C3 precursor [Mus musculus]
+      String[] accs = Strs.split(file.get("Protein").substring(1), ';');
+      if (Tools.isSet(accs))
+        for (String acc : accs)
+        {
+          String[]  acs = Strs.split(acc, '|');
+          try
+          {
+            match.addProteinMatch(new PeptideProteinMatch(acs.length>1?acs[1]:"unknown",
+                Optional.of(acs[0]), Optional.of(peptide.substring(0,left)), Optional.of(peptide.substring(right+1, peptide.length())),
+                PeptideProteinMatch.HitType.TARGET));
+            // try to min the storage cost, WYU 20160216
+            if (match.getProteinMatches() instanceof ArrayList)
+              ((ArrayList )match.getProteinMatches()).trimToSize();
+          }
+          catch (ArrayIndexOutOfBoundsException e)
+          {
+            System.out.println(e.toString());
+          }
+        }
+
+      if (file.getDouble("ppm")!=null)
+        match.setMassDiff(file.getDouble("ppm") * id.getPrecursorMz().get() * id.getAssumedCharge().get() * 1E-6);
+
+      PSMs.addScore(match, "Score",    file.getDouble("Score"));
+      PSMs.addScore(match, "Delta",    file.getDouble("Delta"));
+      PSMs.addScore(match, "DeltaMod", file.getDouble("Delta.Mod"));
+      PSMs.addScore(match, "Prob",     file.getDouble("Prob."));
+
+      // add as much information to the match as possible
+      match.setNeutralPeptideMass(id.getPrecursorNeutralMass().get() + match.getMassDiff());
+      PSMs.addScore(match, "^Charge",      file.getInt("z"));
+
+      id_match.put(id, match);
+
+      if (++counts%5000==0) System.out.print(".");
+    }
+    System.out.println();
+    // make sure we clear the temp objects
+    file.close(); file=null; Tools.dispose(run_scan_id);
+
+    return PSMs.trimByRank(LCMSMS.rank(id_match, "Score", true, false), lowest_rank);
+  }
 
   //  #SpecFile       SpecID  ScanNum FragMethod      Precursor       IsotopeError    PrecursorError(ppm)     Charge  Peptide Protein DeNovoScore     MSGFScore       SpecEValue      EValue  QValue  PepQValue
   //  20130510_EXQ1_IgPa_QC_UPS1_01.mzML      controllerType=0 controllerNumber=1 scan=61474  61474   HCD     1101.2928       0       10.197636       4       QVDPAALTVHYVTALGTDSFSQQMLDAWHGENVDTSLTQR        gi|253771643|ref|YP_003034474.1|(pre=R,post=M)  355     335     1.5431253692232283E-44  4.0382819349887276E-38  0.0     0.0
@@ -682,15 +750,62 @@ public class PsmReaders
     // make sure we clear the temp objects
     file.close(); file=null; Tools.dispose(run_scan_id);
 
-    LCMSMS.rank(id_match, "MSGFScore", true, false);
+    return PSMs.trimByRank(LCMSMS.rank(id_match, "MSGFScore", true, false), lowest_rank);
+  }
+  // read the output of Percolator *.psms file
+  // PSMId   score   q-value posterior_error_prob    peptide proteinIds
+  // x-Mouse_Plasma_LIRKO2_13_27Aug12_Lynx_12-06-05-12243    0.98606 0       5.0324e-09      K.VADALANAAGHLDDLPGALSALSDLHAHK.L       145301549
 
-    if (lowest_rank>0)
-      for (SpectrumIdentifier id : id_match.keySet())
+  public static Multimap<SpectrumIdentifier, PeptideMatch> readPSMS(String filename, double qval) throws IOException
+  {
+    System.out.println("fetching the PSM from " + filename);
+
+    TabFile file = new TabFile(filename, '\t'); int counts=0;
+    Table<String, String, SpectrumIdentifier> run_scan_id = HashBasedTable.create();
+    Multimap<SpectrumIdentifier, PeptideMatch> id_match   = HashMultimap.create();
+    while (file.hasNext())
+    {
+      // only keep the entries at or below the q-value threshold
+      if (file.getDouble("q-value")>qval) continue;
+
+      int pos = file.get("PSMId").lastIndexOf('-');
+      String run = file.get("PSMId").substring(2, pos), scan = file.get("PSMId").substring(pos+1);
+      SpectrumIdentifier id = run_scan_id.get(run, scan);
+      if (id==null)
       {
-        Iterator<PeptideMatch> itr = id_match.get(id).iterator();
-        while (itr.hasNext())
-          if (itr.next().getRank()>lowest_rank) itr.remove();
+        id = new SpectrumIdentifier(run+"#"+scan);
+        id.setName(run + "#" + scan);
+        id.setSpectrumFile(run);
+        id.addScanNumber(new Integer(scan));
+        run_scan_id.put(run, scan, id);
       }
+      String[] sequences = Strs.split(file.get("peptide"),'.');
+      PeptideMatch match = new PeptideMatch(sequences[1]);
+
+      try
+      {
+        match.addProteinMatch(new PeptideProteinMatch(file.get("proteinIds"),
+            Optional.of("proteinIds"), Optional.of(sequences[0]), Optional.of(sequences[2]),
+            PeptideProteinMatch.HitType.TARGET));
+        // try to min the storage cost, WYU 20160216
+        if (match.getProteinMatches() instanceof ArrayList)
+          ((ArrayList )match.getProteinMatches()).trimToSize();
+      }
+      catch (ArrayIndexOutOfBoundsException e)
+      {
+        System.out.println(e.toString());
+      }
+      PSMs.addScore(match, "Score",  file.getDouble("score"));
+      PSMs.addScore(match, "qVal", file.getDouble("q-value"));
+      PSMs.addScore(match, "PEP",    file.getDouble("posterior_error_prob"));
+
+      id_match.put(id, match);
+
+      if (++counts%5000==0) System.out.print(".");
+    }
+    System.out.println();
+    // make sure we clear the temp objects
+    file.close(); file=null; Tools.dispose(run_scan_id);
 
     return id_match;
   }
@@ -709,8 +824,8 @@ public class PsmReaders
     while (file.hasNext())
     {
       // controllerType=0 controllerNumber=1 scan=3
-      String run = new File(file.get("Raw data location")).getName(),
-            scan = Tools.back(Strs.split(file.get("Spectrum ID"),'=',true));
+      String run = Strs.stripLastOf(new File(file.get("Raw data location")).getName(), '.'),
+            scan = Tools.back(Strs.split(file.get("Spectrum ID"), '=', true));
       SpectrumIdentifier id = run_scan_id.get(run, scan);
       if (id==null)
       {
@@ -783,17 +898,7 @@ public class PsmReaders
     // make sure we clear the temp objects
     file.close(); Tools.dispose(run_scan_id);
 
-    LCMSMS.rank(id_match, Engine.MYRIMATCH.getCanonicalScore(), true, false);
-
-    if (lowest_rank>0)
-      for (SpectrumIdentifier id : id_match.keySet())
-      {
-        Iterator<PeptideMatch> itr = id_match.get(id).iterator();
-        while (itr.hasNext())
-          if (itr.next().getRank()>lowest_rank) itr.remove();
-      }
-
-    return id_match;
+    return PSMs.trimByRank(LCMSMS.rank(id_match, Engine.MYRIMATCH.getCanonicalScore(), true, false), lowest_rank);
   }
   public static Multimap<SpectrumIdentifier, PeptideMatch> readXTandem(String filename, int lowest_rank) throws IOException
   {
@@ -806,7 +911,7 @@ public class PsmReaders
     while (file.hasNext())
     {
       // Mouse_Plasma_LIRKO2_01_27Aug12_Lynx_12-06-05.mzXML scan 6484 (charge 3)
-      String run = new File(file.get("Raw data location")).getName(),
+      String run = Strs.stripLastOf(new File(file.get("Raw data location")).getName(), '.'),
             scan = Strs.split(Strs.split(file.get("Spectrum ID"),"scan", true).get(1), ' ')[0];
       SpectrumIdentifier id = run_scan_id.get(run, scan);
       if (id==null)
@@ -1332,13 +1437,13 @@ public class PsmReaders
 //  10254   2       300.175 598.335 598.344 0.0402319       15.4584 1       0.188466        1       2       10      1       PNAVAK  trypsin/p-full-digest   gi|253772588|ref|YP_003035419.1|(12)    KN      PNAVAK
 //  10254   2       300.175 598.335 598.344 0       15.4584 2       0.148234        2       2       10      1       PANAVK  trypsin/p-full-digest   decoy_gi|253772588|ref|YP_003035419.1|(12)      KN      PNAVAK
 // TODO to be completed
-  public static Multimap<SpectrumIdentifier, PeptideMatch> readCrux(String filename) throws IOException
+  public static Multimap<SpectrumIdentifier, PeptideMatch> readCrux(String filename, int lowest_rank) throws IOException
   {
     System.out.println("fetching the PSM from " + filename);
 
-    String run = FilenameUtils.getBaseName(filename);
-    if (run.indexOf("Crux_")==0) run = run.substring(5);
-    // Strs.stripLastOf(filename, '.');
+    // /Users/yuw/Documents/Apps/Joslin//PSMs/partial/Mouse_Plasma_LIRKO2_07_27Aug12_Lynx_12-06-05_crux/tide-search.txt
+    String[] items = Strs.split(filename,'/');
+    String     run = Strs.split(items[items.length-2], "_crux", true).get(0);
 
     TabFile file = new TabFile(filename, TabFile.tabb);
     Table<String, String, SpectrumIdentifier> run_scan_id = HashBasedTable.create();
@@ -1390,12 +1495,14 @@ public class PsmReaders
 //      String[] matched = Strs.split(file.get("Ions Matched"), '/');
       Peptide p = match.toPeptide(new NumModMatchResolver());
 
-      PSMs.addScore(match, "delta_cn", file.getDouble("delta_cn"));
-      PSMs.addScore(match, "sp score", file.getDouble("sp score"));
-      PSMs.addScore(match, "xcorr score",    file.getDouble("xcorr score"));
-      PSMs.addScore(match, "b/y ions matched", file.getDouble("b/y ions matched"));
-      PSMs.addScore(match, "b/y ions total", file.getDouble("b/y ions total"));
-      PSMs.addScore(match, "sp rank", file.getInt("sp rank"));
+      PSMs.addScore(match, "delta_cn",   file.getDouble("delta_cn"));
+      PSMs.addScore(match, "sp_score",   file.getDouble("sp score"));
+      PSMs.addScore(match, "xcorr_score",file.getDouble("xcorr score"));
+      PSMs.addScore(match, "by_matched", file.getDouble("b/y ions matched"));
+      PSMs.addScore(match, "by_total",   file.getDouble("b/y ions total"));
+      PSMs.addScore(match, "sp_rank",    file.getInt("sp rank"));
+      PSMs.addScore(match, "IonFrac",    file.getDouble("b/y ions matched")/file.getDouble("b/y ions total"));
+      PSMs.addScore(match, "lnrSp",      Math.log10(file.getInt("sp rank")));
 
       // add as much information to the match as possible
       match.setNeutralPeptideMass(p.getMolecularMass());
@@ -1409,9 +1516,7 @@ public class PsmReaders
 //        System.out.println("Duplicated?");
       }
     }
-    LCMSMS.rank(id_match, "xcorr score", true, false);
-
-    return id_match;
+    return PSMs.trimByRank(LCMSMS.rank(id_match, Engine.CRUX.getCanonicalScore(), true, false), lowest_rank);
   }
   public static Multimap<SpectrumIdentifier, PeptideMatch> readMzID(String filename, int lowest_rank, Engine engine)
   {

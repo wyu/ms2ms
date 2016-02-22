@@ -274,12 +274,19 @@ public class MsIO extends IOs
     String     symbol = read(w, "");
     int      position = read(w, 0), counts = read(w, 0);
 
-    ModAttachment attachment = ModAttachment.valueOf(read(w, ""));
-    ModificationMatch      m = new ModificationMatch(mass_shift, AminoAcid.valueOf(symbol), position, attachment);
+//    ModificationMatch m = new ModificationMatch(mass_shift, AminoAcid.valueOf(symbol), position, ModAttachment.SIDE_CHAIN);
+//
+    List<Modification> mods = new ArrayList<>();
+    if (counts>0)
+      for (int i=0; i<counts; i++)
+        mods.add(readModification(w));
+
+    // has to make another copy because the ModAttachment was written in the wrong order
+    ModificationMatch m = new ModificationMatch(mass_shift, AminoAcid.valueOf(symbol), position, ModAttachment.valueOf(read(w, "")));
 
     if (counts>0)
       for (int i=0; i<counts; i++)
-        m.addPotentialModification(readModification(w));
+        m.addPotentialModification(mods.get(i));
 
     return m;
   }
@@ -370,6 +377,9 @@ public class MsIO extends IOs
     int start=read(w, 0), end=read(w, 0);
 
     Optional<String> db=readOpStr(w), prev=readOpStr(w), next=readOpStr(w);
+
+    // make sure we have a valid range
+    if (start==-1 && end<=start) { start=1; end=Integer.MAX_VALUE; }
 
     return new PeptideProteinMatch(accession, db, prev, next, start, end, hitType);
   }
@@ -490,29 +500,29 @@ public class MsIO extends IOs
   public static void write(DataOutput w, SpectrumIdentifier id) throws IOException
   {
     write(        w, id.getSpectrum());
-    writeOpStr(w, id.getName());
+    writeOpStr(   w, id.getName());
     writeOpDouble(w, id.getPrecursorNeutralMass());
     writeOpDouble(w, id.getPrecursorIntensity());
     writeOpDouble(w, id.getPrecursorMz());
-    writeOpInt(w, id.getAssumedCharge());
-    writeOpInt(w, id.getIndex());
-    writeOpStr(w, id.getSpectrumFile());
-    writeScanNumberList(w, id.getScanNumbers());
+    writeOpInt(   w, id.getAssumedCharge());
+    writeOpInt(   w, id.getIndex());
+    writeOpStr(   w, id.getSpectrumFile());
+    writeScanNumberList(   w, id.getScanNumbers());
     writeRetentionTimeList(w, id.getRetentionTimes());
   }
   public static SpectrumIdentifier readSpectrumIdentifier(DataInput w) throws IOException
   {
     SpectrumIdentifier id = new SpectrumIdentifier(read(w, ""));
 
-    id.setName(read(w, "unTitled"));
-    id.setPrecursorNeutralMass(read(w, 0d));
-    id.setPrecursorIntensity(read(w, 0d));
-    id.setPrecursorMz(read(w, 0d));
-    id.setAssumedCharge(read(w, 0));
-    id.setIndex(read(w, 0));
-    id.setSpectrumFile(read(w, ""));
-    id.addScanNumber(readScanNumberList(w));
-    id.addRetentionTime(readRetentionTime(w));
+    if (read(w, true)) id.setName(                read(w, "unTitled"));
+    if (read(w, true)) id.setPrecursorNeutralMass(read(w, 0d));
+    if (read(w, true)) id.setPrecursorIntensity(  read(w, 0d));
+    if (read(w, true)) id.setPrecursorMz(         read(w, 0d));
+    if (read(w, true)) id.setAssumedCharge(       read(w, 0));
+    if (read(w, true)) id.setIndex(               read(w, 0));
+    if (read(w, true)) id.setSpectrumFile(        read(w, ""));
+    id.addScanNumber(   readScanNumberList(w));
+    id.addRetentionTime(readRetentionTimeList(w));
 
     return id;
   }
@@ -631,6 +641,17 @@ public class MsIO extends IOs
     }
     return index;
   }
+  public static Multimap<SpectrumIdentifier, PeptideMatch> loadScanPeptideMatches(String filename)
+  {
+    try (RandomAccessFile w = new RandomAccessFile(filename, "r"))
+    {
+      return MsIO.readScanPeptideMatches(w, Integer.MAX_VALUE);
+    }
+    catch (Exception e)
+    {
+      throw new RuntimeException(e);
+    }
+  }
   public static Multimap<SpectrumIdentifier, PeptideMatch>
       readScanPeptideMatches(DataInput w, int n) throws IOException
   {
@@ -647,9 +668,10 @@ public class MsIO extends IOs
           scan_matches.put(id, readPeptideMatch(w));
       }
     }
+    catch (EOFException eof) {}
     catch (IOException e)
     {
-
+      e.printStackTrace();
     }
     return scan_matches;
   }

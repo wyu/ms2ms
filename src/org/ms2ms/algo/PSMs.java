@@ -7,8 +7,6 @@ import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.proteomics.mol.Peptide;
 import org.expasy.mzjava.proteomics.mol.modification.ModAttachment;
-import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodManager;
-import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodMod;
 import org.expasy.mzjava.proteomics.ms.fragment.PeptideFragmentAnnotator;
 import org.expasy.mzjava.proteomics.ms.fragment.PeptideFragmenter;
 import org.expasy.mzjava.proteomics.ms.ident.*;
@@ -17,9 +15,9 @@ import org.expasy.mzjava.proteomics.ms.spectrum.PeptideSpectrum;
 import org.ms2ms.data.ms.Engine;
 import org.ms2ms.data.ms.MetaPeptideMatch;
 import org.ms2ms.mzjava.NumModMatchResolver;
+import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
-import com.google.common.base.Optional;
 
 import javax.annotation.Nonnull;
 import java.util.*;
@@ -49,6 +47,30 @@ public class PSMs
       }
       return o1!=null && o2!=null ? Double.compare(o2.getScore(score), o1.getScore(score)):0;
     }
+  }
+
+  // going thro the outputs from each engine and produce the alignment by run-scan-backbone
+  public static Dataframe alignment(Dataframe consensus, Engine engine, String name, Multimap<SpectrumIdentifier, PeptideMatch> matches)
+  {
+    if (!Tools.isSet(matches)) return consensus;
+    if (consensus==null) consensus = new Dataframe();
+
+    // go over each of the peptide matches
+    for (SpectrumIdentifier id : matches.keySet())
+    {
+      String run = Strs.split(id.getSpectrum(), '#')[0];
+      for (PeptideMatch m : matches.get(id))
+      {
+        String row = id.getName().get()+"^"+m.toSymbolString();
+        // deposit some of the property cols
+        consensus.put(row, "Run",     run);
+        consensus.put(row, "Scan",    id.getScanNumbers().getFirst().getValue());
+        consensus.put(row, "Sequence", m.toSymbolString());
+        consensus.put(row, name,       m.getScore(engine.getCanonicalScore()));
+      }
+    }
+
+    return consensus;
   }
   public static NumModMatchResolver sNumModResolver = new NumModMatchResolver();
 
@@ -314,6 +336,18 @@ public class PSMs
     System.out.println(" --> " + As.size() + " total PSMs from " + As.keySet().size() + " MS/MS");
 
     return As;
+  }
+  public static Multimap<SpectrumIdentifier, PeptideMatch> trimByRank(Multimap<SpectrumIdentifier, PeptideMatch> matches, int lowest_rank)
+  {
+    if (lowest_rank>0)
+      for (SpectrumIdentifier id : matches.keySet())
+      {
+        Iterator<PeptideMatch> itr = matches.get(id).iterator();
+        while (itr.hasNext())
+          if (itr.next().getRank()>lowest_rank) itr.remove();
+      }
+
+    return matches;
   }
   public static Collection<PeptideMatch> trimByRank(
       List<PeptideMatch> matches, DesendScorePeptideMatch sorter, int tops, String score, String delta_score)
