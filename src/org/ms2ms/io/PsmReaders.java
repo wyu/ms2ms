@@ -756,7 +756,7 @@ public class PsmReaders
   // PSMId   score   q-value posterior_error_prob    peptide proteinIds
   // x-Mouse_Plasma_LIRKO2_13_27Aug12_Lynx_12-06-05-12243    0.98606 0       5.0324e-09      K.VADALANAAGHLDDLPGALSALSDLHAHK.L       145301549
 
-  public static Multimap<SpectrumIdentifier, PeptideMatch> readPSMS(String filename, double qval) throws IOException
+  public static Multimap<SpectrumIdentifier, PeptideMatch> readPSMS(String filename, double qval, boolean decoy) throws IOException
   {
     System.out.print("Loading the PSM from " + filename);
 
@@ -786,7 +786,7 @@ public class PsmReaders
       {
         match.addProteinMatch(new PeptideProteinMatch(file.get("proteinIds"),
             Optional.of("proteinIds"), Optional.of(sequences[0]), Optional.of(sequences[2]),
-            PeptideProteinMatch.HitType.TARGET));
+            decoy?PeptideProteinMatch.HitType.DECOY:PeptideProteinMatch.HitType.TARGET));
         // try to min the storage cost, WYU 20160216
         if (match.getProteinMatches() instanceof ArrayList)
           ((ArrayList )match.getProteinMatches()).trimToSize();

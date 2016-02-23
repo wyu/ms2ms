@@ -37,7 +37,7 @@ public class Engine implements Comparable<Engine>
       "SpecId", "Label", "ScanNr","ExpMass","CalcMass", "Charge1", "Charge2", "Charge3", "Charge4", "Mass", "PepLen", "enzN", "enzC", "dM", "absdM",
       PSMs.SCR_DELTA,"sp_score","xcorr_score","delta_cn","IonFrac","lnrSp", "yb", "Peptide", "Proteins");
   public static final Engine MASCOT    = new Engine("Mascot", "IonScore");
-  public static final Engine MAXQUANT    = new Engine("MaxQuant", "MQ:Score");
+  public static final Engine MAXQUANT    = new Engine("MaxQuant", "Score");
   public static final Engine MSGF      = new Engine("MSGF+", "MSGFScore", "QValue").setPercolators(
     "SpecId","Label","ScanNr","ExpMass","CalcMass","Charge1","Charge2","Charge3","Charge4","Mass","PepLen","enzN","enzC","dM","absdM",
     "DeNovoScore","IsotopeError","MSGFScore","SpecEValue","EValue","QValue","PepQValue", "yb","Peptide","Proteins");

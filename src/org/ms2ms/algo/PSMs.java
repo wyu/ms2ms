@@ -1,6 +1,7 @@
 package org.ms2ms.algo;
 
 import com.google.common.collect.*;
+import org.apache.hadoop.mapred.InvalidInputException;
 import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
@@ -62,20 +63,25 @@ public class PSMs
     // go over each of the peptide matches
     for (SpectrumIdentifier id : matches.keySet())
     {
-      String run = Strs.split(id.getSpectrum(), '#')[0];
+      if (!id.getName().isPresent())
+      {
+        throw new RuntimeException("Scan name not specified!");
+      }
+      String run = Strs.split(id.getName().get(), '#')[0];
       for (PeptideMatch m : matches.get(id))
       {
-        String row = id.getSpectrum()+"^"+m.toSymbolString();
+        String row = id.getName().get()+"^"+m.toSymbolString();
         // deposit some of the property cols
         consensus.put(row, "Run",     run);
         consensus.put(row, "Scan",    id.getScanNumbers().getFirst().getValue());
-        consensus.put(row, "m/z",     id.getPrecursorMz());
-        consensus.put(row, "z",       id.getAssumedCharge().isPresent()?id.getAssumedCharge():0);
         consensus.put(row, "Sequence", m.toSymbolString());
+        consensus.put(row, "Decoy",    Tools.equals(PeptideProteinMatch.HitType.DECOY, Tools.front(m.getProteinMatches()).getHitType()));
+
+        if (id.getPrecursorMz(  ).isPresent()) consensus.put(row, "m/z",id.getPrecursorMz().get());
+        if (id.getAssumedCharge().isPresent()) consensus.put(row, "z",  id.getAssumedCharge().get());
 
         Integer n = consensus.cell(row, "Mods")!=null && consensus.cell(row, "Mods") instanceof Integer ? (Integer )consensus.cell(row, "Mods") : null;
-        if (m.getModificationCount()>0 && (n==null || n<m.getModificationCount()))
-        {
+        if (m.getModificationCount()>0 && (n==null || n<m.getModificationCount())) {
           consensus.put("ModN", m.getModificationCount());
           consensus.put("Peptide", PSMs.toNumModSequence(m));
         }

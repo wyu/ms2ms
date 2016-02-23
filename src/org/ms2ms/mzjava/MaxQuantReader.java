@@ -26,6 +26,9 @@ public class MaxQuantReader extends MaxQuantPsmReader
     try
     {
       identifier.setPrecursorIntensity(Stats.toDouble(Strs.split(results.getString("Intensities"), ';')[0]));
+      String[] scans = Strs.split(identifier.getSpectrum(), '.');
+      identifier.setName(scans[0]+"#"+scans[1]);
+      identifier.setSpectrumFile(scans[0]);
     }
     catch (Exception e) {}
 
@@ -36,11 +39,11 @@ public class MaxQuantReader extends MaxQuantPsmReader
   {
     // set the attributes
     try { peptideMatch.setMassDiff(results.getDouble("Mass Error [ppm]") * results.getDouble("Mass")*1E-6); } catch (Exception e) {}
-    try { peptideMatch.setTotalNumIons(            results.getInt("Number of Matches"));     } catch (Exception e) {}
-    try { peptideMatch.addScore("MQ:Score",        results.getDouble("Score"));              } catch (Exception e) {}
-    try { peptideMatch.addScore("MQ:dScore",       results.getDouble("Delta score"));        } catch (Exception e) {}
-    try { peptideMatch.addScore("MQ:PEP",          results.getDouble("PEP"));                } catch (Exception e) {}
-    try { peptideMatch.addScore("MQ:IntCoverage",  results.getDouble("Intensity coverage")); } catch (Exception e) {}
-    try { peptideMatch.addScore("MQ:PeakCoverage", results.getDouble("Peak coverage"));      } catch (Exception e) {}
+    try { peptideMatch.setTotalNumIons(         results.getInt("Number of Matches"));     } catch (Exception e) {}
+    try { peptideMatch.addScore("Score",        results.getDouble("Score"));              } catch (Exception e) {}
+    try { peptideMatch.addScore("dScore",       results.getDouble("Delta score"));        } catch (Exception e) {}
+    try { peptideMatch.addScore("PEP",          results.getDouble("PEP"));                } catch (Exception e) {}
+    try { peptideMatch.addScore("IntCoverage",  results.getDouble("Intensity coverage")); } catch (Exception e) {}
+    try { peptideMatch.addScore("PeakCoverage", results.getDouble("Peak coverage"));      } catch (Exception e) {}
   }
 }
