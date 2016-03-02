@@ -22,10 +22,14 @@ import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
+import uk.ac.ebi.jmzidml.model.mzidml.AnalysisSoftware;
+import uk.ac.ebi.jmzidml.model.mzidml.Param;
+import uk.ac.ebi.jmzidml.xml.io.MzIdentMLMarshaller;
 import uk.ac.ebi.jmzml.model.mzml.*;
 
 import javax.annotation.Nonnull;
 import java.io.*;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /** Responsible for writing out the MS objects in binary format. Not to be confused with import duty
@@ -663,11 +667,11 @@ public class MsIO extends IOs
   }
   public static Multimap<SpectrumIdentifier, PeptideMatch> loadScanPeptideMatches(String filename)
   {
-    System.out.print("Loading the matches from " + filename);
+    System.out.print("Loading from " + filename);
     try (RandomAccessFile w = new RandomAccessFile(filename, "r"))
     {
       Multimap<SpectrumIdentifier, PeptideMatch> matches = MsIO.readScanPeptideMatches(w, Integer.MAX_VALUE);
-      System.out.print(" --> " + matches.keySet().size() + "/" + matches.size() + "\n");
+      System.out.print(" (" + matches.keySet().size() + "/" + matches.size() + ") ");
 
       return matches;
     }

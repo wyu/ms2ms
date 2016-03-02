@@ -1,7 +1,6 @@
 package org.ms2ms.algo;
 
 import com.google.common.collect.*;
-import org.apache.hadoop.mapred.InvalidInputException;
 import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
@@ -89,7 +88,7 @@ public class PSMs
         consensus.put(row, name,       m.getScore(engine.getCanonicalScore()));
       }
     }
-    System.out.println("Accumulation --> " + consensus.size());
+    System.out.println("--> " + consensus.size());
 
     return consensus;
   }
@@ -358,14 +357,37 @@ public class PSMs
 
     return As;
   }
+  public static ListMultimap<SpectrumIdentifier, PeptideMatch> add(
+      ListMultimap<SpectrumIdentifier, PeptideMatch> id_match, SpectrumIdentifier id, PeptideMatch match,
+      int lowest_rank, PSMs.DesendScorePeptideMatch sorter)
+  {
+    List<PeptideMatch> mm = id_match.get(id);
+    if (mm!=null && mm.size()==lowest_rank && sorter.compare(mm.get(mm.size()-1),match)>0)
+    {
+      if (mm.size()==1) id_match.removeAll(id); else mm.remove(mm.size()-1);
+    }
+    if (!id_match.containsKey(id) || id_match.get(id).size()<lowest_rank)
+    {
+      id_match.put(id, match);
+      if (id_match.get(id).size()>1)
+        Collections.sort(id_match.get(id), sorter);
+    }
+
+    return id_match;
+  }
+  // TODO not WORKING at all. No error emitted but no values got removed either!!!
   public static Multimap<SpectrumIdentifier, PeptideMatch> trimByRank(Multimap<SpectrumIdentifier, PeptideMatch> matches, int lowest_rank)
   {
     if (lowest_rank>0)
       for (SpectrumIdentifier id : matches.keySet())
       {
-        Iterator<PeptideMatch> itr = matches.get(id).iterator();
+        Collection<PeptideMatch> mm = matches.get(id);
+        Iterator<PeptideMatch> itr = mm.iterator();
         while (itr.hasNext())
-          if (itr.next().getRank()>lowest_rank) itr.remove();
+        {
+          PeptideMatch m = itr.next();
+          if (m.getRank()>lowest_rank) itr.remove();
+        }
       }
 
     return matches;
