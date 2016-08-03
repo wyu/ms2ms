@@ -1,6 +1,11 @@
 package org.ms2ms.io;
 
+import com.compomics.util.io.FilenameExtensionFilter;
 import com.google.common.collect.Range;
+import com.google.common.collect.RowSortedTable;
+import com.google.common.collect.TreeBasedTable;
+import com.hfg.util.FileUtil;
+import org.expasy.mzjava.core.io.ms.spectrum.MgfWriter;
 import org.expasy.mzjava.core.io.ms.spectrum.MzxmlReader;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
@@ -10,6 +15,7 @@ import org.expasy.mzjava.proteomics.io.ms.ident.mzidentml.v110.AbstractParamType
 import org.expasy.mzjava.proteomics.io.ms.ident.mzidentml.v110.CVParamType;
 import org.expasy.mzjava.proteomics.io.ms.ident.mzidentml.v110.UserParamType;
 import org.ms2ms.algo.LCMSMS;
+import org.ms2ms.algo.PurgingPeakProcessor;
 import org.ms2ms.algo.Spectra;
 import org.ms2ms.data.ms.MsSpectrum;
 import org.ms2ms.math.Stats;
@@ -21,6 +27,8 @@ import org.ms2ms.utils.Tools;
 import uk.ac.ebi.jmzml.model.mzml.BinaryDataArray;
 import uk.ac.ebi.jmzml.model.mzml.Precursor;
 import uk.ac.ebi.jmzml.model.mzml.Spectrum;
+import uk.ac.ebi.jmzml.xml.io.MzMLObjectIterator;
+import uk.ac.ebi.jmzml.xml.io.MzMLUnmarshaller;
 
 import java.io.*;
 import java.util.*;
@@ -99,6 +107,12 @@ public class MsReaders
     }
     return spectra;
   }
+  public static Dataframe surveyMzXML(String root, String cache, Range<Double> rt, int... mslevel)
+  {
+    String[] rawfiles = new File(root).list(new FilenameExtensionFilter("mzXML"));
+
+    return surveyMzXML(rawfiles, root, cache, rt, mslevel);
+  }
 
   /** Survey the mzXML file and return a table of m/z, rt and file pointers
    *
@@ -120,14 +134,21 @@ public class MsReaders
         System.out.println("surveying " + rawfile);
 
 //        MzxmlReader reader = MzxmlReader.newTolerantReader(new File(root+"/"+rawfile+".mzXML"), PeakList.Precision.FLOAT);
-        mzXMLReader reader = mzXMLReader.newTolerantReader(new File(root+"/"+rawfile+".mzXML"), PeakList.Precision.FLOAT);
+        mzXMLReader reader = mzXMLReader.newTolerantReader(new File(root+"/"+rawfile), PeakList.Precision.FLOAT);
         int counts=0, inrange=0;
+        TreeMap<Integer, Integer> scan_tin = new TreeMap<>();
         while (reader.hasNext())
         {
           MsnSpectrum spec = reader.next();
           if (++counts%1000==0) System.out.print(".");
           if (counts%100000==0) System.out.println(counts);
 
+          int scan = spec.getScanNumbers().getFirst().getValue();
+
+//          if (scan==5648)
+//          {
+//            System.out.println();
+//          }
           // move on before we reach the lower bound of the RT range if requested
           if (rt!=null && Spectra.before(spec.getRetentionTimes(), rt.lowerEndpoint())) continue;
           // quit if we move pass the limit
@@ -139,14 +160,35 @@ public class MsReaders
 
             RandomAccessFile ms = ms_bin.get(spec.getMsLevel());
             // populate the stats
-            stats.put(tinrange,"TIC", Tools.d2s(spec.getTotalIonCurrent(), 1));
-            stats.put(tinrange,"Raw file",rawfile);
-            stats.put(tinrange,"Scan number",spec.getScanNumbers().getFirst().getValue());
+            if (spec.getMsLevel()==3)
+            {
+              //System.out.println();
+              int tin_ms2 = scan_tin.get(spec.getParentScanNumber().getValue());
+              stats.put(tin_ms2,"TIC.ms3", Tools.d2s(spec.getTotalIonCurrent(), 1));
+              stats.put(tin_ms2,"Scan.ms3",scan);
+              stats.put(tin_ms2,"m/z.ms3",Tools.d2s(spec.getPrecursor().getMz(), 4));
+              stats.put(tin_ms2,"Charge.ms3",spec.getPrecursor().getCharge());
+              stats.put(tin_ms2,"RT.ms3",spec.getRetentionTimes().getFirst().getTime()/60d);
+              stats.put(tin_ms2,"MS.ms3",spec.getMsLevel());
+            }
+            else
+            {
+              stats.put(tinrange,"TIC", Tools.d2s(spec.getTotalIonCurrent(), 1));
+              stats.put(tinrange,"Raw file",rawfile);
+              stats.put(tinrange,"Scan",spec.getScanNumbers().getFirst().getValue());
 //            stats.put(tinrange,"FilePointer",ms.getFilePointer());
-            stats.put(tinrange,"FilePointer",MsIO.write(ms, MsSpectrum.adopt(spec)));
-            stats.put(tinrange,"m/z",Tools.d2s(spec.getPrecursor().getMz(), 4));
-            stats.put(tinrange,"Charge",spec.getPrecursor().getCharge());
-            stats.put(tinrange,"RT",spec.getRetentionTimes().toString());
+              stats.put(tinrange,"FilePointer",MsIO.write(ms, MsSpectrum.adopt(spec)));
+              stats.put(tinrange,"m/z",Tools.d2s(spec.getPrecursor().getMz(), 4));
+              stats.put(tinrange,"Charge",spec.getPrecursor().getCharge());
+              stats.put(tinrange,"RT",spec.getRetentionTimes().getFirst().getTime()/60d);
+              stats.put(tinrange,"MS",spec.getMsLevel());
+
+              Map<String, Double> ss = Spectra.survey(spec, Range.closed(0d, 250d), 5, 10.0);
+              for (String tag : ss.keySet()) stats.put(tinrange,tag,ss.get(tag));
+
+              scan_tin.put(spec.getScanNumbers().getFirst().getValue(), tinrange);
+            }
+
             inrange++; tinrange++;
 //            MsIO.write(ms, spec);
           }
@@ -154,7 +196,7 @@ public class MsReaders
         }
         reader.close();
 
-        System.out.print(inrange+"/"+counts + " spectra recorded/surveyed" + "\n");
+        System.out.print(inrange + "/" + counts + " spectra recorded/surveyed" + "\n");
       }
       // close the cache files
       for (RandomAccessFile ms : ms_bin.values())
@@ -448,6 +490,101 @@ public class MsReaders
     retentionTimes.add(time, timeUnit);
 
     return retentionTimes;
+  }
+  public static Dataframe splitMs2MS3(String mzml_root) throws Exception
+  {
+    File  xmlFile = new File(mzml_root+".mzML");
+    String    run = xmlFile.getName().substring(0, xmlFile.getName().lastIndexOf("."));
+    MgfWriter ms2 = new MgfWriter(new File(mzml_root+".ms2.mgf"), PeakList.Precision.FLOAT),
+              ms3 = new MgfWriter(new File(mzml_root+".ms3.mgf"), PeakList.Precision.FLOAT),
+             ms3y = new MgfWriter(new File(mzml_root+".ms3y.mgf"),PeakList.Precision.FLOAT),
+             ms3b = new MgfWriter(new File(mzml_root+".ms3b.mgf"),PeakList.Precision.FLOAT);
+
+    MzMLUnmarshaller unmarshaller = new MzMLUnmarshaller(xmlFile);
+
+    // looping through the scans
+    RowSortedTable<Double, Integer, MsnSpectrum> cache = TreeBasedTable.create();
+    MzMLObjectIterator<Spectrum> spectrumIterator = unmarshaller.unmarshalCollectionFromXpath("/run/spectrumList/spectrum", Spectrum.class);
+
+    System.out.println("Splitting the MS2 and MS3 contents from:" +mzml_root);
+    int counts=0;
+    Dataframe xref = new Dataframe("MS2-MS3 xref: " + mzml_root);
+    while (spectrumIterator.hasNext())
+    {
+      MsnSpectrum ms = MsReaders.from(spectrumIterator.next());
+      if (++counts % 1000 == 0) System.out.print(".");
+      if      (ms.getMsLevel()==2)
+      {
+        ms2.write(ms);
+        cache.put(LCMSMS.parseNominalPrecursorMz(ms.getComment()), ms.getScanNumbers().getFirst().getValue(), ms);
+        String scan=ms.getScanNumbers().getFirst().getValue()+"", row=run+"#"+scan;
+        xref.put(row,"Run", run);
+        xref.put(row,"Scan", scan);
+        xref.put(row,"RT2", ms.getRetentionTimes().getFirst().getTime());
+        xref.put(row,"mz2", ms.getPrecursor().getMz());
+        xref.put(row,"z2",  ms.getPrecursor().getCharge());
+        xref.put(row,"MsLevel", 2);
+      }
+      else if (ms.getMsLevel()==3)
+      {
+        // figure out the parent MS2 scan within the isolation window
+        Integer parent=null, pz=null; Double pmz=null;
+        for (Double mz : cache.rowKeySet().subSet(ms.getPrecursor().getMz()-0.02, ms.getPrecursor().getMz()+0.02))
+          if (parent==null || Collections.max(cache.row(mz).keySet())>parent)
+          {
+            parent = Collections.max(cache.row(mz).keySet());
+            pmz    = cache.get(mz, parent).getPrecursor().getMz();
+            pz     = cache.get(mz, parent).getPrecursor().getCharge();
+          }
+        if (parent!=null)
+        {
+          String row=run+"#"+parent;
+          xref.put(row,"MS3", ms.getScanNumbers().getFirst().getValue());
+          xref.put(row,"RT3", ms.getRetentionTimes().getFirst().getTime());
+          xref.put(row,"mz3", ms.getPrecursor().getMz());
+          xref.put(row,"z3",  ms.getPrecursor().getCharge());
+
+          ms.setParentScanNumber(ms.getScanNumbers().getFirst());
+          ms.getScanNumbers().clear();
+          ms.addScanNumber(parent);
+          // copy the charge state from the parent
+          if (pmz!=null) ms.getPrecursor().setMzAndCharge(pmz, pz!=null?pz:ms.getPrecursor().getCharge());
+        }
+        else
+        {
+          System.out.println();
+        }
+
+        // remove the reporter ions to avoid search interference
+        Spectra.notchUpto(ms, 150d);
+
+        ms3.write(ms.copy(new PurgingPeakProcessor<>()));
+        // change the procursor to the SPS MASS
+        try
+        {
+          pmz = Double.parseDouble(Strs.split(Strs.split(ms.getComment(), '@', true)[1], ' ')[1]);
+          // educated guess of the charge state
+          pz  = (pmz>ms.getPrecursor().getMz()?ms.getPrecursor().getCharge()-1:ms.getPrecursor().getCharge());
+
+          // assume this is a y-ion
+          ms.getPrecursor().setMzAndCharge(pmz, pz);
+          ms3y.write(ms);
+          // or a b-ion
+          ms.getPrecursor().setMzAndCharge(pmz-28, pz);
+          ms3b.write(ms);
+
+        } catch (Exception e) {}
+      }
+    }
+    System.out.println();
+
+    ms2.close(); ms3.close();
+
+    FileWriter xw = new FileWriter(mzml_root+".xref");
+    xref.init().write(xw, "\t");
+    xw.close();
+
+    return xref;
   }
 //  private Map<String, CVParamType> toCVMap(List<AbstractParamType> paramGroup) {
 //
