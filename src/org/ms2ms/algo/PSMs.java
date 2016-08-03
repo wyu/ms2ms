@@ -1,6 +1,7 @@
 package org.ms2ms.algo;
 
 import com.google.common.collect.*;
+import org.apache.commons.collections.map.HashedMap;
 import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
@@ -28,7 +29,7 @@ import java.util.*;
  */
 public class PSMs
 {
-  public static final String SCR_CANONICAL = "Canonical Score";
+  public static final String SCR_CANONICAL = "CanonicalScore";
   public static final String SCR_DELTA     = "DeltaScore";
 
   public static Map<String, PeptideMatch> mods_match = new HashMap<>();
@@ -49,6 +50,15 @@ public class PSMs
     }
   }
 
+  public static void verify(PeptideMatch m, MsnSpectrum ms2, MsnSpectrum ms3, PeptideFragmenter fragmenter)
+  {
+//    PeptideFragmenter fragmenter = new PeptideFragmenter(EnumSet.of(IonType.b, IonType.y), PeakList.Precision.DOUBLE);
+    Peptide peptide = Peptide.parse("GYDSPR");
+
+// generating peptide b and y fragments with charges +1 and +2
+    PeptideSpectrum peptideSpectrum = fragmenter.fragment(m.toPeptide(), 2);
+
+  }
   public static Dataframe alignment(Dataframe consensus, Engine engine, Multimap<SpectrumIdentifier, PeptideMatch> matches)
   {
     return alignment(consensus, engine, engine.getName(), matches);
@@ -86,6 +96,40 @@ public class PSMs
         }
 
         consensus.put(row, name,       m.getScore(engine.getCanonicalScore()));
+      }
+    }
+    System.out.println("--> " + consensus.size());
+
+    return consensus;
+  }
+  // going thro the outputs from each engine and produce the alignment by run-scan-backbone
+  public static Table<SpectrumIdentifier, Engine, PeptideMatch> alignment(
+      Table<SpectrumIdentifier, Engine, PeptideMatch> consensus, Engine engine, Multimap<SpectrumIdentifier, PeptideMatch> matches)
+  {
+    if (!Tools.isSet(matches)) return consensus;
+    if (consensus==null) consensus = HashBasedTable.create();
+
+    Map<String, SpectrumIdentifier> runscan2id = new HashMap<>();
+    if (Tools.isSet(consensus))
+      for (SpectrumIdentifier id : consensus.rowKeySet())
+        runscan2id.put(id.getSpectrum(), id);
+
+      // go over each of the peptide matches
+    for (SpectrumIdentifier id : matches.keySet())
+    {
+      if (!id.getName().isPresent())
+      {
+        throw new RuntimeException("Scan name not specified!");
+      }
+      for (PeptideMatch m : matches.get(id))
+      {
+        // deposit some of the property cols
+        SpectrumIdentifier id2 = runscan2id.get(id.getSpectrum());
+        if (id2==null)
+        {
+          runscan2id.put(id.getSpectrum(), id);
+        }
+        consensus.put(runscan2id.get(id.getSpectrum()), engine, m);
       }
     }
     System.out.println("--> " + consensus.size());
@@ -362,7 +406,7 @@ public class PSMs
       int lowest_rank, PSMs.DesendScorePeptideMatch sorter)
   {
     List<PeptideMatch> mm = id_match.get(id);
-    if (mm!=null && mm.size()==lowest_rank && sorter.compare(mm.get(mm.size()-1),match)>0)
+    if (Tools.isSet(mm) && mm.size()==lowest_rank && sorter.compare(mm.get(mm.size()-1),match)>0)
     {
       if (mm.size()==1) id_match.removeAll(id); else mm.remove(mm.size()-1);
     }
@@ -473,6 +517,33 @@ public class PSMs
       seq_match.put(match.toSymbolString(), match);
 
     return seq_match;
+  }
+  // Convert a q-val or other probablistic score to a canonical score where higher is better in linear scale
+  public static List<PeptideMatch> setCanonicalDeltaScoresByQ(Collection<PeptideMatch> hits, String qval)
+  {
+    if (!Tools.isSet(hits)) return null;
+
+    List<PeptideMatch> psm = new ArrayList<>(hits);
+    // look for the smallest value above the zero
+    double floor=Double.MAX_VALUE;
+    for (PeptideMatch m : psm)
+      if (m.getScore(qval)>0 && m.getScore(qval)<floor) floor=m.getScore(qval);
+
+    for (PeptideMatch m : psm)
+    {
+      m.addScore(SCR_CANONICAL, -10d*Math.log10(m.getScore(qval)>0?m.getScore(qval):floor/2d));
+    }
+    Collections.sort(psm, new DesendScorePeptideMatch(SCR_CANONICAL));
+    // set the delta scores
+    if (psm.size()>1)
+      for (int i=0; i<psm.size()-1; i++)
+      {
+        psm.get(i).addScore(SCR_DELTA, psm.get(i).getScore(SCR_CANONICAL)-psm.get(i+1).getScore(SCR_CANONICAL));
+      }
+    psm.get(psm.size()-1).addScore(SCR_DELTA, 0);
+
+
+    return psm;
   }
 /*
   */
