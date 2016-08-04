@@ -3,6 +3,7 @@ package org.ms2ms.io;
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import org.expasy.mzjava.core.io.ms.spectrum.MgfReader;
 import org.expasy.mzjava.core.mol.NumericMass;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
@@ -580,6 +581,19 @@ public class MsIO extends IOs
       if (id.indexOf("scan=")==0) return Stats.toInt(id.substring(5));
 
     return null;
+  }
+  public static Map<String, MsnSpectrum> readMGF(String mgffile) throws IOException
+  {
+    MgfReader                    mgf = new MgfReader(new File(mgffile), PeakList.Precision.DOUBLE);
+    Map<String, MsnSpectrum> spectra = new HashMap<>();
+
+    while (mgf.hasNext())
+    {
+      MsnSpectrum ms = mgf.next();
+      spectra.put(ms.getScanNumbers().getFirst().getValue()+"",ms);
+    }
+    mgf.close();
+    return spectra;
   }
 //  // write the content of the spectrum from an mzML file to another MGF file
 //  public static void writeMGF(MgfWriter w, uk.ac.ebi.jmzml.model.mzml.Spectrum ms) throws IOException

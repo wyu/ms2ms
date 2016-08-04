@@ -4,7 +4,6 @@ import com.compomics.util.io.FilenameExtensionFilter;
 import com.google.common.collect.Range;
 import com.google.common.collect.RowSortedTable;
 import com.google.common.collect.TreeBasedTable;
-import com.hfg.util.FileUtil;
 import org.expasy.mzjava.core.io.ms.spectrum.MgfWriter;
 import org.expasy.mzjava.core.io.ms.spectrum.MzxmlReader;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
@@ -18,11 +17,11 @@ import org.ms2ms.algo.LCMSMS;
 import org.ms2ms.algo.PurgingPeakProcessor;
 import org.ms2ms.algo.Spectra;
 import org.ms2ms.data.ms.MsSpectrum;
-import org.ms2ms.math.Stats;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.data.HData;
 import org.ms2ms.data.ms.LcMsMsDataset;
 import org.ms2ms.utils.Strs;
+import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
 import uk.ac.ebi.jmzml.model.mzml.BinaryDataArray;
 import uk.ac.ebi.jmzml.model.mzml.Precursor;
@@ -586,6 +585,22 @@ public class MsReaders
 
     return xref;
   }
+  public static MsnSpectrum newQualSpec(String datafile) throws IOException
+  {
+    MsnSpectrum ms2 = new MsnSpectrum();
+
+//    m/z     Intensity       Relative        Charge  Noise
+//    120.08127       10492.3           2.37            0.00         2681.32
+//    121.08474        5012.8           1.13            0.00         2695.37
+    TabFile tab = new TabFile(datafile, TabFile.tabb);
+    while (tab.hasNext())
+    {
+      double mz=tab.getDouble("m/z"), z=tab.getDouble("Charge");
+      ms2.add((z>1?(mz*z-(z-1)*1.00783d):mz), tab.getDouble("Intensity")/tab.getDouble("Noise"));
+    }
+    return ms2;
+  }
+
 //  private Map<String, CVParamType> toCVMap(List<AbstractParamType> paramGroup) {
 //
 //    if (paramGroup == null || paramGroup.isEmpty()) return new CVParamMap();

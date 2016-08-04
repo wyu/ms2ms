@@ -9,16 +9,17 @@ import org.expasy.mzjava.core.ms.spectrum.IonType;
 public class PeptideEntry
 {
   private IonType mIonType; // enum
-  private int mSequencePointer, mTerminal;
+  private int  mTerminal;
+  private long mSequencePointer;
 
   public PeptideEntry() { super(); }
-  public PeptideEntry(int pointer, int terminal, IonType type)
+  public PeptideEntry(long pointer, int terminal, IonType type)
   {
     super();
     mSequencePointer=pointer; mTerminal=terminal; mIonType=type;
   }
 
-  public int     getSequencePointer() { return mSequencePointer; }
+  public long    getSequencePointer() { return mSequencePointer; }
   public int     getTerminal()        { return mTerminal; }
 
   public IonType getIonType()         { return mIonType; }

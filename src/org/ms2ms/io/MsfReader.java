@@ -1,13 +1,85 @@
 package org.ms2ms.io;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.log4j.Logger;
-import uk.ac.ebi.jmzidml.model.mzidml.*;
 
-import java.util.*;
+import uk.ac.ebi.jmzidml.model.mzidml.AbstractParam;
+import uk.ac.ebi.jmzidml.model.mzidml.AnalysisSoftware;
+import uk.ac.ebi.jmzidml.model.mzidml.CvParam;
+import uk.ac.ebi.jmzidml.model.mzidml.Enzyme;
+import uk.ac.ebi.jmzidml.model.mzidml.Enzymes;
+import uk.ac.ebi.jmzidml.model.mzidml.FileFormat;
+import uk.ac.ebi.jmzidml.model.mzidml.InputSpectra;
+import uk.ac.ebi.jmzidml.model.mzidml.ModificationParams;
+import uk.ac.ebi.jmzidml.model.mzidml.Param;
+import uk.ac.ebi.jmzidml.model.mzidml.ParamList;
+import uk.ac.ebi.jmzidml.model.mzidml.SearchDatabase;
+import uk.ac.ebi.jmzidml.model.mzidml.SearchDatabaseRef;
+import uk.ac.ebi.jmzidml.model.mzidml.SearchModification;
+import uk.ac.ebi.jmzidml.model.mzidml.SpecificityRules;
+import uk.ac.ebi.jmzidml.model.mzidml.SpectraData;
+import uk.ac.ebi.jmzidml.model.mzidml.SpectrumIDFormat;
+import uk.ac.ebi.jmzidml.model.mzidml.SpectrumIdentification;
+import uk.ac.ebi.jmzidml.model.mzidml.SpectrumIdentificationProtocol;
+import uk.ac.ebi.jmzidml.model.mzidml.Tolerance;
+import uk.ac.ebi.jmzidml.model.mzidml.UserParam;
+import de.mpc.PD.APeptideScores;
+import de.mpc.PD.APeptides;
+import de.mpc.PD.APeptidesAminoAcidModifications;
+import de.mpc.PD.APeptidesTerminalModifications;
+import de.mpc.PD.AminoAcidModifications;
+import de.mpc.PD.AminoAcids;
+import de.mpc.PD.FastaFiles;
+import de.mpc.PD.FileInfos;
+import de.mpc.PD.MassPeaks;
+import de.mpc.PD.PeptideScores;
+import de.mpc.PD.PeptideScores_decoy;
+import de.mpc.PD.Peptides;
+import de.mpc.PD.PeptidesAminoAcidModifications;
+import de.mpc.PD.PeptidesAminoAcidModifications_decoy;
+import de.mpc.PD.PeptidesProteins;
+import de.mpc.PD.PeptidesProteins_decoy;
+import de.mpc.PD.PeptidesTerminalModifications;
+import de.mpc.PD.PeptidesTerminalModifications_decoy;
+import de.mpc.PD.Peptides_decoy;
+import de.mpc.PD.ProcessingNodeParameters;
+import de.mpc.PD.ProcessingNodeScores;
+import de.mpc.PD.ProcessingNodes;
+import de.mpc.PD.ProteinAnnotations;
+import de.mpc.PD.Proteins;
+import de.mpc.PD.SpectrumHeaders;
+import de.mpc.PD.DB.JDBCAccess;
+import de.mpc.PD.Params.SimpleProgramParameters;
+import de.mpc.pia.intermediate.Accession;
+import de.mpc.pia.intermediate.Modification;
+import de.mpc.pia.intermediate.PIAInputFile;
+import de.mpc.pia.intermediate.Peptide;
+import de.mpc.pia.intermediate.PeptideSpectrumMatch;
+import de.mpc.pia.intermediate.compiler.PIACompiler;
+import de.mpc.pia.intermediate.compiler.parser.FastaHeaderInfos;
+import de.mpc.pia.intermediate.compiler.parser.InputFileParserFactory;
+import de.mpc.pia.modeller.score.ScoreModel;
+import de.mpc.pia.modeller.score.ScoreModelEnum;
+import de.mpc.pia.tools.MzIdentMLTools;
+import de.mpc.pia.tools.PIAConstants;
+import de.mpc.pia.tools.PIATools;
 
-/**
- * Created by yuw on 6/21/16.
+/** Adopted from PIA library
+ *
+ * This class parses the data from a Thermo MSF file for a given
+ * {@link PIACompiler}.<br/>
+ *
+ * @author julian
+ *
  */
+
 public class MsfReader
 {
   /** logger for this class */
@@ -563,8 +635,6 @@ public class MsfReader
    * Creates the {@link AnalysisSoftware} from the given friendlyName. If the
    * software is not known/implemented, null is returned.
    *
-   * @param friendlyName
-   * @param psiMS
    * @return
    */
   private static AnalysisSoftware createAnalysisSoftware(ProcessingNodes node) {

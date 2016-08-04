@@ -2,6 +2,7 @@ package org.ms2ms.algo;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
+import com.google.common.collect.TreeMultimap;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.DoublePeakList;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
@@ -9,6 +10,7 @@ import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepFragAnnotation;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
+import org.ms2ms.data.ms.FragmentEntry;
 import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
@@ -31,9 +33,9 @@ public class Peaks
   public static final String HCD       = "hcd";
   public static final String ETD       = "etd";
 
-  static class IntensityDesendComparator implements Comparator<Peak> { public int compare(Peak o1, Peak o2) { return o1!=null && o2!=null ? Double.compare(o2.getIntensity(), o1.getIntensity()):0; } }
-  static class IntensityAscendComparator implements Comparator<Peak> { public int compare(Peak o1, Peak o2) { return o1!=null && o2!=null ? Double.compare(o1.getIntensity(), o2.getIntensity()):0; } }
-  static class MzAscendComparator        implements Comparator<Peak> { public int compare(Peak o1, Peak o2) { return o1!=null && o2!=null ? Double.compare(o1.getMz(), o2.getMz()):0; } }
+  public static class IntensityDesendComparator implements Comparator<Peak> { public int compare(Peak o1, Peak o2) { return o1!=null && o2!=null ? Double.compare(o2.getIntensity(), o1.getIntensity()):0; } }
+  public static class IntensityAscendComparator implements Comparator<Peak> { public int compare(Peak o1, Peak o2) { return o1!=null && o2!=null ? Double.compare(o1.getIntensity(), o2.getIntensity()):0; } }
+  public static class MzAscendComparator        implements Comparator<Peak> { public int compare(Peak o1, Peak o2) { return o1!=null && o2!=null ? Double.compare(o1.getMz(), o2.getMz()):0; } }
 
   public static boolean isType(PepLibPeakAnnotation s, IonType... types)
   {
@@ -668,6 +670,35 @@ public class Peaks
       cut /= ratio;
     }
     if (count >= max_count) return cut; else return -1;
+  }
+  public static Range<Double> mz2window(double mz, Tolerance tol)
+  {
+    return Range.closed(tol.getMin(mz), tol.getMax(mz));
+  }
+  public static TreeMap<Double, Range<Double>> peaks2windows(PeakList peaks, Tolerance tol)
+  {
+    TreeMap<Double, Range<Double>> windows = new TreeMap<>();
+    for (int i=0; i<peaks.size(); i++)
+    {
+      windows.put(peaks.getMz(i), mz2window(peaks.getMz(i), tol));
+    }
+
+    return windows;
+  }
+  public static TreeMap<Double, Double> peaks2dic(PeakList peaks)
+  {
+    TreeMap<Double, Double> windows = new TreeMap<>();
+    for (int i=0; i<peaks.size(); i++)
+    {
+      windows.put(peaks.getMz(i), peaks.getIntensity(i));
+    }
+
+    return windows;
+  }
+  //** Query functions **//
+  public static Collection<FragmentEntry> query(TreeMultimap<Double, FragmentEntry> indices, Range<Double> mz)
+  {
+    return Tools.isSet(mz) ? Tools.flatten(indices.asMap().subMap(mz.lowerEndpoint(), mz.upperEndpoint()).values()) : null;
   }
 }
 

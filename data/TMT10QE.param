@@ -1,0 +1,55 @@
+// The parameter file to define the mzID header as required
+Category, Required, Key, Value, Note
+// the paper trail
+SEARCH, Y, File contact first name,         Wen
+SEARCH, Y, File contact last name,          Yu
+SEARCH, Y, File contact organization name,  MedImmune
+SEARCH, Y, File contact address,            OMW
+SEARCH, Y, Software name,                   MS:1001475#OMSSA
+//SEARCH, Y, Software name,                   MS:1001476#X\!Tandem
+//SEARCH, Y, Software name,                   MS:1001585#MyriMatch
+SEARCH, Y, Software version,                0.0
+//
+// Mapping from the score to PSI-CV. A valid Eval is required for PeptideShaker
+// com/compomics/util/experiment/io/identifications/idfilereaders/MzIdentMLIdfileReader.java#getEValue()
+// based on the OBO: https://github.com/HUPO-PSI/psi-ms-CV/blob/master/psi-ms.obo
+//
+SCORE,  Y, qval,                            MS:1001491#percolator:Q value
+SCORE,  N, Percolator:score,                MS:1001492#percolator:score
+SCORE,  N, Percolator:PEP,                  MS:1001493#percolator:PEP
+SCORE,  Y, X\!Tandem:expect,                MS:1001330#X\!Tandem:expect
+SCORE,  N, X\!Tandem:hyperscore,            MS:1001331#X\!Tandem:hyperscore
+SCORE,  Y, OMSSA:EVal,                      MS:1001328#OMSSA:evalue
+SCORE,  N, OMSSA:PVal,                      MS:1001329#OMSSA:pvalue
+SCORE,  Y, MyriMatch:MVH,                   MS:1001589#MyriMatch:MVH#Using the multivariate hypergeometric distribution and a peak list divided into several intensity classes, this score is the negative natural log probability that the predicted peaks matched to experimental peaks by random chance.
+SCORE,  Y, MyriMatch:mzFidelity,            MS:1001590#MyriMatch:mzFidelity#The negative natural log probability that predicted peaks match to experimental peaks by random chance by scoring the m/z delta of the matches in a multinomial distribution.
+//
+SEARCH, Y, Parent mass type,                MS:1001475#parent mass type mono
+SEARCH, Y, Fragment mass type,              MS:1001211#fragment mass type mono
+SEARCH, Y, Fragment search tolerance plus,  MS:1001412#search tolerance plus value#Da
+SEARCH, Y, Fragment search tolerance minus, MS:1001413#search tolerance minus value#DA
+SEARCH, Y, Parent search tolerance plus,    MS:1001412#search tolerance plus value#ppm
+SEARCH, Y, Parent search tolerance minus,   MS:1001413#search tolerance minus value#ppm
+SEARCH, Y, PSM threshold,                   MS:1001494#no threshold
+//
+SEARCH, Y, Enzyme,                          MS:1001251#Trypsin
+SEARCH, Y, Missed cleavages,                1
+//
+SEARCH, Y, Input file format,               MS:1001399#OMSSA csv file
+SEARCH, Y, Database file format,            MS:1001348#FASTA format
+SEARCH, Y, Spectra data file format,        MS:1001062#Mascot MGF file
+SEARCH, Y, Spectrum ID format,              MS:1000774#multiple peak list nativeID format
+SEARCH, Y, Local database path,             c:/local/sequences/refseq_human.fasta
+SEARCH, Y, Database name,                   refseq_human
+SEARCH, Y, Searched spectrum,               /Users/yuw/Documents/Data/Joslin/MGF/Mouse_Plasma_LIRKO2_24_27Aug12_Lynx_12-07-02.mgf
+// Optional parameters
+SEARCH, N, Decoy database composition,      MS:1001197#DB composition target+decoy
+SEARCH, N, Decoy database regex,            MS:1001283#decoy DB acession regexp#Rev
+SEARCH, N, Decoy database type,             MS:1001195#decoy DB type reverse
+// Modifications
+MOD, N, oxidation of M,                     UNIMOD:35#Oxidation#Var#Any#M#15.9949
+MOD, Y, itraq n-term,                       UNIMOD:529#iTRAQ4plex114#Fixed#Nt#[#144.106
+MOD, Y, itraq k,                            UNIMOD:529#iTRAQ4plex114#Fixed#Any#K#144.106
+MOD, N, pyro-glu from n-term Q,             UNIMOD:28#Gln-&gt;pyro-Glu#Var#Nt#Q#-17.027
+MOD, N, acetyl protein n term,              UNIMOD:1#Acetyl#Var#NT#[#42.01
+MOD, Y, carbamidomethyl C,                  UNIMOD:4#Carbamidomethyl#Fixed#Any#C#57.021464

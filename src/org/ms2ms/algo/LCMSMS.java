@@ -1,9 +1,6 @@
 package org.ms2ms.algo;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.TreeBasedTable;
-import com.google.common.collect.TreeMultimap;
+import com.google.common.collect.*;
 import org.expasy.mzjava.core.ms.spectrum.ScanNumber;
 import org.expasy.mzjava.core.ms.spectrum.ScanNumberList;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
@@ -76,13 +73,90 @@ public class LCMSMS
     }
     return id_match;
   }
+  // chasing a cutoff by the required fdr cutoff
+  public static <K> double[] byFDR(Multimap<K, PeptideMatch> id_match, String score, boolean below, Range<Double> range, double q, double pct)
+  {
+    if (!Tools.isSet(id_match)) return null;
+
+    double cut0=range.lowerEndpoint(), cut1=range.upperEndpoint(), cut = (cut0+cut1)/2d;
+    double[] fdr_lower=FDR(id_match, score, below, cut0),
+             fdr      =FDR(id_match, score, below, cut),
+             fdr_upper=FDR(id_match, score, below, cut1);
+
+    int round=0;
+    while (Math.abs(fdr[0]-q)/q>pct/100d)
+    {
+      if (++round>25) break;
+      //System.out.println("hits/decoy/q/fdr:"+fdr[1]+"/"+fdr[2]+"/"+q+"/"+fdr[0]);
+
+      // figure out the direction
+      if (fdr[0]<q)
+      {
+        if (below)
+        {
+          // need to move the cut level up
+          fdr_lower=fdr; cut0=cut;
+          cut=(cut+cut1)/2d;
+        }
+        else
+        {
+          fdr_upper=fdr; cut1=cut;
+          cut=(cut+cut0)/2d;
+        }
+      }
+      else
+      {
+        if (!below)
+        {
+          // need to move the cut level up
+          fdr_lower=fdr; cut0=cut;
+          cut=(cut+cut1)/2d;
+        }
+        else
+        {
+          fdr_upper=fdr; cut1=cut;
+          cut=(cut+cut0)/2d;
+        }
+      }
+      fdr=FDR(id_match, score, below, cut);
+    }
+
+    return fdr;
+  }
+  public static <K> double[] FDR(Multimap<K, PeptideMatch> id_match, String score, boolean below, double q)
+  {
+    double[] outs = new double[4];
+    if (Tools.isSet(id_match))
+    {
+      long hits=0, decoys=0;
+      for (K id : id_match.keySet())
+      {
+        for (PeptideMatch m : id_match.get(id))
+        {
+          // anywhere among the ranks
+          boolean OK=m.hasScore(score)?(below?(m.getScore(score)<=q):(m.getScore(score)>=q)):false;
+          // only count the top ranked
+          if (m.getRank()==1 && OK)
+          {
+            if (m.getProteinMatches().get(0).getHitType().equals(PeptideProteinMatch.HitType.DECOY)) decoys++;
+            else hits++;
+          }
+        }
+      }
+      outs[0] = 2*(double)decoys/((double)decoys+(double)hits);
+      outs[1] = hits;
+      outs[2] = decoys;
+      outs[3] = q;
+    }
+    return outs;
+  }
   // consider only the top-ranked
   public static <K> Dataframe cut(Multimap<K, PeptideMatch> id_match, String score, @Nonnull double... qvals)
   {
     boolean below = qvals[0]>qvals[qvals.length-1];
     if (Tools.isSet(id_match))
     {
-      System.out.println("||"+score+"||Hits||Decoys||inProtein||inProteinTop||inProteinTopQual||MSMS||");
+      System.out.println("||"+score+"||Hits||Decoys||fdr||inProtein||inProteinTop||inProteinTopQual||MSMS||");
 
       id_match = byRank(id_match, 1);
       Dataframe d = new Dataframe("PSMs thresholded by " + score);
@@ -115,16 +189,18 @@ public class LCMSMS
           }
           if (inP) inProtein++;
         }
+        double fdr = 2*(double)decoys/((double)decoys+(double)hits);
         // populate the data frame
         d.put(row, "Threshold", q);
         d.put(row, "Hits", hits);
         d.put(row, "Decoys", decoys);
+        d.put(row, "fdr", Stats.d2d(fdr, 6));
         d.put(row, "inProtein", inProtein);
         d.put(row, "inProteinTop", inProteinTop);
         d.put(row, "inProteinTopQual", inProteinTopQual);
         d.put(row, "MSMS", id_match.keySet().size());
 
-        System.out.println("|"+q+"|"+hits+"|"+decoys+"|"+inProtein+"|"+inProteinTop+"|"+inProteinTopQual+"|"+id_match.keySet().size()+"|");
+        System.out.println("|"+q+"|"+hits+"|"+decoys+"|"+fdr+"|"+inProtein+"|"+inProteinTop+"|"+inProteinTopQual+"|"+id_match.keySet().size()+"|");
 //        System.out.println("Threshold: " + q + ", Hits: " + hits + ", Decoys: " + decoys + ", MSMS: " + id_match.keySet().size());
         row++;
       }

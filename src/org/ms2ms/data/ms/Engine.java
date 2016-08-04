@@ -23,9 +23,12 @@ public class Engine implements Comparable<Engine>
 {
   private boolean mIsDesending = true;
   private String mName=null,            // the name
+                 mPsiName=null,
+                 mVersion="0.0",
                  mCanonicalScore=null,  // the main score used to rank the entries from the same engine
                  mDeltaScore=PSMs.SCR_DELTA,
-                 mProb=null;            // A calibrated probability score for cross engine comparison
+                 mProb=null,            // A calibrated probability score for cross engine comparison
+                 mPsiCV=null;
   private String[] mPercolators = null;
 
   public static final Engine AMANDA    = new Engine("MS Amanda", "AmandaScore").setPercolators(
@@ -44,14 +47,16 @@ public class Engine implements Comparable<Engine>
   public static final Engine MYRIMATCH = new Engine("MyriMatch", "MyriMatch:MVH").setPercolators(
       "SpecId","Label","ScanNr","ExpMass","CalcMass","Charge1","Charge2","Charge3","Charge4","Mass","PepLen","enzN","enzC","dM","absdM",
       "xcorr","MyriMatch:mzFidelity","MyriMatch:MVH", "yb","Peptide","Proteins");
-  public static final Engine OMSSA     = new Engine("OMSSA", "dbEVal");
+  public static final Engine OMSSA     = new Engine("OMSSA", "dbEVal").setPercolators(
+      "SpecId","Label","ScanNr","ExpMass","CalcMass","Charge1","Charge2","Charge3","Charge4","Mass","PepLen","enzN","enzC","dM","absdM",
+      "OMSSA:EVal","OMSSA:PVal","dbEVal","dbPVal","OMSSA:NIST", "yb","Peptide","Proteins");
   public static final Engine PEAKS     = new Engine("PEAKS", "PeakScore");
   public static final Engine PERCOLATOR= new Engine("Percolator", "qVal", "PEP");
   public static final Engine PPILOT    = new Engine("ProteinPilot", "Sc", "Conf");
   public static final Engine SEQUEST   = new Engine("Sequest", "XCorr");
   public static final Engine XTANDEM   = new Engine("X!Tandem", "X\\!Tandem:hyperscore").setPercolators(
       "SpecId","Label","ScanNr","ExpMass","CalcMass","Charge1","Charge2","Charge3","Charge4","Mass","PepLen","enzN","enzC","dM","absdM",
-      "X\\!Tandem:hyperscore", "X\\!Tandem:expect", "yb","Peptide","Proteins");
+      "X\\!Tandem:hyperscore", "X\\!Tandem:expect", "yb","Peptide","Proteins").setPsiName("X\\!Tandem").setPsiCV("MS:1001476");
 
   // round out the parameters for the known engines
   static
@@ -67,12 +72,17 @@ public class Engine implements Comparable<Engine>
 
   public String getDeltaScore()     { return mDeltaScore; }
   public String getName()           { return mName; }
+  public String getPsiName()        { return mPsiName; }
   public String getCanonicalScore() { return mCanonicalScore; }
   public String getProbScore()      { return mProb; }
+  public String getVersion()        { return mVersion; }
+  public String getPsiCV()          { return mPsiCV; }
   public boolean isDesending()      { return mIsDesending; }
   public String[] getPercolators()  { return mPercolators; }
 
-  public Engine setDeltaScore(    String s) { mDeltaScore=s; return this; }
+  public Engine setDeltaScore(    String s) { mDeltaScore=s;  return this; }
+  public Engine setPsiCV(         String s) { mPsiCV=s;       return this; }
+  public Engine setPsiName(       String s) { mPsiName=s;     return this; }
   public Engine isDesending(     boolean s) { mIsDesending=s; return this; }
   public Engine setPercolators(String... s) { mPercolators=s; return this; }
 

@@ -1,12 +1,15 @@
 package org.ms2ms.algo;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
+import org.apache.commons.collections.map.HashedMap;
 import org.expasy.mzjava.core.ms.peaklist.*;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeList;
+import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Tools;
 
 import java.util.*;
@@ -320,5 +323,54 @@ public class Spectra
       if (isValid(data, i)) counts++;
 
     return counts;
+  }
+  // estimate the noise floor of the spectrum
+  public static double floor(PeakList A, Range<Double> bound, int poolsize, double pct)
+  {
+    if (A!=null && Tools.isSet(bound))
+    {
+      List<Double> AIs = new ArrayList<>();
+      for (int i=0; i<A.size(); i++)
+        if (bound.contains(A.getMz(i))) AIs.add(A.getIntensity(i));
+
+      Collections.sort(AIs);
+      int max = (int )Math.ceil(A.size()*pct*0.01);
+      return Stats.mean(AIs.subList(0, poolsize>max?max:poolsize));
+    }
+    // signal for invalid result
+    return -1;
+  }
+  public static Map<String, Double> survey(PeakList A, Range<Double> bound, int poolsize, double pct)
+  {
+    Map<String, Double> stats = new HashMap<>();
+    List<Double> AIs = new ArrayList<>();
+
+    if (A!=null && Tools.isSet(bound))
+    {
+      for (int i=0; i<A.size(); i++)
+        if (bound.contains(A.getMz(i))) AIs.add(A.getIntensity(i));
+
+      Collections.sort(AIs);
+      int max = (int )Math.ceil(AIs.size()*pct*0.01);
+      stats.put("LocalFloor",Stats.mean(AIs.subList(0, poolsize > max ? max : poolsize)));
+      stats.put("LocalMin", Tools.front(AIs));
+      stats.put("LocalMax", Tools.back(AIs));
+    }
+    if (A!=null && A.size()>1)
+    {
+      AIs.clear();
+      for (int i=0; i<A.size(); i++) AIs.add(A.getIntensity(i));
+      Collections.sort(AIs);
+
+      int max = (int )Math.ceil(A.size()*pct*0.01);
+      stats.put("GlobalFloor",Stats.mean(AIs.subList(0, poolsize > max ? max : poolsize)));
+      stats.put("GlobalMin", Tools.front(AIs));
+      stats.put("GlobalMax", Tools.back (AIs));
+      stats.put("GlobalMedian", AIs.get((int )Math.round((AIs.size()-1)*0.5)));
+      stats.put("Global95pct",  AIs.get((int )Math.round((AIs.size()-1)*0.95)));
+      stats.put("Global5pct",   AIs.get((int )Math.round((AIs.size()-1)*0.05)));
+    }
+    // signal for invalid result
+    return stats;
   }
 }

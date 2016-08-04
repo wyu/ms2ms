@@ -760,20 +760,20 @@ public class PsmReaders
       match.setNeutralPeptideMass(id.getPrecursorNeutralMass().get() + match.getMassDiff());
       PSMs.addScore(match, "^Charge",      file.getInt("Charge"));
 
-      id_match = PSMs.add(id_match, id, match, lowest_rank, sorter);
-//
-//      if (!id_match.put(id, match))
-//      {
-////        System.out.println("Duplicated?");
-//      }
+      //id_match = PSMs.add(id_match, id, match, lowest_rank, sorter);
+
+      if (!id_match.put(id, match))
+      {
+//        System.out.println("Duplicated?");
+      }
       if (++counts%5000==0) System.out.print(".");
     }
     System.out.println();
     // make sure we clear the temp objects
     file.close(); file=null; Tools.dispose(run_scan_id);
 
-    return id_match;
-//    return PSMs.trimByRank(LCMSMS.rank(id_match, "MSGFScore", true, false), lowest_rank);
+    //return id_match;
+    return PSMs.trimByRank(LCMSMS.rank(id_match, "MSGFScore", true, false), lowest_rank);
   }
   // read the output of Percolator *.psms file
   // PSMId   score   q-value posterior_error_prob    peptide proteinIds
