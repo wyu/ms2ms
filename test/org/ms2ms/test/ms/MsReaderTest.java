@@ -102,11 +102,24 @@ public class MsReaderTest extends TestAbstract
   @Test
   public void statMzXMLs() throws IOException
   {
-    String[] rawfiles = {"20081129_Orbi6_NaNa_SA_FASP_blacktips_01","20081129_Orbi6_NaNa_SA_FASP_blacktips_02"};
-//    Dataframe test = MsReaders.surveyMzXML(rawfiles, root, "/tmp/survey01", Range.openClosed(20d, 21d), 2);
-    Dataframe test = MsReaders.surveyMzXML(rawfiles, root, "/tmp/survey01", null, 2);
+    root = "/Volumes/PPP_Data/JHU DATA/141112 Project 7_MS2/P7M1/Data-QE/";
+    //String[] rawfiles = {"20081129_Orbi6_NaNa_SA_FASP_blacktips_01","20081129_Orbi6_NaNa_SA_FASP_blacktips_02"};
+    String[] rawfiles = {"RC-CS-141112_Medimmune_HD_P7M1_Fr19","RC-CS-141112_Medimmune_HD_P7M1_Fr8"};
 
-    IOs.write("/tmp/surveys.txt", test.display().toString());
+//    Dataframe test = MsReaders.surveyMzXML(rawfiles, root, "/tmp/survey01", Range.openClosed(20d, 21d), 2);
+    Dataframe test = MsReaders.surveyMzXML(rawfiles, root, "survey01", null, 2);
+
+    IOs.write(root+"surveys.txt", test.display().toString());
+  }
+  @Test
+  public void statMzXMLsByFolder() throws IOException
+  {
+    //root = "/Volumes/PPP_Data/JHU DATA/141112 Project 7_MS2/P7M1/Data-QE/";
+    root = "/Volumes/PPP_Data/JHU DATA/141112 Project 7_MS2/P7M2/";
+
+    Dataframe test = MsReaders.surveyMzXML(root, "survey02", null, 2);
+
+    IOs.write(root+"surveys.txt", test.display().toString());
   }
   @Test
   public void surveyMzXMLs() throws IOException

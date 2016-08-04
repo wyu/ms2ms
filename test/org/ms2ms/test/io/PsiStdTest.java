@@ -1,18 +1,26 @@
 package org.ms2ms.test.io;
 
+import com.google.common.collect.Multimap;
 import com.google.common.collect.RowSortedTable;
 import com.google.common.collect.Table;
 import com.google.common.collect.TreeBasedTable;
+import org.apache.commons.io.FileSystemUtils;
 import org.expasy.mzjava.core.io.ms.spectrum.MgfWriter;
 import org.expasy.mzjava.core.ms.peaklist.PeakAnnotation;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
+import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
+import org.expasy.mzjava.proteomics.ms.ident.SpectrumIdentifier;
 import org.junit.Test;
 import org.ms2ms.algo.LCMSMS;
 import org.ms2ms.algo.PurgingPeakProcessor;
 import org.ms2ms.algo.Spectra;
+import org.ms2ms.data.ms.Engine;
 import org.ms2ms.io.MsIO;
 import org.ms2ms.io.MsReaders;
+import org.ms2ms.io.MzIDs;
+import org.ms2ms.io.PsmReaders;
+import org.ms2ms.r.Dataframe;
 import org.ms2ms.test.TestAbstract;
 import uk.ac.ebi.jmzidml.MzIdentMLElement;
 import uk.ac.ebi.jmzidml.model.mzidml.*;
@@ -24,6 +32,7 @@ import uk.ac.ebi.jmzml.xml.io.MzMLObjectIterator;
 import uk.ac.ebi.jmzml.xml.io.MzMLUnmarshaller;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -37,61 +46,40 @@ import java.util.List;
 public class PsiStdTest extends TestAbstract
 {
   @Test
-  public void splitMs2MS3() throws Exception
+  public void writeMzIDviaPeptideMatches() throws Exception
   {
-    String   root = "C:/local/data/TMT_MS3/TMT_MS3120_1800_40CE";
+    String data = "/Users/yuw/Documents/Data/Joslin/PSMs/default/Mouse_Plasma_LIRKO2_24_27Aug12_Lynx_12-07-02.omssa.csv";
+
+    // produce a list of peptide matches
+    Multimap<SpectrumIdentifier, PeptideMatch> spec_match = Engine.OMSSA.readPSMs(data, 1);
+
+    // a basic setup to write out an mzID file from a set of PeptideMatches
+    MzIDs  mzid = new MzIDs("data/TMT10QE.param").addSourceFile(data, "CSV");
+
+    // build the data set
+    mzid.buildPeptideMatches(spec_match);
+    // write the output
+    mzid.write(data+".mzid");
+  }
+  @Test
+  public void testSplitMS2MS3() throws Exception
+  {
+    //String   root = "C:/local/data/TMT_MS3/TMT_MS3120_1800_40CE";
 //    String   root = "C:/local/data/TMT_MS3/TMT_MS3120_1800_55CE";
-    File  xmlFile = new File(root+".mzML");
-    MgfWriter ms2 = new MgfWriter(new File(root+".ms2.mgf"), PeakList.Precision.FLOAT),
-              ms3 = new MgfWriter(new File(root+".ms3.mgf"), PeakList.Precision.FLOAT);
 
-    MzMLUnmarshaller unmarshaller = new MzMLUnmarshaller(xmlFile);
+//    File[] files = new File("/Users/yuw/Documents/Data/MS2MS3/mzML").listFiles();
+//    File[] files = new File("/Users/yuw/Documents/Data/MS2MS3/mzML150").listFiles();
+//    File[] files = new File("/Users/yuw/Documents/Data/MS2MS3/mzML.refs").listFiles();
+    File[] files = new File("/Users/yuw/Documents/Data/MS2MS3/mzMLCHO").listFiles();
 
-    // looping through the scans
-    RowSortedTable<Double, Integer, MsnSpectrum> cache = TreeBasedTable.create();
-    MzMLObjectIterator<Spectrum> spectrumIterator = unmarshaller.unmarshalCollectionFromXpath("/run/spectrumList/spectrum", Spectrum.class);
-
-    System.out.println("Writing the MS2 and MS3 contents into separate files");
-    int counts=0;
-    while (spectrumIterator.hasNext())
+//    File[] files = new File("/Volumes/PPP_Data/Fusion-03 Data/151107_Ecoli_12protein_Spike_MS2_MS3/working/").listFiles();
+    for (File mzML : files)
     {
-      MsnSpectrum ms = MsReaders.from(spectrumIterator.next());
-      if (++counts % 1000 == 0) System.out.print(".");
-      if      (ms.getMsLevel()==2)
-      {
-        ms2.write(ms);
-        cache.put(LCMSMS.parseNominalPrecursorMz(ms.getComment()), ms.getScanNumbers().getFirst().getValue(), ms);
-      }
-      else if (ms.getMsLevel()==3)
-      {
-        // figure out the parent MS2 scan within the isolation window
-        Integer parent = null; Double pmz=null;
-        for (Double mz : cache.rowKeySet().subSet(ms.getPrecursor().getMz()-0.02, ms.getPrecursor().getMz()+0.02))
-          if (parent==null || Collections.max(cache.row(mz).keySet())>parent)
-          {
-            parent = Collections.max(cache.row(mz).keySet());
-            pmz    = cache.get(mz, parent).getPrecursor().getMz();
-          }
-        if (parent!=null)
-        {
-          ms.setParentScanNumber(ms.getScanNumbers().getFirst());
-          ms.getScanNumbers().clear();
-          ms.addScanNumber(parent);
-          if (pmz!=null) ms.getPrecursor().setMzAndCharge(pmz, ms.getPrecursor().getCharge());
-        }
-        else
-        {
-          System.out.println();
-        }
-
-        // remove the reporter ions to avoid search interference
-        Spectra.notchUpto(ms, 150d);
-
-        ms3.write(ms.copy(new PurgingPeakProcessor<>()));
-      }
+      if (mzML.getName().indexOf(".mzML")<=0) continue;
+      String mzml_root = mzML.getCanonicalPath().substring(0, mzML.getCanonicalPath().lastIndexOf("."));
+      System.out.println("Splitting "+mzml_root);
+      MsReaders.splitMs2MS3(mzml_root);
     }
-
-    ms2.close(); ms3.close();
   }
 
   @Test
