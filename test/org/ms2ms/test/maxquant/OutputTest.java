@@ -8,7 +8,6 @@ import org.ms2ms.algo.MsStats;
 import org.ms2ms.data.ms.MaxQuant;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.r.Var;
-import org.ms2ms.runner.Aligner;
 import org.ms2ms.test.TestAbstract;
 import org.ms2ms.utils.IOs;
 
@@ -143,22 +142,22 @@ public class OutputTest extends TestAbstract
 
     evidences.setVar("Calibrated RT", MsStats.sum(evidences.getDoubleCol("Retention time", true), evidences.getDoubleCol("Retention time calibration", true)));
   }
-  @Test
-  public void aligning() throws Exception
-  {
-    prepare();
-
-    //Map<Object, Dataframe> outs = evidences.split("Raw file");
-    Map<Object, Dataframe> outs = peptides.split("Raw file");
-
-    Aligner aligner = new Aligner(new Tolerance[] {mztol, rttol}, "m/z", "Retention time");
-    aligner.run(outs.values().toArray(new Dataframe[] {}));
-
-    System.out.println("\n" + aligner.print());
-
-    for (Object obj : outs.keySet())
-      System.out.println(obj.toString() + "\n" + outs.get(obj).display());
-  }
+//  @Test
+//  public void aligning() throws Exception
+//  {
+//    prepare();
+//
+//    //Map<Object, Dataframe> outs = evidences.split("Raw file");
+//    Map<Object, Dataframe> outs = peptides.split("Raw file");
+//
+//    Aligner aligner = new Aligner(new Tolerance[] {mztol, rttol}, "m/z", "Retention time");
+//    aligner.run(outs.values().toArray(new Dataframe[] {}));
+//
+//    System.out.println("\n" + aligner.print());
+//
+//    for (Object obj : outs.keySet())
+//      System.out.println(obj.toString() + "\n" + outs.get(obj).display());
+//  }
   protected void prepare()
   {
     // allPeptides100.txt  evidence100.txt  msms100.txt  msmsScans100.txt

@@ -5,23 +5,28 @@ package org.ms2ms.data.ms;
  */
 public class FragmentEntry implements Comparable<FragmentEntry>
 {
-  private Long mProteinKey, mPeptideKey;
-  private Double mNextFragment;
+  private int mLength;
+  private Long mPeptideKey;
+  private Double mMH;
+  private FragmentEntry mPrev;
 
   public FragmentEntry() { super(); }
-  public FragmentEntry(Long protein, Long peptide, Double frag)
+  public FragmentEntry(Double mh, Long peptide, FragmentEntry prev, int len)
   {
     super();
-    mProteinKey=protein; mPeptideKey=peptide; mNextFragment=frag;
+    mMH=mh; mPeptideKey=peptide; mPrev=prev; mLength=len;
   }
 
-  public Long   getProteinKey() { return mProteinKey; }
-  public Long   getPeptideKey() { return mPeptideKey; }
-  public Double next()          { return mNextFragment; }
+  public int           getLength()     { return mLength; }
+  public Double        getMH()         { return mMH; }
+  public Long          getPeptideKey() { return mPeptideKey; }
+  public FragmentEntry getPrev()       { return mPrev; }
+
+  public FragmentEntry setLen(int s)   { mLength=s; return this; }
 
   @Override
   public int compareTo(FragmentEntry o)
   {
-    return Long.compare(mProteinKey, o.getProteinKey());
+    return Long.compare(mPeptideKey, o.getPeptideKey());
   }
 }

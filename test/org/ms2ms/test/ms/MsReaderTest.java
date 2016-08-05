@@ -1,22 +1,16 @@
 package org.ms2ms.test.ms;
 
 import com.google.common.collect.Range;
-import org.expasy.mzjava.core.io.ms.spectrum.MgfWriter;
 import org.expasy.mzjava.core.io.ms.spectrum.MzxmlReader;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.junit.Test;
-import org.ms2ms.data.ms.LcMsMsDataset;
-import org.ms2ms.data.ms.MaxQuant;
 import org.ms2ms.data.ms.MsSpectrum;
 import org.ms2ms.io.MsIO;
 import org.ms2ms.io.MsReaders;
-import org.ms2ms.r.Dataframe;
 import org.ms2ms.test.TestAbstract;
-import org.ms2ms.utils.IOs;
 
 import java.io.*;
-import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -99,50 +93,50 @@ public class MsReaderTest extends TestAbstract
     MsSpectrum m4 = (MsSpectrum )obj_in.readObject();
     obj_in.close(); f_in.close();
   }
-  @Test
-  public void statMzXMLs() throws IOException
-  {
-    root = "/Volumes/PPP_Data/JHU DATA/141112 Project 7_MS2/P7M1/Data-QE/";
-    //String[] rawfiles = {"20081129_Orbi6_NaNa_SA_FASP_blacktips_01","20081129_Orbi6_NaNa_SA_FASP_blacktips_02"};
-    String[] rawfiles = {"RC-CS-141112_Medimmune_HD_P7M1_Fr19","RC-CS-141112_Medimmune_HD_P7M1_Fr8"};
-
-//    Dataframe test = MsReaders.surveyMzXML(rawfiles, root, "/tmp/survey01", Range.openClosed(20d, 21d), 2);
-    Dataframe test = MsReaders.surveyMzXML(rawfiles, root, "survey01", null, 2);
-
-    IOs.write(root+"surveys.txt", test.display().toString());
-  }
-  @Test
-  public void statMzXMLsByFolder() throws IOException
-  {
-    //root = "/Volumes/PPP_Data/JHU DATA/141112 Project 7_MS2/P7M1/Data-QE/";
-    root = "/Volumes/PPP_Data/JHU DATA/141112 Project 7_MS2/P7M2/";
-
-    Dataframe test = MsReaders.surveyMzXML(root, "survey02", null, 2);
-
-    IOs.write(root+"surveys.txt", test.display().toString());
-  }
-  @Test
-  public void surveyMzXMLs() throws IOException
-  {
-    LcMsMsDataset test = new MaxQuant("survey");
-    test.setRawFilename(root+"20081129_Orbi6_NaNa_SA_FASP_blacktips_01.mzXML");
-
-    test = MsReaders.surveyMzXML(test, null, 2);
-
-    // write the examples out in MGF format
-    Collection<Long> ids = test.getMzRtFileOffset().subset(495.2d, 495.35d, 0d, Double.MAX_VALUE);
-    RandomAccessFile bin = test.getSpCacheFile(2);
-    MgfWriter mgf = new MgfWriter(new File("/tmp/examples495_3.mgf"), PeakList.Precision.DOUBLE);
-    for (Long id : ids)
-    {
-      bin.seek(id);
-      MsnSpectrum ms = MsIO.readSpectrumIdentifier(bin, new MsnSpectrum());
-      mgf.write(ms);
-    }
-    mgf.close(); bin.close();
-
-    assertEquals(test.getMzRtFileOffset().size(), 36831);
-  }
+//  @Test
+//  public void statMzXMLs() throws IOException
+//  {
+//    root = "/Volumes/PPP_Data/JHU DATA/141112 Project 7_MS2/P7M1/Data-QE/";
+//    //String[] rawfiles = {"20081129_Orbi6_NaNa_SA_FASP_blacktips_01","20081129_Orbi6_NaNa_SA_FASP_blacktips_02"};
+//    String[] rawfiles = {"RC-CS-141112_Medimmune_HD_P7M1_Fr19","RC-CS-141112_Medimmune_HD_P7M1_Fr8"};
+//
+////    Dataframe test = MsReaders.surveyMzXML(rawfiles, root, "/tmp/survey01", Range.openClosed(20d, 21d), 2);
+//    Dataframe test = MsReaders.surveyMzXML(rawfiles, root, "survey01", null, 2);
+//
+//    IOs.write(root+"surveys.txt", test.display().toString());
+//  }
+//  @Test
+//  public void statMzXMLsByFolder() throws IOException
+//  {
+//    //root = "/Volumes/PPP_Data/JHU DATA/141112 Project 7_MS2/P7M1/Data-QE/";
+//    root = "/Volumes/PPP_Data/JHU DATA/141112 Project 7_MS2/P7M2/";
+//
+//    Dataframe test = MsReaders.surveyMzXML(root, "survey02", null, 2);
+//
+//    IOs.write(root+"surveys.txt", test.display().toString());
+//  }
+//  @Test
+//  public void surveyMzXMLs() throws IOException
+//  {
+//    LcMsMsDataset test = new MaxQuant("survey");
+//    test.setRawFilename(root+"20081129_Orbi6_NaNa_SA_FASP_blacktips_01.mzXML");
+//
+//    test = MsReaders.surveyMzXML(test, null, 2);
+//
+//    // write the examples out in MGF format
+//    Collection<Long> ids = test.getMzRtFileOffset().subset(495.2d, 495.35d, 0d, Double.MAX_VALUE);
+//    RandomAccessFile bin = test.getSpCacheFile(2);
+//    MgfWriter mgf = new MgfWriter(new File("/tmp/examples495_3.mgf"), PeakList.Precision.DOUBLE);
+//    for (Long id : ids)
+//    {
+//      bin.seek(id);
+//      MsnSpectrum ms = MsIO.readSpectrumIdentifier(bin, new MsnSpectrum());
+//      mgf.write(ms);
+//    }
+//    mgf.close(); bin.close();
+//
+//    assertEquals(test.getMzRtFileOffset().size(), 36831);
+//  }
   @Test
   public void nextSpec() throws IOException
   {

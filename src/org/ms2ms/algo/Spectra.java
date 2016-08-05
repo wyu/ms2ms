@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import org.apache.commons.collections.map.HashedMap;
+import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.*;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
@@ -372,5 +373,14 @@ public class Spectra
     }
     // signal for invalid result
     return stats;
+  }
+  public static MsnSpectrum consolidate(MsnSpectrum ms, Tolerance tol)
+  {
+    if (ms==null || ms.size()<2) return ms;
+
+    PeakList m = Peaks.consolidate(ms, tol);
+    ms.clear(); ms.addPeaks(m);
+
+    return ms;
   }
 }

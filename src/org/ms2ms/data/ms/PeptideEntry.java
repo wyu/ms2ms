@@ -10,19 +10,19 @@ public class PeptideEntry
 {
   private IonType mIonType; // enum
   private int  mTerminal;
-  private long mSequencePointer;
+  private long mProteinKey;
 
   public PeptideEntry() { super(); }
   public PeptideEntry(long pointer, int terminal, IonType type)
   {
     super();
-    mSequencePointer=pointer; mTerminal=terminal; mIonType=type;
+    mProteinKey=pointer; mTerminal=terminal; mIonType=type;
   }
 
-  public long    getSequencePointer() { return mSequencePointer; }
-  public int     getTerminal()        { return mTerminal; }
+  public long    getProteinKey() { return mProteinKey; }
+  public int     getTerminal()   { return mTerminal; }
 
-  public IonType getIonType()         { return mIonType; }
-  public boolean isY()                { return IonType.y==mIonType; }
-  public boolean isB()                { return IonType.b==mIonType; }
+  public IonType getIonType()    { return mIonType; }
+  public boolean isY()           { return IonType.y==mIonType; }
+  public boolean isB()           { return IonType.b==mIonType; }
 }

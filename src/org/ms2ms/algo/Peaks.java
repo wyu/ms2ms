@@ -10,7 +10,9 @@ import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepFragAnnotation;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
+import org.ms2ms.data.Point;
 import org.ms2ms.data.ms.FragmentEntry;
+import org.ms2ms.math.Points;
 import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
@@ -699,6 +701,31 @@ public class Peaks
   public static Collection<FragmentEntry> query(TreeMultimap<Double, FragmentEntry> indices, Range<Double> mz)
   {
     return Tools.isSet(mz) ? Tools.flatten(indices.asMap().subMap(mz.lowerEndpoint(), mz.upperEndpoint()).values()) : null;
+  }
+  public static PeakList consolidate(PeakList peaks, Tolerance tol)
+  {
+    if (peaks==null || peaks.size()<2) return peaks;
+
+    Collection<Point> pts = new ArrayList<>();
+    for (int i=0; i<peaks.size(); i++)
+    {
+      double max = tol.getMax(peaks.getMz(i));
+      pts.clear();
+      for (int j=i+1; j<peaks.size(); j++)
+        if (j<peaks.size() && peaks.getMz(j)<=max)
+        {
+          pts.add(new Point(peaks.getMz(j), peaks.getIntensity(j)));
+          peaks.setIntensityAt(-1d, j);
+        }
+      if (pts.size()>0)
+      {
+        pts.add(new Point(peaks.getMz(i), peaks.getIntensity(i)));
+        peaks.setIntensityAt(-1d, i);
+        peaks.add(Points.centroid(pts), Points.sumY(pts));
+      }
+    }
+    // keeping just the peaks with positive intensities
+    return peaks.copy(new PurgingPeakProcessor());
   }
 }
 
