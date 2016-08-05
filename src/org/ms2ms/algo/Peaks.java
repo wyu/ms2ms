@@ -706,24 +706,31 @@ public class Peaks
   {
     if (peaks==null || peaks.size()<2) return peaks;
 
-    Collection<Point> pts = new ArrayList<>();
+    Collection<Point> pts = new ArrayList<>(), news = new ArrayList<>();
     for (int i=0; i<peaks.size(); i++)
     {
       double max = tol.getMax(peaks.getMz(i));
       pts.clear();
       for (int j=i+1; j<peaks.size(); j++)
+      {
         if (j<peaks.size() && peaks.getMz(j)<=max)
         {
           pts.add(new Point(peaks.getMz(j), peaks.getIntensity(j)));
           peaks.setIntensityAt(-1d, j);
         }
+        else break;
+      }
       if (pts.size()>0)
       {
         pts.add(new Point(peaks.getMz(i), peaks.getIntensity(i)));
         peaks.setIntensityAt(-1d, i);
-        peaks.add(Points.centroid(pts), Points.sumY(pts));
+        news.add(new Point(Points.centroid(pts), Points.sumY(pts)));
       }
     }
+    if (Tools.isSet(news))
+      for (Point xy : news)
+          peaks.add(xy.getX(), xy.getY());
+
     // keeping just the peaks with positive intensities
     return peaks.copy(new PurgingPeakProcessor());
   }

@@ -1,5 +1,8 @@
 package org.ms2ms.data.ms;
 
+import org.ms2ms.utils.Strs;
+import org.ms2ms.utils.Tools;
+
 /**
  * Created by yuw on 8/4/16.
  */
@@ -28,5 +31,11 @@ public class FragmentEntry implements Comparable<FragmentEntry>
   public int compareTo(FragmentEntry o)
   {
     return Long.compare(mPeptideKey, o.getPeptideKey());
+  }
+
+  @Override
+  public String toString()
+  {
+    return mPeptideKey+":"+mLength+"#"+ (mMH!=null?Tools.d2s(mMH, 4):"NUL")+"<-"+(mPrev!=null?Tools.d2s(mPrev.getMH(),4):"NUL");
   }
 }
