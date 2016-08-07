@@ -30,12 +30,15 @@ public class FragmentEntry implements Comparable<FragmentEntry>
   @Override
   public int compareTo(FragmentEntry o)
   {
-    return Long.compare(mPeptideKey, o.getPeptideKey());
+    int c = Long.compare(mPeptideKey, o.getPeptideKey());
+    if (c==0) c = Integer.compare(mLength, o.getLength());
+
+    return c;
   }
 
   @Override
   public String toString()
   {
-    return mPeptideKey+":"+mLength+"#"+ (mMH!=null?Tools.d2s(mMH, 4):"NUL")+"<-"+(mPrev!=null?Tools.d2s(mPrev.getMH(),4):"NUL");
+    return mPeptideKey+":"+mLength+"#"+ (mMH!=null?Tools.d2s(mMH, 4):"NUL")+"<-"+(mPrev!=null?Tools.d2s(mPrev.getMH(), 4):"NUL");
   }
 }

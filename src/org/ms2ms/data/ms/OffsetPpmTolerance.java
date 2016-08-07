@@ -1,5 +1,6 @@
 package org.ms2ms.data.ms;
 
+import com.google.common.collect.Range;
 import org.expasy.mzjava.core.ms.PpmTolerance;
 
 /**
@@ -7,7 +8,7 @@ import org.expasy.mzjava.core.ms.PpmTolerance;
  */
 public class OffsetPpmTolerance extends PpmTolerance
 {
-  private double mScale=1d, mOffset, mTol;
+  private double mScale=1d, mOffset=0d, mTol=0d;
 
   public OffsetPpmTolerance() { super(0d); }
   public OffsetPpmTolerance(double tol, double offset)
@@ -15,7 +16,10 @@ public class OffsetPpmTolerance extends PpmTolerance
     super(tol); mOffset=offset; mTol=tol;
   }
 
-  public OffsetPpmTolerance scale(double s) { mScale=s; return this; }
+  public boolean isWithinByPPM(double s) { return Math.abs(s)<=mTol; }
+
+  public OffsetPpmTolerance scale( double s) { mScale =s; return this; }
+  public OffsetPpmTolerance offset(double s) { mOffset=s; return this; }
 
   @Override
   public Location check(double expected, double actual)
@@ -25,6 +29,8 @@ public class OffsetPpmTolerance extends PpmTolerance
     else                                return Location.WITHIN;
   }
 
+  public Range<Double> getBoundary(double mz) { return Range.closed(getMin(mz), getMax(mz)); }
+
   @Override
   public boolean withinTolerance(double expected, double actual) { return actual >= getMin(expected) && actual <= getMax(expected); }
 
@@ -33,6 +39,10 @@ public class OffsetPpmTolerance extends PpmTolerance
   @Override
   public double getMax(double mz) { return  mz+calcError(mz)+calcOffset(mz); }
 
+  public OffsetPpmTolerance clone()
+  {
+    return new OffsetPpmTolerance(mTol, mOffset).scale(mScale);
+  }
   private double calcError( double expectedMass) { return expectedMass * (mTol*mScale/1000000d); }
   private double calcOffset(double expectedMass) { return expectedMass * (mOffset/1000000d); }
 }
