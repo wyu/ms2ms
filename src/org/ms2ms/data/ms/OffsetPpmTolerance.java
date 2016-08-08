@@ -11,6 +11,7 @@ public class OffsetPpmTolerance extends PpmTolerance
   private double mScale=1d, mOffset=0d, mTol=0d;
 
   public OffsetPpmTolerance() { super(0d); }
+  public OffsetPpmTolerance(double tol) { super(tol); mTol=tol; }
   public OffsetPpmTolerance(double tol, double offset)
   {
     super(tol); mOffset=offset; mTol=tol;

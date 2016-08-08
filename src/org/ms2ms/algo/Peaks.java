@@ -702,6 +702,10 @@ public class Peaks
   {
     return Tools.isSet(mz) ? Tools.flatten(indices.asMap().subMap(mz.lowerEndpoint(), mz.upperEndpoint()).values()) : null;
   }
+  public static boolean match(TreeMultimap<Double, FragmentEntry> indices, Range<Double> mz)
+  {
+    return Tools.isSet(mz) ? Tools.isSet(indices.asMap().subMap(mz.lowerEndpoint(), mz.upperEndpoint())) : false;
+  }
   public static PeakList consolidate(PeakList peaks, Tolerance tol)
   {
     if (peaks==null || peaks.size()<2) return peaks;
@@ -733,6 +737,26 @@ public class Peaks
 
     // keeping just the peaks with positive intensities
     return peaks.copy(new PurgingPeakProcessor());
+  }
+  public static <T extends Peak> Double centroid(Collection<T> points)
+  {
+    return centroid(points, null, null);
+  }
+  public static <T extends Peak> Double centroid(Collection<T> points, Double x0, Double x1)
+  {
+    if (! Tools.isSet(points)) return null;
+
+    double sumXY = 0, sumY = 0;
+    for (Peak xy : points)
+    {
+      if ((x0 == null || xy.getMz() >= x0) &&
+          (x1 == null || xy.getMz() <= x1))
+      {
+        sumXY += xy.getMz() * xy.getIntensity();
+        sumY  += xy.getIntensity();
+      }
+    }
+    return sumY != 0 ? sumXY / sumY : null;
   }
 }
 

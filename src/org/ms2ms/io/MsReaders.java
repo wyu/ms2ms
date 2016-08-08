@@ -602,20 +602,30 @@ public class MsReaders
     return ms2;
   }
 
-//  private Map<String, CVParamType> toCVMap(List<AbstractParamType> paramGroup) {
-//
-//    if (paramGroup == null || paramGroup.isEmpty()) return new CVParamMap();
-//
-//    CVParamMap paramMap = new CVParamMap();
-//    for (AbstractParamType paramType : paramGroup) {
-//
-//      if (paramType instanceof CVParamType) {
-//
-//        CVParamType cvParamType = (CVParamType) paramType;
-//        paramMap.put(cvParamType.getAccession(), cvParamType);
-//      }
-//    }
-//
-//    return paramMap;
-//  }
+  public static void mzML2MGF(String mzml, String mgf, int... scans) throws IOException
+  {
+//    File mzmlFile = new File("/Users/yuw/Apps/pipeline/Chorus/data/151107_Ecoli_12protein_Spike_MS2_R2_Fr6.mzML");
+//    int[] scans = new int[] {20647, 21623, 22456};
+    MzMLUnmarshaller unmarshaller = new MzMLUnmarshaller(new File(mzml));
+    // looping through the scans
+    MzMLObjectIterator<Spectrum> spectrumIterator = unmarshaller.unmarshalCollectionFromXpath("/run/spectrumList/spectrum", Spectrum.class);
+
+    System.out.println("Going through the MS2 scans from:"+mzml);
+    int counts=0;
+    MgfWriter MGF = new MgfWriter(new File(mgf), PeakList.Precision.DOUBLE);
+    while (spectrumIterator.hasNext())
+    {
+      MsnSpectrum ms = MsReaders.from(spectrumIterator.next());
+      if (++counts % 1000 == 0) System.out.print(".");
+      if      (ms.getMsLevel()==2)
+      {
+        if (Arrays.binarySearch(scans, ms.getScanNumbers().getFirst().getValue())>=0)
+        {
+          System.out.println("Saving the scan " + ms.getScanNumbers().getFirst().getValue() + " to " + mgf);
+          MGF.write(ms);
+        }
+      }
+    }
+    MGF.close();
+  }
 }

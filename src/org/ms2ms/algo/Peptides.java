@@ -11,6 +11,7 @@ import org.expasy.mzjava.proteomics.mol.modification.ModAttachment;
 import org.expasy.mzjava.proteomics.ms.fragment.PeptideFragmentAnnotator;
 import org.expasy.mzjava.proteomics.ms.fragment.PeptideFragmenter;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
+import org.ms2ms.data.ms.FragmentEntry;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
@@ -69,5 +70,13 @@ public class Peptides
       AAs.put('^', 229.162932d); // TMT-10
     }
     return AAs;
+  }
+  // calculate the MH value of the peptide defined by the positions (left, right, inclusive) onto the 'sequence'
+  public static double calcMH(char[] sequence, int left, int right, Map<Character, Double> AAs)
+  {
+    double y=AAs.get('$')+2* 1.00783;
+    for (int c=right; c>=left; c--) y+=AAs.get(sequence[c]);
+
+    return y;
   }
 }
