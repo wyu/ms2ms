@@ -1,5 +1,7 @@
 package org.ms2ms.data.ms;
 
+import org.ms2ms.utils.Tools;
+
 /**
  * Created by yuw on 8/7/16.
  */
@@ -29,6 +31,12 @@ public class Ms2Hit implements Comparable<Ms2Hit>
   {
     mCalcMH=calc; mDeltaM=delta;
     return this;
+  }
+  @Override
+  public String toString()
+  {
+    return getProteinKey()+":"+getLeft()+"-"+getRight()+",m/z"+ Tools.d2s(mCalcMH, 5)+"$"+
+        (mB!=null?mB.getTrack().size():"*")+"->"+(mY!=null?mY.getTrack().size():"*");
   }
 
   @Override
