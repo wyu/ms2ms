@@ -606,6 +606,8 @@ public class MsIO extends IOs
 //  }
   public static Multimap<String, Protein> readFASTA(String filename)
   {
+    System.out.println("Reading the protein sequences from " + filename);
+
     FastaProteinReader fasta = null;
     try
     {

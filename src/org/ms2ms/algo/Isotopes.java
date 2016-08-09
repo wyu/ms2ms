@@ -80,7 +80,7 @@ public class Isotopes
     try
     {
       //init_data("/home/wyu/contrib/Rockwood/emass/ISOTOPE.DAT");
-      init_data("/bioinfo/apps/common/java/local/apps/ms/spectre/config/ISOTOPE.DAT");
+      init_data("/Users/yuw/Documents/Apps/contrib/ms2ms/data/ISOTOPE.DAT");
     }
     catch (Exception e) { throw new RuntimeException("Not able to initialize the isotope util: ", e); }
   }
@@ -329,7 +329,7 @@ H  2
     calculate(new ArrayList<Peak>(), result, fm, 0, charge);
     return new IsoEnvelope(result, charge);
   }
-  public static IsoEnvelope calcIsotopesByMz(double c12, int charge)
+  public static IsoEnvelope calcIsotopesByMz(double c12, int charge, double minri, double ai)
   {
     double               limit = 0;
     List<Peak>          result = new ArrayList<Peak>(), tmp = new ArrayList<Peak>();
@@ -340,15 +340,29 @@ H  2
 
     calculate(tmp, result, formula, limit, charge);
 
-    // scale the isotopes
-    double scale = c12 / result.get(0).getMz(), min_ai = result.get(0).getIntensity() * 0.001;
+    // move the predictions to the c12
+    double offset = c12 - result.get(0).getMz(), min_ai = result.get(0).getIntensity()*minri*0.01;
+    // scale the ai to the 1st c12
+    ai /= result.get(0).getIntensity();
+
     Iterator<Peak> itr = result.iterator();
     while (itr.hasNext())
     {
       Peak pk = itr.next();
-      pk.setMzAndCharge(pk.getMz() * scale, pk.getChargeList());
+      pk.setMzAndCharge(pk.getMz()+offset, pk.getChargeList());
+      pk.setIntensity(pk.getIntensity()*ai);
       if (pk.getIntensity() < min_ai) itr.remove();
     }
+
+    // scale the isotopes
+//    double scale = c12 / result.get(0).getMz(), min_ai = result.get(0).getIntensity() * 0.001;
+//    Iterator<Peak> itr = result.iterator();
+//    while (itr.hasNext())
+//    {
+//      Peak pk = itr.next();
+//      pk.setMzAndCharge(pk.getMz() * scale, pk.getChargeList());
+//      if (pk.getIntensity() < min_ai) itr.remove();
+//    }
     return new IsoEnvelope(result, charge);
   }
   public static IsoEnvelope subtract(List<Peak> isolation, IsoEnvelope iso, Tolerance tol, boolean purge)

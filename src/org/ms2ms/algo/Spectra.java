@@ -1,16 +1,18 @@
 package org.ms2ms.algo;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
-import org.apache.commons.collections.map.HashedMap;
+import org.expasy.mzjava.core.ms.PpmTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.*;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeList;
+import org.ms2ms.data.ms.IsoEnvelope;
+import org.ms2ms.data.ms.OffsetPpmTolerance;
 import org.ms2ms.math.Stats;
+import org.ms2ms.mzjava.IsotopePeakAnnotation;
 import org.ms2ms.utils.Tools;
 
 import java.util.*;
@@ -374,7 +376,7 @@ public class Spectra
     // signal for invalid result
     return stats;
   }
-  public static MsnSpectrum consolidate(MsnSpectrum ms, Tolerance tol)
+  public static MsnSpectrum consolidate(MsnSpectrum ms, OffsetPpmTolerance tol)
   {
     if (ms==null || ms.size()<2) return ms;
 
@@ -382,5 +384,60 @@ public class Spectra
     ms.clear(); ms.addPeaks(m);
 
     return ms;
+  }
+  public static PeakList deisotope(PeakList peaks, Tolerance tol, int maxcharge, double zzstart)
+  {
+    PeakList out = peaks.copy(new PurgingPeakProcessor()); out.clear();
+
+    Set<Integer> searched = new HashSet<>(peaks.size());
+    for (int i=0; i<peaks.size(); i++)
+    {
+      if (searched.contains(i)) continue;
+
+      int charge=1; IsoEnvelope best=null;
+      if (peaks.getMz(i)>zzstart)
+        for (int z=2; z<=maxcharge; z++)
+        {
+          // predicted isotope envelop above 10% ri.
+          IsoEnvelope ev = Isotopes.calcIsotopesByMz(peaks.getMz(i), z, 10d, peaks.getIntensity(i));
+          // for the charge state to be real, we must detect the same numbers of the isotopes as the charge state
+          boolean ok=true;
+          for (int k=1; k<z; k++)
+          {
+            if (find(peaks, ev.getPredicted(k).getMz(), tol, i, ev.getPredicted(k).getIntensity(), 50d)<=0) { ok=false; break; }
+          }
+          // the charge envelop if good. Let's copy the peaks
+          if (ok)
+          {
+            charge=z; best=ev; break;
+          }
+        }
+
+      // transfer the peak(s)
+      if (best==null) best=Isotopes.calcIsotopesByMz(peaks.getMz(i), 1, 10d, peaks.getIntensity(i));
+      int order=0;
+      for (Peak iso : best.getPredicted())
+      {
+        int found=find(peaks, iso.getMz(), tol, i, iso.getIntensity(), 25d);
+        if (found>=i && !searched.contains(found))
+        {
+          out.add(peaks.getMz(found) * charge - (charge - 1) * 1.007825d, peaks.getIntensity(found),
+                  new IsotopePeakAnnotation(iso.getCharge(), order++));
+          searched.add(found);
+//          peaks.setIntensityAt(-1*peaks.getIntensity(found),found);
+        }
+        else break;
+      }
+    }
+    return Peaks.consolidate(out, tol);
+  }
+  public static int find(PeakList peaks, double mz, Tolerance tol, int start, double targetAI, double ai_pct_tol)
+  {
+    for (int i=start; i<peaks.size(); i++)
+      if ( tol.withinTolerance(peaks.getMz(i), mz) &&
+          (targetAI<=0 || (100*(peaks.getIntensity(i)-targetAI)/targetAI)<=ai_pct_tol)) return i;
+      else if (peaks.getMz(i)>tol.getMax(mz)) break;
+
+    return -1;
   }
 }

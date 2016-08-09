@@ -1,17 +1,19 @@
 package org.ms2ms.algo;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Range;
-import com.google.common.collect.TreeMultimap;
+import com.google.common.collect.*;
+import org.expasy.mzjava.core.ms.PpmTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.DoublePeakList;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
+import org.expasy.mzjava.core.ms.peaklist.PeakAnnotation;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepFragAnnotation;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
 import org.ms2ms.data.Point;
+import org.ms2ms.data.collect.TreeListMultimap;
 import org.ms2ms.data.ms.FragmentEntry;
+import org.ms2ms.data.ms.IsoEnvelope;
 import org.ms2ms.math.Points;
 import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.utils.Strs;
@@ -212,7 +214,7 @@ public class Peaks
   {
     return s!=null?(s.equals(IonType.b) || s.equals(IonType.a) || s.equals(IonType.c) || s.equals(IonType.d)):false;
   }
-  public static double toMass(double mz, int z) { return (mz-1.00078)*z; }
+  public static double toMass(double mz, int z) { return (mz-1.007825)*z; }
   public static double toMass(Peak p)           { return toMass(p.getMz(), p.getCharge()); }
   public static double toPPM(double m0, double m1) { return 1E6*(m1-m0)/m0; }
 
@@ -706,34 +708,45 @@ public class Peaks
   {
     return Tools.isSet(mz) ? Tools.isSet(indices.asMap().subMap(mz.lowerEndpoint(), mz.upperEndpoint())) : false;
   }
+  public static Collection<FragmentEntry> query(TreeListMultimap<Double, FragmentEntry> indices, Range<Double> mz)
+  {
+    return Tools.isSet(mz) ? indices.subList(mz.lowerEndpoint(), mz.upperEndpoint()) : null;
+  }
+  public static boolean match(TreeListMultimap<Double, FragmentEntry> indices, Range<Double> mz)
+  {
+    return Tools.isSet(mz) ? indices.containsKey(mz.lowerEndpoint(), mz.upperEndpoint()) : false;
+  }
   public static PeakList consolidate(PeakList peaks, Tolerance tol)
   {
     if (peaks==null || peaks.size()<2) return peaks;
 
-    Collection<Point> pts = new ArrayList<>(), news = new ArrayList<>();
+    Collection<Point> pts = new ArrayList<>(); Collection<Peak> news = new ArrayList<>();
+    Multimap<Integer,PeakAnnotation> pa = HashMultimap.create();
     for (int i=0; i<peaks.size(); i++)
     {
-      double max = tol.getMax(peaks.getMz(i));
-      pts.clear();
+      double max = tol.getMax(peaks.getMz(i)); pts.clear();
       for (int j=i+1; j<peaks.size(); j++)
       {
         if (j<peaks.size() && peaks.getMz(j)<=max)
         {
           pts.add(new Point(peaks.getMz(j), peaks.getIntensity(j)));
           peaks.setIntensityAt(-1d, j);
+          if (peaks.getAnnotations(j)!=null) pa.putAll(i, peaks.getAnnotations(j));
         }
         else break;
       }
       if (pts.size()>0)
       {
         pts.add(new Point(peaks.getMz(i), peaks.getIntensity(i)));
+        if (peaks.getAnnotations(i)!=null) pa.putAll(i, peaks.getAnnotations(i));
+
         peaks.setIntensityAt(-1d, i);
-        news.add(new Point(Points.centroid(pts), Points.sumY(pts)));
+        news.add(new Peak(Points.centroid(pts), Points.sumY(pts), i));
       }
     }
     if (Tools.isSet(news))
-      for (Point xy : news)
-          peaks.add(xy.getX(), xy.getY());
+      for (Peak xy : news)
+          peaks.add(xy.getMz(), xy.getIntensity(), pa.get(xy.getCharge()));
 
     // keeping just the peaks with positive intensities
     return peaks.copy(new PurgingPeakProcessor());
