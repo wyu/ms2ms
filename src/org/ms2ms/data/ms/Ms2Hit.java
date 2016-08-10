@@ -19,11 +19,13 @@ public class Ms2Hit implements Comparable<Ms2Hit>
     mProteinKey=protein; mY=y; mB=b; mLeft=left; mRight=right;
   }
 
-  public Long   getProteinKey() { return mProteinKey; }
-  public int    getLeft()       { return mLeft; }
-  public int    getRight()      { return mRight; }
-  public double getDelta()      { return mDeltaM; }
-  public double getCalcMH()     { return mCalcMH; }
+  public Long     getProteinKey() { return mProteinKey; }
+  public int      getLeft()       { return mLeft; }
+  public int      getRight()      { return mRight; }
+  public double   getDelta()      { return mDeltaM; }
+  public double   getCalcMH()     { return mCalcMH; }
+  public FpmEntry getY()          { return mY; }
+  public FpmEntry getB()          { return mB; }
 
   public Ms2Hit setLeft( int s) { mLeft =s; return this; }
   public Ms2Hit setRight(int s) { mRight=s; return this; }

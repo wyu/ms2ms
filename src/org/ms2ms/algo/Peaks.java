@@ -16,6 +16,7 @@ import org.ms2ms.data.ms.FragmentEntry;
 import org.ms2ms.data.ms.IsoEnvelope;
 import org.ms2ms.math.Points;
 import org.ms2ms.mzjava.AnnotatedPeak;
+import org.ms2ms.mzjava.IsotopePeakAnnotation;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
@@ -770,6 +771,15 @@ public class Peaks
       }
     }
     return sumY != 0 ? sumXY / sumY : null;
+  }
+  // any c13 isotope in the annotations?
+  public static boolean hasC13(Collection<IsotopePeakAnnotation> pa)
+  {
+    if (Tools.isSet(pa))
+      for (IsotopePeakAnnotation p : pa)
+        if (p.getIsotopeOrder()>0) return true;
+
+    return false;
   }
 }
 

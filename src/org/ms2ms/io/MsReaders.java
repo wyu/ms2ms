@@ -618,13 +618,12 @@ public class MsReaders
       MsnSpectrum ms = MsReaders.from(spectrumIterator.next());
       if (++counts % 1000 == 0) System.out.print(".");
       if      (ms.getMsLevel()==2)
-      {
-        if (Arrays.binarySearch(scans, ms.getScanNumbers().getFirst().getValue())>=0)
+        for (int scan : scans)
+        if (scan==ms.getScanNumbers().getFirst().getValue())
         {
           System.out.println("Saving the scan " + ms.getScanNumbers().getFirst().getValue() + " to " + mgf);
           MGF.write(ms);
         }
-      }
     }
     MGF.close();
   }

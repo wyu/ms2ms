@@ -21,6 +21,8 @@ public class IsotopePeakAnnotation implements PeakAnnotation
     mCharge=z; mIsotopeOrder=s;
   }
 
+  public int getIsotopeOrder() { return mIsotopeOrder; }
+
   @Override
   public int getCharge() { return mCharge; }
 

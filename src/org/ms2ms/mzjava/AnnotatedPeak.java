@@ -2,6 +2,7 @@ package org.ms2ms.mzjava;
 
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
+import org.ms2ms.utils.Tools;
 
 /** A more elaborate class to describe the MS peak
  *
@@ -31,6 +32,11 @@ public class AnnotatedPeak extends Peak
   public double getSNR() { return SNR; }
   public IonType getIonType() { return ionType; }
 
+  @Override
+  public String toString()
+  {
+    return "m/z"+ Tools.d2s(getMz(),2)+", %"+Tools.d2s(getIntensity(),4)+", z"+getCharge()+", S/N"+Tools.d2s(getSNR(),1);
+  }
   public AnnotatedPeak clone()
   {
     return new AnnotatedPeak(this);

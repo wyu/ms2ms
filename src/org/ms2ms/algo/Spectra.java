@@ -424,12 +424,78 @@ public class Spectra
           out.add(peaks.getMz(found) * charge - (charge - 1) * 1.007825d, peaks.getIntensity(found),
                   new IsotopePeakAnnotation(iso.getCharge(), order++));
           searched.add(found);
-//          peaks.setIntensityAt(-1*peaks.getIntensity(found),found);
         }
         else break;
       }
     }
+
     return Peaks.consolidate(out, tol);
+  }
+  public static PeakList toSNR(PeakList peaks)
+  {
+    double noise=Double.MAX_VALUE;
+    for (int i=0; i<peaks.size(); i++)
+      // without the actual reading from XCalibur, use the lowest intensity as the substitute
+      if (peaks.getIntensity(i)>=0 && peaks.getIntensity(i)<noise) noise = peaks.getIntensity(i);
+
+    for (int i=0; i<peaks.size(); i++) peaks.setIntensityAt(peaks.getIntensity(i)/noise, i);
+
+    return peaks;
+  }
+  public static PeakList toLocalSNR(PeakList peaks, double window, double percentile)
+  {
+    SortedMap<Double, Double> background = new TreeMap<>();
+    for (int i=0; i<peaks.size(); i++) background.put(peaks.getMz(i), peaks.getIntensity(i));
+
+    double noise=Double.MAX_VALUE, min=peaks.getMz(0), max=peaks.getMz(peaks.size()-1), left=0, right=0;
+    // window can be no larger than the spectrum itself
+    window = Math.min(window, 0.5*(max-min));
+
+    for (int i=0; i<peaks.size(); i++)
+    {
+      left  = Math.max(i-window, min); right=left+2*window;
+      if (right>max) { right=max; left=right-2*window; }
+
+      noise = Stats.percentile(background.subMap(left, right).values(), percentile);
+      peaks.setIntensityAt(peaks.getIntensity(i)/noise, i);
+    }
+
+    return peaks;
+  }
+  public static PeakList toLocalNorm(PeakList peaks, double window)
+  {
+    SortedMap<Double, Double> background = new TreeMap<>();
+    for (int i=0; i<peaks.size(); i++) background.put(peaks.getMz(i), peaks.getIntensity(i));
+
+    double min=peaks.getMz(0), max=peaks.getMz(peaks.size()-1), left=0, right=0;
+    // window can be no larger than the spectrum itself
+    window = Math.min(window, 0.5*(max-min));
+
+    for (int i=0; i<peaks.size(); i++)
+    {
+      left  = Math.max(i-window, min); right=left+2*window;
+      if (right>max) { right=max; left=right-2*window; }
+
+      peaks.setIntensityAt(100d*peaks.getIntensity(i)/Collections.max(background.subMap(left, right).values()), i);
+    }
+
+    return peaks;
+  }
+  // locate the std peak and re-calibrate the rest of the peaks
+  public static PeakList self_calibrate(PeakList peaks, double std, Tolerance tol)
+  {
+    PeakList out = peaks.copy(new PurgingPeakProcessor()); out.clear();
+
+    int pos = find(peaks, std, tol, 0, 0d, 0d);
+    if (pos>=0)
+    {
+      double offset = (std-peaks.getMz(pos))/std;
+      for (int i=0; i<peaks.size(); i++)
+        out.add(peaks.getMz(i)+peaks.getMz(i)*offset, peaks.getIntensity(i), peaks.getAnnotations(i));
+    }
+    else return peaks;
+
+    return out;
   }
   public static int find(PeakList peaks, double mz, Tolerance tol, int start, double targetAI, double ai_pct_tol)
   {
