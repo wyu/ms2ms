@@ -1,5 +1,6 @@
 package org.ms2ms.data.ms;
 
+import org.ms2ms.algo.MsStats;
 import org.ms2ms.utils.Tools;
 
 /**
@@ -11,6 +12,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>
   private Long mProteinKey;
   private int mLeft, mRight;
   private double mCalcMH, mDeltaM;
+  private String mPeptide;
 
   public Ms2Hit()  { super(); }
   public Ms2Hit(Long protein, FpmEntry y, FpmEntry b, int left, int right)
@@ -26,10 +28,13 @@ public class Ms2Hit implements Comparable<Ms2Hit>
   public double   getCalcMH()     { return mCalcMH; }
   public FpmEntry getY()          { return mY; }
   public FpmEntry getB()          { return mB; }
+  public int      getMotifs()     { return(mY!=null?mY.getMotifs():0)+(mB!=null?mB.getMotifs():0); }
+  public String   getPeptide()    { return mPeptide; }
 
-  public Ms2Hit setLeft( int s) { mLeft =s; return this; }
-  public Ms2Hit setRight(int s) { mRight=s; return this; }
-  public Ms2Hit setMH(double calc, double delta)
+  public Ms2Hit   setLeft( int s) { mLeft =s; return this; }
+  public Ms2Hit   setRight(int s) { mRight=s; return this; }
+  public Ms2Hit   setPeptide(String s) { mPeptide=s; return this; }
+  public Ms2Hit   setMH(double calc, double delta)
   {
     mCalcMH=calc; mDeltaM=delta;
     return this;
@@ -38,7 +43,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>
   public String toString()
   {
     return getProteinKey()+":"+getLeft()+"-"+getRight()+",m/z"+ Tools.d2s(mCalcMH, 5)+"$"+
-        (mB!=null?mB.getTrack().size():"*")+"->"+(mY!=null?mY.getTrack().size():"*");
+        (mB!=null?mB.getTrack().size():"*")+"->"+(mY!=null?mY.getTrack().size():"*")+"="+getPeptide()+"^"+ MsStats.asDeviation(mDeltaM, mCalcMH);
   }
 
   @Override

@@ -15,6 +15,7 @@ import java.util.Map;
  */
 public class FpmEntry implements Comparable<FpmEntry>
 {
+  private boolean mHas1st=false, mExpectedY1=false;
   private int                 mMotifs=0, m1stPass=0;
   private double              mIntensities=0d;
   private FragmentEntry       mFragment   =null;
@@ -46,6 +47,8 @@ public class FpmEntry implements Comparable<FpmEntry>
 
   public FpmEntry increIntensities(double s) { mIntensities+=s; return this; }
 
+  public FpmEntry has1st(boolean s) { mHas1st=s; return this; }
+  public FpmEntry hasExpectedY1(boolean s) { mExpectedY1=s; return this; }
   public FpmEntry setMotifs(int s) { mMotifs=s; return this; }
   public FpmEntry set1stPass(int s) { m1stPass=s; return this; }
 

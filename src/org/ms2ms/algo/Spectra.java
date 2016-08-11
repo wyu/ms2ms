@@ -481,6 +481,35 @@ public class Spectra
 
     return peaks;
   }
+  public static double maxIntensity(PeakList peaks, int left, int right)
+  {
+    if (peaks==null || right<=left || left<0 || right>peaks.size()) return 0;
+
+    double top=0;
+    for (int i=left; i<right; i++)
+      if (peaks.getIntensity(i)>top) top=peaks.getIntensity(i);
+
+    return top;
+  }
+  public static PeakList toRegionalNorm(PeakList peaks, int regions)
+  {
+    int bundle = (int )Math.round(0.5*peaks.size()/regions), left, right, max=peaks.size()-1;
+
+    // keep a copy of the intensities
+    List<Double> ai = new ArrayList<>();
+    for (int i=0; i<peaks.size(); i++) ai.add(peaks.getIntensity(i));
+
+    for (int i=0; i<peaks.size(); i++)
+    {
+      left = Math.max(i-bundle, 0); right=left+2*bundle;
+      if (right>max) { right=max; left=right-2*bundle; }
+
+      double top = Collections.max(ai.subList(left, right));
+      peaks.setIntensityAt(100d*peaks.getIntensity(i)/(top>0?top:1d), i);
+    }
+
+    return peaks;
+  }
   // locate the std peak and re-calibrate the rest of the peaks
   public static PeakList self_calibrate(PeakList peaks, double std, Tolerance tol)
   {

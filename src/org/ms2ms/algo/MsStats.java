@@ -73,4 +73,8 @@ public class MsStats extends Stats
     }
     return sumY != 0 ? sumXY / sumY : null;
   }
+  public static String asDeviation(double delta, double m)
+  {
+    return (Math.abs(delta)<0.1?(Tools.d2s(delta/m,1)+"ppm"):Tools.d2s(delta,3)+"Da");
+  }
 }
