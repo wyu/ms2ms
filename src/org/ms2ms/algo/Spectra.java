@@ -11,6 +11,7 @@ import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeList;
 import org.ms2ms.data.ms.IsoEnvelope;
 import org.ms2ms.data.ms.OffsetPpmTolerance;
+import org.ms2ms.math.Histogram;
 import org.ms2ms.math.Stats;
 import org.ms2ms.mzjava.IsotopePeakAnnotation;
 import org.ms2ms.utils.Tools;
@@ -534,5 +535,24 @@ public class Spectra
       else if (peaks.getMz(i)>tol.getMax(mz)) break;
 
     return -1;
+  }
+  public static int precursorByComplements(PeakList ms, Tolerance tol)
+  {
+    Histogram     precursor = new Histogram("");
+    double               mh = Peaks.toMH(ms.getPrecursor());
+    Range<Double> isolation = Range.closed(mh-1.5, mh+2.5);
+
+//    List<Double> masses = new ArrayList<>();
+    for (int i=0; i<ms.size(); i++)
+      for (int j=0; j< ms.size(); j++)
+        if (i!=j)
+        {
+          double m = ms.getMz(i)+ms.getMz(j) + 1.007825d;
+          if (isolation.contains(m)) precursor.add(m);
+        }
+
+    precursor.generate(50);
+
+    return 0;
   }
 }

@@ -11,7 +11,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>
   private FpmEntry mY, mB;
   private Long mProteinKey;
   private int mLeft, mRight;
-  private double mCalcMH, mDeltaM;
+  private double mCalcMH, mDeltaM, mProb;
   private String mPeptide;
 
   public Ms2Hit()  { super(); }
@@ -26,6 +26,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>
   public int      getRight()      { return mRight; }
   public double   getDelta()      { return mDeltaM; }
   public double   getCalcMH()     { return mCalcMH; }
+  public double   getProb()       { return mProb; }
   public FpmEntry getY()          { return mY; }
   public FpmEntry getB()          { return mB; }
   public int      getMotifs()     { return(mY!=null?mY.getMotifs():0)+(mB!=null?mB.getMotifs():0); }
@@ -34,9 +35,15 @@ public class Ms2Hit implements Comparable<Ms2Hit>
   public Ms2Hit   setLeft( int s) { mLeft =s; return this; }
   public Ms2Hit   setRight(int s) { mRight=s; return this; }
   public Ms2Hit   setPeptide(String s) { mPeptide=s; return this; }
+  public Ms2Hit   setProb(double s) { mProb=s; return this; }
   public Ms2Hit   setMH(double calc, double delta)
   {
     mCalcMH=calc; mDeltaM=delta;
+    return this;
+  }
+  public Ms2Hit setProb()
+  {
+    mProb=(getY()!=null?getY().getProb():0d)+(getB()!=null?getB().getProb():0d);
     return this;
   }
   @Override

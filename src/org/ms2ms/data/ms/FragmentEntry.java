@@ -8,20 +8,20 @@ import org.ms2ms.utils.Tools;
  */
 public class FragmentEntry implements Comparable<FragmentEntry>
 {
-  private int mLength;
-  private Long mPeptideKey;
-  private Double mMH;
+  private int   mLength;
+  private long  mPeptideKey;
+  private float mMH;
   private FragmentEntry mPrev;
 
   public FragmentEntry() { super(); }
-  public FragmentEntry(Double mh, Long peptide, FragmentEntry prev, int len)
+  public FragmentEntry(Float mh, Long peptide, FragmentEntry prev, int len)
   {
     super();
     mMH=mh; mPeptideKey=peptide; mPrev=prev; mLength=len;
   }
 
   public int           getLength()     { return mLength; }
-  public Double        getMH()         { return mMH; }
+  public Float         getMH()         { return mMH; }
   public Long          getPeptideKey() { return mPeptideKey; }
   public FragmentEntry getPrev()       { return mPrev; }
 
@@ -39,6 +39,6 @@ public class FragmentEntry implements Comparable<FragmentEntry>
   @Override
   public String toString()
   {
-    return mPeptideKey+":"+mLength+"#"+ (mMH!=null?Tools.d2s(mMH, 4):"NUL")+"<-"+(mPrev!=null?Tools.d2s(mPrev.getMH(), 4):"NUL");
+    return mPeptideKey+":"+mLength+"#"+ (Tools.d2s(mMH, 4))+"<-"+(mPrev!=null?Tools.d2s(mPrev.getMH(), 4):"NUL");
   }
 }

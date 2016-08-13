@@ -15,6 +15,7 @@ import org.ms2ms.data.collect.TreeListMultimap;
 import org.ms2ms.data.ms.FragmentEntry;
 import org.ms2ms.data.ms.IsoEnvelope;
 import org.ms2ms.math.Points;
+import org.ms2ms.math.Stats;
 import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.mzjava.IsotopePeakAnnotation;
 import org.ms2ms.utils.Strs;
@@ -215,6 +216,8 @@ public class Peaks
   {
     return s!=null?(s.equals(IonType.b) || s.equals(IonType.a) || s.equals(IonType.c) || s.equals(IonType.d)):false;
   }
+  public static double toMH(Peak p) { return toMH(p.getMz(), p.getCharge()); }
+  public static double toMH(  double mz, int z) { return (mz*z-(z-1)*1.007825); }
   public static double toMass(double mz, int z) { return (mz-1.007825)*z; }
   public static double toMass(Peak p)           { return toMass(p.getMz(), p.getCharge()); }
   public static double toPPM(double m0, double m1) { return 1E6*(m1-m0)/m0; }
@@ -701,17 +704,17 @@ public class Peaks
     return windows;
   }
   //** Query functions **//
-  public static Collection<FragmentEntry> query(TreeMultimap<Double, FragmentEntry> indices, Range<Double> mz)
+  public static Collection<FragmentEntry> query(TreeMultimap<Float, FragmentEntry> indices, Range<Double> mz)
   {
-    return Tools.isSet(mz) ? Tools.flatten(indices.asMap().subMap(mz.lowerEndpoint(), mz.upperEndpoint()).values()) : null;
+    return Tools.isSet(mz) ? Tools.flatten(indices.asMap().subMap(mz.lowerEndpoint().floatValue(), mz.upperEndpoint().floatValue()).values()) : null;
   }
-  public static boolean match(TreeMultimap<Double, FragmentEntry> indices, Range<Double> mz)
+  public static boolean match(TreeMultimap<Float, FragmentEntry> indices, Range<Double> mz)
   {
-    return Tools.isSet(mz) ? Tools.isSet(indices.asMap().subMap(mz.lowerEndpoint(), mz.upperEndpoint())) : false;
+    return Tools.isSet(mz) ? Tools.isSet(indices.asMap().subMap(mz.lowerEndpoint().floatValue(), mz.upperEndpoint().floatValue())) : false;
   }
-  public static Collection<FragmentEntry> query(TreeListMultimap<Double, FragmentEntry> indices, Range<Double> mz)
+  public static Collection<FragmentEntry> query(TreeListMultimap<Float, FragmentEntry> indices, Range<Double> mz)
   {
-    return Tools.isSet(mz) ? indices.subList(mz.lowerEndpoint(), mz.upperEndpoint()) : null;
+    return Tools.isSet(mz) ? indices.subList(mz.lowerEndpoint().floatValue(), mz.upperEndpoint().floatValue()) : null;
   }
   public static boolean match(TreeListMultimap<Double, FragmentEntry> indices, Range<Double> mz)
   {
@@ -780,6 +783,35 @@ public class Peaks
         if (p.getIsotopeOrder()>0) return true;
 
     return false;
+  }
+  public static boolean isc12(Collection<IsotopePeakAnnotation> annotations)
+  {
+    if (Tools.isSet(annotations))
+      for (IsotopePeakAnnotation iso : annotations) if (iso.getIsotopeOrder()==0) return true;
+
+    return false;
+  }
+  public static <T extends Peak> double[] asMz(List<T> peaks)
+  {
+    if (!Tools.isSet(peaks)) return null;
+    double[] mz = new double[peaks.size()];
+
+    for (int i=0; i<peaks.size(); i++) mz[i]=peaks.get(i).getMz();
+
+    return mz;
+  }
+  public static <T extends Peak> List<T> log10(List<T> peaks)
+  {
+    if (!Tools.isSet(peaks)) return peaks;
+
+    List<T> out = new ArrayList<>(peaks.size());
+    for (T p : peaks)
+    {
+      T p1 = (T )p.copy(); p1.setIntensity(Math.log10(p1.getIntensity()));
+      out.add(p1);
+    }
+
+    return out;
   }
 }
 
