@@ -65,6 +65,7 @@ public class FpmEntry implements Comparable<FpmEntry>
   public FpmEntry setProb(        double s) { mProb      =s; return this; }
   public FpmEntry setGapScore(    double s) { mGapScore  =s; return this; }
   public FpmEntry setKaiScore(    double s) { mKaiScore  =s; return this; }
+  public FpmEntry setIntensity(   double s) { mIntensities=s; return this; }
 
   @Override
   public int compareTo(FpmEntry o)

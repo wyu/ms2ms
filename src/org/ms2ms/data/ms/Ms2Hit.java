@@ -1,5 +1,7 @@
 package org.ms2ms.data.ms;
 
+import org.apache.commons.math.distribution.NormalDistribution;
+import org.apache.commons.math.distribution.NormalDistributionImpl;
 import org.ms2ms.algo.MsStats;
 import org.ms2ms.utils.Tools;
 
@@ -11,7 +13,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>
   private FpmEntry mY, mB;
   private Long mProteinKey;
   private int mLeft, mRight;
-  private double mCalcMH, mDeltaM, mProb;
+  private double mCalcMH, mDeltaM, mProb, mScore;
   private String mPeptide;
 
   public Ms2Hit()  { super(); }
@@ -29,7 +31,8 @@ public class Ms2Hit implements Comparable<Ms2Hit>
   public double   getProb()       { return mProb; }
   public FpmEntry getY()          { return mY; }
   public FpmEntry getB()          { return mB; }
-  public int      getMotifs()     { return(mY!=null?mY.getMotifs():0)+(mB!=null?mB.getMotifs():0); }
+  public int      getMotifs()     { return(mY!=null?mY.getMotifs(  ):0)+(mB!=null?mB.getMotifs(  ):0); }
+  public double   getGapScore()   { return(mY!=null?mY.getGapScore():0)+(mB!=null?mB.getGapScore():0); }
   public String   getPeptide()    { return mPeptide; }
 
   public Ms2Hit   setLeft( int s) { mLeft =s; return this; }
@@ -44,6 +47,13 @@ public class Ms2Hit implements Comparable<Ms2Hit>
   public Ms2Hit setProb()
   {
     mProb=(getY()!=null?getY().getProb():0d)+(getB()!=null?getB().getProb():0d);
+    return this;
+  }
+  public Ms2Hit calcScore(double precision_ppm)
+  {
+    NormalDistribution norm = new NormalDistributionImpl(0, precision_ppm);
+    // TODO to be completed
+
     return this;
   }
   @Override

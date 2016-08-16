@@ -511,6 +511,27 @@ public class Spectra
 
     return peaks;
   }
+  public static PeakList toRegionalPercentile(PeakList peaks, int regions)
+  {
+    int bundle = (int )Math.round(0.5*peaks.size()/regions), left, right, max=peaks.size()-1, found=0;
+
+    List<Double> ai = new ArrayList<>();
+    for (int i=0; i<peaks.size(); i++) ai.add(peaks.getIntensity(i));
+
+    for (int i=0; i<peaks.size(); i++)
+    {
+      left = Math.max(i-bundle, 0); right=left+2*bundle;
+      if (right>max) { right=max; left=right-2*bundle; }
+
+      List<Double> region = Tools.copyOf(ai, left, right+1); Collections.sort(region); found=-1;
+      for (int k=0; k<region.size(); k++) if (Math.abs(region.get(k)-peaks.getIntensity(i))<0.1) { found=k; break; }
+      if (found>=0) peaks.setIntensityAt(100d*(found+1)/(double )region.size(), i);
+      else
+        System.out.println();
+    }
+
+    return peaks;
+  }
   // locate the std peak and re-calibrate the rest of the peaks
   public static PeakList self_calibrate(PeakList peaks, double std, Tolerance tol)
   {

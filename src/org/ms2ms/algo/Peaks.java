@@ -813,5 +813,24 @@ public class Peaks
 
     return out;
   }
+  public static int countC12(PeakList peaks, int left, int right)
+  {
+    if (peaks==null || left<0 || right<left) return 0;
+
+    int c12=0;
+    for (int i=left; i<right; i++)
+      if (!hasC13(peaks.getAnnotations(i))) c12++;
+
+    return c12;
+  }
+  public static <T extends Peak> double AbsIntensitySum(Collection<T> peaks)
+  {
+    if (!Tools.isSet(peaks)) return 0;
+
+    double sum=0d;
+    for (T peak : peaks) sum+=Math.abs(peak.getIntensity());
+
+    return sum;
+  }
 }
 
