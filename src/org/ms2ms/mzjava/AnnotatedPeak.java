@@ -2,6 +2,7 @@ package org.ms2ms.mzjava;
 
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
+import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
 import java.util.HashMap;
@@ -16,6 +17,7 @@ public class AnnotatedPeak extends Peak
   public static final String FREQUENCY = "Frequency";
   public static final String SNR       = "SNR";
   public static final String MZ        = "mz";
+  public static final String COUNTS    = "Counts";
 
 //  private double SNR;
   private Map<String, Double> mAnnotations = new HashMap<>();
@@ -52,11 +54,27 @@ public class AnnotatedPeak extends Peak
 
   public AnnotatedPeak setSNR(Double s) { return setProperty(SNR, s); }
   public AnnotatedPeak setProperty(String k, double s) { mAnnotations.put(k,s); return this; }
+  public AnnotatedPeak setProperty(AnnotatedPeak s, String... ks)
+  {
+    if (!Tools.isSet(ks)) mAnnotations.putAll(s.mAnnotations);
+    else
+    {
+      for (String k : ks) mAnnotations.put(k,s.getProperty(k));;
+    }
+    return this;
+  }
 
   @Override
   public String toString()
   {
-    return "m/z"+ Tools.d2s(getMz(),2)+", %"+Tools.d2s(getIntensity(),4)+", z"+getCharge()+", S/N"+Tools.d2s(getSNR(),1);
+    String line = "m/z"+ Tools.d2s(getMz(),2)+", %"+Tools.d2s(getIntensity(),4)+", z"+getCharge()+", S/N"+Tools.d2s(getSNR(),1);
+
+    if (Tools.isSet(mAnnotations))
+      for (String key : mAnnotations.keySet())
+        if (mAnnotations.get(key)!=null)
+          line = Strs.extend(line, key+":"+Tools.d2s(mAnnotations.get(key), 1), ", ");
+
+    return line;
   }
   public AnnotatedPeak clone()
   {

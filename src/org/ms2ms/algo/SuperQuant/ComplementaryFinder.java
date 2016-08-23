@@ -339,7 +339,7 @@ public class ComplementaryFinder
     //continue untill two seekers are met
     while (start < end)
     {
-      //sum of two peaks converted to neutral M
+      //matrix_sum of two peaks converted to neutral M
       mass = spectrum.getMz(start)+spectrum.getMz(end)-2*Proton;
 
       //mass is too big, make smaller = move end backwards

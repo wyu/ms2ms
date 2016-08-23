@@ -102,7 +102,7 @@ public class MaxQuant extends LcMsMsDataset
 
       double[] Ys = MsStats.interpolate(xs, ys, rttol, Xs);
       d.setVar("interpolated", Ys);
-      d.setVar("Calibrated RT", MsStats.sum(d.getDoubleCol("Retention time", true), d.getDoubleCol("Retention time calibration", true)));
+      d.setVar("Calibrated RT", MsStats.matrix_sum(d.getDoubleCol("Retention time", true), d.getDoubleCol("Retention time calibration", true)));
     }
   }
 }

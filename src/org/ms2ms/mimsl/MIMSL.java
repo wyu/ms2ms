@@ -1325,13 +1325,13 @@ public class MIMSL
     for (ProteinId pid : matrix.getCaller().getProteinIdGroup().keySet())
     {
       if (++order % 50 == 0) System.out.print(".");
-      ProteinId sum = Qualitative_Util.toSummation(pid, matrix.getCaller().getAssignmentMap());
-      if (sum.getAssignments().keySet().size() > 1)
+      ProteinId matrix_sum = Qualitative_Util.toSummation(pid, matrix.getCaller().getAssignmentMap());
+      if (matrix_sum.getAssignments().keySet().size() > 1)
       {
-        for (String peptide : sum.getAssignments().keySet())
+        for (String peptide : matrix_sum.getAssignments().keySet())
         {
           pids.clear();
-          for (MsMsAssignment A : sum.getAssignments().cells(peptide)) pids.add(A.getId());
+          for (MsMsAssignment A : matrix_sum.getAssignments().cells(peptide)) pids.add(A.getId());
 
           Collection<Spectre_MsMsSpectrum> rows = Spectre_MsMsSpectrum.getRowsForPeptideAssignmentIds(conn, pids, true);
           rows = Spectre_MsMsSpectrum.populateSpectra(  conn, rows, true);
@@ -1340,12 +1340,12 @@ public class MIMSL
           Spectre_MsMsSpectrum composit = SpectralClustering_Util.composite(rows, null, mztol, true);
           composit.getPeptideAssignment().matchToSpectrum(conn, composit.getRawSpectrum(), 0.5f, true);
 
-          MsMsAssignment assignment = Toolbox.front(sum.getAssignments().cells(peptide));
+          MsMsAssignment assignment = Toolbox.front(matrix_sum.getAssignments().cells(peptide));
           assignment.setMsMs(composit.convertToMsMsMatches());
           assignment.getMsMs().setScanType(MsScanType.CENTROID);
           assignment.write(os);
           assignments++;
-          msms += sum.getAssignments().cells(peptide).size();
+          msms += matrix_sum.getAssignments().cells(peptide).size();
         }
       }
       //break; // for debugging
@@ -1389,22 +1389,22 @@ public class MIMSL
     {
       if (++order % 50   == 0) System.out.print(".");
       if (  order % 1000 == 0) System.out.print(order + "/" + assignments + "/" + msms_merged + "/" + msms + "\n");
-      //ProteinId sum = pid;
+      //ProteinId matrix_sum = pid;
       if (pid.getAssignments().keySet().size() > 1)
       {
-        ProteinId sum = ds == null ? Qualitative_Util.toSummation(pid, assignment_map) :
+        ProteinId matrix_sum = ds == null ? Qualitative_Util.toSummation(pid, assignment_map) :
           Qualitative_Util.toSummation(pid, peptide_pointer, ds);
-        for (String peptide : sum.getAssignments().keySet())
+        for (String peptide : matrix_sum.getAssignments().keySet())
         {
           pids.clear();
           // trim the set by the error rate first
-          for (MsMsAssignment A : sum.getAssignments().cells(peptide)) pids.add(A.getId());
+          for (MsMsAssignment A : matrix_sum.getAssignments().cells(peptide)) pids.add(A.getId());
 
           if (pids.size() > row_limit)
           {
             // no need to set the owner
             Map<Long, Spectre_MsMsSpectrum> pid_ms = Spectre_MsMsSpectrum.getRowMapWithTypesForPeptideAssignmentIds(conn, pids);
-            for (MsMsAssignment A : sum.getAssignments().cells(peptide))
+            for (MsMsAssignment A : matrix_sum.getAssignments().cells(peptide))
             {
               if (!pid_ms.containsKey(A.getId())) throw new RuntimeException("MS not found: " + A.getId());
               pid_ms.cells(A.getId()).setRetentionTime((float )A.getAssignment().getErrorPct());
@@ -1425,7 +1425,7 @@ public class MIMSL
             rows = savePeptideAssignments(conn, lib, rows, row_limit); // need no more than a dozen
 
           assignments++;
-          msms += sum.getAssignments().cells(peptide).size();
+          msms += matrix_sum.getAssignments().cells(peptide).size();
 
           // dispose the temp objects
           Toolbox.dispose(rows);
@@ -1685,15 +1685,15 @@ public class MIMSL
 
     for (ProteinId pid : caller.getProteinIdGroup().keySet())
     {
-      ProteinId sum = Qualitative_Util.toSummation(pid, caller.getAssignmentMap());
-      if (sum.getAssignments().keySet().size() == 1)
+      ProteinId matrix_sum = Qualitative_Util.toSummation(pid, caller.getAssignmentMap());
+      if (matrix_sum.getAssignments().keySet().size() == 1)
       {
         single_count++;
-        sum.write(indices);
+        matrix_sum.write(indices);
       }
       else
       {
-        sum.write(qualified);
+        matrix_sum.write(qualified);
       }
     }
 

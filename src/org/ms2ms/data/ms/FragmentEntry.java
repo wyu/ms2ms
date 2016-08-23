@@ -14,6 +14,11 @@ public class FragmentEntry implements Comparable<FragmentEntry>
   private FragmentEntry mPrev;
 
   public FragmentEntry() { super(); }
+  public FragmentEntry(FragmentEntry s)
+  {
+    super();
+    mLength=s.mLength; mPeptideKey=s.mPeptideKey; mMH=s.mMH; mPrev=s.mPrev;
+  }
   public FragmentEntry(Float mh, Long peptide, FragmentEntry prev, int len)
   {
     super();
@@ -27,6 +32,10 @@ public class FragmentEntry implements Comparable<FragmentEntry>
 
   public FragmentEntry setLen(int s)   { mLength=s; return this; }
 
+  public FragmentEntry copy()
+  {
+    return new FragmentEntry(mMH, mPeptideKey, mPrev, mLength);
+  }
   @Override
   public int compareTo(FragmentEntry o)
   {

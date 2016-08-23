@@ -3,6 +3,7 @@ package org.ms2ms.algo;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
+import com.google.common.collect.Sets;
 import org.expasy.mzjava.core.ms.PpmTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.*;
@@ -13,6 +14,7 @@ import org.ms2ms.data.ms.IsoEnvelope;
 import org.ms2ms.data.ms.OffsetPpmTolerance;
 import org.ms2ms.math.Histogram;
 import org.ms2ms.math.Stats;
+import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.mzjava.IsotopePeakAnnotation;
 import org.ms2ms.utils.Tools;
 
@@ -492,13 +494,13 @@ public class Spectra
 
     return top;
   }
-  public static PeakList toRegionalNorm(PeakList peaks, int regions)
+  public static PeakList toRegionalNorm(PeakList peaks, int regions, double power)
   {
     int bundle = (int )Math.round(0.5*peaks.size()/regions), left, right, max=peaks.size()-1;
 
     // keep a copy of the intensities
     List<Double> ai = new ArrayList<>();
-    for (int i=0; i<peaks.size(); i++) ai.add(peaks.getIntensity(i));
+    for (int i=0; i<peaks.size(); i++) ai.add(Math.pow(peaks.getIntensity(i), power));
 
     for (int i=0; i<peaks.size(); i++)
     {
@@ -506,7 +508,7 @@ public class Spectra
       if (right>max) { right=max; left=right-2*bundle; }
 
       double top = Collections.max(ai.subList(left, right));
-      peaks.setIntensityAt(100d*peaks.getIntensity(i)/(top>0?top:1d), i);
+      peaks.setIntensityAt(100d*Math.pow(peaks.getIntensity(i), power)/(top>0?top:1d), i);
     }
 
     return peaks;
@@ -526,8 +528,8 @@ public class Spectra
       List<Double> region = Tools.copyOf(ai, left, right+1); Collections.sort(region); found=-1;
       for (int k=0; k<region.size(); k++) if (Math.abs(region.get(k)-peaks.getIntensity(i))<0.1) { found=k; break; }
       if (found>=0) peaks.setIntensityAt(100d*(found+1)/(double )region.size(), i);
-      else
-        System.out.println();
+//      else
+//        System.out.println();
     }
 
     return peaks;
@@ -575,5 +577,35 @@ public class Spectra
     precursor.generate(50);
 
     return 0;
+  }
+  public static SortedMap<Double, AnnotatedPeak> toPeaks(PeakList ms)
+  {
+    // walking thro the peaks and recording the matching peaks
+    SortedMap<Double, AnnotatedPeak> peaks = new TreeMap<>();
+
+    int i=0, left,right;
+    while (i<ms.size())
+    {
+      // skipping the c13 isotopes
+      if (Peaks.hasC13(ms.getAnnotations(i))) { i++; continue; }
+
+      double mz=ms.getMz(i);
+      // estimates the local frequency
+      left=i-10;right=i+10;
+      if      (left <0)           { left =0;          right=Math.min(left+20,ms.size()); }
+      else if (right>ms.size()-1) { right=ms.size()-1; left=Math.max(right-20, 0); }
+
+      AnnotatedPeak pk = new AnnotatedPeak(ms.getMz(i), ms.getIntensity(i));
+      pk.setProperty(AnnotatedPeak.FREQUENCY, Peaks.countC12(ms, left, right)/(ms.getMz(right)-ms.getMz(left)));
+      peaks.put(mz, pk);
+      // advance the pointer
+      i++;
+      // need to remove the rest of the isotopes from future consideration
+      while (i<ms.size())
+      {
+        if (!Peaks.hasC13(ms.getAnnotations(i))) break; else i++;
+      }
+    }
+    return peaks;
   }
 }

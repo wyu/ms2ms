@@ -1,10 +1,12 @@
 package org.ms2ms.data.ms;
 
+import com.google.common.collect.ImmutableList;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,9 +21,23 @@ public class FpmEntry implements Comparable<FpmEntry>
   private int                 mMotifs=0, m1stPass=0, mWeaks=0, mC13=0;
   private double              mIntensities=0d, mProb=0, mGapScore=0, mKaiScore=0;
   private FragmentEntry       mFragment   =null;
-  private List<AnnotatedPeak> mTrack      =null;
+  private ImmutableList<AnnotatedPeak> mTrack      =null;
 
-  public FpmEntry() { super(); }
+  public FpmEntry()
+  {
+    super(); mFragment = new FragmentEntry();
+  }
+  public FpmEntry(FpmEntry f)
+  {
+    super();
+    if (f!=null)
+    {
+      mHas1st=f.mHas1st; mExpectedY1=f.mExpectedY1; mMotifs=f.mMotifs; m1stPass=f.m1stPass; mWeaks=f.mWeaks; mC13=f.mC13;
+      mIntensities=f.mIntensities; mProb=f.mProb; mGapScore=f.mGapScore; mKaiScore=f.mKaiScore;
+      mFragment = new FragmentEntry(f.mFragment);
+      mTrack=f.mTrack;
+    }
+  }
   public FpmEntry(FragmentEntry f)
   {
     super();
@@ -30,18 +46,18 @@ public class FpmEntry implements Comparable<FpmEntry>
   public FpmEntry(FragmentEntry f, List<AnnotatedPeak> t)
   {
     super();
-    mFragment=f; mTrack=t;
+    mFragment=f; mTrack=ImmutableList.copyOf(t);
   }
   public FpmEntry(FragmentEntry f, List<AnnotatedPeak> t, int motifs, int size_1st)
   {
     super();
-    mFragment=f; mTrack=t; mMotifs=motifs; m1stPass=size_1st;
+    mFragment=f; mTrack=ImmutableList.copyOf(t); mMotifs=motifs; m1stPass=size_1st;
   }
 
   public FpmEntry(FragmentEntry f, List<AnnotatedPeak> t, double ai)
   {
     super();
-    mFragment=f; mTrack=t; mIntensities=ai;
+    mFragment=f; mTrack=ImmutableList.copyOf(t); mIntensities=ai;
   }
 
   public double              getKaiScore()  { return mKaiScore; }
@@ -51,7 +67,7 @@ public class FpmEntry implements Comparable<FpmEntry>
   public int                 getMotifs()    { return mMotifs; }
   public int                 get1stPass()   { return m1stPass; }
   public FragmentEntry       getFragment()  { return mFragment; }
-  public List<AnnotatedPeak> getTrack()     { return mTrack; }
+  public ImmutableList<AnnotatedPeak> getTrack()     { return mTrack; }
   public AnnotatedPeak       at(int s)      { return mTrack.get(s); }
 
   public FpmEntry increIntensities(double s) { mIntensities+=s; return this; }
@@ -64,8 +80,18 @@ public class FpmEntry implements Comparable<FpmEntry>
   public FpmEntry setC13(            int s) { mC13       =s; return this; }
   public FpmEntry setProb(        double s) { mProb      =s; return this; }
   public FpmEntry setGapScore(    double s) { mGapScore  =s; return this; }
-  public FpmEntry setKaiScore(    double s) { mKaiScore  =s; return this; }
+  public FpmEntry setStdErrRegression(double s) { mKaiScore  =s; return this; }
   public FpmEntry setIntensity(   double s) { mIntensities=s; return this; }
+
+  public FpmEntry shallow_copy()
+  {
+    FpmEntry clone = new FpmEntry();
+    // no scores, just the skeleton
+    clone.mFragment = mFragment;
+    clone.mTrack=mTrack;
+
+    return clone;
+  }
 
   @Override
   public int compareTo(FpmEntry o)
@@ -79,7 +105,7 @@ public class FpmEntry implements Comparable<FpmEntry>
   @Override
   public String toString()
   {
-    return "#"+(Tools.isSet(mTrack)?mMotifs+"/"+mTrack.size()+"/"+m1stPass:0)+"@"+mFragment.toString();
+    return "#"+(Tools.isSet(mTrack)?mMotifs+"/"+mTrack.size():0)+"@"+mFragment.toString();
   }
   public static Map<String, Object> report(List<AnnotatedPeak> track)
   {

@@ -11,8 +11,6 @@ import org.ms2ms.r.Var;
 import org.ms2ms.test.TestAbstract;
 import org.ms2ms.utils.IOs;
 
-import java.util.Map;
-
 /**
  * ** Copyright 2014-2015 ms2ms.org
  * <p/>
@@ -75,7 +73,7 @@ public class OutputTest extends TestAbstract
     evidences.setVar("interpolated", Ys);
     System.out.println("\n" + evidences.display());
 
-    evidences.setVar("Calibrated RT", MsStats.sum(evidences.getDoubleCol("Retention time", true), evidences.getDoubleCol("Retention time calibration", true)));
+    evidences.setVar("Calibrated RT", MsStats.matrix_sum(evidences.getDoubleCol("Retention time", true), evidences.getDoubleCol("Retention time calibration", true)));
   }
   @Test
   public void mergeMQnSurvey() throws Exception
@@ -140,7 +138,7 @@ public class OutputTest extends TestAbstract
     evidences.setVar("interpolated", Ys);
     System.out.println("\n" + evidences.display());
 
-    evidences.setVar("Calibrated RT", MsStats.sum(evidences.getDoubleCol("Retention time", true), evidences.getDoubleCol("Retention time calibration", true)));
+    evidences.setVar("Calibrated RT", MsStats.matrix_sum(evidences.getDoubleCol("Retention time", true), evidences.getDoubleCol("Retention time calibration", true)));
   }
 //  @Test
 //  public void aligning() throws Exception
