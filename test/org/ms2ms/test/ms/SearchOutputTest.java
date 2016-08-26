@@ -26,6 +26,6 @@ public class SearchOutputTest extends TestAbstract
 
     Dataframe cuts = LCMSMS.cut(ms2ce40, "QValue", scale);
 
-    cuts.init();
+    cuts.init(true);
   }
 }

@@ -18,6 +18,7 @@ public class AnnotatedPeak extends Peak
   public static final String SNR       = "SNR";
   public static final String MZ        = "mz";
   public static final String COUNTS    = "Counts";
+  public static final String OUTLIER   = "outlier";
 
 //  private double SNR;
   private Map<String, Double> mAnnotations = new HashMap<>();
@@ -48,12 +49,14 @@ public class AnnotatedPeak extends Peak
     super(s.getMz(), s.getIntensity(), s.getCharge());
     mAnnotations=s.mAnnotations; ionType=s.getIonType();
   }
+  public boolean hasProperty(String k, Double s) { return mAnnotations!=null && Tools.equals(s, mAnnotations.get(k)); }
   public Double getProperty(String k) { return mAnnotations.get(k); }
   public Double getSNR() { return getProperty(SNR); }
   public IonType getIonType() { return ionType; }
 
-  public AnnotatedPeak setSNR(Double s) { return setProperty(SNR, s); }
-  public AnnotatedPeak setProperty(String k, double s) { mAnnotations.put(k,s); return this; }
+  public AnnotatedPeak removeProperty(String s) { if (mAnnotations!=null) mAnnotations.remove(s); return this; }
+  public AnnotatedPeak setSNR(        Double s) { return setProperty(SNR, s); }
+  public AnnotatedPeak setProperty(   String k, double s) { mAnnotations.put(k,s); return this; }
   public AnnotatedPeak setProperty(AnnotatedPeak s, String... ks)
   {
     if (!Tools.isSet(ks)) mAnnotations.putAll(s.mAnnotations);

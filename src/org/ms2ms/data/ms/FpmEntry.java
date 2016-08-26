@@ -2,6 +2,7 @@ package org.ms2ms.data.ms;
 
 import com.google.common.collect.ImmutableList;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
+import org.ms2ms.Disposable;
 import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
@@ -15,7 +16,7 @@ import java.util.Map;
  *
  * Created by yuw on 8/6/16.
  */
-public class FpmEntry implements Comparable<FpmEntry>
+public class FpmEntry implements Comparable<FpmEntry>, Disposable
 {
   private boolean mHas1st=false, mExpectedY1=false;
   private int                 mMotifs=0, m1stPass=0, mWeaks=0, mC13=0;
@@ -127,5 +128,12 @@ public class FpmEntry implements Comparable<FpmEntry>
     }
 
     return stats;
+  }
+
+  @Override
+  public void dispose()
+  {
+    Tools.dispose(mFragment);
+    mTrack=null;
   }
 }

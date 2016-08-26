@@ -1,12 +1,13 @@
 package org.ms2ms.data.ms;
 
+import org.ms2ms.Disposable;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
 /**
  * Created by yuw on 8/4/16.
  */
-public class FragmentEntry implements Comparable<FragmentEntry>
+public class FragmentEntry implements Comparable<FragmentEntry>, Disposable
 {
   private int   mLength;
   private long  mPeptideKey;
@@ -50,4 +51,7 @@ public class FragmentEntry implements Comparable<FragmentEntry>
   {
     return mPeptideKey+":"+mLength+"#"+ (Tools.d2s(mMH, 4))+"<-"+(mPrev!=null?Tools.d2s(mPrev.getMH(), 4):"NUL");
   }
+
+  @Override
+  public void dispose() { mPrev=null; }
 }

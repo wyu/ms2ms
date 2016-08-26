@@ -103,6 +103,6 @@ public class Isobarics
       }
     }
 
-    return data.init();
+    return data.init(true);
   }
 }

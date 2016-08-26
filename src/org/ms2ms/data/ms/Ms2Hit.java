@@ -2,23 +2,23 @@ package org.ms2ms.data.ms;
 
 import org.apache.commons.math.distribution.NormalDistribution;
 import org.apache.commons.math.distribution.NormalDistributionImpl;
+import org.ms2ms.Disposable;
 import org.ms2ms.algo.MsStats;
+import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * Created by yuw on 8/7/16.
  */
-public class Ms2Hit implements Comparable<Ms2Hit>
+public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 {
   private FpmEntry mY, mB;
   private Long mProteinKey;
-  private int mLeft, mRight;
-  private double mCalcMH, mDeltaM, mProb, mScore, mEval;
+  private int mLeft, mRight, mRank;
+  private double mCalcMH, mDeltaM, mKaiScore, mDeltaScore, mEval, mScoreOffset=0;
   private String mSequence, mPrev, mNext;
   private TreeMap<Integer, Double> mMods;
 
@@ -33,24 +33,44 @@ public class Ms2Hit implements Comparable<Ms2Hit>
     mProteinKey=protein; mY=y; mB=b; mLeft=left; mRight=right;
   }
 
-  public boolean  isDecoy()       { return mProteinKey!=null || mProteinKey<0; }
+  public boolean  isDecoy()       { return mProteinKey!=null && mProteinKey<0; }
   public Long     getProteinKey() { return mProteinKey; }
   public int      getLeft()       { return mLeft; }
   public int      getRight()      { return mRight; }
+  public int      getRank()       { return mRank; }
   public double   getDelta()      { return mDeltaM; }
   public double   getCalcMH()     { return mCalcMH; }
   public double   getEVal()       { return mEval; }
+  public double   getKaiScore()   { return mKaiScore; }
+  public double   getDeltaScore() { return mDeltaScore; }
   public FpmEntry getY()          { return mY; }
   public FpmEntry getB()          { return mB; }
 //  public int      getMotifs()     { return(mY!=null?mY.getMotifs(  ):0)+(mB!=null?mB.getMotifs(  ):0); }
-  public double   getGapScore()   { return(mY!=null?mY.getGapScore():0)+(mB!=null?mB.getGapScore():0); }
+  public double   getGapScore()   { return(mY!=null?mY.getGapScore():0)+(mB!=null?mB.getGapScore():0)+mScoreOffset; }
   public String   getPeptide()    { return (mPrev+"."+mSequence+"."+mNext); }
   public String   getSequence()   { return mSequence; }
+  public double   getModMass()    { return mMods!=null? Stats.sum(mMods.values()):0d; }
+//  public TreeMap<Integer, Double> getMods() { return mMods; }
 
-  public Ms2Hit   setLeft( int s) { mLeft =s; return this; }
-  public Ms2Hit   setRight(int s) { mRight=s; return this; }
+  public Map<Integer, Double> getMod0()
+  {
+    if (mMods==null) return null;
+
+    SortedMap<Integer, Double> out = new TreeMap<>();
+    for (Map.Entry<Integer, Double> E : mMods.entrySet())
+      out.put(E.getKey()-getLeft(), E.getValue());
+
+    return out;
+  }
+
+  public Ms2Hit   setLeft(          int s) { mLeft =s; return this; }
+  public Ms2Hit   setRight(         int s) { mRight=s; return this; }
+  public Ms2Hit   setRank(          int s) { mRank=s; return this; }
   //public Ms2Hit   setPeptide(String s) { mPeptide=s; return this; }
-  public Ms2Hit   setEVal(double s) { mEval =s; return this; }
+  public Ms2Hit   setEVal(       double s) { mEval =s; return this; }
+  public Ms2Hit   setKaiScore(   double s) { mKaiScore=s; return this; }
+  public Ms2Hit   setDeltaScore( double s) { mDeltaScore=s; return this; }
+  public Ms2Hit   setScoreOffset(double s) { mScoreOffset=s; return this; }
   public Ms2Hit   setMH(double calc, double delta)
   {
     mCalcMH=calc; mDeltaM=delta;
@@ -110,7 +130,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>
 
     return this;
   }
-  public Ms2Hit setFpmEntries(FpmEntry y, FpmEntry b) { mY=y; mB=b; return this; }
+  public Ms2Hit setFpmEntries(FpmEntry y, FpmEntry b) { mY=null; mY=y; mB=null; mB=b; return this; }
 
 //  public Ms2Hit setProb()
 //  {
@@ -148,5 +168,14 @@ public class Ms2Hit implements Comparable<Ms2Hit>
     if (c==0) c = Integer.compare(mRight, o.getRight());
 
     return c;
+  }
+
+  @Override
+  public void dispose()
+  {
+    Tools.dispose(mY, mB);
+    mProteinKey=null;
+    mSequence=mPrev=mNext=null;
+    Tools.dispose(mMods);
   }
 }

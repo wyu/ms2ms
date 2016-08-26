@@ -6,7 +6,6 @@ import com.google.common.collect.RowSortedTable;
 import com.google.common.collect.TreeBasedTable;
 import org.expasy.mzjava.core.io.ms.spectrum.MgfWriter;
 import org.expasy.mzjava.core.io.ms.spectrum.MzxmlReader;
-import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.*;
@@ -211,7 +210,7 @@ public class MsReaders
       throw new RuntimeException("Not able to open data file", ie);
     }
 
-    return stats.init();
+    return stats.init(true);
   }
   public static LcMsMsDataset surveyMzXML(LcMsMsDataset data, Range<Double> rt, int... mslevel)
   {
@@ -581,7 +580,7 @@ public class MsReaders
     ms2.close(); ms3.close();
 
     FileWriter xw = new FileWriter(mzml_root+".xref");
-    xref.init().write(xw, "\t");
+    xref.init(true).write(xw, "\t");
     xw.close();
 
     return xref;
