@@ -39,6 +39,15 @@ public class Peaks
   public static final String HCD       = "hcd";
   public static final String ETD       = "etd";
 
+  public static final String CNT_GLOBAL           ="total peak counts";
+  public static final String CNT_GOOD             = "good peak counts";
+  public static final String CNT_PRECURSOR_2_GOOD = "good peak counts above precursor";
+  public static final String CNT_PRECURSOR_2      =      "peak counts above precursor";
+  public static final String CNT_REPORTER     = "reporter peak counts";
+  public static final String CNT_PER_10AA         =      "peak counts per 10 residues";
+  public static final String AI_MIN_REPORTER      = "min intensity in the reporter region";
+  public static final String AI_MIN               = "min intensity";
+
   public static class IntensityDesendComparator implements Comparator<Peak> { public int compare(Peak o1, Peak o2) { return o1!=null && o2!=null ? Double.compare(o2.getIntensity(), o1.getIntensity()):0; } }
   public static class IntensityAscendComparator implements Comparator<Peak> { public int compare(Peak o1, Peak o2) { return o1!=null && o2!=null ? Double.compare(o1.getIntensity(), o2.getIntensity()):0; } }
   public static class MzAscendComparator        implements Comparator<Peak> { public int compare(Peak o1, Peak o2) { return o1!=null && o2!=null ? Double.compare(o1.getMz(), o2.getMz()):0; } }
@@ -781,6 +790,15 @@ public class Peaks
     if (Tools.isSet(pa))
       for (IsotopePeakAnnotation p : pa)
         if (p.getIsotopeOrder()>0) return true;
+
+    return false;
+  }
+  // any c13 isotope in the annotations?
+  public static boolean hasCharge(Collection<PeakAnnotation> pa)
+  {
+    if (Tools.isSet(pa))
+      for (PeakAnnotation p : pa)
+        if (p.getCharge()>0) return true;
 
     return false;
   }

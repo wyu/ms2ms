@@ -608,4 +608,68 @@ public class Spectra
     }
     return peaks;
   }
+
+  // spectra quality calls if there are >times pairs of peaks <split away while having AI-ratio<ratio
+  public static boolean hasPeakSplitting(PeakList ms, double ppm, double ratio, double pct)
+  {
+    // an example of splitting due to MS calibration artifact
+    //    230.1674194336  116523.0859375000
+    //    230.1746826172  110899.7343750000
+    if (ms!=null && ms.size()>10)
+    {
+      int occurances=0; double r = Math.abs(Math.log10(ratio));
+      for (int i=0; i<ms.size()-1; i++)
+      {
+        if (Math.abs(Peaks.toPPM(ms.getMz(i+1),ms.getMz(i)))<ppm &&
+            Math.abs(Math.log10(ms.getIntensity(i+1)/ms.getIntensity(i)))<r)
+          occurances++;
+        if (200*occurances/ms.size()>pct) return true;
+      }
+//      System.out.println("   " + occurances + "/" + (int) (ms.size() * 0.5) + "/" + (Tools.d2s(200 * occurances/ms.size(), 1)));
+    }
+    return false;
+  }
+  // for a de-isotoped, charged determined peak list, return the counts for quality assessment
+  public static Map<String, Object> countPeaks(PeakList ms, Range<Double> reporter_range)
+  {
+    Map<String, Object> stats = new HashMap<>();
+
+    if (ms!=null && ms.size()>0)
+    {
+      int above_precursor_good=0, above_precursor=0, reporters=0, goods=0;
+      double reporter_low=Double.MAX_VALUE, global_low=Double.MAX_VALUE, mz_low=Double.MAX_VALUE, mz_high=0;
+      for (int i=0; i<ms.size(); i++)
+      {
+        if (ms.getMz(i)<mz_low)  mz_low =ms.getMz(i);
+        if (ms.getMz(i)>mz_high) mz_high=ms.getMz(i);
+
+        if (Peaks.hasCharge(ms.getAnnotations(i))) goods++;
+
+        if (ms.getMz(i)>ms.getPrecursor().getMz())
+        {
+          above_precursor++;
+          if (Peaks.hasCharge(ms.getAnnotations(i))) above_precursor_good++;
+        }
+        if (reporter_range!=null && reporter_range.contains(ms.getMz(i)))
+        {
+          reporters++;
+          if (ms.getIntensity(i)<reporter_low) reporter_low=ms.getIntensity(i);
+        }
+        if (ms.getIntensity(i)<global_low) global_low=ms.getIntensity(i);
+      }
+      // fill-in the final stats
+      stats.put(Peaks.CNT_PRECURSOR_2,      above_precursor);
+      stats.put(Peaks.CNT_PRECURSOR_2_GOOD, above_precursor_good);
+      stats.put(Peaks.CNT_REPORTER,         reporters);
+      stats.put(Peaks.CNT_GOOD,             goods);
+
+      stats.put(Peaks.AI_MIN,          global_low);
+      stats.put(Peaks.AI_MIN_REPORTER, reporter_low);
+
+      stats.put(Peaks.CNT_GLOBAL, ms.size());
+      if (mz_high>mz_low) stats.put(Peaks.CNT_PER_10AA, (int )(1150*ms.size()/(mz_high-mz_low)));
+    }
+
+    return stats;
+  }
 }
