@@ -1,7 +1,9 @@
 package org.ms2ms.data.ms;
 
+import com.google.common.collect.Range;
 import org.apache.commons.math.distribution.NormalDistribution;
 import org.apache.commons.math.distribution.NormalDistributionImpl;
+import org.expasy.mzjava.core.ms.Tolerance;
 import org.ms2ms.Disposable;
 import org.ms2ms.algo.MsStats;
 import org.ms2ms.math.Stats;
@@ -17,7 +19,8 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 {
   private FpmEntry mY, mB;
   private Long mProteinKey;
-  private int mLeft, mRight, mRank;
+  private int mLeft, mRight, mRank, mIsotopeError=0, mPrecursorCharge=0;
+  ;
   private double mCalcMH, mDeltaM, mKaiScore, mDeltaScore, mEval, mScoreOffset=0;
   private String mSequence, mPrev, mNext;
   private TreeMap<Integer, Double> mMods;
@@ -63,6 +66,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
     return out;
   }
 
+  public Ms2Hit   setPrecursorCharge(int s) { mPrecursorCharge=s; return this; }
   public Ms2Hit   setLeft(          int s) { mLeft =s; return this; }
   public Ms2Hit   setRight(         int s) { mRight=s; return this; }
   public Ms2Hit   setRank(          int s) { mRank=s; return this; }
@@ -169,7 +173,22 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 
     return c;
   }
+// check if the MH delta is consistent with isotope error following MSGF+
+//  [-ti IsotopeErrorRange] (Range of allowed isotope peak errors, Default:0,1)
+//  Takes into account of the error introduced by chooosing a non-monoisotopic peak for fragmentation.
+//  E.g. "-t 20ppm -ti -1,2" tests abs(exp-calc-n*1.00335Da)<20ppm for n=-1, 0, 1, 2.
+  public Ms2Hit isIsotopeErr(Range<Integer> range, Tolerance tol)
+  {
+    if (Tools.isSet(range))
+      for (int i=range.lowerEndpoint(); i<=range.upperEndpoint(); i++)
+        if (tol.withinTolerance(getDelta()+getCalcMH(), i*1.00335d+getCalcMH()))
+        {
+          mIsotopeError=i; mDeltaM-=(i*1.00335d);
+          break;
+        }
 
+    return this;
+  }
   @Override
   public void dispose()
   {
