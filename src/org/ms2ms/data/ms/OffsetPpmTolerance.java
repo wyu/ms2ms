@@ -17,7 +17,8 @@ public class OffsetPpmTolerance extends PpmTolerance
     super(tol); mOffset=offset; mTol=tol;
   }
 
-  public boolean isWithinByPPM(double s) { return Math.abs(s)<=mTol; }
+  public double getPPM() { return mTol*mScale; }
+  public boolean isWithinByPPM(double s) { return Math.abs(s)<=mTol*mScale; }
 
   public OffsetPpmTolerance scale( double s) { mScale =s; return this; }
   public OffsetPpmTolerance offset(double s) { mOffset=s; return this; }

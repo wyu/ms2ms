@@ -50,6 +50,7 @@ public class AnnotatedPeak extends Peak
     mAnnotations=s.mAnnotations; ionType=s.getIonType();
   }
   public boolean hasProperty(String k, Double s) { return mAnnotations!=null && Tools.equals(s, mAnnotations.get(k)); }
+  public boolean hasProperty(String k) { return mAnnotations!=null && mAnnotations.get(k)!=null; }
   public Double getProperty(String k) { return mAnnotations.get(k); }
   public Double getSNR() { return getProperty(SNR); }
   public IonType getIonType() { return ionType; }

@@ -578,7 +578,7 @@ public class Spectra
 
     return 0;
   }
-  public static SortedMap<Double, AnnotatedPeak> toPeaks(PeakList ms)
+  public static SortedMap<Double, AnnotatedPeak> toPeaks(PeakList ms, Range<Double>... exclusion)
   {
     // walking thro the peaks and recording the matching peaks
     SortedMap<Double, AnnotatedPeak> peaks = new TreeMap<>();
@@ -590,6 +590,16 @@ public class Spectra
       if (Peaks.hasC13(ms.getAnnotations(i))) { i++; continue; }
 
       double mz=ms.getMz(i);
+
+      // check for exclusion
+      if (Tools.isSet(exclusion))
+      {
+        boolean found=false;
+        for (Range<Double> excluded : exclusion)
+          if (excluded.contains(mz)) { found=true; break; }
+        if (found) { i++; continue; }
+      }
+
       // estimates the local frequency
       left=i-10;right=i+10;
       if      (left <0)           { left =0;          right=Math.min(left+20,ms.size()); }
@@ -643,7 +653,7 @@ public class Spectra
         if (ms.getMz(i)<mz_low)  mz_low =ms.getMz(i);
         if (ms.getMz(i)>mz_high) mz_high=ms.getMz(i);
 
-        if (Peaks.hasCharge(ms.getAnnotations(i))) goods++;
+        if (Peaks.hasC13(ms.getAnnotations(i))) goods++;
 
         if (ms.getMz(i)>ms.getPrecursor().getMz())
         {

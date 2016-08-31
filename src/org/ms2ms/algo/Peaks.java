@@ -785,11 +785,12 @@ public class Peaks
     return sumY != 0 ? sumXY / sumY : null;
   }
   // any c13 isotope in the annotations?
-  public static boolean hasC13(Collection<IsotopePeakAnnotation> pa)
+  public static boolean hasC13(Collection<PeakAnnotation> pa)
   {
     if (Tools.isSet(pa))
-      for (IsotopePeakAnnotation p : pa)
-        if (p.getIsotopeOrder()>0) return true;
+      for (PeakAnnotation p : pa)
+        if (p instanceof IsotopePeakAnnotation &&
+            ((IsotopePeakAnnotation )p).getIsotopeOrder()>0) return true;
 
     return false;
   }
