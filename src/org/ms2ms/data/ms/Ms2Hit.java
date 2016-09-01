@@ -23,6 +23,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public static final String SCR_OFFSET = "ScoreOffset";
   public static final String SCR_MATCH  = "MatchProb";
   public static final String SCR_EVAL   = "Eval";
+  public static final String SCR_COMP   = "CompositeScore";
 
   private FpmEntry mY, mB;
   private Long mProteinKey;
@@ -101,6 +102,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   }
   public Ms2Hit   setRank(          int s) { mRank=s; return this; }
   //public Ms2Hit   setPeptide(String s) { mPeptide=s; return this; }
+  public Ms2Hit   setScore(String k, Double s) { mScores.put(k,s); return this; }
 //  public Ms2Hit   setGapScore()            { mScores.put(SCR_GAP, (mY!=null?mY.getGapScore():0)+(mB!=null?mB.getGapScore():0)); return this; }
   public Ms2Hit   setGapScore()            { mScores.put(SCR_GAP, getGapScore()); return this; }
   public Ms2Hit   setEVal(       double s) { mScores.put(SCR_EVAL,   s); return this; }

@@ -625,16 +625,18 @@ public class Spectra
     // an example of splitting due to MS calibration artifact
     //    230.1674194336  116523.0859375000
     //    230.1746826172  110899.7343750000
+    int occurances=0, goods=0; double r = Math.abs(Math.log10(ratio)), ai0 = Peaks.getMinIntensity(ms)*1.5d;
     if (ms!=null && ms.size()>10)
     {
-      int occurances=0; double r = Math.abs(Math.log10(ratio));
       for (int i=0; i<ms.size()-1; i++)
       {
+        if (ms.getIntensity(i)>ai0) goods++;
+        // is there a doublet?
         if (Math.abs(Peaks.toPPM(ms.getMz(i+1),ms.getMz(i)))<ppm &&
             Math.abs(Math.log10(ms.getIntensity(i+1)/ms.getIntensity(i)))<r)
           occurances++;
-        if (200*occurances/ms.size()>pct) return true;
       }
+      if (200*occurances/goods>pct) return true;
 //      System.out.println("   " + occurances + "/" + (int) (ms.size() * 0.5) + "/" + (Tools.d2s(200 * occurances/ms.size(), 1)));
     }
     return false;
