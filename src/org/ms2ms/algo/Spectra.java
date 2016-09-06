@@ -606,7 +606,7 @@ public class Spectra
       else if (right>ms.size()-1) { right=ms.size()-1; left=Math.max(right-20, 0); }
 
       AnnotatedPeak pk = new AnnotatedPeak(ms.getMz(i), ms.getIntensity(i));
-      pk.setProperty(AnnotatedPeak.FREQUENCY, Peaks.countC12(ms, left, right)/(ms.getMz(right)-ms.getMz(left)));
+      pk.setFrequency(Peaks.countC12(ms, left, right)/(ms.getMz(right)-ms.getMz(left)));
       peaks.put(mz, pk);
       // advance the pointer
       i++;

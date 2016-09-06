@@ -14,14 +14,16 @@ import java.util.Map;
  */
 public class AnnotatedPeak extends Peak
 {
-  public static final String FREQUENCY = "Frequency";
-  public static final String SNR       = "SNR";
-  public static final String MZ        = "mz";
-  public static final String COUNTS    = "Counts";
-  public static final String OUTLIER   = "outlier";
+//  public static final String FREQUENCY = "Frequency";
+//  public static final String SNR       = "SNR";
+//  public static final String MZ        = "mz";
+//  public static final String COUNTS    = "Counts";
+//  public static final String OUTLIER   = "outlier";
 
-//  private double SNR;
-  private Map<String, Double> mAnnotations = new HashMap<>();
+  private boolean mIsOutlier=false;
+  private long mCounts;
+  private double mSNR, mFreq, mOrigMz;
+  private Map<String, Double> mAnnotations = null;
   private IonType ionType ;
 
   public AnnotatedPeak() { super(); }
@@ -37,9 +39,9 @@ public class AnnotatedPeak extends Peak
   public AnnotatedPeak(double mz, double ai, int z, double snr, double freq)
   {
     super(mz, ai, z);
-    setSNR(snr).setProperty(FREQUENCY, freq);
+    setSNR(snr).setFrequency(freq);
   }
-  public AnnotatedPeak(double mz, double ai, int z, double snr, IonType type)
+  public AnnotatedPeak(double mz, double ai, int z, float snr, IonType type)
   {
     super(mz, ai, z);
     setSNR(snr); ionType = type;
@@ -50,16 +52,37 @@ public class AnnotatedPeak extends Peak
     mAnnotations=s.mAnnotations; ionType=s.getIonType();
   }
   public boolean hasProperty(String k, Double s) { return mAnnotations!=null && Tools.equals(s, mAnnotations.get(k)); }
-  public boolean hasProperty(String k) { return mAnnotations!=null && mAnnotations.get(k)!=null; }
+//  public boolean hasProperty(String k) { return mAnnotations!=null && mAnnotations.get(k)!=null; }
+
+  public boolean isOutlier() { return mIsOutlier; }
   public Double getProperty(String k) { return mAnnotations.get(k); }
-  public Double getSNR() { return getProperty(SNR); }
+  public long getCounts() { return mCounts; }
+  public double getSNR() { return mSNR; }
+  public double getFrequency() { return mFreq; }
+  public double getOriginalMz() { return mOrigMz; }
   public IonType getIonType() { return ionType; }
 
   public AnnotatedPeak removeProperty(String s) { if (mAnnotations!=null) mAnnotations.remove(s); return this; }
-  public AnnotatedPeak setSNR(        Double s) { return setProperty(SNR, s); }
-  public AnnotatedPeak setProperty(   String k, double s) { mAnnotations.put(k,s); return this; }
+
+  public AnnotatedPeak isOutlier(boolean s) { mIsOutlier=s; return this; }
+  public AnnotatedPeak setSNR(        double s) { mSNR=s; return this; }
+  public AnnotatedPeak setFrequency(  double s) { mFreq=s; return this; }
+  public AnnotatedPeak setOriginalMz(double s) { mOrigMz=s; return this; }
+  public AnnotatedPeak setCounts(long s) { mCounts=s; return this; }
+  public AnnotatedPeak setProperty(   String k, double s)
+  {
+    if (mAnnotations==null) mAnnotations=new HashMap<>();
+
+    mAnnotations.put(k,s);
+    return this;
+  }
   public AnnotatedPeak setProperty(AnnotatedPeak s, String... ks)
   {
+    // nothing to copy over
+    if (s.mAnnotations==null) return this;
+
+    if (mAnnotations==null) mAnnotations=new HashMap<>();
+
     if (!Tools.isSet(ks)) mAnnotations.putAll(s.mAnnotations);
     else
     {

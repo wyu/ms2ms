@@ -3,6 +3,7 @@ package org.ms2ms.algo;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.TreeMultimap;
 import org.expasy.mzjava.core.mol.SymbolSequence;
 import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
@@ -62,6 +63,20 @@ public class Peptides
     }
     return peptide;
   }
+  public static Multimap<Float, Character> newMassAAs(String fixed)
+  {
+    return toMassAAs(newAAsMass(fixed));
+  }
+  public static TreeMultimap<Float, Character> toMassAAs(Map<Character, Float> AAs)
+  {
+    if (Tools.isSet(AAs))
+    {
+      TreeMultimap<Float, Character> m = TreeMultimap.create();
+      for (Character AA : AAs.keySet()) m.put(AAs.get(AA), AA);
+      return m;
+    }
+    return null;
+  }
   // setup a simple mapping of the AA symbol and their incremental masses
   public static ImmutableMap<Character, Float> newAAsMass(String fixed)
   {
@@ -93,4 +108,13 @@ public class Peptides
 
     return y;
   }
+  public static boolean isTryptic(char[] sequence, int n0, int n1)
+  {
+    // not checking for sequence validity to save time. Do it before call this function!
+
+    // should the start or end of the sequence or conforming to the tryptic specificity
+    return n0==0 || n0==sequence.length-1 ||
+        (n0>=0 && n1<sequence.length && (sequence[n0]=='K' || sequence[n0]=='R') && (sequence[n1]!='P'));
+  }
+  public static boolean isTryptic(char n0, char n1)  { return (n0=='K' || n0=='R') && n1!='P'; }
 }

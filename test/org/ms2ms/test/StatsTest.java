@@ -3,6 +3,7 @@ package org.ms2ms.test;
 import com.google.common.collect.Lists;
 import org.junit.Test;
 import org.ms2ms.algo.MsStats;
+import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Tools;
 
 /**
@@ -14,6 +15,37 @@ import org.ms2ms.utils.Tools;
  */
 public class StatsTest extends TestAbstract
 {
+  @Test
+  public void hypergeometric() throws Exception
+  {
+
+  }
+  @Test
+  public void binomial_approximation() throws Exception
+  {
+    System.out.println("prob(20, 0.3, 100) >>> 0.016462853241869437\n1-prob(40-1, 0.3, 100) >>> 0.020988576003924564\n" +
+            "normal_estimate(20, 0.3, 100) >>> 0.014548164531920815\nnormal_estimate 1-prob(40-1/100/0.3 >>> 0.024767304545069813)\n" +
+        "poisson(20, 0.3, 100) >>> 0.013411150012837811\npoisson 1-prob(40-1/100/0.3) >>> 0.046253037645840323\n");
+
+//  http://stackoverflow.com/questions/1095650/how-can-i-efficiently-calculate-the-binomial-cumulative-distribution-function
+//  prob(20, 0.3, 100) >>> 0.016462853241869437
+
+    System.out.println("binomial exact (20/100/0.3): "+Stats.binomial_exact(20, 100, 0.3));
+    System.out.println("binomial_ln    (20/100/0.3): "+Stats.binomial(20, 100, 0.3));
+
+//  1-prob(40-1, 0.3, 100) >>> 0.020988576003924564
+    System.out.println("binomial exact 1-prob(40-1/100/0.3): "+(1-Stats.binomial_exact(40-1, 100, 0.3)));
+    System.out.println("binomial_ln    1-prob(40-1/100/0.3): "+(1-Stats.binomial(      40-1, 100, 0.3)));
+
+//  normal_estimate(20, 0.3, 100) >>> 0.014548164531920815
+    System.out.println("binomial_normal_apprx (20/100/0.3): "+Stats.binomial_normal_estimate(20, 100, 0.3));
+    System.out.println("binomial_normal_apprx 1-prob(40-1/100/0.3): "+(1-Stats.binomial_normal_estimate(40-1, 100, 0.3)));
+
+//  poisson(20, 0.3, 100) >>> 0.013411150012837811
+    System.out.println("binomial_poisson_apprx(20/100/0.3): "+Stats.binomial_poisson_estimate(20, 100, 0.3));
+    System.out.println("binomial_poisson_apprx 1-prob(40-1/100/0.3): "+(1-Stats.binomial_poisson_estimate(40-1, 100, 0.3)));
+
+  }
   @Test
   public void aggregator() throws Exception
   {
