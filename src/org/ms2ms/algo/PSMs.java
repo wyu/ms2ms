@@ -44,7 +44,7 @@ public class PSMs
     {
       if (!o1.hasScore(score) || !o2.hasScore(score))
       {
-        System.out.println();
+//        System.out.println();
       }
       return o1!=null && o2!=null ? Double.compare(o2.getScore(score), o1.getScore(score)):0;
     }

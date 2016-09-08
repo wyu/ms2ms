@@ -79,11 +79,11 @@ public class MetaPeptideMatch
 
     Collection<PeptideMatch>  tops = new ArrayList<>();
 
-    if (Tools.front(mPeptideEngineMatch.values()).getNeutralPeptideMass()>1000.4 &&
-        Tools.front(mPeptideEngineMatch.values()).getNeutralPeptideMass()<1000.5)
-    {
-      System.out.println();
-    }
+//    if (Tools.front(mPeptideEngineMatch.values()).getNeutralPeptideMass()>1000.4 &&
+//        Tools.front(mPeptideEngineMatch.values()).getNeutralPeptideMass()<1000.5)
+//    {
+////      System.out.println();
+//    }
     // looking for the consensus where 2 or more engines voted for the same peptide
     for (String peptide : mPeptideEngineMatch.rowKeySet())
       if (mPeptideEngineMatch.row(peptide).keySet().size()>1)
@@ -314,10 +314,10 @@ public class MetaPeptideMatch
         last_pos = pos;
       }
 
-      if (id.getScanNumbers().getFirst().getValue()==1914)
-      {
-        System.out.println();
-      }
+//      if (id.getScanNumbers().getFirst().getValue()==1914)
+//      {
+//        System.out.println();
+//      }
       if (keepConsensus) tops.putAll(id, meta.get(id).getTopPeptideMatches(dirt));
       else               tops.put(   id, meta.get(id).getTopPeptideMatch(  dirt));
     }

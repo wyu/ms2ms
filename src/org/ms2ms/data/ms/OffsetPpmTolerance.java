@@ -34,10 +34,10 @@ public class OffsetPpmTolerance extends PpmTolerance
   public double getOffset() { return mOffset; }
   public Range<Double> getBoundary(double mz) { return Range.closed(getMin(mz), getMax(mz)); }
   // because of the directionality of the offset, we have to specify the direction as well.
-  public Range<Double> toExpectedBoundary(double mz) { return Range.closed(mz-calcError(mz)+calcOffset(mz), mz+calcError(mz)+calcOffset(mz)); }
-  public Range<Double> toActualBoundary(  double mz) { return Range.closed(mz-calcError(mz)-calcOffset(mz), mz+calcError(mz)-calcOffset(mz)); }
-  public Range<Float>  toExpectedBoundary(float mz)  { return Range.closed((float )(mz-calcError(mz)+calcOffset(mz)), (float )(mz+calcError(mz)+calcOffset(mz))); }
-  public Range<Float>  toActualBoundary(  float mz)  { return Range.closed((float )(mz-calcError(mz)-calcOffset(mz)), (float )(mz+calcError(mz)-calcOffset(mz))); }
+  public double[] toExpectedBoundary(double mz) { return new double[] {mz-calcError(mz)+calcOffset(mz), mz+calcError(mz)+calcOffset(mz)}; }
+  public double[] toActualBoundary(  double mz) { return new double[] {mz-calcError(mz)-calcOffset(mz), mz+calcError(mz)-calcOffset(mz)}; }
+  public float[]  toExpectedBoundary(float mz)  { return new float[] {(float )(mz-calcError(mz)+calcOffset(mz)), (float )(mz+calcError(mz)+calcOffset(mz))}; }
+  public float[]  toActualBoundary(  float mz)  { return new float[] {(float )(mz-calcError(mz)-calcOffset(mz)), (float )(mz+calcError(mz)-calcOffset(mz))}; }
 
   @Override
   public boolean withinTolerance(double expected, double actual) { return actual >= getMin(expected) && actual <= getMax(expected); }

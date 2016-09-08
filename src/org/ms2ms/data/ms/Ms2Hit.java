@@ -25,6 +25,12 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public static final String SCR_MATCH  = "MatchProb";
   public static final String SCR_EVAL   = "Eval";
   public static final String SCR_COMP   = "CompositeScore";
+  public static final String SCR_DECOY_Y = "best decoy-y";
+  public static final String SCR_DECOY_B = "best decoy-b";
+  public static final String SCR_DECOY_Y0 = "mean of decoy-y";
+  public static final String SCR_DECOY_B0 = "mean of decoy-b";
+  public static final String SCR_DECOY_Y1 = "stdev of decoy-y";
+  public static final String SCR_DECOY_B1 = "stdev of decoy-b";
 
   private FpmEntry mY, mB;
   private Long mProteinKey;
@@ -131,13 +137,16 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public  Ms2Hit setPeptide(char[] sequence) { return setPeptide(sequence, getLeft(), getRight()); }
   public Ms2Hit setPeptide(char[] sequence, int left, int right)
   {
-    setLocation(left, right);
-    mPrev    =(getLeft()>0?sequence[getLeft()-1]:'-')+"";
-    mSequence=Strs.toString(sequence, getLeft(), getRight()+1); // 0-based index
-    mNext    =(getRight()<sequence.length-1?sequence[getRight()+1]:'-')+"";
+    if (sequence!=null && left>=0 && right<sequence.length && right>left)
+    {
+      setLocation(left, right);
+      mPrev    =(getLeft()>0?sequence[getLeft()-1]:'-')+"";
+      mSequence=Strs.toString(sequence, getLeft(), getRight()+1); // 0-based index
+      mNext    =(getRight()<sequence.length-1?sequence[getRight()+1]:'-')+"";
 
 //    if (Tools.equals("AIAVRS", mSequence))
 //      System.out.print("");
+    }
     return this;
   }
   public Ms2Hit clearMods() { Tools.dispose(mMods); return this; }

@@ -721,9 +721,9 @@ public class Peaks
   {
     return Tools.isSet(mz) ? Tools.isSet(indices.asMap().subMap(mz.lowerEndpoint().floatValue(), mz.upperEndpoint().floatValue())) : false;
   }
-  public static Collection<FragmentEntry> query(TreeListMultimap<Float, FragmentEntry> indices, Range<Double> mz)
+  public static Collection<FragmentEntry> query(TreeListMultimap<Float, FragmentEntry> indices, float[] range)
   {
-    return Tools.isSet(mz) ? indices.subList(mz.lowerEndpoint().floatValue(), mz.upperEndpoint().floatValue()) : null;
+    return range!=null ? indices.subList(range[0], range[1]) : null;
   }
   public static boolean match(TreeListMultimap<Double, FragmentEntry> indices, Range<Double> mz)
   {
