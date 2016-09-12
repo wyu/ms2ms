@@ -4,6 +4,7 @@ import com.google.common.collect.Range;
 import org.apache.commons.math.distribution.NormalDistribution;
 import org.apache.commons.math.distribution.NormalDistributionImpl;
 import org.expasy.mzjava.core.ms.Tolerance;
+import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.ms2ms.Disposable;
 import org.ms2ms.algo.MsStats;
 import org.ms2ms.math.Stats;
@@ -35,8 +36,9 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   private FpmEntry mY, mB;
   private Long mProteinKey;
   private int mLeft, mRight, // 0-based index of the first and last residue
-              mRank, mIsotopeError=0, mPrecursorCharge=0;
-  private double mCalcMH, mDeltaM;
+              mRank, mIsotopeError=0/*, mPrecursorCharge=0*/;
+  private Peak mCalc=null;
+  private double /*mCalcMH, */mDeltaM;
   //private double mKaiScore, mDeltaScore, mEval, mScoreOffset=0, mMatchProb, mGapQval, mMatchQval;
   private String mSequence, mPrev, mNext;
   private TreeMap<Integer, Double> mMods;
@@ -61,7 +63,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public int      getIsotopeError() { return mIsotopeError; }
   public double   getScore(String s) { return mScores.get(s); }
   public double   getDelta()      { return mDeltaM; }
-  public double   getCalcMH()     { return mCalcMH; }
+  public double   getCalcMH()     { return mCalc!=null?mCalc.getMz():0; }
   public Double   getEVal()       { return mScores.get(SCR_EVAL); }
   public Double   getScoreOffset(){ return mScores!=null&&mScores.get(SCR_OFFSET)!=null?mScores.get(SCR_OFFSET):0d; }
 //  public double   getGapQval()    { return mGapQval; }
@@ -80,13 +82,13 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public String   getPrev()       { return mPrev; }
   public String   getNext()       { return mNext; }
   public double   getModMass()    { return mMods!=null? Stats.sum(mMods.values()):0d; }
-  public double   getScore(Map<String, Double> basis)
+  public double   getScore(Map<String, Double> basis, double w)
   {
     // a composite score of several components
-    double gap = (getGapScore( )-basis.get(Ms2Hits.CTR_GAP  ))/basis.get(Ms2Hits.SIG_GAP),
-         match = (getMatchProb()-basis.get(Ms2Hits.CTR_MATCH))/basis.get(Ms2Hits.SIG_MATCH);
+    double gap = (getGapScore( )-basis.get(Ms2Hits.CTR_GAP  ))/(basis.get(Ms2Hits.SIG_GAP  )!=null?basis.get(Ms2Hits.SIG_GAP  ):1d),
+         match = (getMatchProb()-basis.get(Ms2Hits.CTR_MATCH))/(basis.get(Ms2Hits.SIG_MATCH)!=null?basis.get(Ms2Hits.SIG_MATCH):1d);
 
-    return gap+0.25*match;
+    return gap+w*match;
   }
 //  public TreeMap<Integer, Double> getMods() { return mMods; }
 
@@ -102,7 +104,11 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
     return out;
   }
 
-  public Ms2Hit   setPrecursorCharge(int s) { mPrecursorCharge=s; return this; }
+  public Ms2Hit   setPrecursorCharge(int s)
+  {
+    if (mCalc==null) mCalc = new Peak();
+    mCalc.setMzAndCharge(mCalc.getMz(), s); return this;
+  }
 //  public Ms2Hit   setLeft(          int s) { mLeft =s; return this; }
 //  public Ms2Hit   setRight(         int s) { mRight=s; return this; }
   public Ms2Hit   setLocation(int left,int right)
@@ -125,12 +131,15 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public Ms2Hit   setMatchProb(  double s) { mScores.put(SCR_MATCH,  s); return this; }
   public Ms2Hit   setMH(double calc, double delta)
   {
-    mCalcMH=calc; mDeltaM=delta;
+    if (mCalc==null) mCalc = new Peak();
+
+    mCalc.setMzAndCharge(calc, mCalc.getCharge()); mDeltaM=delta;
     return this;
   }
   public Ms2Hit   increMH(double m)
   {
-    mCalcMH+=m; mDeltaM-=m; return this;
+    if (mCalc==null) mCalc = new Peak();
+    mCalc.setMzAndCharge(mCalc.getMz()+m,mCalc.getCharge()); mDeltaM-=m; return this;
   }
   public  Ms2Hit setSequence(String s) { mSequence=s; return this; }
   public  Ms2Hit setPeptide(String sequence) { return sequence!=null?setPeptide(sequence.toCharArray(), 0, sequence.length()-1):this; }
@@ -212,25 +221,25 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public Ms2Hit shallow_copy()
   {
     Ms2Hit clone = new Ms2Hit(getProteinKey(), mY.shallow_copy(), mB.shallow_copy(), mLeft, mRight);
-    clone.setMH(mCalcMH, mDeltaM).setPeptide(mSequence);
+    clone.setMH(getCalcMH(), mDeltaM).setPeptide(mSequence);
 
     return clone;
   }
   @Override
   public String toString()
   {
-    return getProteinKey()+":"+getLeft()+"-"+getRight()+",m/z"+ Tools.d2s(mCalcMH, 5)+"$"+
-        (mB!=null?mB.getTrack().size():"*")+"->"+(mY!=null?mY.getTrack().size():"*")+"="+getPeptide()+"^"+
-         MsStats.asDeviation(mDeltaM, mCalcMH, 999) + "->" + Tools.d2s(getGapScore(), 2);
+    return getProteinKey()+":"+getLeft()+"-"+getRight()+",m/z"+ Tools.d2s(getCalcMH(), 5)+"$"+
+        (mB!=null?mB.getTrack().size():"*")+"->"+(mY!=null?mY.getTrack().size():"*")+(Strs.isSet(getSequence())?("="+getPeptide()):"")+"^"+
+         MsStats.asDeviation(mDeltaM, getCalcMH(), 999) + "->" + Tools.d2s(getGapScore(), 2);
   }
 
   @Override
   public int compareTo(Ms2Hit o)
   {
-    int c = Long.compare(mProteinKey, o.getProteinKey());
+    int c = Stats.compareTo(mProteinKey, o.getProteinKey());
 
-    if (c==0) c = Integer.compare(mLeft,  o.getLeft());
-    if (c==0) c = Integer.compare(mRight, o.getRight());
+    if (c==0) c = Stats.compareTo(mLeft, o.getLeft());
+    if (c==0) c = Stats.compareTo(mRight, o.getRight());
     if (c==0)
     {
       // check the mods

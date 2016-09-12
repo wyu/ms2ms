@@ -14,9 +14,11 @@ import org.expasy.mzjava.proteomics.io.ms.ident.mzidentml.v110.AbstractParamType
 import org.expasy.mzjava.proteomics.io.ms.ident.mzidentml.v110.CVParamType;
 import org.expasy.mzjava.proteomics.io.ms.ident.mzidentml.v110.UserParamType;
 import org.ms2ms.algo.LCMSMS;
+import org.ms2ms.algo.Peaks;
 import org.ms2ms.algo.PurgingPeakProcessor;
 import org.ms2ms.algo.Spectra;
 import org.ms2ms.data.ms.MsSpectrum;
+import org.ms2ms.math.Stats;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.data.HData;
 import org.ms2ms.data.ms.LcMsMsDataset;
@@ -601,8 +603,10 @@ public class MsReaders
     return ms2;
   }
 
-  public static void mzML2MGF(String mzml, String mgf, int... scans) throws IOException
+  public static void mzML2MGF(String mzml, double left, double right, String mgf, int... scans) throws IOException
   {
+    System.out.println("Saving the scans to " + mgf);
+
 //    File mzmlFile = new File("/Users/yuw/Apps/pipeline/Chorus/data/151107_Ecoli_12protein_Spike_MS2_R2_Fr6.mzML");
 //    int[] scans = new int[] {20647, 21623, 22456};
     MzMLUnmarshaller unmarshaller = new MzMLUnmarshaller(new File(mzml));
@@ -610,20 +614,53 @@ public class MsReaders
     MzMLObjectIterator<Spectrum> spectrumIterator = unmarshaller.unmarshalCollectionFromXpath("/run/spectrumList/spectrum", Spectrum.class);
 
     System.out.println("Going through the MS2 scans from:"+mzml);
-    int counts=0;
+    int counts=0; MsnSpectrum ms1=null;
+    Collection<MsnSpectrum> msms = new ArrayList<>();
     MgfWriter MGF = new MgfWriter(new File(mgf), PeakList.Precision.DOUBLE);
     while (spectrumIterator.hasNext())
     {
       MsnSpectrum ms = MsReaders.from(spectrumIterator.next());
       if (++counts % 1000 == 0) System.out.print(".");
-      if      (ms.getMsLevel()==2)
-        for (int scan : scans)
-        if (scan==ms.getScanNumbers().getFirst().getValue())
-        {
-          System.out.println("Saving the scan " + ms.getScanNumbers().getFirst().getValue() + " to " + mgf);
-          MGF.write(ms);
-        }
+      if      (ms.getMsLevel()==1 && ms1==null) ms1=ms;
+      else if (ms.getMsLevel()==1 && ms1!=null)
+      {
+        writeMGF(MGF, ms1,ms, left, right, msms, scans);
+        ms1=ms; msms.clear();
+      }
+      else if (ms.getMsLevel()==2) msms.add(ms);
     }
+    if (Tools.isSet(msms) && ms1!=null) writeMGF(MGF, ms1,null, left, right, msms, scans);
+
     MGF.close();
+  }
+  private static void writeMGF(MgfWriter MGF,  MsnSpectrum ms10, MsnSpectrum ms11,
+                               double left, double right, Collection<MsnSpectrum> spectra, int... scans) throws IOException
+  {
+    for (MsnSpectrum ms : spectra)
+    for (int scan : scans)
+      if (scan==ms.getScanNumbers().getFirst().getValue())
+      {
+        // parse the isolated m/z. It maybe different from the precursor m/z
+        String[] strs = ms.getComment().split("@")[0].split(" ");
+        double center = (Tools.isSet(strs)? Stats.toDouble(strs[strs.length-1]):ms.getPrecursor().getMz());
+
+        // save the precursor isolation region
+        String isolation = "isolation/"+ms10.getScanNumbers().getFirst().getValue()+"/"+center+
+                       (ms11!=null?("/"+ms11.getScanNumbers().getFirst().getValue()):""),
+               line = Peaks2Str(Peaks.isolate(ms10, center+left, center+right)) +
+                   (ms11!=null?(","+Peaks2Str(Peaks.isolate(ms11, center+left, center+right))):"");
+
+        if (Strs.isSet(line)) ms.setComment(isolation+","+line);
+        MGF.write(ms);
+      }
+  }
+  private static String Peaks2Str(List<Peak> isolated)
+  {
+    String line = null;
+    if (Tools.isSet(isolated))
+      for (int i=0; i<isolated.size(); i++)
+        line = Strs.extend(line, isolated.get(i).getMz()+"/"+isolated.get(i).getIntensity()+"/"+isolated.get(i).getCharge(), ";");
+
+    return line;
   }
 }

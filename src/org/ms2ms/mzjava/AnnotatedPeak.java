@@ -21,16 +21,15 @@ public class AnnotatedPeak extends Peak
 //  public static final String OUTLIER   = "outlier";
 
   private boolean mIsOutlier=false;
+  private int mVerifiedCharge=0;
   private long mCounts;
   private double mSNR, mFreq, mOrigMz;
   private Map<String, Double> mAnnotations = null;
   private IonType ionType ;
 
   public AnnotatedPeak() { super(); }
-  public AnnotatedPeak(double mz, double ai)
-  {
-    super(mz, ai);
-  }
+  public AnnotatedPeak(double mz, double ai) { super(mz, ai); }
+  public AnnotatedPeak(double mz, double ai, int z) { super(mz, ai, z); }
   public AnnotatedPeak(double mz, double ai, int z, double snr)
   {
     super(mz, ai, z);
@@ -54,6 +53,7 @@ public class AnnotatedPeak extends Peak
   public boolean hasProperty(String k, Double s) { return mAnnotations!=null && Tools.equals(s, mAnnotations.get(k)); }
 //  public boolean hasProperty(String k) { return mAnnotations!=null && mAnnotations.get(k)!=null; }
 
+  public int getVerifiedCharge() { return mVerifiedCharge; }
   public boolean isOutlier() { return mIsOutlier; }
   public Double getProperty(String k) { return mAnnotations.get(k); }
   public long getCounts() { return mCounts; }
@@ -64,6 +64,8 @@ public class AnnotatedPeak extends Peak
 
   public AnnotatedPeak removeProperty(String s) { if (mAnnotations!=null) mAnnotations.remove(s); return this; }
 
+  public AnnotatedPeak setCharge(int z) { super.setMzAndCharge(getMz(), z); return this; }
+  public AnnotatedPeak setVerifiedCharge(int z) { mVerifiedCharge=z; return this; }
   public AnnotatedPeak isOutlier(boolean s) { mIsOutlier=s; return this; }
   public AnnotatedPeak setSNR(        double s) { mSNR=s; return this; }
   public AnnotatedPeak setFrequency(  double s) { mFreq=s; return this; }

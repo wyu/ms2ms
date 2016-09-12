@@ -230,6 +230,7 @@ public class Peaks
   public static double toMass(double mz, int z) { return (mz-1.007825)*z; }
   public static double toMass(Peak p)           { return toMass(p.getMz(), p.getCharge()); }
   public static double toPPM(double m0, double m1) { return 1E6*(m1-m0)/m0; }
+  public static double MH2Mz(double mh, int z) { return (mh+1.007825*(z-1))/(double )z; }
 
   /** makeup a peaklist using string shorthand
    *
@@ -850,6 +851,113 @@ public class Peaks
     for (T peak : peaks) sum+=Math.abs(peak.getIntensity());
 
     return sum;
+  }
+  public static int[] charges(PeakList peaks, int i)
+  {
+    List<Integer> zs = new ArrayList<>();
+    if (peaks!=null && i>=0 && i<peaks.size())
+    {
+      Collection<PeakAnnotation> annots = peaks.getAnnotations(i);
+      if (Tools.isSet(annots))
+        for (PeakAnnotation annot : annots)
+          if (annot.getCharge()!=0) zs.add(annot.getCharge());
+    }
+    if (zs.size()>0)
+    {
+      int[] zz = new int[zs.size()];
+      for (int k=0; k<zs.size(); k++) zz[k]=zs.get(k);
+      return zz;
+    }
+    return new int[] {};
+  }
+  public static List<Peak> isolate(PeakList peaks, double left, double right)
+  {
+    if (peaks==null) return null;
+
+    List<Peak> isolated = new ArrayList<>();
+    for (int i=0; i<peaks.size(); i++)
+    {
+      if (peaks.getMz(i)>=left && peaks.getMz(i)<=right)
+      {
+        isolated.add(new Peak(peaks.getMz(i), peaks.getIntensity(i), charges(peaks, i)));
+      }
+    }
+    return isolated;
+  }
+  public static SortedMap<Double, Peak> toPrecursors(String comment)
+  {
+    String[] strs = Strs.split(comment, ';');
+    if (Tools.isSet(strs))
+    {
+      SortedMap<Double, Peak> precursors = new TreeMap<Double, Peak>();
+      for (int i=0; i<strs.length; i++)
+      {
+        String[] items = Strs.split(strs[i], '/');
+        if (items!=null && items.length>2)
+        {
+          Peak pk = new Peak(Stats.toDouble(items[0]), Stats.toDouble(items[1]), Stats.toInt(items[2]));
+          precursors.put(pk.getMz(), pk);
+        }
+      }
+      return precursors;
+    }
+    return null;
+  }
+  // is the putative MH supported by the precursors detected in the isolation window?
+  public static AnnotatedPeak verifyCalcMH(int max_z, AnnotatedPeak calc, Tolerance tol, SortedMap<Double, Peak>... isolated_precursors)
+  {
+    // n opinion without additional information
+    if (!Tools.isSet(isolated_precursors)) return calc;
+
+    // now look for the best charge state as supported by the observed precursors
+    int best=0, isotopes=0;
+    calc.setIntensity(0d); calc.setVerifiedCharge(0); calc.setOriginalMz(0d);
+    for (double z=max_z; z>=1d; z--)
+    {
+      double mz = Peaks.MH2Mz(calc.getMz(), (int )z), ai=0d, c12=0d; isotopes=0;
+      for (int c13=0; c13<=z; c13++)
+      {
+        Map<Double, Peak> c = null;
+        for (SortedMap<Double, Peak> precursors : isolated_precursors)
+        {
+          c = precursors.subMap(tol.getMin(mz + c13 * 1.003355d / z), tol.getMax(mz + c13 * 1.003355d / z));
+          if (Tools.isSet(c)) break;
+        }
+        if (!Tools.isSet(c)) { isotopes = c13-1; break; }
+        // accumulate the intensities
+        ai+=AbsIntensitySum(c.values()); isotopes=c13;
+        if (c12==0) c12 = Peaks.centroid(c.values());
+      }
+      if (isotopes>best || (isotopes==best && isotopes>0 && ai>calc.getIntensity()))
+      { best=isotopes; calc.setIntensity(ai); calc.setOriginalMz(c12).setProperty("isotopes", best).setVerifiedCharge((int )z); }
+    }
+
+    // no need to look for the true c12 since we starts with the calculated MH
+    return calc;
+  }
+  // is the putative MH supported by the precursors detected in the isolation window?
+  public static double hasPrecursor(int z, Tolerance tol, Range<Double> isolation, SortedMap<Double, Peak>... isolated_precursors)
+  {
+    double spacing = 1.00238d;
+
+    // n opinion without additional information
+    if (Tools.isSet(isolated_precursors))
+      for (SortedMap<Double, Peak> precursors: isolated_precursors)
+        for(Double p0 : precursors.keySet())
+        {
+          if (p0>isolation.upperEndpoint()) return 0;
+          double maxmz = 0, c13=0;
+          for (c13=1; c13<=z; c13++)
+          {
+            Map<Double, Peak> c = precursors.subMap(tol.getMin(p0+c13*spacing/(double)z), tol.getMax(p0+c13*spacing/(double )z));
+            if (!Tools.isSet(c)) break;
+            maxmz=p0+c13*spacing/(double )z;
+          }
+          if (c13>(z<2?1:2) && maxmz>isolation.lowerEndpoint()) return p0;
+        }
+
+    // no need to look for the true c12 since we starts with the calculated MH
+    return 0;
   }
 }
 

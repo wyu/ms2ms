@@ -1,6 +1,9 @@
 package org.ms2ms.data.ms;
 
 import org.expasy.mzjava.core.ms.spectrum.IonType;
+import org.ms2ms.algo.MsStats;
+import org.ms2ms.utils.Strs;
+import org.ms2ms.utils.Tools;
 import uk.ac.ebi.pride.jmztab.model.Mod;
 
 import java.util.List;
@@ -30,4 +33,10 @@ public class PeptideEntry
   public IonType getIonType()    { return mIonType; }
   public boolean isY()           { return IonType.y==mIonType; }
   public boolean isB()           { return IonType.b==mIonType; }
+
+  @Override
+  public String toString()
+  {
+    return getProteinKey()+":"+getTerminal()+"%"+getIonType()+(Tools.isSet(mMods) ?(", $"+ Strs.toString(mMods,";")):"");
+  }
 }
