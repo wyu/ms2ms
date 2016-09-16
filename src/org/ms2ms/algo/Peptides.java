@@ -8,12 +8,10 @@ import org.expasy.mzjava.core.mol.SymbolSequence;
 import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
-import org.expasy.mzjava.proteomics.mol.Protein;
-import org.expasy.mzjava.proteomics.mol.modification.ModAttachment;
+import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodManager;
+import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodMod;
 import org.expasy.mzjava.proteomics.ms.fragment.PeptideFragmentAnnotator;
 import org.expasy.mzjava.proteomics.ms.fragment.PeptideFragmenter;
-import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
-import org.ms2ms.data.ms.FragmentEntry;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
@@ -47,7 +45,7 @@ public class Peptides
   {
     // the fragmenter is responsible for generating a theoretical spectrum from the peptide
     PeptideFragmenter fragmenter =
-      new PeptideFragmenter(EnumSet.of(IonType.b, IonType.y,IonType.a), PeakList.Precision.DOUBLE);
+      new PeptideFragmenter(EnumSet.of(IonType.b, IonType.y, IonType.a), PeakList.Precision.DOUBLE);
 
     // the annotator needs to delegate to the fragmenter the fragmentation process and to
     // the internal aligner the tolerance for aligning peaks
@@ -76,6 +74,28 @@ public class Peptides
       return m;
     }
     return null;
+  }
+  public static Map<String, Float> modAAsMass(String... unimods)
+  {
+    Map<String, Float> AAs = new HashMap<>(); Map<Character, Float> As = AAsBuilder.build();
+    for (Character c : As.keySet()) AAs.put(c+"", As.get(c));
+
+    Map<String, String[]> mod_site = new HashMap<>();
+    for (String unimod : unimods)
+    {
+      String[] strs = unimod.split(":");
+      mod_site.put(strs[0], strs[1].split("/"));
+    }
+    UnimodManager manager = UnimodManager.getInstance();
+    List<UnimodMod>    mm = manager.getModificationList();
+    for (UnimodMod m : mm)
+      for (String unimod : mod_site.keySet())
+        if (Strs.isA(unimod, m.getFullName(), m.getInterimName(), m.getPsiMsMsName(), m.getLabel()))
+          for (String site : mod_site.get(unimod))
+            if (AAs.containsKey(site))
+              AAs.put(site+"^"+m.getLabel(), (float )(m.getMolecularMass()+AAs.get(site)));
+
+    return AAs;
   }
   // setup a simple mapping of the AA symbol and their incremental masses
   public static ImmutableMap<Character, Float> newAAsMass(String fixed)

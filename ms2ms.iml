@@ -15,5 +15,14 @@
     <orderEntry type="library" exported="" name="grph" level="project" />
     <orderEntry type="library" exported="" name="sci" level="project" />
     <orderEntry type="library" name="PIA" level="project" />
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../jgrapht-0.9.1/lib/jgrapht-core-0.9.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
   </component>
 </module>

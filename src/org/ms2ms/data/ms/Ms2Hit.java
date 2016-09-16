@@ -35,7 +35,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 
   private FpmEntry mY, mB;
   private Long mProteinKey;
-  private int mLeft, mRight, // 0-based index of the first and last residue
+  private int mCharge, mLeft, mRight, // 0-based index of the first and last residue
               mRank, mIsotopeError=0/*, mPrecursorCharge=0*/;
   private Peak mCalc=null;
   private double /*mCalcMH, */mDeltaM;
@@ -49,10 +49,10 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
     super();
     mY = new FpmEntry(); mB = new FpmEntry();
   }
-  public Ms2Hit(Long protein, FpmEntry y, FpmEntry b, int left, int right)
+  public Ms2Hit(Long protein, FpmEntry y, FpmEntry b, int left, int right, int z)
   {
     super();
-    mProteinKey=protein; mY=y; mB=b; setLocation(left, right);
+    mProteinKey=protein; mY=y; mB=b; setLocation(left, right); mCharge=z;
   }
 
   public boolean  isDecoy()       { return mProteinKey!=null && mProteinKey<0; }
@@ -61,6 +61,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public int      getRight()      { return mRight; }
   public int      getRank()       { return mRank; }
   public int      getIsotopeError() { return mIsotopeError; }
+  public int      getCharge()     { return mCharge; }
   public double   getScore(String s) { return mScores.get(s); }
   public double   getDelta()      { return mDeltaM; }
   public double   getCalcMH()     { return mCalc!=null?mCalc.getMz():0; }
@@ -103,12 +104,12 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 
     return out;
   }
-
-  public Ms2Hit   setPrecursorCharge(int s)
-  {
-    if (mCalc==null) mCalc = new Peak();
-    mCalc.setMzAndCharge(mCalc.getMz(), s); return this;
-  }
+//  public Ms2Hit   setPrecursorCharge(int s)
+//  {
+//    mCharge=s
+//    if (mCalc==null) mCalc = new Peak();
+//    mCalc.setMzAndCharge(mCalc.getMz(), s); return this;
+//  }
 //  public Ms2Hit   setLeft(          int s) { mLeft =s; return this; }
 //  public Ms2Hit   setRight(         int s) { mRight=s; return this; }
   public Ms2Hit   setLocation(int left,int right)
@@ -118,6 +119,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 
     mRight=right; mLeft=left; return this;
   }
+  public Ms2Hit   setCharge(        int s) { mCharge=s; return this; }
   public Ms2Hit   setRank(          int s) { mRank=s; return this; }
   //public Ms2Hit   setPeptide(String s) { mPeptide=s; return this; }
   public Ms2Hit   setScore(String k, Double s) { mScores.put(k,s); return this; }
@@ -220,7 +222,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   }
   public Ms2Hit shallow_copy()
   {
-    Ms2Hit clone = new Ms2Hit(getProteinKey(), mY.shallow_copy(), mB.shallow_copy(), mLeft, mRight);
+    Ms2Hit clone = new Ms2Hit(getProteinKey(), mY.shallow_copy(), mB.shallow_copy(), mLeft, mRight, mCharge);
     clone.setMH(getCalcMH(), mDeltaM).setPeptide(mSequence);
 
     return clone;
@@ -266,6 +268,14 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
         }
 
     return this;
+  }
+  public Integer hashcodeByYBZ()
+  {
+    int hash=0;
+    if (getY()!=null) hash+=getY().hashcodeByTrack();
+    if (getB()!=null) hash+=getB().hashcodeByTrack();
+
+    return hash+getCharge();
   }
   @Override
   public void dispose()

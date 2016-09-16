@@ -11,11 +11,13 @@ import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeList;
 import org.ms2ms.data.ms.IsoEnvelope;
+import org.ms2ms.data.ms.Ms2Hits;
 import org.ms2ms.data.ms.OffsetPpmTolerance;
 import org.ms2ms.math.Histogram;
 import org.ms2ms.math.Stats;
 import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.mzjava.IsotopePeakAnnotation;
+import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
 import java.util.*;
@@ -648,6 +650,7 @@ public class Spectra
 
     if (ms!=null && ms.size()>0)
     {
+      boolean wasC12=false, isC13=false;
       int above_precursor_good=0, above_precursor=0, reporters=0, goods=0;
       double reporter_low=Double.MAX_VALUE, global_low=Double.MAX_VALUE, mz_low=Double.MAX_VALUE, mz_high=0;
       for (int i=0; i<ms.size(); i++)
@@ -655,13 +658,17 @@ public class Spectra
         if (ms.getMz(i)<mz_low)  mz_low =ms.getMz(i);
         if (ms.getMz(i)>mz_high) mz_high=ms.getMz(i);
 
-        if (Peaks.hasC13(ms.getAnnotations(i))) goods++;
+        isC13 = Peaks.hasC13(ms.getAnnotations(i));
 
-        if (ms.getMz(i)>ms.getPrecursor().getMz())
+        if (isC13 && wasC12) goods++;
+
+        if (ms.getMz(i)>ms.getPrecursor().getMz()+2)
         {
           above_precursor++;
-          if (Peaks.hasCharge(ms.getAnnotations(i))) above_precursor_good++;
+          if (isC13 && wasC12) above_precursor_good++;
         }
+        wasC12=(!isC13);
+
         if (reporter_range!=null && reporter_range.contains(ms.getMz(i)))
         {
           reporters++;
@@ -683,5 +690,57 @@ public class Spectra
     }
 
     return stats;
+  }
+  public static MsnSpectrum prepare(MsnSpectrum ms, Tolerance precision, boolean verbose)
+  {
+    PeakList deisotoped = Spectra.deisotope(ms, precision, 3, 350d);
+
+    deisotoped = Spectra.toRegionalNorm(deisotoped.copy(new PurgingPeakProcessor()), 7, 0.5d); // with sqrt transform
+
+    if (verbose)
+    {
+      System.out.println("#peaks: " + deisotoped.size());
+      for (int i=0; i<deisotoped.size(); i++)
+        System.out.println(i+"\t"+ Strs.toStrings(deisotoped.getAnnotations(i))+"\t\t"+
+            Tools.d2s(deisotoped.getMz(i),8)+"\t"+Tools.d2s(deisotoped.getIntensity(i), 2));
+    }
+
+    ms.clear(); ms.addPeaks(deisotoped);
+
+    return ms;
+  }
+  public static MsnSpectrum prepare(MsnSpectrum ms, Tolerance tol, Map<String, Object> stats, boolean verbose)
+  {
+    // assess the spectral quality
+    boolean split = Spectra.hasPeakSplitting(ms, 75d, 0.85, 33d);
+
+    // perform the de-isotoping and peak equalization
+    ms = Spectra.prepare(ms, tol, verbose);
+    Map<String, Object> peak_counts = Spectra.countPeaks(ms, Range.closed(126d, 131.2d));
+
+    if (split)
+    {
+      System.out.println("        rejected due to peak splitting");
+      // return without the search
+      ms.setComment(Ms2Hits.REJECT_PEAKSPLITTING); ms.setFragMethod("Rejected");
+    }
+    else if ((Integer )peak_counts.get(Peaks.CNT_PRECURSOR_2_GOOD)<2)
+    {
+      System.out.println("        rejected due to sparse peaks above the precursor");
+      // return without the search
+      ms.setComment(Ms2Hits.REJECT_SPARSEPEAK); ms.setFragMethod("Rejected");
+    }
+    return ms;
+  }
+  public static MsnSpectrum purgeC13(MsnSpectrum ms)
+  {
+    if (ms!=null && ms.size()>0)
+    {
+      for (int i=0; i<ms.size(); i++)
+        if (Peaks.hasC13(ms.getAnnotations(i))) ms.setIntensityAt(-1, i);
+
+      return ms.copy(new PurgingPeakProcessor<>());
+    }
+    return ms;
   }
 }
