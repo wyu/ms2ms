@@ -709,7 +709,7 @@ public class Spectra
 
     return ms;
   }
-  public static MsnSpectrum prepare(MsnSpectrum ms, Tolerance tol, Map<String, Object> stats, boolean verbose)
+  public static Map<String, Object> qualify(MsnSpectrum ms, Tolerance tol, boolean verbose)
   {
     // assess the spectral quality
     boolean split = Spectra.hasPeakSplitting(ms, 75d, 0.85, 33d);
@@ -722,15 +722,17 @@ public class Spectra
     {
       System.out.println("        rejected due to peak splitting");
       // return without the search
-      ms.setComment(Ms2Hits.REJECT_PEAKSPLITTING); ms.setFragMethod("Rejected");
+      peak_counts.put("Rejected", Ms2Hits.REJECT_PEAKSPLITTING);
     }
     else if ((Integer )peak_counts.get(Peaks.CNT_PRECURSOR_2_GOOD)<2)
     {
       System.out.println("        rejected due to sparse peaks above the precursor");
       // return without the search
-      ms.setComment(Ms2Hits.REJECT_SPARSEPEAK); ms.setFragMethod("Rejected");
+      peak_counts.put("Rejected", Ms2Hits.REJECT_SPARSEPEAK);
     }
-    return ms;
+    peak_counts.put("MSMS", ms);
+
+    return peak_counts;
   }
   public static MsnSpectrum purgeC13(MsnSpectrum ms)
   {

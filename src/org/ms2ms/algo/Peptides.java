@@ -4,6 +4,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.TreeMultimap;
+import org.apache.commons.collections.map.HashedMap;
 import org.expasy.mzjava.core.mol.SymbolSequence;
 import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
@@ -96,6 +97,23 @@ public class Peptides
               AAs.put(site+"^"+m.getLabel(), (float )(m.getMolecularMass()+AAs.get(site)));
 
     return AAs;
+  }
+  public static Map<String, Float> x2ModAAsMass(Map<String, Float> As)
+  {
+    As.remove("^"); As.remove("$");
+
+    Map<String, Float> added = new HashMap<>();
+    for (String x1 : As.keySet())
+      for (String x2 : As.keySet())
+      {
+        Float sum = As.get(x1)+As.get(x2);
+        if (!As.containsKey(sum) && !added.containsValue(sum)) added.put(x1+"-"+x2, sum);
+      }
+
+    // combine the entries
+    added.putAll(As);
+
+    return added;
   }
   // setup a simple mapping of the AA symbol and their incremental masses
   public static ImmutableMap<Character, Float> newAAsMass(String fixed)
