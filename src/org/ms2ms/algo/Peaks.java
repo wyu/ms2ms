@@ -11,6 +11,7 @@ import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepFragAnnotation;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
 import org.ms2ms.data.Point;
+import org.ms2ms.data.collect.NavigableMultimap;
 import org.ms2ms.data.collect.TreeListMultimap;
 import org.ms2ms.data.ms.FragmentEntry;
 import org.ms2ms.data.ms.IsoEnvelope;
@@ -767,7 +768,7 @@ public class Peaks {
     return Tools.isSet(mz) ? Tools.isSet(indices.asMap().subMap(mz.lowerEndpoint().floatValue(), mz.upperEndpoint().floatValue())) : false;
   }
 
-  public static Collection<FragmentEntry> query(TreeListMultimap<Float, FragmentEntry> indices, float[] range) {
+  public static Collection<FragmentEntry> query(NavigableMultimap<Float, FragmentEntry> indices, float[] range) {
     return range != null ? indices.subList(range[0], range[1]) : null;
   }
 

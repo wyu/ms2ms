@@ -73,7 +73,7 @@ public class Isotopes
   static final double      DUMMY_MASS = -10000000;
   static final double  AVERAGINE_MASS = 111.0543052;
   static Map<String, Long>         EM = new HashMap<String, Long>();
-  static List<List<List<Peak>>> SAD = new ArrayList<List<List<Peak>>>();
+  static List<List<List<Peak>>>   SAD = new ArrayList<List<List<Peak>>>();
 
   static
   {
@@ -218,7 +218,7 @@ H  2
     }
   }
 
-  public static List<Peak> calculate(List<Peak> tmp, List<Peak> result, Map<Integer, Long> fm, double limit, long charge)
+  synchronized public static List<Peak> calculate(List<Peak> tmp, List<Peak> result, Map<Integer, Long> fm, double limit, long charge)
   {
     for (Map.Entry<Integer, Long> i : fm.entrySet())
     {
