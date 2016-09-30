@@ -38,9 +38,8 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   private int mCharge, mLeft, mRight, // 0-based index of the first and last residue
               mRank, mIsotopeError=0/*, mPrecursorCharge=0*/;
   private Peak mCalc=null;
-  private double /*mCalcMH, */mDeltaM;
-  //private double mKaiScore, mDeltaScore, mEval, mScoreOffset=0, mMatchProb, mGapQval, mMatchQval;
-  private String mSequence, mPrev, mNext;
+  private double mDeltaM;
+  private String mSequence, mPrev, mNext, mTag;
   private TreeMap<Integer, Double> mMods;
   private Map<String, Double> mScores = new HashMap<>();
 
@@ -82,6 +81,8 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public String   getSequence()   { return mSequence; }
   public String   getPrev()       { return mPrev; }
   public String   getNext()       { return mNext; }
+  public String   getTag()        { return mTag; }
+
   public double   getModMass()    { return mMods!=null? Stats.sum(mMods.values()):0d; }
   public double   getScore(Map<String, Double> basis, double w)
   {
@@ -131,6 +132,8 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public Ms2Hit   setScoreOffset(double s) { mScores.put(SCR_OFFSET, s); return this; }
   public Ms2Hit   setFactor(     double s) { mScores.put(SCR_FACTOR, s); return this; }
   public Ms2Hit   setMatchProb(  double s) { mScores.put(SCR_MATCH,  s); return this; }
+  public Ms2Hit   setTag(        String s) { mTag=s; return this; }
+
   public Ms2Hit   setMH(double calc, double delta)
   {
     if (mCalc==null) mCalc = new Peak();
