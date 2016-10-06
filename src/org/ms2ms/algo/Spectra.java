@@ -638,7 +638,7 @@ public class Spectra
             Math.abs(Math.log10(ms.getIntensity(i+1)/ms.getIntensity(i)))<r)
           occurances++;
       }
-      if (200*occurances/goods>pct) return true;
+      if (goods>0 && 200*occurances/goods>pct) return true;
 //      System.out.println("   " + occurances + "/" + (int) (ms.size() * 0.5) + "/" + (Tools.d2s(200 * occurances/ms.size(), 1)));
     }
     return false;

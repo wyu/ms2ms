@@ -654,7 +654,7 @@ public class MsReaders
         MGF.write(ms);
       }
   }
-  private static String Peaks2Str(List<Peak> isolated)
+  public static String Peaks2Str(List<Peak> isolated)
   {
     String line = null;
     if (Tools.isSet(isolated))
