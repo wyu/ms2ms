@@ -138,6 +138,14 @@ public class Peptides
     return null;
   }
   // calculate the MH value of the peptide defined by the positions (left, right, inclusive) onto the 'sequence'
+  public static double calcMH(char[] sequence, int left, int right, float[] AAs)
+  {
+//    double y=AAs.get('$')+2* 1.00783;
+    double y=AAs['$']+AAs['^']+2*1.007825;
+    for (int c=right; c>=left; c--) y+=AAs[sequence[c]];
+
+    return y;
+  }
   public static double calcMH(char[] sequence, int left, int right, Map<Character, Float> AAs)
   {
 //    double y=AAs.get('$')+2* 1.00783;
