@@ -61,7 +61,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public int      getRank()       { return mRank; }
   public int      getIsotopeError() { return mIsotopeError; }
   public int      getCharge()     { return mCharge; }
-  public double   getScore(String s) { return mScores.get(s); }
+  public Double   getScore(String s) { return mScores.get(s); }
   public double   getDelta()      { return mDeltaM; }
   public double   getCalcMH()     { return mCalc!=null?mCalc.getMz():0; }
   public Double   getEVal()       { return mScores.get(SCR_EVAL); }
@@ -216,13 +216,13 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 //    mProb=(getY()!=null?getY().getProb():0d)+(getB()!=null?getB().getProb():0d);
 //    return this;
 //  }
-  public Ms2Hit calcScore(double precision_ppm)
-  {
-    NormalDistribution norm = new NormalDistributionImpl(0, precision_ppm);
-    // TODO to be completed
-
-    return this;
-  }
+//  public Ms2Hit calcScore(double precision_ppm)
+//  {
+//    NormalDistribution norm = new NormalDistributionImpl(0, precision_ppm);
+//    // TODO to be completed
+//
+//    return this;
+//  }
   public Ms2Hit shallow_copy()
   {
     Ms2Hit clone = new Ms2Hit(getProteinKey(), mY.shallow_copy(), mB.shallow_copy(), mLeft, mRight, mCharge);

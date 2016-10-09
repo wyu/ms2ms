@@ -73,7 +73,7 @@ public class AnnotatedPeak extends Peak
   public AnnotatedPeak setCounts(long s) { mCounts=s; return this; }
   public AnnotatedPeak setProperty(   String k, double s)
   {
-    if (mAnnotations==null) mAnnotations=new HashMap<>();
+    if (mAnnotations==null) mAnnotations=new HashMap<>(24);
 
     mAnnotations.put(k,s);
     return this;
@@ -82,8 +82,8 @@ public class AnnotatedPeak extends Peak
   {
     // nothing to copy over
     if (s.mAnnotations==null) return this;
-
-    if (mAnnotations==null) mAnnotations=new HashMap<>();
+    // with an initial capacity
+    if (mAnnotations==null) mAnnotations=new HashMap<>(24);
 
     if (!Tools.isSet(ks)) mAnnotations.putAll(s.mAnnotations);
     else

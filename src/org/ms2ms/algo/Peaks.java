@@ -11,6 +11,7 @@ import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepFragAnnotation;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
 import org.ms2ms.data.Point;
+import org.ms2ms.data.collect.ImmutableNavigableMap;
 import org.ms2ms.data.collect.NavigableMultimap;
 import org.ms2ms.data.collect.TreeListMultimap;
 import org.ms2ms.data.ms.FragmentEntry;
@@ -23,6 +24,8 @@ import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 /** Collection of algorithms pertaining to the MS Peak
  *
@@ -768,7 +771,7 @@ public class Peaks {
     return Tools.isSet(mz) ? Tools.isSet(indices.asMap().subMap(mz.lowerEndpoint().floatValue(), mz.upperEndpoint().floatValue())) : false;
   }
 
-  public static Collection<FragmentEntry> query(NavigableMultimap<Float, FragmentEntry> indices, float[] range) {
+  public static List<FragmentEntry> query(NavigableMultimap<Float, FragmentEntry> indices, float[] range) {
     return range != null ? indices.subList(range[0], range[1]) : null;
   }
 
@@ -813,6 +816,19 @@ public class Peaks {
   }
 
   public static <T extends Peak> Double centroid(Collection<T> points, Double x0, Double x1) {
+    if (!Tools.isSet(points)) return null;
+
+    double sumXY = 0, sumY = 0;
+    for (Peak xy : points) {
+      if ((x0 == null || xy.getMz() >= x0) &&
+          (x1 == null || xy.getMz() <= x1)) {
+        sumXY += xy.getMz() * xy.getIntensity();
+        sumY += xy.getIntensity();
+      }
+    }
+    return sumY != 0 ? sumXY / sumY : null;
+  }
+  public static <T extends Peak> Double centroid(T[] points, Double x0, Double x1) {
     if (!Tools.isSet(points)) return null;
 
     double sumXY = 0, sumY = 0;
@@ -892,6 +908,15 @@ public class Peaks {
 
     return sum;
   }
+  public static <T extends Peak> double AbsIntensitySum(T... peaks)
+  {
+    if (!Tools.isSet(peaks)) return 0;
+
+    double sum = 0d;
+    for (T peak : peaks) sum += Math.abs(peak.getIntensity());
+
+    return sum;
+  }
 
   public static int[] charges(PeakList peaks, int i) {
     List<Integer> zs = new ArrayList<>();
@@ -925,6 +950,22 @@ public class Peaks {
     String[] strs = Strs.split(comment, ';');
     if (Tools.isSet(strs)) {
       SortedMap<Double, Peak> precursors = new TreeMap<Double, Peak>();
+      for (int i = 0; i < strs.length; i++) {
+        String[] items = Strs.split(strs[i], '/');
+        if (items != null && items.length > 2) {
+          Peak pk = new Peak(Stats.toDouble(items[0]), Stats.toDouble(items[1]), Stats.toInt(items[2]));
+          precursors.put(pk.getMz(), pk);
+        }
+      }
+      return precursors;
+    }
+    return null;
+  }
+  public static ConcurrentSkipListMap<Double, Peak> toPrecursorsSkipListMap(String comment)
+  {
+    String[] strs = Strs.split(comment, ';');
+    if (Tools.isSet(strs)) {
+      ConcurrentSkipListMap<Double, Peak> precursors = new ConcurrentSkipListMap<>();
       for (int i = 0; i < strs.length; i++) {
         String[] items = Strs.split(strs[i], '/');
         if (items != null && items.length > 2) {
@@ -975,7 +1016,113 @@ public class Peaks {
     // no need to look for the true c12 since we starts with the calculated MH
     return calc;
   }
+  public static AnnotatedPeak verifyCalcMH(int max_z, AnnotatedPeak calc, Tolerance tol, ImmutableNavigableMap<Peak>... isolated_precursors)
+  {
+    // n opinion without additional information
+    if (!Tools.isSet(isolated_precursors)) return calc;
 
+    // now look for the best charge state as supported by the observed precursors
+    int best = 0, isotopes = 0;
+    calc.setIntensity(0d);
+    calc.setVerifiedCharge(0);
+    calc.setOriginalMz(0d);
+    for (double z = max_z; z >= 1d; z--) {
+      double mz = Peaks.MH2Mz(calc.getMz(), (int) z), ai = 0d, c12 = 0d;
+      isotopes = 0;
+      for (int c13 = 0; c13 <= z; c13++) {
+        int[] c = null; ImmutableNavigableMap<Peak> prec=null;
+        for (ImmutableNavigableMap<Peak> precursors : isolated_precursors)
+        {
+          c = precursors!=null?precursors.query(tol.getMin(mz + c13 * 1.003355d / z), tol.getMax(mz + c13 * 1.003355d / z)):null;
+          if (c!=null) { prec=precursors; break; }
+        }
+        if (c==null)
+        {
+          isotopes = c13-1;
+          break;
+        }
+        // accumulate the intensities
+        ai += AbsIntensitySum(prec.fetchVals(c));
+        isotopes = c13;
+        if (c12 == 0) c12 = Peaks.centroid(prec.fetchVals(c), null,null);
+      }
+      if (isotopes > best || (isotopes == best && isotopes > 0 && ai > calc.getIntensity())) {
+        best = isotopes;
+        calc.setIntensity(ai);
+        calc.setOriginalMz(c12).setProperty("isotopes", best).setVerifiedCharge((int) z);
+      }
+    }
+
+    // no need to look for the true c12 since we starts with the calculated MH
+    return calc;
+  }
+  @Deprecated
+  public static AnnotatedPeak verifyCalcMH(int max_z, AnnotatedPeak calc, Tolerance tol, ConcurrentSkipListMap<Double, Peak>... isolated_precursors)
+  {
+    // n opinion without additional information
+    if (!Tools.isSet(isolated_precursors)) return calc;
+
+    // now look for the best charge state as supported by the observed precursors
+    int best = 0, isotopes = 0;
+    calc.setIntensity(0d);
+    calc.setVerifiedCharge(0);
+    calc.setOriginalMz(0d);
+    for (double z = max_z; z >= 1d; z--) {
+      double mz = Peaks.MH2Mz(calc.getMz(), (int) z), ai = 0d, c12 = 0d;
+      isotopes = 0;
+      for (int c13 = 0; c13 <= z; c13++) {
+        ConcurrentNavigableMap<Double, Peak> c = null;
+        for (ConcurrentSkipListMap<Double, Peak> precursors : isolated_precursors)
+        {
+          c = precursors.subMap(tol.getMin(mz + c13 * 1.003355d / z), tol.getMax(mz + c13 * 1.003355d / z));
+          if (c!=null && c.firstEntry()!=null) break;
+        }
+        if (c==null || c.firstEntry()==null || c.size()==0)
+        {
+          isotopes = c13-1;
+          break;
+        }
+        // accumulate the intensities
+        ai += AbsIntensitySum(c.values());
+        isotopes = c13;
+        if (c12 == 0) c12 = Peaks.centroid(c.values());
+      }
+      if (isotopes > best || (isotopes == best && isotopes > 0 && ai > calc.getIntensity())) {
+        best = isotopes;
+        calc.setIntensity(ai);
+        calc.setOriginalMz(c12).setProperty("isotopes", best).setVerifiedCharge((int) z);
+      }
+    }
+
+    // no need to look for the true c12 since we starts with the calculated MH
+    return calc;
+  }
+
+  // is the putative MH supported by the precursors detected in the isolation window?
+  public static double hasPrecursor(int z, Tolerance tol, Range<Double> isolation, ImmutableNavigableMap<Peak>... isolated_precursors)
+  {
+    double spacing = 1.00238d;
+
+    // n opinion without additional information
+    if (Tools.isSet(isolated_precursors))
+      for (ImmutableNavigableMap<Peak> precursors : isolated_precursors)
+        if (precursors!=null)
+          for (double p0 : precursors.getKeys()) {
+            if (p0 > isolation.upperEndpoint()) return 0;
+            double maxmz = 0, c13 = 0;
+            for (c13 = 1; c13 <= z; c13++) {
+              int[] c = precursors.query(tol.getMin(p0 + c13 * spacing / (double) z), tol.getMax(p0 + c13 * spacing / (double) z));
+              if (c!=null) break;
+              maxmz = p0 + c13 * spacing / (double) z;
+            }
+            if (c13 > (z < 2 ? 1 : 2) && maxmz > isolation.lowerEndpoint()) return p0;
+          }
+
+    // no need to look for the true c12 since we starts with the calculated MH
+    return 0;
+  }
+
+  @Deprecated
   // is the putative MH supported by the precursors detected in the isolation window?
   public static double hasPrecursor(int z, Tolerance tol, Range<Double> isolation, SortedMap<Double, Peak>... isolated_precursors) {
     double spacing = 1.00238d;
