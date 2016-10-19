@@ -1,12 +1,10 @@
 package org.ms2ms.algo;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.TreeMultimap;
+import com.google.common.collect.*;
 import org.apache.commons.collections.map.HashedMap;
 import org.expasy.mzjava.core.mol.SymbolSequence;
 import org.expasy.mzjava.core.ms.AbsoluteTolerance;
+import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodManager;
@@ -163,4 +161,23 @@ public class Peptides
         (n0>=0 && n1<sequence.length && (sequence[n0]=='K' || sequence[n0]=='R') && (sequence[n1]!='P'));
   }
   public static boolean isTryptic(char n0, char n1)  { return (n0=='K' || n0=='R') && n1!='P'; }
+
+  public static Collection<Integer> seekRemoval(String sequence, boolean reverse, double calcM, double deltaM, Tolerance tol, Range<Integer> isoErr, float[] AAs)
+  {
+    if (!Strs.isSet(sequence) || "-".equals(sequence)) return null;
+
+    List<Integer> removed = new ArrayList<>();
+
+    float ct=(float )deltaM;
+    int start=reverse?sequence.length()-1:0, stop=reverse?0:sequence.length()-1,step=reverse?-1:1;
+    for (int i=start; i<=stop; i+=step)
+    {
+      ct+=AAs[sequence.charAt(i)]; removed.add(i);
+      for (int iso=isoErr.lowerEndpoint(); iso<=isoErr.upperEndpoint(); iso++)
+      {
+        if (tol.withinTolerance(calcM+iso*Isotopes.DELTA_C13, ct+calcM)) return removed;
+      }
+    }
+    return null;
+  }
 }

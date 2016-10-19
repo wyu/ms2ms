@@ -720,13 +720,13 @@ public class Spectra
 
     if (split)
     {
-      System.out.println("        rejected due to peak splitting");
+//      System.out.println("        rejected due to peak splitting");
       // return without the search
       peak_counts.put("Rejected", Ms2Hits.REJECT_PEAKSPLITTING);
     }
     else if ((Integer )peak_counts.get(Peaks.CNT_PRECURSOR_2_GOOD)<2)
     {
-      System.out.println("        rejected due to sparse peaks above the precursor");
+//      System.out.println("        rejected due to sparse peaks above the precursor");
       // return without the search
       peak_counts.put("Rejected", Ms2Hits.REJECT_SPARSEPEAK);
     }

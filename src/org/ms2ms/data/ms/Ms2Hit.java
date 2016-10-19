@@ -1,12 +1,13 @@
 package org.ms2ms.data.ms;
 
 import com.google.common.collect.Range;
-import org.apache.commons.math.distribution.NormalDistribution;
-import org.apache.commons.math.distribution.NormalDistributionImpl;
+import org.expasy.mzjava.core.mol.Mass;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.ms2ms.Disposable;
+import org.ms2ms.algo.Isotopes;
 import org.ms2ms.algo.MsStats;
+import org.ms2ms.algo.Peptides;
 import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
@@ -20,12 +21,13 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 {
   public static final String SCR_KAI    = "KaiScore";
   public static final String SCR_GAP    = "GapScore";
+  public static final String SCR_MATCH  = "MatchProb";
+  public static final String SCR_COMP   = "CompositeScore";
+
   public static final String SCR_DELTA  = "DeltaScore";
   public static final String SCR_OFFSET = "ScoreOffset";
   public static final String SCR_FACTOR = "ScoreFactor";
-  public static final String SCR_MATCH  = "MatchProb";
   public static final String SCR_EVAL   = "Eval";
-  public static final String SCR_COMP   = "CompositeScore";
   public static final String SCR_DECOY_Y = "best decoy-y";
   public static final String SCR_DECOY_B = "best decoy-b";
   public static final String SCR_DECOY_Y0 = "mean of decoy-y";
@@ -48,6 +50,10 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
     super();
     mY = new FpmEntry(); mB = new FpmEntry();
   }
+  public Ms2Hit(String sequence)
+  {
+    super(); mSequence=sequence;
+  }
   public Ms2Hit(Long protein, FpmEntry y, FpmEntry b, int left, int right, int z)
   {
     super();
@@ -68,6 +74,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public Double   getScoreOffset(){ return mScores!=null&&mScores.get(SCR_OFFSET)!=null?mScores.get(SCR_OFFSET):0d; }
 //  public double   getGapQval()    { return mGapQval; }
 //  public double   getMatchQval()  { return mMatchQval; }
+  public Double   getComposite()  { return mScores.get(SCR_COMP); }
   public Double   getKaiScore()   { return mScores.get(SCR_KAI); }
   public Double   getFactor()     { return mScores.containsKey(SCR_FACTOR)?mScores.get(SCR_FACTOR):1d; }
   public Double   getDeltaScore() { return mScores.get(SCR_DELTA); }
@@ -77,20 +84,31 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 //  public int      getMotifs()     { return(mY!=null?mY.getMotifs(  ):0)+(mB!=null?mB.getMotifs(  ):0); }
   public Double   getGapScore()   { return ((mY!=null?mY.getGapScore():0)+(mB!=null?mB.getGapScore():0))/getFactor()+getScoreOffset(); }
 //  public Double   getGapScore()   { return mScores.get(SCR_GAP)+getScoreOffset(); }
-  public String   getPeptide()    { return (mPrev+"."+mSequence+"."+mNext); }
+  public String   getPeptide()    { return ((mPrev!=null?mPrev:"")+"."+mSequence+"."+(mNext!=null?mNext:"")); }
   public String   getSequence()   { return mSequence; }
   public String   getPrev()       { return mPrev; }
   public String   getNext()       { return mNext; }
   public String   getTag()        { return mTag; }
 
   public double   getModMass()    { return mMods!=null? Stats.sum(mMods.values()):0d; }
-  public double   getScore(Map<String, Double> basis, double w)
+//  public double   getScore(Map<String, Double> basis, double w)
+//  {
+//    // a composite score of several components
+//    double gap = (getGapScore( )-basis.get(Ms2Hits.CTR_GAP  ))/(basis.get(Ms2Hits.SIG_GAP  )!=null?basis.get(Ms2Hits.SIG_GAP  ):1d),
+//         match = (getMatchProb()-basis.get(Ms2Hits.CTR_MATCH))/(basis.get(Ms2Hits.SIG_MATCH)!=null?basis.get(Ms2Hits.SIG_MATCH):1d);
+//
+//    return gap+w*match;
+//  }
+  public double updateScore(Map<String, Double> basis, double w_match, double w_kai)
   {
     // a composite score of several components
-    double gap = (getGapScore( )-basis.get(Ms2Hits.CTR_GAP  ))/(basis.get(Ms2Hits.SIG_GAP  )!=null?basis.get(Ms2Hits.SIG_GAP  ):1d),
-         match = (getMatchProb()-basis.get(Ms2Hits.CTR_MATCH))/(basis.get(Ms2Hits.SIG_MATCH)!=null?basis.get(Ms2Hits.SIG_MATCH):1d);
+    double scr=0d, ws=0d;
+    if (Tools.hasKeys(basis, Ms2Hits.CTR_GAP,   Ms2Hits.SIG_GAP  )) { scr +=        (getGapScore( )-basis.get(Ms2Hits.CTR_GAP  ))/basis.get(Ms2Hits.SIG_GAP);   ws+=1d; };
+    if (Tools.hasKeys(basis, Ms2Hits.CTR_MATCH, Ms2Hits.SIG_MATCH)) { scr +=w_match*(getMatchProb()-basis.get(Ms2Hits.CTR_MATCH))/basis.get(Ms2Hits.SIG_MATCH); ws+=w_match; };
+    if (Tools.hasKeys(basis, Ms2Hits.CTR_KAI,   Ms2Hits.SIG_KAI  )) { scr +=w_kai  *(getKaiScore()-basis.get(Ms2Hits.CTR_KAI   ))/basis.get(Ms2Hits.SIG_KAI);   ws+=w_kai; };
 
-    return gap+w*match;
+    setScore(SCR_COMP, scr/ws);
+    return getComposite();
   }
 //  public TreeMap<Integer, Double> getMods() { return mMods; }
 
@@ -100,7 +118,8 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
     if (Tools.isSet(mMods) && Collections.max(mMods.keySet())>=getLeft())
     {
       for (Map.Entry<Integer, Double> E : mMods.entrySet())
-        out.put(E.getKey()-getLeft(), E.getValue());
+        if (E.getKey()>=getLeft() && E.getKey()<=getRight())
+          out.put(E.getKey()-getLeft(), E.getValue());
     }
 
     return out;
@@ -154,12 +173,9 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
     if (sequence!=null && left>=0 && right<sequence.length && right>left)
     {
       setLocation(left, right);
-      mPrev    =(getLeft()>0?sequence[getLeft()-1]:'-')+"";
+      mPrev    =(getLeft()>0?Strs.toString(sequence, Math.max(0, getLeft() - 5), getLeft()):"-");
       mSequence=Strs.toString(sequence, getLeft(), getRight()+1); // 0-based index
-      mNext    =(getRight()<sequence.length-1?sequence[getRight()+1]:'-')+"";
-
-//    if (Tools.equals("AIAVRS", mSequence))
-//      System.out.print("");
+      mNext    =(getRight()<sequence.length-1?Strs.toString(sequence, getRight()+1, Math.min(sequence.length, getRight()+6)):"-");
     }
     return this;
   }
@@ -233,8 +249,15 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   @Override
   public String toString()
   {
-    return getProteinKey()+":"+getLeft()+"-"+getRight()+",m/z"+ Tools.d2s(getCalcMH(), 5)+"$"+
-        (mB!=null?mB.getTrack().size():"*")+"->"+(mY!=null?mY.getTrack().size():"*")+(Strs.isSet(getSequence())?("="+getPeptide()):"")+"^"+
+    String mods="";
+    if (Tools.isSet(mMods))
+      for (Map.Entry<Integer, Double> E : mMods.entrySet())
+        mods = Strs.extend(mods, Tools.d2s(E.getValue(), 3)+"@"+E.getKey(),";");
+
+    if (Strs.isSet(mods)) mods = "("+mods+")";
+
+    return (getProteinKey()!=null?getProteinKey():"")+":"+getLeft()+"-"+getRight()+",m/z"+ Tools.d2s(getCalcMH(), 5)+"$"+
+        (mB!=null?mB.getTrack().size():"*")+"->"+(mY!=null?mY.getTrack().size():"*")+(Strs.isSet(getSequence())?("="+getPeptide()):"")+mods+"^"+
          MsStats.asDeviation(mDeltaM, getCalcMH(), 999) + "->" + Tools.d2s(getGapScore(), 2);
   }
 
@@ -264,9 +287,9 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   {
     if (Tools.isSet(range))
       for (int i=range.lowerEndpoint(); i<=range.upperEndpoint(); i++)
-        if (tol.withinTolerance(getDelta()+getCalcMH(), i*1.00335d+getCalcMH()))
+        if (tol.withinTolerance(getDelta()+getCalcMH(), i*Isotopes.DELTA_C13+getCalcMH()))
         {
-          mIsotopeError=i; mDeltaM-=(i*1.00335d);
+          mIsotopeError=i; mDeltaM-=(i*Isotopes.DELTA_C13);
           break;
         }
 
@@ -280,6 +303,72 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 
     return hash+getCharge();
   }
+//  public Integer hashcodeByIntervals(float[] AAs)
+//  {
+//    // straight up hash, not worry about the mods, etc
+//    if (Strs.isSet(getSequence()))
+//    {
+//      float[] intervals = new float[getSequence().length()];
+//      for (int i=0; i<getSequence().length(); i++) intervals[i]=AAs[getSequence().charAt(i)];
+//
+//      int hash=0;
+//      for (int i=0; i<intervals.length; i++) hash+=(i+1)*intervals[i]/tol;
+//      return hash+getCharge();
+//    }
+//
+//    return getCharge();
+//  }
+  public List<Integer> hashcodeByIntervals(float[] AAs, OffsetPpmTolerance tolerance, Range<Integer> isotopeErr, float deci)
+  {
+    if (getCalcMH()==0) mCalc=new Peak(Peptides.calcMH(getSequence().toCharArray(), 0, getSequence().length()-1, AAs), 0d);
+
+    float tol = (float )(tolerance.getMax(getCalcMH())-tolerance.getMin(getCalcMH()));
+    if (Strs.isSet(getSequence()))
+    {
+      float[] intervals = new float[getSequence().length()];
+      int hash0=0;
+      for (int i=0; i<getSequence().length(); i++)
+      {
+        intervals[i]=AAs[getSequence().charAt(i)];
+        // need the base one without mod
+        hash0+=(i+1)*intervals[i]/deci;
+      }
+      if (Tools.isSet(getMod0()))
+        for (Integer m : getMod0().keySet())
+          intervals[m]+=getMod0().get(m);
+
+      // trim the residue if the mass is zero within the tolerance
+      Set<Integer> removed = new HashSet<>();
+      for (int i=0; i<intervals.length; i++)
+      {
+        if      (                        Math.abs(intervals[i])               <=tol)   removed.add(i);
+//        if      (i>0 &&                  Math.abs(intervals[i-1])             <=tol)   removed.add(i-1); // in case the localization is not perfect
+//        if      (i<intervals.length-1 && Math.abs(intervals[i+1])             <=tol)   removed.add(i+1); // in case the localization is not perfect
+        else if (i>0 &&                  Math.abs(intervals[i-1]+intervals[i])<=tol) { removed.add(i-1); removed.add(i); }
+        else if (i<intervals.length-1 && Math.abs(intervals[i]+intervals[i+1])<=tol) { removed.add(i);   removed.add(i+1); }
+      }
+      // let's consider the case of false-extension
+      Collection<Integer> putatives = null;
+      if (     mDeltaM<-56) putatives = Peptides.seekRemoval(getSequence(), true,  getCalcMH(), getDelta(), tolerance, isotopeErr, AAs);
+      else if (mDeltaM> 56) putatives = Peptides.seekRemoval(getNext(), false, getCalcMH(), getDelta(), tolerance, isotopeErr, AAs);
+
+      Tools.addAll(removed, putatives);
+
+      List<Integer> hashes = new ArrayList<>();
+
+      int hash=0, k=0;
+      for (int i=0; i<intervals.length; i++)
+      {
+        // no need to remove it, only out of hash
+        if (!Tools.isSet(removed) || !removed.contains(i)) { hash+=(k+1)*intervals[i]/deci; k++; }
+      }
+      hashes.add(hash+getCharge()); hashes.add(hash0+getCharge());
+      return hashes;
+    }
+
+    return null;
+  }
+
   @Override
   public void dispose()
   {

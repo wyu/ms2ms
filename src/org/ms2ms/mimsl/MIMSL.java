@@ -1288,7 +1288,7 @@ public class MIMSL
     return lib.toString();
   }
   // prepare a BIN repository from experiments with peptide assignments
-  public static Long saveBinaryLibs(DataOutput output, Collection<String> sequences, boolean compact, boolean consolidate,
+  public static Long saveBinaryLibs(DataOutput output, Collection<String> sequences, boolean compact, boolean consolidateBySequence,
     Connection conn, Collection<Long> runids) throws Exception
   {
     Collection<Long> msids = new HashSet<Long>();

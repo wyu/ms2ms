@@ -72,6 +72,7 @@ public class Isotopes
   static final double   ELECTRON_MASS = 0.00054858;
   static final double      DUMMY_MASS = -10000000;
   static final double  AVERAGINE_MASS = 111.0543052;
+  public static final double       DELTA_C13 = 1.00335d;
   static Map<String, Long>         EM = new HashMap<String, Long>();
   static List<List<List<Peak>>>   SAD = new ArrayList<List<List<Peak>>>();
 
