@@ -1,7 +1,6 @@
 package org.ms2ms.data.ms;
 
 import com.google.common.collect.Range;
-import org.expasy.mzjava.core.mol.Mass;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.ms2ms.Disposable;
@@ -165,6 +164,9 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
     if (mCalc==null) mCalc = new Peak();
     mCalc.setMzAndCharge(mCalc.getMz()+m,mCalc.getCharge()); mDeltaM-=m; return this;
   }
+  public Ms2Hit setNext(String s) { mNext=s; return this; }
+  public Ms2Hit setPrev(String s) { mPrev=s; return this; }
+
   public  Ms2Hit setSequence(String s) { mSequence=s; return this; }
   public  Ms2Hit setPeptide(String sequence) { return sequence!=null?setPeptide(sequence.toCharArray(), 0, sequence.length()-1):this; }
   public  Ms2Hit setPeptide(char[] sequence) { return setPeptide(sequence, getLeft(), getRight()); }
@@ -325,42 +327,61 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
     float tol = (float )(tolerance.getMax(getCalcMH())-tolerance.getMin(getCalcMH()));
     if (Strs.isSet(getSequence()))
     {
-      float[] intervals = new float[getSequence().length()];
-      int hash0=0;
-      for (int i=0; i<getSequence().length(); i++)
+      List<Float> intervals = new ArrayList<>();
+      for (int i=0; i<getSequence().length(); i++) intervals.add(AAs[getSequence().charAt(i)]);
+
+      // let's consider the case of false-extension
+      List<Integer> putatives = null;
+      Integer  mod = Tools.isSet(mMods)?Collections.max(mMods.keySet()):null;
+      double delta = Tools.isSet(mMods)?mMods.get(mod):0;
+      if (     delta<-56)
       {
-        intervals[i]=AAs[getSequence().charAt(i)];
-        // need the base one without mod
-        hash0+=(i+1)*intervals[i]/deci;
+        putatives = Peptides.seekRemoval(getSequence(), true,  getCalcMH(), delta, tolerance, isotopeErr, AAs);
+        if (Tools.isSet(putatives))
+        {
+          mMods.remove(mod);
+          // TODO to be tested
+          for (Integer putative : putatives)
+            intervals.remove(putative.intValue());
+        }
       }
+      else if (delta> 56)
+      {
+        putatives = Peptides.seekRemoval(getNext(), false, getCalcMH(), delta, tolerance, isotopeErr, AAs);
+        if (Tools.isSet(putatives))
+        {
+          mMods.remove(mod);
+          for (Integer putative : putatives) intervals.add(AAs[getNext().charAt(putative)]);
+        }
+      }
+
+      // need the base one without mod
+      int hash0=0;
+      for (int i=0; i<intervals.size(); i++) hash0+=(i+1)*intervals.get(i)/deci;
+
+      // now the increment due to site-specific mods
       if (Tools.isSet(getMod0()))
         for (Integer m : getMod0().keySet())
-          intervals[m]+=getMod0().get(m);
+          intervals.set(m, intervals.get(m)+getMod0().get(m).floatValue());
 
       // trim the residue if the mass is zero within the tolerance
       Set<Integer> removed = new HashSet<>();
-      for (int i=0; i<intervals.length; i++)
+      for (int i=0; i<intervals.size(); i++)
       {
-        if      (                        Math.abs(intervals[i])               <=tol)   removed.add(i);
+        if      (                        Math.abs(intervals.get(i))               <=tol)   removed.add(i);
 //        if      (i>0 &&                  Math.abs(intervals[i-1])             <=tol)   removed.add(i-1); // in case the localization is not perfect
 //        if      (i<intervals.length-1 && Math.abs(intervals[i+1])             <=tol)   removed.add(i+1); // in case the localization is not perfect
-        else if (i>0 &&                  Math.abs(intervals[i-1]+intervals[i])<=tol) { removed.add(i-1); removed.add(i); }
-        else if (i<intervals.length-1 && Math.abs(intervals[i]+intervals[i+1])<=tol) { removed.add(i);   removed.add(i+1); }
+        else if (i>0 &&                  Math.abs(intervals.get(i-1)+intervals.get(i))<=tol) { removed.add(i-1); removed.add(i); }
+        else if (i<intervals.size()-1 && Math.abs(intervals.get(i)  +intervals.get(i+1))<=tol) { removed.add(i);   removed.add(i+1); }
       }
-      // let's consider the case of false-extension
-      Collection<Integer> putatives = null;
-      if (     mDeltaM<-56) putatives = Peptides.seekRemoval(getSequence(), true,  getCalcMH(), getDelta(), tolerance, isotopeErr, AAs);
-      else if (mDeltaM> 56) putatives = Peptides.seekRemoval(getNext(), false, getCalcMH(), getDelta(), tolerance, isotopeErr, AAs);
-
-      Tools.addAll(removed, putatives);
-
+//      Tools.addAll(removed, putatives);
       List<Integer> hashes = new ArrayList<>();
 
       int hash=0, k=0;
-      for (int i=0; i<intervals.length; i++)
+      for (int i=0; i<intervals.size(); i++)
       {
         // no need to remove it, only out of hash
-        if (!Tools.isSet(removed) || !removed.contains(i)) { hash+=(k+1)*intervals[i]/deci; k++; }
+        if (!Tools.isSet(removed) || !removed.contains(i)) { hash+=(k+1)*intervals.get(i)/deci; k++; }
       }
       hashes.add(hash+getCharge()); hashes.add(hash0+getCharge());
       return hashes;
