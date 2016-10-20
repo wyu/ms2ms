@@ -162,21 +162,23 @@ public class Peptides
   }
   public static boolean isTryptic(char n0, char n1)  { return (n0=='K' || n0=='R') && n1!='P'; }
 
-  public static Collection<Integer> seekRemoval(String sequence, boolean reverse, double calcM, double deltaM, Tolerance tol, Range<Integer> isoErr, float[] AAs)
+  public static List<Integer> seekRemoval(String sequence, boolean reverse, double calcM, double deltaM, Tolerance tol, Range<Integer> isoErr, float[] AAs)
   {
     if (!Strs.isSet(sequence) || "-".equals(sequence)) return null;
 
     List<Integer> removed = new ArrayList<>();
 
     float ct=(float )deltaM;
-    int start=reverse?sequence.length()-1:0, stop=reverse?0:sequence.length()-1,step=reverse?-1:1;
-    for (int i=start; i<=stop; i+=step)
+    int start=reverse?sequence.length()-1:0, stop=reverse?0:sequence.length()-1,step=reverse?-1:1, i=start;
+    while (1==1)
     {
-      ct+=AAs[sequence.charAt(i)]; removed.add(i);
+      ct-=AAs[sequence.charAt(i)]*step; removed.add(i);
       for (int iso=isoErr.lowerEndpoint(); iso<=isoErr.upperEndpoint(); iso++)
       {
         if (tol.withinTolerance(calcM+iso*Isotopes.DELTA_C13, ct+calcM)) return removed;
       }
+      i+=step;
+      if (reverse?(i<0):(i>stop)) break;
     }
     return null;
   }
