@@ -83,7 +83,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 //  public int      getMotifs()     { return(mY!=null?mY.getMotifs(  ):0)+(mB!=null?mB.getMotifs(  ):0); }
   public Double   getGapScore()   { return ((mY!=null?mY.getGapScore():0)+(mB!=null?mB.getGapScore():0))/getFactor()+getScoreOffset(); }
 //  public Double   getGapScore()   { return mScores.get(SCR_GAP)+getScoreOffset(); }
-  public String   getPeptide()    { return ((mPrev!=null?mPrev:"")+"."+mSequence+"."+(mNext!=null?mNext:"")); }
+  public String   getPeptide()    { return ((mPrev!=null?mPrev.charAt(mPrev.length()-1):"-")+"."+mSequence+"."+(mNext!=null?mNext.charAt(0):"-")); }
   public String   getSequence()   { return mSequence; }
   public String   getPrev()       { return mPrev; }
   public String   getNext()       { return mNext; }
@@ -98,6 +98,18 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 //
 //    return gap+w*match;
 //  }
+  public double score(Map<String, ScoreModel> models, ScoreModel.eType type)
+  {
+    // a composite score of several components
+    double scr=0d, ws=0d;
+    scr+=models.get(SCR_GAP  ).score(getGapScore( ), type); ws+=models.get(SCR_GAP  ).getWeight();
+    scr+=models.get(SCR_MATCH).score(getMatchProb(), type); ws+=models.get(SCR_MATCH).getWeight();
+    scr+=models.get(SCR_KAI  ).score(getKaiScore( ), type); ws+=models.get(SCR_KAI  ).getWeight();
+
+    setScore(SCR_COMP, 100d*scr/ws);
+    return getComposite();
+  }
+  @Deprecated
   public double updateScore(Map<String, Double> basis, double w_match, double w_kai)
   {
     // a composite score of several components
@@ -374,7 +386,48 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
         else if (i>0 &&                  Math.abs(intervals.get(i-1)+intervals.get(i))<=tol) { removed.add(i-1); removed.add(i); }
         else if (i<intervals.size()-1 && Math.abs(intervals.get(i)  +intervals.get(i+1))<=tol) { removed.add(i);   removed.add(i+1); }
       }
-//      Tools.addAll(removed, putatives);
+
+      List<List<Float>> Intervals = new ArrayList<>(); Intervals.add(intervals);
+
+      // enumerate the situation where neighboring residues can be combined to one
+      if (!Tools.isSet(removed) && Tools.isSet(mMods) && mMods.size()==1)
+      {
+        int pos = Tools.front(mMods.keySet())-getLeft();
+        if (pos>0 && pos<intervals.size())
+        {
+          float m = intervals.get(pos)+intervals.get(pos-1);
+          Collection<Float> found = Tools.seek(AAs, m-deci, m+deci);
+          if (Tools.isSet(found))
+          {
+            // remove the old residues
+            List<Float> cloned = new ArrayList<>(intervals);
+            cloned.remove(pos-1); cloned.remove(pos - 1);
+            for (Float A : found)
+            {
+              List<Float> c = new ArrayList<>(cloned);
+              c.add(pos-1, A);
+              Intervals.add(c);
+            }
+          }
+        }
+        if (pos>=0 && pos<intervals.size()-1)
+        {
+          float m = intervals.get(pos)+intervals.get(pos+1);
+          Collection<Float> found = Tools.seek(AAs, m-deci, m+deci);
+          if (Tools.isSet(found))
+          {
+            // remove the old residues
+            List<Float> cloned = new ArrayList<>(intervals);
+            cloned.remove(pos); cloned.remove(pos);
+            for (Float A : found)
+            {
+              List<Float> c = new ArrayList<>(cloned);
+              c.add(pos, A);
+              Intervals.add(c);
+            }
+          }
+        }
+      }
       List<Integer> hashes = new ArrayList<>();
 
       int hash=0, k=0;
@@ -384,6 +437,19 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
         if (!Tools.isSet(removed) || !removed.contains(i)) { hash+=(k+1)*intervals.get(i)/deci; k++; }
       }
       hashes.add(hash+getCharge()); hashes.add(hash0+getCharge());
+
+      if (Intervals.size()>1)
+      for (int j=1; j<Intervals.size(); j++)
+      {
+        hash=k=0;
+        for (int i=0; i<Intervals.get(j).size(); i++)
+        {
+          // no need to remove it, only out of hash
+          hash+=(i+1)*Intervals.get(j).get(i)/deci;
+        }
+        hashes.add(hash+getCharge());
+      }
+
       return hashes;
     }
 
