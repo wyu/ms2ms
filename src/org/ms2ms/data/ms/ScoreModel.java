@@ -59,7 +59,7 @@ public class ScoreModel
   }
   public double score(double s, eType type)
   {
-    return mWeight*(s-mCenter+mOffsets.get(type))/mSigma;
+    return mWeight*(s-mCenter-mOffsets.get(type))/mSigma;
   }
   public ScoreModel model(eType main)
   {

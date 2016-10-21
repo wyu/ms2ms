@@ -129,7 +129,7 @@ public class MsReaderTest extends TestAbstract
 //    MgfWriter mgf = new MgfWriter(new File("/tmp/examples495_3.mgf"), PeakList.Precision.DOUBLE);
 //    for (Long id : ids)
 //    {
-//      bin.seek(id);
+//      bin.find(id);
 //      MsnSpectrum ms = MsIO.readSpectrumIdentifier(bin, new MsnSpectrum());
 //      mgf.write(ms);
 //    }

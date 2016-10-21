@@ -102,11 +102,12 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   {
     // a composite score of several components
     double scr=0d, ws=0d;
-    scr+=models.get(SCR_GAP  ).score(getGapScore( ), type); ws+=models.get(SCR_GAP  ).getWeight();
-    scr+=models.get(SCR_MATCH).score(getMatchProb(), type); ws+=models.get(SCR_MATCH).getWeight();
-    scr+=models.get(SCR_KAI  ).score(getKaiScore( ), type); ws+=models.get(SCR_KAI  ).getWeight();
+    scr+=models.get(SCR_GAP  ).score(getScore(SCR_GAP  ),type); ws+=models.get(SCR_GAP  ).getWeight();
+    scr+=models.get(SCR_MATCH).score(getScore(SCR_MATCH),type); ws+=models.get(SCR_MATCH).getWeight();
+    scr+=models.get(SCR_KAI  ).score(getScore(SCR_KAI  ),type); ws+=models.get(SCR_KAI  ).getWeight();
 
-    setScore(SCR_COMP, 100d*scr/ws);
+    // normalize by the peptide length, scaled to 100d
+    setScore(SCR_COMP, 10d*scr/(ws));
     return getComposite();
   }
   @Deprecated
@@ -374,8 +375,12 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
       // now the increment due to site-specific mods
       if (Tools.isSet(getMod0()))
         for (Integer m : getMod0().keySet())
+        {
           intervals.set(m, intervals.get(m)+getMod0().get(m).floatValue());
-
+          // replace it with the accurate mass if matches to an AA
+          Float AA = Tools.findClosest(AAs, intervals.get(m), deci);
+          if (AA!=null) intervals.set(m, AA);
+        }
       // trim the residue if the mass is zero within the tolerance
       Set<Integer> removed = new HashSet<>();
       for (int i=0; i<intervals.size(); i++)
@@ -396,7 +401,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
         if (pos>0 && pos<intervals.size())
         {
           float m = intervals.get(pos)+intervals.get(pos-1);
-          Collection<Float> found = Tools.seek(AAs, m-deci, m+deci);
+          Collection<Float> found = Tools.find(AAs, m - deci, m + deci);
           if (Tools.isSet(found))
           {
             // remove the old residues
@@ -413,7 +418,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
         if (pos>=0 && pos<intervals.size()-1)
         {
           float m = intervals.get(pos)+intervals.get(pos+1);
-          Collection<Float> found = Tools.seek(AAs, m-deci, m+deci);
+          Collection<Float> found = Tools.find(AAs, m - deci, m + deci);
           if (Tools.isSet(found))
           {
             // remove the old residues
