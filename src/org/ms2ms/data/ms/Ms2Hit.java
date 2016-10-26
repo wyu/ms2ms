@@ -35,7 +35,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public static final String SCR_DECOY_B1 = "stdev of decoy-b";
 
   private FpmEntry mY, mB;
-  private Long mProteinKey;
+  private Integer mProteinKey;
   private int mCharge, mLeft, mRight, // 0-based index of the first and last residue
               mRank, mIsotopeError=0/*, mPrecursorCharge=0*/;
   private Peak mCalc=null;
@@ -53,14 +53,14 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   {
     super(); mSequence=sequence;
   }
-  public Ms2Hit(Long protein, FpmEntry y, FpmEntry b, int left, int right, int z)
+  public Ms2Hit(int protein, FpmEntry y, FpmEntry b, int left, int right, int z)
   {
     super();
     mProteinKey=protein; mY=y; mB=b; setLocation(left, right); mCharge=z;
   }
 
-  public boolean  isDecoy()       { return mProteinKey!=null && mProteinKey<0; }
-  public Long     getProteinKey() { return mProteinKey; }
+  public boolean  isDecoy()       { return mProteinKey<0; }
+  public Integer  getProteinKey() { return mProteinKey; }
   public int      getLeft()       { return mLeft; }
   public int      getRight()      { return mRight; }
   public int      getRank()       { return mRank; }
@@ -271,7 +271,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 
     if (Strs.isSet(mods)) mods = "("+mods+")";
 
-    return (getProteinKey()!=null?getProteinKey():"")+":"+getLeft()+"-"+getRight()+",m/z"+ Tools.d2s(getCalcMH(), 5)+"$"+
+    return getProteinKey()+":"+getLeft()+"-"+getRight()+",m/z"+ Tools.d2s(getCalcMH(), 5)+"$"+
         (mB!=null?mB.getTrack().size():"*")+"->"+(mY!=null?mY.getTrack().size():"*")+(Strs.isSet(getSequence())?("="+getPeptide()):"")+mods+"^"+
          MsStats.asDeviation(mDeltaM, getCalcMH(), 999) + "->" + Tools.d2s(getGapScore(), 2);
   }
@@ -465,7 +465,6 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public void dispose()
   {
     Tools.dispose(mY, mB);
-    mProteinKey=null;
     mSequence=mPrev=mNext=null;
     Tools.dispose(mMods);
   }

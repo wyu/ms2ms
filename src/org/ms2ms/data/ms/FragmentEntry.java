@@ -10,7 +10,7 @@ import org.ms2ms.utils.Tools;
 public class FragmentEntry implements Comparable<FragmentEntry>, Disposable
 {
   private int   mLength;
-  private long  mPeptideKey;
+  private int  mPeptideKey;
   private float mMH;
   private FragmentEntry mPrev;
 
@@ -20,7 +20,7 @@ public class FragmentEntry implements Comparable<FragmentEntry>, Disposable
     super();
     mLength=s.mLength; mPeptideKey=s.mPeptideKey; mMH=s.mMH; mPrev=s.mPrev;
   }
-  public FragmentEntry(Float mh, Long peptide, FragmentEntry prev, int len)
+  public FragmentEntry(Float mh, int peptide, FragmentEntry prev, int len)
   {
     super();
     mMH=mh; mPeptideKey=peptide; mPrev=prev; mLength=len;
@@ -28,7 +28,7 @@ public class FragmentEntry implements Comparable<FragmentEntry>, Disposable
 
   public int           getLength()     { return mLength; }
   public Float         getMH()         { return mMH; }
-  public Long          getPeptideKey() { return mPeptideKey; }
+  public Integer       getPeptideKey() { return mPeptideKey; }
   public FragmentEntry getPrev()       { return mPrev; }
 
   public FragmentEntry setLen(int s)   { mLength=s; return this; }
