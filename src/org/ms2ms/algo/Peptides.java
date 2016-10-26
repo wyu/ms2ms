@@ -140,7 +140,11 @@ public class Peptides
   {
 //    double y=AAs.get('$')+2* 1.00783;
     double y=AAs['$']+AAs['^']+2*1.007825;
-    for (int c=right; c>=left; c--) y+=AAs[sequence[c]];
+    for (int c=right; c>=left; c--)
+      if (c>=0 && c<sequence.length)
+        y+=AAs[sequence[c]];
+      else
+        System.out.print("");
 
     return y;
   }
