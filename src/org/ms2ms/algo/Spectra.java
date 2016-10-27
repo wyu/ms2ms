@@ -390,11 +390,13 @@ public class Spectra
 
     return ms;
   }
-  public static PeakList deisotope(PeakList peaks, Tolerance tol, int maxcharge, double zzstart)
+  public static boolean deisotope(PeakList peaks, Tolerance tol, int maxcharge, double zzstart)
   {
+//    System.out.println();
+
     PeakList out = peaks.copy(new PurgingPeakProcessor()); out.clear();
 
-    Set<Integer> searched = new HashSet<>(peaks.size());
+    Set<Integer> searched = new HashSet<>(peaks.size()); double isos=0, isobad=0;
     for (int i=0; i<peaks.size(); i++)
     {
       if (searched.contains(i)) continue;
@@ -424,17 +426,30 @@ public class Spectra
       for (Peak iso : best.getPredicted())
       {
         int found=find(peaks, iso.getMz(), tol, i, iso.getIntensity(), 25d);
+        if (found>=i) best.addIsotope(new Peak(peaks.getMz(found), peaks.getIntensity(found), charge));
         if (found>=i && !searched.contains(found))
         {
-          out.add(peaks.getMz(found) * charge - (charge - 1) * 1.007825d, peaks.getIntensity(found),
+          out.add(peaks.getMz(found)*charge - (charge-1)*1.007825d, peaks.getIntensity(found),
                   new IsotopePeakAnnotation(iso.getCharge(), order++));
           searched.add(found);
         }
         else break;
       }
+      // check the accuracy of the isotope distribution
+      if (order>1 && best.getPredicted(0).getMz()>peaks.getPrecursor().getMz())
+      {
+        isos++;
+        double dp = Similarity.dp(best.getPredicted().subList(0,order), best.getIsotopes().subList(0,order));
+//        System.out.print(Tools.d2s(dp, 3)+",");
+        Isotopes.dp_prediction.add(Math.log10(dp)*10);
+        if (dp<0.95) isobad++;
+      }
     }
 
-    return Peaks.consolidate(out, tol);
+//    System.out.println();
+    peaks.clear(); peaks.addPeaks(Peaks.consolidate(out, tol));
+    // indicating rejection due to skewed isotope envelop
+    return (isobad/isos>=0.5);
   }
   public static PeakList toSNR(PeakList peaks)
   {
@@ -621,6 +636,35 @@ public class Spectra
     return peaks;
   }
 
+  // spectra quality calls if the precursor was taken from high-c13 peaks
+//  public static boolean isC13Skew(PeakList ms, double ppm, double ratio, double pct)
+//  {
+//    // when an high-c13 peak was isolated as precursor, we will see more c13 peaks even from low-mass fragment
+//    // require de-isotoping call first to ID likely c13 peaks
+//    boolean isC13=false, wasC12=true;
+//    for (int i=0; i<ms.size(); i++)
+//    {
+//      if (ms.getAnnotations())
+//      isC13 = Peaks.hasC13(ms.getAnnotations(i));
+//
+//      if (isC13 && wasC12) goods++;
+//
+//      if (ms.getMz(i)>ms.getPrecursor().getMz()+2)
+//      {
+//        above_precursor++;
+//        if (isC13 && wasC12) above_precursor_good++;
+//      }
+//      wasC12=(!isC13);
+//
+//      if (reporter_range!=null && reporter_range.contains(ms.getMz(i)))
+//      {
+//        reporters++;
+//        if (ms.getIntensity(i)<reporter_low) reporter_low=ms.getIntensity(i);
+//      }
+//      if (ms.getIntensity(i)<global_low) global_low=ms.getIntensity(i);
+//    }
+//    return false;
+//  }
   // spectra quality calls if there are >times pairs of peaks <split away while having AI-ratio<ratio
   public static boolean hasPeakSplitting(PeakList ms, double ppm, double ratio, double pct)
   {
@@ -693,9 +737,10 @@ public class Spectra
   }
   public static MsnSpectrum prepare(MsnSpectrum ms, Tolerance precision, boolean verbose)
   {
-    PeakList deisotoped = Spectra.deisotope(ms, precision, 3, 350d);
+//    PeakList deisotoped = Spectra.deisotope(ms, precision, 3, 350d);
+    boolean skewed_iso = Spectra.deisotope(ms, precision, 3, 350d);
 
-    deisotoped = Spectra.toRegionalNorm(deisotoped.copy(new PurgingPeakProcessor()), 7, 0.5d); // with sqrt transform
+    PeakList deisotoped = Spectra.toRegionalNorm(ms.copy(new PurgingPeakProcessor()), 7, 0.5d); // with sqrt transform
 
     if (verbose)
     {
@@ -705,7 +750,7 @@ public class Spectra
             Tools.d2s(deisotoped.getMz(i),8)+"\t"+Tools.d2s(deisotoped.getIntensity(i), 2));
     }
 
-    ms.clear(); ms.addPeaks(deisotoped);
+    ms.clear(); ms.addPeaks(deisotoped); if (skewed_iso) ms.setMsLevel(-1);
 
     return ms;
   }
@@ -723,6 +768,10 @@ public class Spectra
 //      System.out.println("        rejected due to peak splitting");
       // return without the search
       peak_counts.put("Rejected", Ms2Hits.REJECT_PEAKSPLITTING);
+    }
+    else if (ms.getMsLevel()==-1)
+    {
+      peak_counts.put("Rejected", Ms2Hits.REJECT_SKEWED_ISO);
     }
     else if ((Integer )peak_counts.get(Peaks.CNT_PRECURSOR_2_GOOD)<2)
     {

@@ -7,6 +7,7 @@ import com.hfg.bio.ms.Protein;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.ms2ms.data.ms.IsoEnvelope;
+import org.ms2ms.math.Histogram;
 import org.ms2ms.utils.Tools;
 
 import java.util.*;
@@ -75,6 +76,8 @@ public class Isotopes
   public static final double       DELTA_C13 = 1.00335d;
   static Map<String, Long>         EM = new HashMap<String, Long>();
   static List<List<List<Peak>>>   SAD = new ArrayList<List<List<Peak>>>();
+
+  public static Histogram dp_prediction = new Histogram();
 
   static
   {
