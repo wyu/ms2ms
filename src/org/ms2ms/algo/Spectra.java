@@ -769,10 +769,10 @@ public class Spectra
       // return without the search
       peak_counts.put("Rejected", Ms2Hits.REJECT_PEAKSPLITTING);
     }
-    else if (ms.getMsLevel()==-1)
-    {
-      peak_counts.put("Rejected", Ms2Hits.REJECT_SKEWED_ISO);
-    }
+//    else if (ms.getMsLevel()==-1)
+//    {
+//      peak_counts.put("Rejected", Ms2Hits.REJECT_SKEWED_ISO);
+//    }
     else if ((Integer )peak_counts.get(Peaks.CNT_PRECURSOR_2_GOOD)<2)
     {
 //      System.out.println("        rejected due to sparse peaks above the precursor");

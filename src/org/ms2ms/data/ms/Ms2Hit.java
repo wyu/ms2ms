@@ -44,6 +44,16 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   private TreeMap<Integer, Double> mMods;
   private Map<String, Double> mScores = new HashMap<>();
 
+  public static class ScoreDesendComparator implements Comparator<Ms2Hit>
+  {
+    String score;
+    public ScoreDesendComparator(String s) { score=s; }
+    public int compare(Ms2Hit o1, Ms2Hit o2)
+    {
+      return o1 != null && o2 != null ? Double.compare(o2.getScore(score), o1.getScore(score)) : 0;
+    }
+  }
+
   public Ms2Hit()
   {
     super();
@@ -318,7 +328,16 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 
     return hash+getCharge();
   }
-//  public Integer hashcodeByIntervals(float[] AAs)
+  // by the observed m/z only, not position
+  public Integer hashcodeByYBmz()
+  {
+    int hash=0;
+    if (getY()!=null) hash+=getY().hashcodeByTrackMz();
+    if (getB()!=null) hash+=getB().hashcodeByTrackMz();
+
+    return hash;
+  }
+  //  public Integer hashcodeByIntervals(float[] AAs)
 //  {
 //    // straight up hash, not worry about the mods, etc
 //    if (Strs.isSet(getSequence()))
@@ -400,6 +419,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
         int pos = Tools.front(mMods.keySet())-getLeft();
         if (pos>0 && pos<intervals.size())
         {
+          // with residue prior
           float m = intervals.get(pos)+intervals.get(pos-1);
           Collection<Float> found = Tools.find(AAs, m - deci, m + deci);
           if (Tools.isSet(found))
@@ -417,6 +437,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
         }
         if (pos>=0 && pos<intervals.size()-1)
         {
+          // with residue after
           float m = intervals.get(pos)+intervals.get(pos+1);
           Collection<Float> found = Tools.find(AAs, m - deci, m + deci);
           if (Tools.isSet(found))
@@ -430,6 +451,23 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
               c.add(pos, A);
               Intervals.add(c);
             }
+          }
+        }
+        // now consider multiple residue for one K
+        // TTTIGA(+9.1134)NY
+        // TTTIGK
+        if (pos>=0 && pos<intervals.size()-1)
+        {
+          float m=0; // run it up to the C-t end
+          for (int k=pos; k<intervals.size(); k++) m+=intervals.get(k);
+          if (Math.abs(m-AAs['K'])<=deci)
+          {
+            // remove the old residues
+            List<Float> cloned = new ArrayList<>(intervals);
+            for (int k=pos; k<intervals.size(); k++) cloned.remove(pos);
+            cloned.add(pos, AAs['K']);
+            // another possibility
+            Intervals.add(cloned);
           }
         }
       }

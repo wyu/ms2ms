@@ -23,7 +23,7 @@ public class ScoreModel
 
   private String mName;
   private EnumMap<eType, Histogram> mDecoys;
-  private EnumMap<eType, Double> mOffsets;
+  private EnumMap<eType, Double> mOffsets, mOffsetByCounts;
   private Double mCenter, mSigma, mWeight=1d, mFactor=1d;
 
   public ScoreModel() { super(); }
@@ -34,6 +34,12 @@ public class ScoreModel
 
   public ScoreModel setFactor(double s) { mFactor=s; return this; }
   public ScoreModel setWeigth(double s) { mWeight=s; return this; }
+  public ScoreModel setCounts(eType t, int s)
+  {
+    if (mOffsetByCounts==null) mOffsetByCounts = new EnumMap<>(eType.class);
+    mOffsetByCounts.put(t, (double )s);
+    return this;
+  }
 
   public ScoreModel addExactDecoy(double s) { return add(s, eType.exact); }
   public ScoreModel addOpenDecoy( double s) { return add(s, eType.open); }
@@ -54,32 +60,45 @@ public class ScoreModel
       {
         Histogram H = mDecoys.get(type);
         if (H!=null) H=H.generate2pts(15, 0.5);
-        if (H!=null) H=H.assessTruncated();
+        if (H!=null) H=H.assessTruncated(0);
       }
   }
   public double score(double s, eType type)
   {
-    return mWeight*(s-mCenter-mOffsets.get(type))/mSigma;
+    return mWeight*(s-mCenter-mOffsetByCounts.get(type))/mSigma;
   }
   public ScoreModel model(eType main)
   {
     // use the centroid and upper quartile for normalization. Gaussian fit is not robust enough
     generate(eType.exact,eType.open);
 
-//    mDecoys.get(eType.exact).printHistogram();
-//    mDecoys.get(eType.open ).printHistogram();
-
     if (Tools.isSet(mDecoys))
     {
-      Histogram all = new Histogram(eType.all.getName()); mOffsets = new EnumMap<>(eType.class);
+      if (mDecoys.get(main)!=null && mDecoys.get(main).getData()!=null && mDecoys.get(main).getData().size()>2)
+      {
+        mOffsetByCounts = new EnumMap<>(eType.class);
+        double count0 = Math.log10(mDecoys.get(main).getData().size())*10;
+        // setup the offsets using the counts
+        for (eType t : mDecoys.keySet())
+          mOffsetByCounts.put(t,10d*Math.log10(mDecoys.get(t).getData().size())-count0);
+      }
+      else
+      {
+        double count0 = Math.log10(mOffsetByCounts.get(main))*10;
+        // setup the offsets using the counts
+        for (eType t : mDecoys.keySet())
+          mOffsetByCounts.put(t,10d*Math.log10(mOffsetByCounts.get(t))-count0);
+      }
+
+      Histogram all = new Histogram(eType.all.getName());
+      mOffsets = new EnumMap<>(eType.class);
       for (eType t : mDecoys.keySet())
       {
         mOffsets.put(t, 0d);
         try
         {
-          mOffsets.put(t,mDecoys.get(t).getCenter()-mDecoys.get(main).getCenter())/*, y0=mDecoys.get(t).getSigma()/mDecoys.get(main).getSigma()*/;
-          //for (Double x : mDecoys.get(t).getData()) all.add((x-x0)/y0);
-          for (Double x : mDecoys.get(t).getData()) all.add((x-mOffsets.get(t)));
+          mOffsets.put(t,mDecoys.get(t).getCenter()-mDecoys.get(main).getCenter());
+          for (Double x : mDecoys.get(t).getData()) all.add((x-mOffsetByCounts.get(t)));
         }
         // skip the part if we run into some NULL pointer
         catch (NullPointerException e)
@@ -88,9 +107,12 @@ public class ScoreModel
           for (Double x : mDecoys.get(t).getData()) all.add(x);
         }
       }
-      Tools.put(mDecoys,eType.all, all.generate2pts(25, 0.5).assessTruncated());
+//      Tools.put(mDecoys,eType.all, all.generate2pts(25, 0.5).assessTruncated());
 
-      mCenter=all.getCenter(); mSigma=all.getSigma();
+      // avoid the first 2 points to reduce the effect of truncated distribution
+      Tools.put(mDecoys,eType.all, all.generate(all.getData().size()>100?25:15).assessTruncated(2));
+
+      mCenter=all.getCenter(); mSigma=Math.abs(all.getSigma());
     }
 
     return this;

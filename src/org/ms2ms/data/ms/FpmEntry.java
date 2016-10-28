@@ -140,6 +140,15 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
 
     return hash;
   }
+  public int hashcodeByTrackMz()
+  {
+    int hash=0;
+    if (Tools.isSet(getTrack()))
+      for (int i=0; i<getTrack().size(); i++)
+        hash+=getTrack().get(i).getMz()*1000;
+
+    return hash;
+  }
 
   @Override
   public void dispose()
