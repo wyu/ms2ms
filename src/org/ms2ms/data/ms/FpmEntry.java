@@ -149,6 +149,16 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
 
     return hash;
   }
+  @Override
+  public int hashCode()
+  {
+    int hash = Tools.hashCodes(mHas1st,mExpectedY1);
+        hash+= mMotifs+m1stPass+mWeaks+mC13;
+        hash+= Tools.hashCodes(mIntensities,mProb,mGapScore,mKaiScore);
+    if (mFragment==null) hash+=mFragment.hashCode();
+
+    return hash+hashcodeByTrack();
+  }
 
   @Override
   public void dispose()

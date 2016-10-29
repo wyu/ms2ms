@@ -65,7 +65,7 @@ public class ScoreModel
   }
   public double score(double s, eType type)
   {
-    return mWeight*(s-mCenter-mOffsetByCounts.get(type))/mSigma;
+    return mCenter!=null && mSigma!=null ? mWeight*(s-mCenter-mOffsetByCounts.get(type))/mSigma : mWeight*(s-mOffsetByCounts.get(type));
   }
   public ScoreModel model(eType main)
   {
@@ -110,9 +110,9 @@ public class ScoreModel
 //      Tools.put(mDecoys,eType.all, all.generate2pts(25, 0.5).assessTruncated());
 
       // avoid the first 2 points to reduce the effect of truncated distribution
-      Tools.put(mDecoys,eType.all, all.generate(all.getData().size()>100?25:15).assessTruncated(2));
+      Tools.put(mDecoys, eType.all, all.generate(all.getData().size()>100?25:15).assessTruncated(2));
 
-      mCenter=all.getCenter(); mSigma=Math.abs(all.getSigma());
+      mCenter=all.getCenter(); mSigma=all.getSigma()!=null?Math.abs(all.getSigma()):null;
     }
 
     return this;
