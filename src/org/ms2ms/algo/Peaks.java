@@ -1076,18 +1076,18 @@ public class Peaks {
   // giving the m/z and charge, check the evidence
   public static double scoreIsotope(double mz, int charge, Tolerance tol, ImmutableNavigableMap<Peak>... isolated_precursors)
   {
-    IsoEnvelope ev = Isotopes.calcIsotopesByMz(mz, charge, 10d, 100d); int order=0;
+    IsoEnvelope ev = Isotopes.estIsotopesByMz(mz, charge, 10d, 100d); int order=0;
     for (Peak iso : ev.getPredicted())
     {
       double ai=0d; // gather the ions from all precursors
       for (ImmutableNavigableMap<Peak> precursors : isolated_precursors)
-      {
-        int[] found = precursors.query(tol.getMin(iso.getMz()), tol.getMax(iso.getMz()));
-        if (Tools.isSet(found))
+        if (precursors!=null)
         {
-          for (Peak p : precursors.fetchVals(found)) ai+=p.getIntensity();
+          int[] found = precursors.query(tol.getMin(iso.getMz()), tol.getMax(iso.getMz()));
+          if (Tools.isSet(found))
+            for (Peak p : precursors.fetchVals(found)) ai+=p.getIntensity();
         }
-      }
+
       if (ai>0) { ev.addIsotope(new Peak(iso.getMz(), ai)); order++; } else break;
     }
     return order>=charge?Similarity.dp(ev.getPredicted().subList(0,order), ev.getIsotopes().subList(0,order)):0d;

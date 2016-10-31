@@ -1,6 +1,8 @@
 package org.ms2ms.algo;
 
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Range;
+import com.google.common.collect.Table;
 import com.hfg.bio.Element;
 import com.hfg.bio.ms.Peptide;
 import com.hfg.bio.ms.Protein;
@@ -74,6 +76,9 @@ public class Isotopes
   static final double      DUMMY_MASS = -10000000;
   static final double  AVERAGINE_MASS = 111.0543052;
   public static final double       DELTA_C13 = 1.00335d;
+  // caching the isotope envelopes
+  private static Table<Integer, Integer, IsoEnvelope> sIsoEnveloped = HashBasedTable.create();
+
   static Map<String, Long>         EM = new HashMap<String, Long>();
   static List<List<List<Peak>>>   SAD = new ArrayList<List<List<Peak>>>();
 
@@ -367,6 +372,30 @@ H  2
 //      pk.setMzAndCharge(pk.getMz() * scale, pk.getChargeList());
 //      if (pk.getIntensity() < min_ai) itr.remove();
 //    }
+    return new IsoEnvelope(result, charge);
+  }
+  public static IsoEnvelope estIsotopesByMz(double c12, int charge, double minri, double ai)
+  {
+    // look for the cache first
+    Integer m = (int )c12;
+    if (sIsoEnveloped.get(m,charge)==null)
+      sIsoEnveloped.put(m, charge, calcIsotopesByMz(c12, charge, 0, 1d));
+
+    List<Peak> result = sIsoEnveloped.get(m, charge).getPredicted();
+
+    // move the predictions to the c12
+    double offset = c12- result.get(0).getMz(), min_ai = result.get(0).getIntensity()*minri*0.01;
+    // scale the ai to the 1st c12
+    ai /= result.get(0).getIntensity();
+
+    Iterator<Peak> itr = result.iterator();
+    while (itr.hasNext())
+    {
+      Peak pk = itr.next();
+      pk.setMzAndCharge(pk.getMz()+offset, pk.getChargeList());
+      pk.setIntensity(pk.getIntensity()*ai);
+      if (pk.getIntensity() < min_ai) itr.remove();
+    }
     return new IsoEnvelope(result, charge);
   }
   public static IsoEnvelope subtract(List<Peak> isolation, IsoEnvelope iso, Tolerance tol, boolean purge)

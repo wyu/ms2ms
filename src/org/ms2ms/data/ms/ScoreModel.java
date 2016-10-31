@@ -82,12 +82,18 @@ public class ScoreModel
         for (eType t : mDecoys.keySet())
           mOffsetByCounts.put(t,10d*Math.log10(mDecoys.get(t).getData().size())-count0);
       }
-      else
+      else if (mOffsetByCounts.get(main)>0)
       {
         double count0 = Math.log10(mOffsetByCounts.get(main))*10;
         // setup the offsets using the counts
         for (eType t : mDecoys.keySet())
           mOffsetByCounts.put(t,10d*Math.log10(mOffsetByCounts.get(t))-count0);
+      }
+      else
+      {
+        // disable the offsets
+        for (eType t : mDecoys.keySet())
+          mOffsetByCounts.put(t,0d);
       }
 
       Histogram all = new Histogram(eType.all.getName());

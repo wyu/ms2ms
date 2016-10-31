@@ -34,6 +34,9 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public static final String SCR_DECOY_Y1 = "stdev of decoy-y";
   public static final String SCR_DECOY_B1 = "stdev of decoy-b";
 
+  public static final String TAG_EXACT  = "Exact";
+  public static final String TAG_OPEN   = "Open";
+
   private FpmEntry mY, mB;
   private Integer mProteinKey;
   private int mCharge, mLeft, mRight, // 0-based index of the first and last residue
@@ -120,18 +123,18 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
     setScore(SCR_COMP, 10d*scr/(ws));
     return getComposite();
   }
-  @Deprecated
-  public double updateScore(Map<String, Double> basis, double w_match, double w_kai)
-  {
-    // a composite score of several components
-    double scr=0d, ws=0d;
-    if (Tools.hasKeys(basis, Ms2Hits.CTR_GAP,   Ms2Hits.SIG_GAP  )) { scr +=        (getGapScore( )-basis.get(Ms2Hits.CTR_GAP  ))/basis.get(Ms2Hits.SIG_GAP);   ws+=1d; };
-    if (Tools.hasKeys(basis, Ms2Hits.CTR_MATCH, Ms2Hits.SIG_MATCH)) { scr +=w_match*(getMatchProb()-basis.get(Ms2Hits.CTR_MATCH))/basis.get(Ms2Hits.SIG_MATCH); ws+=w_match; };
-    if (Tools.hasKeys(basis, Ms2Hits.CTR_KAI,   Ms2Hits.SIG_KAI  )) { scr +=w_kai  *(getKaiScore()-basis.get(Ms2Hits.CTR_KAI   ))/basis.get(Ms2Hits.SIG_KAI);   ws+=w_kai; };
-
-    setScore(SCR_COMP, scr/ws);
-    return getComposite();
-  }
+//  @Deprecated
+//  public double updateScore(Map<String, Double> basis, double w_match, double w_kai)
+//  {
+//    // a composite score of several components
+//    double scr=0d, ws=0d;
+//    if (Tools.hasKeys(basis, Ms2Hits.CTR_GAP,   Ms2Hits.SIG_GAP  )) { scr +=        (getGapScore( )-basis.get(Ms2Hits.CTR_GAP  ))/basis.get(Ms2Hits.SIG_GAP);   ws+=1d; };
+//    if (Tools.hasKeys(basis, Ms2Hits.CTR_MATCH, Ms2Hits.SIG_MATCH)) { scr +=w_match*(getMatchProb()-basis.get(Ms2Hits.CTR_MATCH))/basis.get(Ms2Hits.SIG_MATCH); ws+=w_match; };
+//    if (Tools.hasKeys(basis, Ms2Hits.CTR_KAI,   Ms2Hits.SIG_KAI  )) { scr +=w_kai  *(getKaiScore()-basis.get(Ms2Hits.CTR_KAI   ))/basis.get(Ms2Hits.SIG_KAI);   ws+=w_kai; };
+//
+//    setScore(SCR_COMP, scr/ws);
+//    return getComposite();
+//  }
 //  public TreeMap<Integer, Double> getMods() { return mMods; }
 
   public Map<Integer, Double> getMod0()
