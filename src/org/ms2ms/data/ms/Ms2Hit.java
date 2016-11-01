@@ -82,10 +82,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public Double   getScore(String s) { return mScores.get(s); }
   public double   getDelta()      { return mDeltaM; }
   public double   getCalcMH()     { return mCalc!=null?mCalc.getMz():0; }
-  public Double   getEVal()       { return mScores.get(SCR_EVAL); }
   public Double   getScoreOffset(){ return mScores!=null&&mScores.get(SCR_OFFSET)!=null?mScores.get(SCR_OFFSET):0d; }
-//  public double   getGapQval()    { return mGapQval; }
-//  public double   getMatchQval()  { return mMatchQval; }
   public Double   getComposite()  { return mScores.get(SCR_COMP); }
   public Double   getKaiScore()   { return mScores.get(SCR_KAI); }
   public Double   getFactor()     { return mScores.containsKey(SCR_FACTOR)?mScores.get(SCR_FACTOR):1d; }
@@ -93,9 +90,8 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public Double   getMatchProb()  { return mScores.get(SCR_MATCH); }
   public FpmEntry getY()          { return mY; }
   public FpmEntry getB()          { return mB; }
-//  public int      getMotifs()     { return(mY!=null?mY.getMotifs(  ):0)+(mB!=null?mB.getMotifs(  ):0); }
-  public Double   getGapScore()   { return ((mY!=null?mY.getGapScore():0)+(mB!=null?mB.getGapScore():0))/getFactor()+getScoreOffset(); }
-//  public Double   getGapScore()   { return mScores.get(SCR_GAP)+getScoreOffset(); }
+//  public Double   getGapScore()   { return ((mY!=null?mY.getGapScore():0)+(mB!=null?mB.getGapScore():0))/getFactor()+getScoreOffset(); }
+  public Double   getGapScore()   { return  (mY!=null?mY.getGapScore():0)+(mB!=null?mB.getGapScore():0); }
   public String   getPeptide()    { return ((mPrev!=null?mPrev.charAt(mPrev.length()-1):"-")+"."+mSequence+"."+(mNext!=null?mNext.charAt(0):"-")); }
   public String   getSequence()   { return mSequence; }
   public String   getPrev()       { return mPrev; }
@@ -169,9 +165,12 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   //public Ms2Hit   setPeptide(String s) { mPeptide=s; return this; }
   public Ms2Hit   setScore(String k, Double s) { mScores.put(k,s); return this; }
 //  public Ms2Hit   setGapScore()            { mScores.put(SCR_GAP, (mY!=null?mY.getGapScore():0)+(mB!=null?mB.getGapScore():0)); return this; }
-  public Ms2Hit   setGapScore()            { mScores.put(SCR_GAP, getGapScore()); return this; }
+  public Ms2Hit   setGapScore()
+  {
+    mScores.put(SCR_GAP, getGapScore()); return this;
+  }
   public Ms2Hit   setEVal(       double s) { mScores.put(SCR_EVAL,   s); return this; }
-  public Ms2Hit   setKaiScore(   double s) { mScores.put(SCR_KAI,    s); return this; }
+  public Ms2Hit   setKaiScore(   double s) { mScores.put(SCR_KAI,-1d*s); return this; }
   public Ms2Hit   setDeltaScore( double s) { mScores.put(SCR_DELTA,  s); return this; }
   public Ms2Hit   setScoreOffset(double s) { mScores.put(SCR_OFFSET, s); return this; }
   public Ms2Hit   setFactor(     double s) { mScores.put(SCR_FACTOR, s); return this; }

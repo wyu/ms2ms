@@ -30,6 +30,7 @@ public class ScoreModel
   public ScoreModel(String s) { super(); mName=s; }
 
   public double getWeight() { return mWeight; }
+  public Double getOffset(eType t) { return mOffsetByCounts.get(t); }
   public String getName() { return mName; }
 
   public ScoreModel setFactor(double s) { mFactor=s; return this; }
