@@ -314,7 +314,8 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   {
     if (Tools.isSet(range))
       for (int i=range.lowerEndpoint(); i<=range.upperEndpoint(); i++)
-        if (tol.withinTolerance(getDelta()+getCalcMH(), i*Isotopes.DELTA_C13+getCalcMH()))
+//        if (tol.withinTolerance(getDelta()+getCalcMH(), i*Isotopes.DELTA_C13+getCalcMH()))
+        if (tol.withinTolerance(getCalcMH(), i*Isotopes.DELTA_C13+getCalcMH()+getDelta()))
         {
           mIsotopeError=i; mDeltaM-=(i*Isotopes.DELTA_C13);
           break;
@@ -393,15 +394,31 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
       int hash0=0;
       for (int i=0; i<intervals.size(); i++) hash0+=(i+1)*intervals.get(i)/deci;
 
+      List<List<Float>> Intervals = new ArrayList<>(), Additionals = new ArrayList<>();
+
       // now the increment due to site-specific mods
       if (Tools.isSet(getMod0()))
+      {
+        // check if the mod==AA
         for (Integer m : getMod0().keySet())
         {
-          intervals.set(m, intervals.get(m)+getMod0().get(m).floatValue());
+          Float AA = Tools.findClosest(AAs, getMod0().get(m).floatValue(), deci);
+          if (AA!=null)
+          {
+            List<Float> cloned = new ArrayList<>(intervals);
+            cloned.add(m+1, AA); Additionals.add(cloned);
+            List<Float> clone2 = new ArrayList<>(intervals);
+            clone2.add(m,   AA); Additionals.add(clone2);
+          }
+        }
+        for (Integer m : getMod0().keySet())
+        {
+          intervals.set(m, intervals.get(m) + getMod0().get(m).floatValue());
           // replace it with the accurate mass if matches to an AA
           Float AA = Tools.findClosest(AAs, intervals.get(m), deci);
-          if (AA!=null) intervals.set(m, AA);
+          if (AA != null) intervals.set(m, AA);
         }
+      }
       // trim the residue if the mass is zero within the tolerance
       Set<Integer> removed = new HashSet<>();
       for (int i=0; i<intervals.size(); i++)
@@ -413,7 +430,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
         else if (i<intervals.size()-1 && Math.abs(intervals.get(i)  +intervals.get(i+1))<=tol) { removed.add(i);   removed.add(i+1); }
       }
 
-      List<List<Float>> Intervals = new ArrayList<>(); Intervals.add(intervals);
+      Intervals.add(intervals); Intervals.addAll(Additionals);
 
       // enumerate the situation where neighboring residues can be combined to one
       if (!Tools.isSet(removed) && Tools.isSet(mMods) && mMods.size()==1)
@@ -479,7 +496,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
       for (int i=0; i<intervals.size(); i++)
       {
         // no need to remove it, only out of hash
-        if (!Tools.isSet(removed) || !removed.contains(i)) { hash+=(k+1)*intervals.get(i)/deci; k++; }
+        if (!Tools.isSet(removed) || !removed.contains(i)) { hash+=Math.round((k+1)*intervals.get(i)/deci); k++; }
       }
       hashes.add(hash+getCharge()); hashes.add(hash0+getCharge());
 
@@ -490,7 +507,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
         for (int i=0; i<Intervals.get(j).size(); i++)
         {
           // no need to remove it, only out of hash
-          hash+=(i+1)*Intervals.get(j).get(i)/deci;
+          hash+=Math.round((i+1)*Intervals.get(j).get(i)/deci);
         }
         hashes.add(hash+getCharge());
       }

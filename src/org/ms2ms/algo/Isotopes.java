@@ -571,6 +571,16 @@ H  2
 
     return false;
   }
+  public static Integer hasIsotopeErr(double calcMH, double obsMH, Range<Integer> range, Tolerance tol)
+  {
+    if (Tools.isSet(range))
+      for (int i=range.lowerEndpoint(); i<=range.upperEndpoint(); i++)
+        if (tol.withinTolerance(calcMH, i*DELTA_C13+obsMH)) return i;
+
+
+    return null;
+  }
+
 //  public static <T extends Peak> List<IsoEnvelope> decodePrecursors(double[] mzs, double[] ais, int z, Tolerance tol, int max_z, Protein... peptides)
 //  {
 //    List<Peak>           peaks = new ArrayList<Peak>(isolation.getRawData());
