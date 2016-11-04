@@ -1,9 +1,11 @@
 package org.ms2ms.data.ms;
 
 import org.ms2ms.math.Histogram;
+import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Tools;
 
 import java.util.EnumMap;
+import java.util.List;
 
 /** Representation of an individual component score in a composite scheme
  *
@@ -24,17 +26,20 @@ public class ScoreModel
   private String mName;
   private EnumMap<eType, Histogram> mDecoys;
   private EnumMap<eType, Double> mOffsets, mOffsetByCounts;
-  private Double mCenter, mSigma, mWeight=1d, mFactor=1d, mQvalSlope, mQvalIntercept;
+  private Double mCenter, mSigma, mWeight=1d, mFactor=1d, mQvalSlope, mQvalIntercept, mBaseline;
 
   public ScoreModel() { super(); }
   public ScoreModel(String s) { super(); mName=s; }
 
   public Double getQvalSlope()     { return mQvalSlope; }
   public Double getQvalIntercept() { return mQvalIntercept; }
+  public Double getBaseline()      { return mBaseline; }
 
   public double getWeight() { return mWeight; }
   public Double getOffset(eType t) { return mOffsetByCounts.get(t); }
   public String getName() { return mName; }
+
+  public Double calcScoreAtQval(double q) { return getQvalIntercept()!=null && getQvalSlope()!=null?q*getQvalSlope()+getQvalIntercept():null; }
 
   public ScoreModel setCenter(double s) { mCenter=s; return this; }
   public ScoreModel setSigma(double s) { mSigma=s; return this; }
@@ -128,6 +133,13 @@ public class ScoreModel
 
       // avoid the first 2 points to reduce the effect of truncated distribution
       Tools.put(mDecoys, eType.all, all.generate(all.getData().size()>100?25:15).assessTruncated(2));
+
+      List<Double> baseline = all.getData().subList(Math.max(all.getData().size() - 5, 0),all.getData().size());
+      if (Tools.isSet(baseline))
+      {
+        if (baseline.size()<2) mBaseline=baseline.get(0);
+        else mBaseline = Stats.mean(baseline)+Stats.stdev(baseline)*2d;
+      }
 
       mCenter=all.getCenter(); mSigma=all.getSigma()!=null?Math.abs(all.getSigma()):null;
     }

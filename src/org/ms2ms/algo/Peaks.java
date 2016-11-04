@@ -1016,7 +1016,7 @@ public class Peaks {
     // no need to look for the true c12 since we starts with the calculated MH
     return calc;
   }
-  public static AnnotatedPeak verifyCalcMH(int max_z, AnnotatedPeak calc, Tolerance tol, ImmutableNavigableMap<Peak>... isolated_precursors)
+  public static AnnotatedPeak verifyCalcMH(int min_z, int max_z, AnnotatedPeak calc, Tolerance tol, ImmutableNavigableMap<Peak>... isolated_precursors)
   {
     // n opinion without additional information
     if (!Tools.isSet(isolated_precursors)) return calc;
@@ -1026,7 +1026,7 @@ public class Peaks {
     calc.setIntensity(0d);
     calc.setVerifiedCharge(0);
     calc.setOriginalMz(0d);
-    for (double z = max_z; z >= 1d; z--) {
+    for (double z = max_z; z >= min_z; z--) {
       double mz = Peaks.MH2Mz(calc.getMz(), (int) z), ai = 0d, c12 = 0d;
       isotopes = 0;
       for (int c13 = 0; c13 <= z; c13++) {

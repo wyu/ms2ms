@@ -1,6 +1,7 @@
 package org.ms2ms.data.ms;
 
 import com.google.common.collect.Range;
+import com.google.common.collect.TreeMultimap;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.ms2ms.Disposable;
@@ -20,7 +21,9 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 {
   public static final String SCR_KAI    = "KaiScore";
   public static final String SCR_GAP    = "GapScore";
+  public static final String SCR_GAPg   = "AdjGapScore";
   public static final String SCR_MATCH  = "MatchProb";
+  public static final String SCR_GLOBAL = "GlobalMatchProb";
   public static final String SCR_COMP   = "CompositeScore";
 
   public static final String SCR_DELTA  = "DeltaScore";
@@ -83,7 +86,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public double   getDelta()      { return mDeltaM; }
   public double   getCalcMH()     { return mCalc!=null?mCalc.getMz():0; }
   public Double   getScoreOffset(){ return mScores!=null&&mScores.get(SCR_OFFSET)!=null?mScores.get(SCR_OFFSET):0d; }
-  public Double   getComposite()  { return mScores.get(SCR_COMP); }
+  public Double   getComposite()  { return mScores.get(SCR_GAPg); }
   public Double   getKaiScore()   { return mScores.get(SCR_KAI); }
   public Double   getFactor()     { return mScores.containsKey(SCR_FACTOR)?mScores.get(SCR_FACTOR):1d; }
   public Double   getDeltaScore() { return mScores.get(SCR_DELTA); }
@@ -107,18 +110,18 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 //
 //    return gap+w*match;
 //  }
-  public double score(Map<String, ScoreModel> models, ScoreModel.eType type)
-  {
-    // a composite score of several components
-    double scr=0d, ws=0d;
-    scr+=models.get(SCR_GAP  ).score(getScore(SCR_GAP  ),type); ws+=models.get(SCR_GAP  ).getWeight();
-    scr+=models.get(SCR_MATCH).score(getScore(SCR_MATCH),type); ws+=models.get(SCR_MATCH).getWeight();
-    scr+=models.get(SCR_KAI  ).score(getScore(SCR_KAI  ),type); ws+=models.get(SCR_KAI  ).getWeight();
-
-    // normalize by the peptide length, scaled to 100d
-    setScore(SCR_COMP, 10d*scr/(ws));
-    return getComposite();
-  }
+//  public double score(Map<String, ScoreModel> models, ScoreModel.eType type)
+//  {
+//    // a composite score of several components
+//    double scr=0d, ws=0d;
+//    scr+=models.get(SCR_GAP  ).score(getScore(SCR_GAP  ),type); ws+=models.get(SCR_GAP  ).getWeight();
+//    scr+=models.get(SCR_MATCH).score(getScore(SCR_MATCH),type); ws+=models.get(SCR_MATCH).getWeight();
+//    scr+=models.get(SCR_KAI  ).score(getScore(SCR_KAI  ),type); ws+=models.get(SCR_KAI  ).getWeight();
+//
+//    // normalize by the peptide length, scaled to 100d
+//    setScore(SCR_COMP, 10d*scr/(ws));
+//    return getComposite();
+//  }
 //  @Deprecated
 //  public double updateScore(Map<String, Double> basis, double w_match, double w_kai)
 //  {
@@ -132,6 +135,8 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 //    return getComposite();
 //  }
 //  public TreeMap<Integer, Double> getMods() { return mMods; }
+
+  public Map<Integer, Double> getMods() { return mMods; }
 
   public Map<Integer, Double> getMod0()
   {
@@ -517,7 +522,174 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 
     return null;
   }
+  // "blocks" is a dictionary of AA combination to be considered as building blocks
+  public List<Integer> hashcodeByIntervals(float[] AAs, OffsetPpmTolerance tolerance, Range<Integer> isotopeErr, float deci, TreeMultimap<Float, String> blocks)
+  {
+    // everything is built on the peptide sequence
+    if (!Strs.isSet(getSequence())) return null;
 
+    // populate the calculate MH if necessary
+    if (getCalcMH()==0) mCalc=new Peak(Peptides.calcMH(getSequence().toCharArray(), 0, getSequence().length()-1, AAs), 0d);
+
+    // setup the basic mass interval with just the AA sequence, not including the mods
+    List<Integer>  hashes = new ArrayList<>();
+    List<Float> intervals = new ArrayList<>(); int hash0=0; // hash without mods
+    for (int i=0; i<getSequence().length(); i++)
+    {
+      intervals.add(AAs[getSequence().charAt(i)]);
+      hash0+=Math.round((i+1)*intervals.get(i)/deci);
+    }
+
+    // quit if we don't have any mod to consider
+    if (!Tools.isSet(mMods))
+    {
+      hashes.add(hash0+getCharge()); return hashes;
+    }
+
+    // let's consider the case of false-extension
+    float    tol = (float )(tolerance.getMax(getCalcMH())-tolerance.getMin(getCalcMH()));
+    Integer  mod = Collections.max(mMods.keySet());
+    double delta = mMods.get(mod);
+
+    List<Integer> putatives;
+    if (delta<-56 || delta>56)
+    {
+      putatives = Peptides.seekRemoval(delta<-56?getSequence():getNext(), delta<-56,getCalcMH(),delta,tolerance,isotopeErr,AAs);
+      if (Tools.isSet(putatives))
+      {
+        mMods.remove(mod);
+        for (Integer putative : putatives)
+          if (delta<-56) intervals.remove(putative.intValue()); else intervals.add(AAs[getNext().charAt(putative)]);
+      }
+    }
+
+    List<List<Float>> Additionals = new ArrayList<>();
+
+    // now the increment due to site-specific mods to check if the mod==AA
+    for (Integer m : getMod0().keySet())
+    {
+      Float AA = Tools.findClosest(AAs, getMod0().get(m).floatValue(), deci);
+      if (AA!=null)
+      {
+        List<Float> cloned = new ArrayList<>(intervals);
+        cloned.add(m+1, AA); Additionals.add(cloned);
+        List<Float> clone2 = new ArrayList<>(intervals);
+        clone2.add(m,   AA); Additionals.add(clone2);
+      }
+      // increment the residue mass by the mod
+      intervals.set(m, intervals.get(m) + getMod0().get(m).floatValue());
+      // replace it with the accurate mass if matches to an AA
+      AA = Tools.findClosest(AAs, intervals.get(m), deci);
+      if (AA != null) intervals.set(m, AA);
+    }
+
+    // trim the residue if the mass is zero within the tolerance
+    Set<Integer> removed = new HashSet<>();
+    for (int i=0; i<intervals.size(); i++)
+    {
+      if      (                        Math.abs(intervals.get(i))                     <=tol)   removed.add(i);
+      else if (i>0 &&                  Math.abs(intervals.get(i-1)+intervals.get(i))  <=tol) { removed.add(i-1); removed.add(i); }
+      else if (i<intervals.size()-1 && Math.abs(intervals.get(i)  +intervals.get(i+1))<=tol) { removed.add(i);   removed.add(i+1); }
+    }
+
+//    Intervals.add(intervals); Intervals.addAll(Additionals);
+
+    if (!Tools.isSet(removed) && mMods.size()==1)
+    {
+      // enumerate the situation where neighboring residues can be combined to one
+      int pos = Tools.front(mMods.keySet())-getLeft();
+      if (pos>0 && pos<intervals.size())
+      {
+        // with residue prior
+        float m = intervals.get(pos)+intervals.get(pos-1);
+        Collection<Float> found = Tools.find(AAs, m - deci, m + deci);
+        if (Tools.isSet(found))
+        {
+          // remove the old residues
+          List<Float> cloned = new ArrayList<>(intervals);
+          cloned.remove(pos-1); cloned.remove(pos - 1);
+          for (Float A : found)
+          {
+            List<Float> c = new ArrayList<>(cloned);
+            c.add(pos-1, A);
+            Additionals.add(c);
+          }
+        }
+      }
+      if (pos>=0 && pos<intervals.size()-1)
+      {
+        // with residue after
+        float m = intervals.get(pos)+intervals.get(pos+1);
+        Collection<Float> found = Tools.find(AAs, m - deci, m + deci);
+        if (Tools.isSet(found))
+        {
+          // remove the old residues
+          List<Float> cloned = new ArrayList<>(intervals);
+          cloned.remove(pos); cloned.remove(pos);
+          for (Float A : found)
+          {
+            List<Float> c = new ArrayList<>(cloned);
+            c.add(pos, A);
+            Additionals.add(c);
+          }
+        }
+
+        // now consider multiple residue for one K
+        // TTTIGA(+9.1134)NY
+        // TTTIGK
+        m=0; // run it up to the C-t end
+        for (int k=pos; k<intervals.size(); k++) m+=intervals.get(k);
+        if (Math.abs(m-AAs['K'])<=deci)
+        {
+          // remove the old residues
+          List<Float> cloned = new ArrayList<>(intervals);
+          for (int k=pos; k<intervals.size(); k++) cloned.remove(pos);
+          cloned.add(pos, AAs['K']);
+          // another possibility
+          Additionals.add(cloned);
+        }
+      }
+      if (pos>=0 && pos<intervals.size())
+      {
+        // another scenario where the mod'd residue can be a 2-residues combination
+        Map<Float, Collection<String>> slice = blocks.asMap().subMap(intervals.get(pos)-deci, intervals.get(pos)+deci);
+        if (Tools.isSet(slice))
+          for (Float mm : slice.keySet())
+            for (String AA2 : slice.get(mm))
+            {
+              List<Float> cloned = new ArrayList<>(intervals);
+              cloned.remove(pos);
+              for (Character c : AA2.toCharArray()) cloned.add(pos, AAs[c]);
+              // another possibility
+              Additionals.add(cloned);
+            }
+      }
+    }
+
+    // output the hashes from each possibilities
+    int hash=0, k=0;
+    for (int i=0; i<intervals.size(); i++)
+    {
+      // no need to remove it, only out of hash
+      if (!Tools.isSet(removed) || !removed.contains(i)) { hash+=Math.round((k+1)*intervals.get(i)/deci); k++; }
+    }
+    hashes.add(hash+getCharge()); hashes.add(hash0+getCharge());
+
+    // including the alternatives
+    if (Tools.isSet(Additionals))
+      for (int j=0; j<Additionals.size(); j++)
+      {
+        hash=k=0;
+        for (int i=0; i<Additionals.get(j).size(); i++)
+        {
+          // no need to remove it, only out of hash
+          hash+=Math.round((i+1)*Additionals.get(j).get(i)/deci);
+        }
+        hashes.add(hash+getCharge());
+      }
+
+    return hashes;
+  }
   @Override
   public void dispose()
   {

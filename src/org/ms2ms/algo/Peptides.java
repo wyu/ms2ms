@@ -74,6 +74,26 @@ public class Peptides
     }
     return null;
   }
+  public static TreeMultimap<Float, String> toMassAAs2x(Map<Character, Float> AAs)
+  {
+    if (Tools.isSet(AAs))
+    {
+      TreeMultimap<Float, String> m = TreeMultimap.create();
+      for (Character AA : AAs.keySet())
+      {
+        if (sAA.indexOf(AA)<0) continue;
+//        m.put(AAs.get(AA), AA+""); // take care of the single residue first
+        for (Character aa : AAs.keySet())
+        {
+          if (sAA.indexOf(aa)<0) continue;
+          String newAA = AA.toString()+aa.toString();
+          if (!m.containsValue(newAA)) m.put(AAs.get(AA)+AAs.get(aa), newAA);
+        }
+      }
+      return m;
+    }
+    return null;
+  }
   public static Map<String, Float> modAAsMass(String... unimods)
   {
     Map<String, Float> AAs = new HashMap<>(); Map<Character, Float> As = AAsBuilder.build();
