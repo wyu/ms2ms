@@ -24,15 +24,25 @@ public class ScoreModel
   private String mName;
   private EnumMap<eType, Histogram> mDecoys;
   private EnumMap<eType, Double> mOffsets, mOffsetByCounts;
-  private Double mCenter, mSigma, mWeight=1d, mFactor=1d;
+  private Double mCenter, mSigma, mWeight=1d, mFactor=1d, mQvalSlope, mQvalIntercept;
 
   public ScoreModel() { super(); }
   public ScoreModel(String s) { super(); mName=s; }
+
+  public Double getQvalSlope()     { return mQvalSlope; }
+  public Double getQvalIntercept() { return mQvalIntercept; }
 
   public double getWeight() { return mWeight; }
   public Double getOffset(eType t) { return mOffsetByCounts.get(t); }
   public String getName() { return mName; }
 
+  public ScoreModel setCenter(double s) { mCenter=s; return this; }
+  public ScoreModel setSigma(double s) { mSigma=s; return this; }
+  public ScoreModel setQvalCoeffs(double slope, double intercept)
+  {
+    mQvalSlope=slope; mQvalIntercept=intercept;
+    return this;
+  }
   public ScoreModel setFactor(double s) { mFactor=s; return this; }
   public ScoreModel setWeigth(double s) { mWeight=s; return this; }
   public ScoreModel setCounts(eType t, int s)
