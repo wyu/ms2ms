@@ -360,168 +360,168 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 //
 //    return getCharge();
 //  }
-  public List<Integer> hashcodeByIntervals(float[] AAs, OffsetPpmTolerance tolerance, Range<Integer> isotopeErr, float deci)
-  {
-    if (getCalcMH()==0) mCalc=new Peak(Peptides.calcMH(getSequence().toCharArray(), 0, getSequence().length()-1, AAs), 0d);
-
-    float tol = (float )(tolerance.getMax(getCalcMH())-tolerance.getMin(getCalcMH()));
-    if (Strs.isSet(getSequence()))
-    {
-      List<Float> intervals = new ArrayList<>();
-      for (int i=0; i<getSequence().length(); i++) intervals.add(AAs[getSequence().charAt(i)]);
-
-      // let's consider the case of false-extension
-      List<Integer> putatives = null;
-      Integer  mod = Tools.isSet(mMods)?Collections.max(mMods.keySet()):null;
-      double delta = Tools.isSet(mMods)?mMods.get(mod):0;
-      if (     delta<-56)
-      {
-        putatives = Peptides.seekRemoval(getSequence(), true,  getCalcMH(), delta, tolerance, isotopeErr, AAs);
-        if (Tools.isSet(putatives))
-        {
-          mMods.remove(mod);
-          // TODO to be tested
-          for (Integer putative : putatives)
-            intervals.remove(putative.intValue());
-        }
-      }
-      else if (delta> 56)
-      {
-        putatives = Peptides.seekRemoval(getNext(), false, getCalcMH(), delta, tolerance, isotopeErr, AAs);
-        if (Tools.isSet(putatives))
-        {
-          mMods.remove(mod);
-          for (Integer putative : putatives) intervals.add(AAs[getNext().charAt(putative)]);
-        }
-      }
-
-      // need the base one without mod
-      int hash0=0;
-      for (int i=0; i<intervals.size(); i++) hash0+=(i+1)*intervals.get(i)/deci;
-
-      List<List<Float>> Intervals = new ArrayList<>(), Additionals = new ArrayList<>();
-
-      // now the increment due to site-specific mods
-      if (Tools.isSet(getMod0()))
-      {
-        // check if the mod==AA
-        for (Integer m : getMod0().keySet())
-        {
-          Float AA = Tools.findClosest(AAs, getMod0().get(m).floatValue(), deci);
-          if (AA!=null)
-          {
-            List<Float> cloned = new ArrayList<>(intervals);
-            cloned.add(m+1, AA); Additionals.add(cloned);
-            List<Float> clone2 = new ArrayList<>(intervals);
-            clone2.add(m,   AA); Additionals.add(clone2);
-          }
-        }
-        for (Integer m : getMod0().keySet())
-        {
-          intervals.set(m, intervals.get(m) + getMod0().get(m).floatValue());
-          // replace it with the accurate mass if matches to an AA
-          Float AA = Tools.findClosest(AAs, intervals.get(m), deci);
-          if (AA != null) intervals.set(m, AA);
-        }
-      }
-      // trim the residue if the mass is zero within the tolerance
-      Set<Integer> removed = new HashSet<>();
-      for (int i=0; i<intervals.size(); i++)
-      {
-        if      (                        Math.abs(intervals.get(i))               <=tol)   removed.add(i);
-//        if      (i>0 &&                  Math.abs(intervals[i-1])             <=tol)   removed.add(i-1); // in case the localization is not perfect
-//        if      (i<intervals.length-1 && Math.abs(intervals[i+1])             <=tol)   removed.add(i+1); // in case the localization is not perfect
-        else if (i>0 &&                  Math.abs(intervals.get(i-1)+intervals.get(i))<=tol) { removed.add(i-1); removed.add(i); }
-        else if (i<intervals.size()-1 && Math.abs(intervals.get(i)  +intervals.get(i+1))<=tol) { removed.add(i);   removed.add(i+1); }
-      }
-
-      Intervals.add(intervals); Intervals.addAll(Additionals);
-
-      // enumerate the situation where neighboring residues can be combined to one
-      if (!Tools.isSet(removed) && Tools.isSet(mMods) && mMods.size()==1)
-      {
-        int pos = Tools.front(mMods.keySet())-getLeft();
-        if (pos>0 && pos<intervals.size())
-        {
-          // with residue prior
-          float m = intervals.get(pos)+intervals.get(pos-1);
-          Collection<Float> found = Tools.find(AAs, m - deci, m + deci);
-          if (Tools.isSet(found))
-          {
-            // remove the old residues
-            List<Float> cloned = new ArrayList<>(intervals);
-            cloned.remove(pos-1); cloned.remove(pos - 1);
-            for (Float A : found)
-            {
-              List<Float> c = new ArrayList<>(cloned);
-              c.add(pos-1, A);
-              Intervals.add(c);
-            }
-          }
-        }
-        if (pos>=0 && pos<intervals.size()-1)
-        {
-          // with residue after
-          float m = intervals.get(pos)+intervals.get(pos+1);
-          Collection<Float> found = Tools.find(AAs, m - deci, m + deci);
-          if (Tools.isSet(found))
-          {
-            // remove the old residues
-            List<Float> cloned = new ArrayList<>(intervals);
-            cloned.remove(pos); cloned.remove(pos);
-            for (Float A : found)
-            {
-              List<Float> c = new ArrayList<>(cloned);
-              c.add(pos, A);
-              Intervals.add(c);
-            }
-          }
-        }
-        // now consider multiple residue for one K
-        // TTTIGA(+9.1134)NY
-        // TTTIGK
-        if (pos>=0 && pos<intervals.size()-1)
-        {
-          float m=0; // run it up to the C-t end
-          for (int k=pos; k<intervals.size(); k++) m+=intervals.get(k);
-          if (Math.abs(m-AAs['K'])<=deci)
-          {
-            // remove the old residues
-            List<Float> cloned = new ArrayList<>(intervals);
-            for (int k=pos; k<intervals.size(); k++) cloned.remove(pos);
-            cloned.add(pos, AAs['K']);
-            // another possibility
-            Intervals.add(cloned);
-          }
-        }
-      }
-      List<Integer> hashes = new ArrayList<>();
-
-      int hash=0, k=0;
-      for (int i=0; i<intervals.size(); i++)
-      {
-        // no need to remove it, only out of hash
-        if (!Tools.isSet(removed) || !removed.contains(i)) { hash+=Math.round((k+1)*intervals.get(i)/deci); k++; }
-      }
-      hashes.add(hash+getCharge()); hashes.add(hash0+getCharge());
-
-      if (Intervals.size()>1)
-      for (int j=1; j<Intervals.size(); j++)
-      {
-        hash=k=0;
-        for (int i=0; i<Intervals.get(j).size(); i++)
-        {
-          // no need to remove it, only out of hash
-          hash+=Math.round((i+1)*Intervals.get(j).get(i)/deci);
-        }
-        hashes.add(hash+getCharge());
-      }
-
-      return hashes;
-    }
-
-    return null;
-  }
+//  public List<Integer> hashcodeByIntervals(float[] AAs, OffsetPpmTolerance tolerance, Range<Integer> isotopeErr, float deci)
+//  {
+//    if (getCalcMH()==0) mCalc=new Peak(Peptides.calcMH(getSequence().toCharArray(), 0, getSequence().length()-1, AAs), 0d);
+//
+//    float tol = (float )(tolerance.getMax(getCalcMH())-tolerance.getMin(getCalcMH()));
+//    if (Strs.isSet(getSequence()))
+//    {
+//      List<Float> intervals = new ArrayList<>();
+//      for (int i=0; i<getSequence().length(); i++) intervals.add(AAs[getSequence().charAt(i)]);
+//
+//      // let's consider the case of false-extension
+//      List<Integer> putatives = null;
+//      Integer  mod = Tools.isSet(mMods)?Collections.max(mMods.keySet()):null;
+//      double delta = Tools.isSet(mMods)?mMods.get(mod):0;
+//      if (     delta<-56)
+//      {
+//        putatives = Peptides.seekRemoval(getSequence(), true,  getCalcMH(), delta, tolerance, isotopeErr, AAs);
+//        if (Tools.isSet(putatives))
+//        {
+//          mMods.remove(mod);
+//          // TODO to be tested
+//          for (Integer putative : putatives)
+//            intervals.remove(putative.intValue());
+//        }
+//      }
+//      else if (delta> 56)
+//      {
+//        putatives = Peptides.seekRemoval(getNext(), false, getCalcMH(), delta, tolerance, isotopeErr, AAs);
+//        if (Tools.isSet(putatives))
+//        {
+//          mMods.remove(mod);
+//          for (Integer putative : putatives) intervals.add(AAs[getNext().charAt(putative)]);
+//        }
+//      }
+//
+//      // need the base one without mod
+//      int hash0=0;
+//      for (int i=0; i<intervals.size(); i++) hash0+=(i+1)*intervals.get(i)/deci;
+//
+//      List<List<Float>> Intervals = new ArrayList<>(), Additionals = new ArrayList<>();
+//
+//      // now the increment due to site-specific mods
+//      if (Tools.isSet(getMod0()))
+//      {
+//        // check if the mod==AA
+//        for (Integer m : getMod0().keySet())
+//        {
+//          Float AA = Tools.findClosest(AAs, getMod0().get(m).floatValue(), deci);
+//          if (AA!=null)
+//          {
+//            List<Float> cloned = new ArrayList<>(intervals);
+//            cloned.add(m+1, AA); Additionals.add(cloned);
+//            List<Float> clone2 = new ArrayList<>(intervals);
+//            clone2.add(m,   AA); Additionals.add(clone2);
+//          }
+//        }
+//        for (Integer m : getMod0().keySet())
+//        {
+//          intervals.set(m, intervals.get(m) + getMod0().get(m).floatValue());
+//          // replace it with the accurate mass if matches to an AA
+//          Float AA = Tools.findClosest(AAs, intervals.get(m), deci);
+//          if (AA != null) intervals.set(m, AA);
+//        }
+//      }
+//      // trim the residue if the mass is zero within the tolerance
+//      Set<Integer> removed = new HashSet<>();
+//      for (int i=0; i<intervals.size(); i++)
+//      {
+//        if      (                        Math.abs(intervals.get(i))               <=tol)   removed.add(i);
+////        if      (i>0 &&                  Math.abs(intervals[i-1])             <=tol)   removed.add(i-1); // in case the localization is not perfect
+////        if      (i<intervals.length-1 && Math.abs(intervals[i+1])             <=tol)   removed.add(i+1); // in case the localization is not perfect
+//        else if (i>0 &&                  Math.abs(intervals.get(i-1)+intervals.get(i))<=tol) { removed.add(i-1); removed.add(i); }
+//        else if (i<intervals.size()-1 && Math.abs(intervals.get(i)  +intervals.get(i+1))<=tol) { removed.add(i);   removed.add(i+1); }
+//      }
+//
+//      Intervals.add(intervals); Intervals.addAll(Additionals);
+//
+//      // enumerate the situation where neighboring residues can be combined to one
+//      if (!Tools.isSet(removed) && Tools.isSet(mMods) && mMods.size()==1)
+//      {
+//        int pos = Tools.front(mMods.keySet())-getLeft();
+//        if (pos>0 && pos<intervals.size())
+//        {
+//          // with residue prior
+//          float m = intervals.get(pos)+intervals.get(pos-1);
+//          Collection<Float> found = Tools.find(AAs, m - deci, m + deci);
+//          if (Tools.isSet(found))
+//          {
+//            // remove the old residues
+//            List<Float> cloned = new ArrayList<>(intervals);
+//            cloned.remove(pos-1); cloned.remove(pos - 1);
+//            for (Float A : found)
+//            {
+//              List<Float> c = new ArrayList<>(cloned);
+//              c.add(pos-1, A);
+//              Intervals.add(c);
+//            }
+//          }
+//        }
+//        if (pos>=0 && pos<intervals.size()-1)
+//        {
+//          // with residue after
+//          float m = intervals.get(pos)+intervals.get(pos+1);
+//          Collection<Float> found = Tools.find(AAs, m - deci, m + deci);
+//          if (Tools.isSet(found))
+//          {
+//            // remove the old residues
+//            List<Float> cloned = new ArrayList<>(intervals);
+//            cloned.remove(pos); cloned.remove(pos);
+//            for (Float A : found)
+//            {
+//              List<Float> c = new ArrayList<>(cloned);
+//              c.add(pos, A);
+//              Intervals.add(c);
+//            }
+//          }
+//        }
+//        // now consider multiple residue for one K
+//        // TTTIGA(+9.1134)NY
+//        // TTTIGK
+//        if (pos>=0 && pos<intervals.size()-1)
+//        {
+//          float m=0; // run it up to the C-t end
+//          for (int k=pos; k<intervals.size(); k++) m+=intervals.get(k);
+//          if (Math.abs(m-AAs['K'])<=deci)
+//          {
+//            // remove the old residues
+//            List<Float> cloned = new ArrayList<>(intervals);
+//            for (int k=pos; k<intervals.size(); k++) cloned.remove(pos);
+//            cloned.add(pos, AAs['K']);
+//            // another possibility
+//            Intervals.add(cloned);
+//          }
+//        }
+//      }
+//      List<Integer> hashes = new ArrayList<>();
+//
+//      int hash=0, k=0;
+//      for (int i=0; i<intervals.size(); i++)
+//      {
+//        // no need to remove it, only out of hash
+//        if (!Tools.isSet(removed) || !removed.contains(i)) { hash+=Math.round((k+1)*intervals.get(i)/deci); k++; }
+//      }
+//      hashes.add(hash+getCharge()); hashes.add(hash0+getCharge());
+//
+//      if (Intervals.size()>1)
+//      for (int j=1; j<Intervals.size(); j++)
+//      {
+//        hash=k=0;
+//        for (int i=0; i<Intervals.get(j).size(); i++)
+//        {
+//          // no need to remove it, only out of hash
+//          hash+=Math.round((i+1)*Intervals.get(j).get(i)/deci);
+//        }
+//        hashes.add(hash+getCharge());
+//      }
+//
+//      return hashes;
+//    }
+//
+//    return null;
+//  }
   // "blocks" is a dictionary of AA combination to be considered as building blocks
   public List<Integer> hashcodeByIntervals(float[] AAs, OffsetPpmTolerance tolerance, Range<Integer> isotopeErr, float deci, TreeMultimap<Float, String> blocks)
   {
