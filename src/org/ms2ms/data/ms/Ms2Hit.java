@@ -86,7 +86,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public double   getDelta()      { return mDeltaM; }
   public double   getCalcMH()     { return mCalc!=null?mCalc.getMz():0; }
   public Double   getScoreOffset(){ return mScores!=null&&mScores.get(SCR_OFFSET)!=null?mScores.get(SCR_OFFSET):0d; }
-  public Double   getComposite()  { return mScores.get(SCR_GAPg); }
+  public Double   getScore()      { return mScores.get(SCR_GAPg); } // the official score!!
   public Double   getKaiScore()   { return mScores.get(SCR_KAI); }
   public Double   getFactor()     { return mScores.containsKey(SCR_FACTOR)?mScores.get(SCR_FACTOR):1d; }
   public Double   getDeltaScore() { return mScores.get(SCR_DELTA); }
@@ -149,6 +149,10 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
     }
 
     return out;
+  }
+  public void invalidate()
+  {
+    mSequence=null; mY=null; mB=null;
   }
 //  public Ms2Hit   setPrecursorCharge(int s)
 //  {
@@ -592,8 +596,6 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
       else if (i<intervals.size()-1 && Math.abs(intervals.get(i)  +intervals.get(i+1))<=tol) { removed.add(i);   removed.add(i+1); }
     }
 
-//    Intervals.add(intervals); Intervals.addAll(Additionals);
-
     if (!Tools.isSet(removed) && mMods.size()==1)
     {
       // enumerate the situation where neighboring residues can be combined to one
@@ -665,6 +667,8 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
             }
       }
     }
+    // TODO something more outlandish: if the first or last two residues are not defined by the b/y ions, check the other permutations
+
 
     // output the hashes from each possibilities
     int hash=0, k=0;
