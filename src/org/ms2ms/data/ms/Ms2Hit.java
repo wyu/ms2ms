@@ -101,7 +101,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public String   getNext()       { return mNext; }
   public String   getTag()        { return mTag; }
 
-  public double   getModMass()    { return mMods!=null? Stats.sum(mMods.values()):0d; }
+  public double   getModMass()    { return Tools.isSet(mMods)?Stats.sum(mMods.values()):0d; }
 //  public double   getScore(Map<String, Double> basis, double w)
 //  {
 //    // a composite score of several components
@@ -186,6 +186,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public Ms2Hit   setMatchProb(  double s) { mScores.put(SCR_MATCH,  s); return this; }
   public Ms2Hit   setTag(        String s) { mTag=s; return this; }
 
+  public Ms2Hit   setDelta(      double s) { mDeltaM=s; return this; }
   public Ms2Hit   setMH(double calc, double delta)
   {
     if (mCalc==null) mCalc = new Peak();
@@ -216,6 +217,22 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
     return this;
   }
   public Ms2Hit clearMods() { Tools.dispose(mMods); return this; }
+  public Ms2Hit purgeMods()
+  {
+    // remove the mod if it's too small
+    if (Tools.isSet(mMods))
+    {
+      Iterator<Map.Entry<Integer, Double>> itr = mMods.entrySet().iterator();
+      while (itr.hasNext())
+      {
+        Double m = itr.next().getValue();
+        if (Math.abs(m)<0.1) { setDelta(getDelta()+m); itr.remove(); }
+      }
+      if (mMods.size()==0) mMods=null;
+    }
+    return this;
+  }
+  public boolean hasMod(int loc) { return mMods!=null&&mMods.containsKey(loc); }
   public Ms2Hit setMod(int loc, double mod)
   {
     if (mMods==null) mMods = new TreeMap<>(); else mMods.clear();
@@ -229,7 +246,18 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
     {
 //      System.out.println("        Conflicting mod from N/C terminus!");
     }
-    else mMods.put(loc, mod);
+    // enforcing the terminal positions, Nov 4, 2016
+    else if (loc>=getLeft() && loc<=getRight()) mMods.put(loc, mod);
+
+    return this;
+  }
+  public Ms2Hit increMod(int loc, double mod)
+  {
+    if (mMods==null) mMods = new TreeMap<>();
+
+    // increment the mod at the same location
+    if (mMods.containsKey(loc))     mod += mMods.get(loc);
+    if (loc>=getLeft() && loc<=getRight()) mMods.put(loc, mod);
 
     return this;
   }
