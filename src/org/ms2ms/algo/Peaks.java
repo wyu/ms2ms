@@ -1057,7 +1057,9 @@ public class Peaks {
     return calc;
   }
   // doo we have good evidence for such charge state in our precursors
-  public static boolean hasIsotopeEnvelop(int charge, double minDP, Tolerance tol, ImmutableNavigableMap<Peak>... isolated_precursors)
+  synchronized public static boolean hasIsotopeEnvelop(
+      Table<Integer, Integer, IsoEnvelope> sIsoEnveloped, int charge, double minDP, Tolerance tol,
+      ImmutableNavigableMap<Peak>... isolated_precursors)
   {
     // n opinion without additional information
     if (!Tools.isSet(isolated_precursors)) return false;
@@ -1067,16 +1069,16 @@ public class Peaks {
       if (precursors!=null && precursors.size()>0)
         for (Peak p : precursors.getVals())
         {
-          double dp = scoreIsotope(p.getMz(), charge, tol, isolated_precursors);
+          double dp = scoreIsotope(sIsoEnveloped, p.getMz(), charge, tol, isolated_precursors);
           if (dp>minDP) return true;
         }
 
     return false;
   }
   // giving the m/z and charge, check the evidence
-  public static double scoreIsotope(double mz, int charge, Tolerance tol, ImmutableNavigableMap<Peak>... isolated_precursors)
+  public static double scoreIsotope(Table<Integer, Integer, IsoEnvelope> sIsoEnveloped, double mz, int charge, Tolerance tol, ImmutableNavigableMap<Peak>... isolated_precursors)
   {
-    IsoEnvelope ev = Isotopes.estIsotopesByMz(mz, charge, 10d, 100d); int order=0;
+    IsoEnvelope ev = Isotopes.estIsotopesByMz(mz, charge, 10d, 100d, sIsoEnveloped); int order=0;
     for (Peak iso : ev.getPredicted())
     {
       double ai=0d; // gather the ions from all precursors

@@ -421,7 +421,7 @@ public class Spectra
         }
 
       // transfer the peak(s)
-      if (best==null) best=Isotopes.calcIsotopesByMz(peaks.getMz(i), 1, 10d, peaks.getIntensity(i));
+      if (best==null) best = new IsoEnvelope(peaks.getMz(i), 1, 10d, peaks.getIntensity(i));
       int order=0;
       for (Peak iso : best.getPredicted())
       {

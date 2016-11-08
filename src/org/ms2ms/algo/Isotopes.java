@@ -76,8 +76,6 @@ public class Isotopes
   static final double      DUMMY_MASS = -10000000;
   static final double  AVERAGINE_MASS = 111.0543052;
   public static final double       DELTA_C13 = 1.00335d;
-  // caching the isotope envelopes
-  private static Table<Integer, Integer, IsoEnvelope> sIsoEnveloped = HashBasedTable.create();
 
   static Map<String, Long>         EM = new HashMap<String, Long>();
   static List<List<List<Peak>>>   SAD = new ArrayList<List<List<Peak>>>();
@@ -165,7 +163,7 @@ H  2
   }
 
 // Merge two patterns to one.
-  public static void convolute_basic(List<Peak> h, final List<Peak> g, final List<Peak> f)
+  synchronized public static void convolute_basic(List<Peak> h, final List<Peak> g, final List<Peak> f)
   {
     h.clear();
     int g_n = g.size(), f_n = f.size();
@@ -338,7 +336,7 @@ H  2
     calculate(new ArrayList<Peak>(), result, fm, 0, charge);
     return new IsoEnvelope(result, charge);
   }
-  public static IsoEnvelope calcIsotopesByMz(double c12, int charge, double minri, double ai)
+  synchronized public static IsoEnvelope calcIsotopesByMz(double c12, int charge, double minri, double ai)
   {
     double               limit = 0;
     List<Peak>          result = new ArrayList<Peak>(), tmp = new ArrayList<Peak>();
@@ -374,7 +372,7 @@ H  2
 //    }
     return new IsoEnvelope(result, charge);
   }
-  public static IsoEnvelope estIsotopesByMz(double c12, int charge, double minri, double ai)
+  public static IsoEnvelope estIsotopesByMz(double c12, int charge, double minri, double ai, Table<Integer, Integer, IsoEnvelope> sIsoEnveloped)
   {
     // look for the cache first
     Integer m = (int )c12;
