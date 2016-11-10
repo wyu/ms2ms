@@ -34,6 +34,7 @@ public class ScoreModel
   public Double getQvalSlope()     { return mQvalSlope; }
   public Double getQvalIntercept() { return mQvalIntercept; }
   public Double getBaseline()      { return mBaseline; }
+  public Double getCenter()        { return mCenter; }
 
   public double getWeight() { return mWeight; }
   public Double getOffset(eType t) { return mOffsetByCounts.get(t); }

@@ -20,7 +20,8 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
 {
   private boolean mHas1st=false, mExpectedY1=false;
   private int                 mMotifs=0, m1stPass=0, mWeaks=0, mC13=0;
-  private double              mIntensities=0d, mProb=0, mGapScore=0, mKaiScore=0;
+  private double              mGapScore=0, mIntensities=0d;
+//  private double              mProb=0, mKaiScore=0;
   private FragmentEntry       mFragment   =null;
   private ImmutableList<AnnotatedPeak> mTrack      =null;
 
@@ -34,41 +35,42 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
     if (f!=null)
     {
       mHas1st=f.mHas1st; mExpectedY1=f.mExpectedY1; mMotifs=f.mMotifs; m1stPass=f.m1stPass; mWeaks=f.mWeaks; mC13=f.mC13;
-      mIntensities=f.mIntensities; mProb=f.mProb; mGapScore=f.mGapScore; mKaiScore=f.mKaiScore;
+      mGapScore=f.mGapScore; mIntensities=f.mIntensities;
+//      mProb=f.mProb; mKaiScore=f.mKaiScore;
       mFragment = new FragmentEntry(f.mFragment);
       mTrack=f.mTrack;
     }
   }
-  public FpmEntry(FragmentEntry f)
-  {
-    super();
-    mFragment=f;
-  }
+//  public FpmEntry(FragmentEntry f)
+//  {
+//    super();
+//    mFragment=f;
+//  }
   public FpmEntry(FragmentEntry f, List<AnnotatedPeak> t)
   {
     super();
     mFragment=f; mTrack=ImmutableList.copyOf(t);
   }
-  public FpmEntry(FragmentEntry f, List<AnnotatedPeak> t, int motifs, int size_1st)
-  {
-    super();
-    mFragment=f; mTrack=ImmutableList.copyOf(t); mMotifs=motifs; m1stPass=size_1st;
-  }
-
-  public FpmEntry(FragmentEntry f, List<AnnotatedPeak> t, double ai)
-  {
-    super();
-    mFragment=f; mTrack=ImmutableList.copyOf(t); mIntensities=ai;
-  }
+//  public FpmEntry(FragmentEntry f, List<AnnotatedPeak> t, int motifs, int size_1st)
+//  {
+//    super();
+//    mFragment=f; mTrack=ImmutableList.copyOf(t); mMotifs=motifs; m1stPass=size_1st;
+//  }
+//
+//  public FpmEntry(FragmentEntry f, List<AnnotatedPeak> t, double ai)
+//  {
+//    super();
+//    mFragment=f; mTrack=ImmutableList.copyOf(t); mIntensities=ai;
+//  }
 
   public boolean             isDecoy()      { return mFragment!=null && mFragment.getPeptideKey()!=null && mFragment.getPeptideKey()<0; }
   public boolean             has1st()       { return mHas1st; }
-  public double              getKaiScore()  { return mKaiScore; }
+//  public double              getKaiScore()  { return mKaiScore; }
   public double              getGapScore()  { return mGapScore; }
   public double              getIntensity() { return mIntensities; }
-  public double              getProb()      { return mProb; }
+//  public double              getProb()      { return mProb; }
   public int                 getMotifs()    { return mMotifs; }
-  public int                 get1stPass()   { return m1stPass; }
+//  public int                 get1stPass()   { return m1stPass; }
   public FragmentEntry       getFragment()  { return mFragment; }
   public ImmutableList<AnnotatedPeak> getTrack()     { return mTrack; }
   public AnnotatedPeak       at(int s)      { return mTrack.get(s); }
@@ -78,12 +80,12 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
   public FpmEntry has1st(        boolean s) { mHas1st    =s; return this; }
   public FpmEntry hasExpectedY1( boolean s) { mExpectedY1=s; return this; }
   public FpmEntry setMotifs(         int s) { mMotifs    =s; return this; }
-  public FpmEntry set1stPass(        int s) { m1stPass   =s; return this; }
-  public FpmEntry setWeaks(          int s) { mWeaks     =s; return this; }
-  public FpmEntry setC13(            int s) { mC13       =s; return this; }
-  public FpmEntry setProb(        double s) { mProb      =s; return this; }
+//  public FpmEntry set1stPass(        int s) { m1stPass   =s; return this; }
+//  public FpmEntry setWeaks(          int s) { mWeaks     =s; return this; }
+//  public FpmEntry setC13(            int s) { mC13       =s; return this; }
+//  public FpmEntry setProb(        double s) { mProb      =s; return this; }
   public FpmEntry setGapScore(    double s) { mGapScore  =s; return this; }
-  public FpmEntry setStdErrRegression(double s) { mKaiScore  =s; return this; }
+//  public FpmEntry setStdErrRegression(double s) { mKaiScore  =s; return this; }
   public FpmEntry setIntensity(   double s) { mIntensities=s; return this; }
 
   public FpmEntry shallow_copy()
@@ -154,7 +156,8 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
   {
     int hash = Tools.hashCodes(mHas1st,mExpectedY1);
         hash+= mMotifs+m1stPass+mWeaks+mC13;
-        hash+= Tools.hashCodes(mIntensities,mProb,mGapScore,mKaiScore);
+        hash+= Tools.hashCodes(mIntensities,mGapScore);
+//        hash+= Tools.hashCodes(mIntensities,mProb,mGapScore,mKaiScore);
     if (mFragment==null) hash+=mFragment.hashCode();
 
     return hash+hashcodeByTrack();
