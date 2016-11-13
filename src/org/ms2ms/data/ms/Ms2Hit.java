@@ -21,13 +21,14 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 {
   public static final String SCR_KAI    = "KaiScore";
   public static final String SCR_GAP    = "GapScore";
-  public static final String SCR_GAPg   = "AdjGapScore";
+  public static final String SCR_FINAL  = "AdjGapScore";
   public static final String SCR_MATCH  = "MatchProb";
   public static final String SCR_GLOBAL = "GlobalMatchProb";
   public static final String SCR_COMP   = "CompositeScore";
   //public static final String SCR_YB_Z   = "ntZ+ctZ";
   public static final String SCR_Y_Z    = "ctZ";
   public static final String SCR_B_Z    = "ntZ";
+  public static final String SCR_THRESHOLD  = "ThresholdByQVal";
 
   public static final String SCR_DELTA  = "DeltaScore";
   public static final String SCR_OFFSET = "ScoreOffset";
@@ -40,8 +41,8 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public static final String SCR_DECOY_Y1 = "stdev of decoy-y";
   public static final String SCR_DECOY_B1 = "stdev of decoy-b";
 
-  public static final String TAG_EXACT  = "Exact";
-  public static final String TAG_OPEN   = "Open";
+  public static final String TAG_EXACT  = "E";
+  public static final String TAG_OPEN   = "O";
 
   private FpmEntry mY, mB;
   private Integer mProteinKey;
@@ -89,7 +90,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public double   getDelta()      { return mDeltaM; }
   public double   getCalcMH()     { return mCalc!=null?mCalc.getMz():0; }
 //  public Double   getScoreOffset(){ return mScores!=null&&mScores.get(SCR_OFFSET)!=null?mScores.get(SCR_OFFSET):0d; }
-  public Double   getScore()      { return mScores.get(SCR_GAPg); } // the official score!!
+  public Double   getScore()      { return mScores.get(SCR_FINAL); } // the official score!!
 //  public Double   getKaiScore()   { return mScores.get(SCR_KAI); }
 //  public Double   getFactor()     { return mScores.containsKey(SCR_FACTOR)?mScores.get(SCR_FACTOR):1d; }
 //  public Double   getDeltaScore() { return mScores.get(SCR_DELTA); }
@@ -187,7 +188,8 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 //  public Ms2Hit   setScoreOffset(double s) { mScores.put(SCR_OFFSET, s); return this; }
 //  public Ms2Hit   setFactor(     double s) { mScores.put(SCR_FACTOR, s); return this; }
 //  public Ms2Hit   setMatchProb(  double s) { mScores.put(SCR_MATCH,  s); return this; }
-  public Ms2Hit   setTag(        String s) { mTag=s; return this; }
+//  public Ms2Hit   setTag(        String s) { mTag=s; return this; }
+  public Ms2Hit   extTag(        String s) { mTag=Strs.extend(mTag,s,"."); return this; }
 
   public Ms2Hit   setDelta(      double s) { mDeltaM=s; return this; }
   public Ms2Hit   setMH(double calc, double delta)

@@ -25,36 +25,37 @@ public class ScoreModel
 
   private String mName;
   private EnumMap<eType, Histogram> mDecoys;
-  private EnumMap<eType, Double> mOffsets, mOffsetByCounts;
-  private Double mCenter, mSigma, mWeight=1d, mFactor=1d, mQvalSlope, mQvalIntercept, mBaseline;
+  private EnumMap<eType, Double> mOffsets;
+  //private Double mCenter, mSigma, mWeight=1d, mFactor=1d, mQvalSlope, mQvalIntercept, mBaseline;
+  private Double mBaseline,mCenter;
 
   public ScoreModel() { super(); }
   public ScoreModel(String s) { super(); mName=s; }
 
-  public Double getQvalSlope()     { return mQvalSlope; }
-  public Double getQvalIntercept() { return mQvalIntercept; }
+//  public Double getQvalSlope()     { return mQvalSlope; }
+//  public Double getQvalIntercept() { return mQvalIntercept; }
   public Double getBaseline()      { return mBaseline; }
   public Double getCenter()        { return mCenter; }
 
-  public double getWeight() { return mWeight; }
-  public Double getOffset(eType t) { return mOffsetByCounts.get(t); }
+//  public double getWeight() { return mWeight; }
+  public Double getOffset(eType t) { return mOffsets.get(t); }
   public String getName() { return mName; }
 
-  public Double calcScoreAtQval(double q) { return getQvalIntercept()!=null && getQvalSlope()!=null?q*getQvalSlope()+getQvalIntercept():null; }
+//  public Double calcScoreAtQval(double q) { return getQvalIntercept()!=null && getQvalSlope()!=null?q*getQvalSlope()+getQvalIntercept():null; }
 
   public ScoreModel setCenter(double s) { mCenter=s; return this; }
-  public ScoreModel setSigma(double s) { mSigma=s; return this; }
-  public ScoreModel setQvalCoeffs(double slope, double intercept)
+//  public ScoreModel setSigma(double s) { mSigma=s; return this; }
+//  public ScoreModel setQvalCoeffs(double slope, double intercept)
+//  {
+//    mQvalSlope=slope; mQvalIntercept=intercept;
+//    return this;
+//  }
+//  public ScoreModel setFactor(double s) { mFactor=s; return this; }
+//  public ScoreModel setWeigth(double s) { mWeight=s; return this; }
+  public ScoreModel setOffset(eType t, double s)
   {
-    mQvalSlope=slope; mQvalIntercept=intercept;
-    return this;
-  }
-  public ScoreModel setFactor(double s) { mFactor=s; return this; }
-  public ScoreModel setWeigth(double s) { mWeight=s; return this; }
-  public ScoreModel setCounts(eType t, int s)
-  {
-    if (mOffsetByCounts==null) mOffsetByCounts = new EnumMap<>(eType.class);
-    mOffsetByCounts.put(t, (double )s);
+    if (mOffsets==null) mOffsets = new EnumMap<>(eType.class);
+    mOffsets.put(t, s);
     return this;
   }
 
@@ -82,68 +83,73 @@ public class ScoreModel
   }
   public double score(double s, eType type)
   {
-    return mCenter!=null && mSigma!=null ? mWeight*(s-mCenter-mOffsetByCounts.get(type))/mSigma : mWeight*(s-mOffsetByCounts.get(type));
+//    return mCenter!=null && mSigma!=null ? mWeight*(s-mCenter-getOffset(type))/mSigma : mWeight*(s-getOffset(type));
+    return s-getOffset(type);
   }
-  public ScoreModel model(eType main)
+  public ScoreModel model(eType main, eType open)
   {
-    // use the centroid and upper quartile for normalization. Gaussian fit is not robust enough
-    generate(eType.exact,eType.open);
+    setOffset(main, 0d).setOffset(open, 0d);
+    if (mDecoys.get(main).getData().size()>1 && mDecoys.get(open).getData().size()>1)
+      setOffset(eType.open, 10d * Math.log10((double )mDecoys.get(open).getData().size()/(double )mDecoys.get(main).getData().size()));
 
-    if (Tools.isSet(mDecoys))
-    {
-      if (mDecoys.get(main)!=null && mDecoys.get(main).getData()!=null && mDecoys.get(main).getData().size()>2)
-      {
-        mOffsetByCounts = new EnumMap<>(eType.class);
-        double count0 = Math.log10(mDecoys.get(main).getData().size())*10;
-        // setup the offsets using the counts
-        for (eType t : mDecoys.keySet())
-          mOffsetByCounts.put(t,10d*Math.log10(mDecoys.get(t).getData().size())-count0);
-      }
-      else if (mOffsetByCounts.get(main)>0)
-      {
-        double count0 = Math.log10(mOffsetByCounts.get(main))*10;
-        // setup the offsets using the counts
-        for (eType t : mDecoys.keySet())
-          mOffsetByCounts.put(t,10d*Math.log10(mOffsetByCounts.get(t))-count0);
-      }
-      else
-      {
-        // disable the offsets
-        for (eType t : mDecoys.keySet())
-          mOffsetByCounts.put(t,0d);
-      }
+//    // use the centroid and upper quartile for normalization. Gaussian fit is not robust enough
+//    generate(eType.exact,eType.open);
+//
+//    if (Tools.isSet(mDecoys))
+//    {
+//      if (mDecoys.get(main)!=null && mDecoys.get(main).getData()!=null && mDecoys.get(main).getData().size()>2)
+//      {
+////        mOffsets = new EnumMap<>(eType.class);
+//        double count0 = Math.log10(mDecoys.get(main).getData().size())*10;
+//        // setup the offsets using the counts
+//        for (eType t : mDecoys.keySet())
+//          setOffset(t, 10d * Math.log10(mDecoys.get(t).getData().size()) - count0);
+//      }
+//      else if (getOffset(main)>0)
+//      {
+//        double count0 = Math.log10(getOffset(main))*10;
+//        // setup the offsets using the counts
+//        for (eType t : mDecoys.keySet())
+//          setOffset(t, 10d * Math.log10(getOffset(t)) - count0);
+//      }
+//      else
+//      {
+//        // disable the offsets
+//        for (eType t : mDecoys.keySet()) setOffset(t, 0d);
+//      }
 
       Histogram all = new Histogram(eType.all.getName());
-      mOffsets = new EnumMap<>(eType.class);
-      for (eType t : mDecoys.keySet())
-      {
-        mOffsets.put(t, 0d);
-        try
-        {
-          mOffsets.put(t,mDecoys.get(t).getCenter()-mDecoys.get(main).getCenter());
-          for (Double x : mDecoys.get(t).getData()) all.add((x-mOffsetByCounts.get(t)));
-        }
-        // skip the part if we run into some NULL pointer
-        catch (NullPointerException e)
-        {
-          // deposit the uncalibrated points
-          for (Double x : mDecoys.get(t).getData()) all.add(x);
-        }
-      }
-//      Tools.put(mDecoys,eType.all, all.generate2pts(25, 0.5).assessTruncated());
+      all.addAll(mDecoys.get(main).getData());
+      for (Double x : mDecoys.get(open).getData()) all.add(x-getOffset(open));
 
+////      mOffsets = new EnumMap<>(eType.class);
+//      for (eType t : mDecoys.keySet())
+//      {
+//        setOffset(t, 0d);
+//        try
+//        {
+//          setOffset(t, mDecoys.get(t).getCenter() - mDecoys.get(main).getCenter());
+//          for (Double x : mDecoys.get(t).getData()) all.add((x-getOffset(t)));
+//        }
+//        // skip the part if we run into some NULL pointer
+//        catch (NullPointerException e)
+//        {
+//          // deposit the uncalibrated points
+//          for (Double x : mDecoys.get(t).getData()) all.add(x);
+//        }
+//      }
       // avoid the first 2 points to reduce the effect of truncated distribution
       Tools.put(mDecoys, eType.all, all.generate(all.getData().size()>100?25:15).assessTruncated(2));
 
-      List<Double> baseline = all.getData().subList(Math.max(all.getData().size() - 5, 0),all.getData().size());
-      if (Tools.isSet(baseline))
-      {
-        if (baseline.size()<2) mBaseline=baseline.get(0);
-        else mBaseline = Stats.mean(baseline)+Stats.stdev(baseline)*2d;
-      }
-
-      mCenter=all.getCenter(); mSigma=all.getSigma()!=null?Math.abs(all.getSigma()):null;
-    }
+//      List<Double> baseline = all.getData().subList(Math.max(all.getData().size() - 5, 0),all.getData().size());
+//      if (Tools.isSet(baseline))
+//      {
+//        if (baseline.size()<2) mBaseline=baseline.get(0);
+//        else mBaseline = Stats.mean(baseline)+Stats.stdev(baseline)*2d;
+//      }
+      mCenter=all.getCenter();
+//      mCenter=all.getCenter(); mSigma=all.getSigma()!=null?Math.abs(all.getSigma()):null;
+//    }
 
     return this;
   }
