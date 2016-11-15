@@ -89,7 +89,9 @@ public class ScoreModel
   public ScoreModel model(eType main, eType open)
   {
     setOffset(main, 0d).setOffset(open, 0d);
-    if (mDecoys.get(main).getData().size()>1 && mDecoys.get(open).getData().size()>1)
+    if (mDecoys!=null &&
+        mDecoys.get(main)!=null && mDecoys.get(main).getData()!=null && mDecoys.get(main).getData().size()>1 &&
+        mDecoys.get(open)!=null && mDecoys.get(open).getData()!=null && mDecoys.get(open).getData().size()>1)
       setOffset(eType.open, 10d * Math.log10((double )mDecoys.get(open).getData().size()/(double )mDecoys.get(main).getData().size()));
 
 //    // use the centroid and upper quartile for normalization. Gaussian fit is not robust enough
@@ -118,9 +120,9 @@ public class ScoreModel
 //        for (eType t : mDecoys.keySet()) setOffset(t, 0d);
 //      }
 
-      Histogram all = new Histogram(eType.all.getName());
-      all.addAll(mDecoys.get(main).getData());
-      for (Double x : mDecoys.get(open).getData()) all.add(x-getOffset(open));
+//      Histogram all = new Histogram(eType.all.getName());
+//      all.addAll(mDecoys.get(main).getData());
+//      for (Double x : mDecoys.get(open).getData()) all.add(x-getOffset(open));
 
 ////      mOffsets = new EnumMap<>(eType.class);
 //      for (eType t : mDecoys.keySet())
@@ -139,7 +141,7 @@ public class ScoreModel
 //        }
 //      }
       // avoid the first 2 points to reduce the effect of truncated distribution
-      Tools.put(mDecoys, eType.all, all.generate(all.getData().size()>100?25:15).assessTruncated(2));
+//      Tools.put(mDecoys, eType.all, all.generate(all.getData().size()>100?25:15).assessTruncated(2));
 
 //      List<Double> baseline = all.getData().subList(Math.max(all.getData().size() - 5, 0),all.getData().size());
 //      if (Tools.isSet(baseline))
@@ -147,7 +149,7 @@ public class ScoreModel
 //        if (baseline.size()<2) mBaseline=baseline.get(0);
 //        else mBaseline = Stats.mean(baseline)+Stats.stdev(baseline)*2d;
 //      }
-      mCenter=all.getCenter();
+//      mCenter=all.getCenter();
 //      mCenter=all.getCenter(); mSigma=all.getSigma()!=null?Math.abs(all.getSigma()):null;
 //    }
 

@@ -29,11 +29,18 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public static final String SCR_Y_Z    = "ctZ";
   public static final String SCR_B_Z    = "ntZ";
   public static final String SCR_THRESHOLD  = "ThresholdByQVal";
+  public static final String SCR_DELTA_PKS = "incremental gains in the matched peaks";
+  public static final String SCR_DELTA_MATCH = "incremental gains in the global match prob";
 
   public static final String SCR_DELTA  = "DeltaScore";
   public static final String SCR_OFFSET = "ScoreOffset";
   public static final String SCR_FACTOR = "ScoreFactor";
   public static final String SCR_EVAL   = "Eval";
+  public static final String SCR_EVAL_B = "Eval-Intercept";
+  public static final String SCR_EVAL_K = "Eval-Slope";
+
+  public static final String SCR_SNR   = "S/N";
+
   public static final String SCR_DECOY_Y = "best decoy-y";
   public static final String SCR_DECOY_B = "best decoy-b";
   public static final String SCR_DECOY_Y0 = "mean of decoy-y";
