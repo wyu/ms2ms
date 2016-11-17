@@ -32,7 +32,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public static final String SCR_DELTA_PKS = "incremental gains in the matched peaks";
   public static final String SCR_DELTA_MATCH = "incremental gains in the global match prob";
 
-  public static final String SCR_DELTA  = "DeltaScore";
+  public static final String SCR_DELTA_MOD  = "Best-to-2nd DeltaScore";
   public static final String SCR_OFFSET = "ScoreOffset";
   public static final String SCR_FACTOR = "ScoreFactor";
   public static final String SCR_EVAL   = "Eval";
@@ -58,6 +58,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   private Peak mCalc=null;
   private double mDeltaM;
   private String mSequence, mPrev, mNext, mTag;
+  private List<Double> mPositionScores;
   private TreeMap<Integer, Double> mMods;
   private Map<String, Double> mScores = new HashMap<>();
 
@@ -228,6 +229,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
     }
     return this;
   }
+  public Ms2Hit setPositionalScores(List<Double> s) { mPositionScores=s; return this; }
   public Ms2Hit clearMods() { Tools.dispose(mMods); return this; }
   public Ms2Hit purgeMods()
   {
@@ -334,7 +336,8 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 
     return getProteinKey()+":"+getLeft()+"-"+getRight()+",m/z"+ Tools.d2s(getCalcMH(), 5)+"$"+
         (mB!=null?mB.getTrack().size():"*")+"->"+(mY!=null?mY.getTrack().size():"*")+(Strs.isSet(getSequence())?("="+getPeptide()):"")+mods+"^"+
-         MsStats.asDeviation(mDeltaM, getCalcMH(), 999) + "->" + Tools.d2s(getGapScore(), 2);
+         MsStats.asDeviation(mDeltaM, getCalcMH(), 999) + "->" + Tools.d2s(getGapScore(), 2) +
+        (getScore(SCR_SNR)!=null?("^S/N="+Tools.d2s(getScore(SCR_SNR),1)):"");
   }
 
   @Override
@@ -631,9 +634,11 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
     Set<Integer> removed = new HashSet<>();
     for (int i=0; i<intervals.size(); i++)
     {
-      if      (                        Math.abs(intervals.get(i))                     <=tol)   removed.add(i);
-      else if (i>0 &&                  Math.abs(intervals.get(i-1)+intervals.get(i))  <=tol) { removed.add(i-1); removed.add(i); }
-      else if (i<intervals.size()-1 && Math.abs(intervals.get(i)  +intervals.get(i+1))<=tol) { removed.add(i);   removed.add(i+1); }
+      if (removed.contains(i)) continue;
+
+      if      (                                                    Math.abs(intervals.get(i))                     <=tol)   removed.add(i);
+      else if (i>0 &&                    !removed.contains(i-1) && Math.abs(intervals.get(i-1)+intervals.get(i))  <=tol) { removed.add(i-1); removed.add(i); }
+      else if (i<(intervals.size()-1) && !removed.contains(i+1) && Math.abs(intervals.get(i)  +intervals.get(i+1))<=tol) { removed.add(i);   removed.add(i+1); }
     }
 
     if (!Tools.isSet(removed) && mMods.size()==1)
@@ -644,7 +649,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
       {
         // with residue prior
         float m = intervals.get(pos)+intervals.get(pos-1);
-        Collection<Float> found = Tools.find(AAs, m - deci, m + deci);
+        Collection<Float> found = Tools.find(AAs, m - tol, m + tol);
         if (Tools.isSet(found))
         {
           // remove the old residues
@@ -662,7 +667,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
       {
         // with residue after
         float m = intervals.get(pos)+intervals.get(pos+1);
-        Collection<Float> found = Tools.find(AAs, m - deci, m + deci);
+        Collection<Float> found = Tools.find(AAs, m - tol, m + tol);
         if (Tools.isSet(found))
         {
           // remove the old residues
