@@ -633,7 +633,7 @@ public class MsReaders
 
     MGF.close();
   }
-  private static void writeMGF(MgfWriter MGF,  MsnSpectrum ms10, MsnSpectrum ms11,
+  private static void writeMGF(MgfWriter MGF, MsnSpectrum ms10, MsnSpectrum ms11,
                                double left, double right, Collection<MsnSpectrum> spectra, int... scans) throws IOException
   {
     for (MsnSpectrum ms : spectra)

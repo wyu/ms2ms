@@ -25,6 +25,8 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public static final String SCR_MATCH  = "MatchProb";
   public static final String SCR_GLOBAL = "GlobalMatchProb";
   public static final String SCR_COMP   = "CompositeScore";
+  public static final String FRAG_PPM0  = "mean  of the fragment matches (ppm)";
+  public static final String FRAG_PPM1  = "stdev of the fragment matches (ppm)";
   //public static final String SCR_YB_Z   = "ntZ+ctZ";
   public static final String SCR_Y_Z    = "ctZ";
   public static final String SCR_B_Z    = "ntZ";
@@ -114,39 +116,6 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   public String   getTag()        { return mTag; }
 
   public double   getModMass()    { return Tools.isSet(mMods)?Stats.sum(mMods.values()):0d; }
-//  public double   getScore(Map<String, Double> basis, double w)
-//  {
-//    // a composite score of several components
-//    double gap = (getGapScore( )-basis.get(Ms2Hits.CTR_GAP  ))/(basis.get(Ms2Hits.SIG_GAP  )!=null?basis.get(Ms2Hits.SIG_GAP  ):1d),
-//         match = (getMatchProb()-basis.get(Ms2Hits.CTR_MATCH))/(basis.get(Ms2Hits.SIG_MATCH)!=null?basis.get(Ms2Hits.SIG_MATCH):1d);
-//
-//    return gap+w*match;
-//  }
-//  public double score(Map<String, ScoreModel> models, ScoreModel.eType type)
-//  {
-//    // a composite score of several components
-//    double scr=0d, ws=0d;
-//    scr+=models.get(SCR_GAP  ).score(getScore(SCR_GAP  ),type); ws+=models.get(SCR_GAP  ).getWeight();
-//    scr+=models.get(SCR_MATCH).score(getScore(SCR_MATCH),type); ws+=models.get(SCR_MATCH).getWeight();
-//    scr+=models.get(SCR_KAI  ).score(getScore(SCR_KAI  ),type); ws+=models.get(SCR_KAI  ).getWeight();
-//
-//    // normalize by the peptide length, scaled to 100d
-//    setScore(SCR_COMP, 10d*scr/(ws));
-//    return getComposite();
-//  }
-//  @Deprecated
-//  public double updateScore(Map<String, Double> basis, double w_match, double w_kai)
-//  {
-//    // a composite score of several components
-//    double scr=0d, ws=0d;
-//    if (Tools.hasKeys(basis, Ms2Hits.CTR_GAP,   Ms2Hits.SIG_GAP  )) { scr +=        (getGapScore( )-basis.get(Ms2Hits.CTR_GAP  ))/basis.get(Ms2Hits.SIG_GAP);   ws+=1d; };
-//    if (Tools.hasKeys(basis, Ms2Hits.CTR_MATCH, Ms2Hits.SIG_MATCH)) { scr +=w_match*(getMatchProb()-basis.get(Ms2Hits.CTR_MATCH))/basis.get(Ms2Hits.SIG_MATCH); ws+=w_match; };
-//    if (Tools.hasKeys(basis, Ms2Hits.CTR_KAI,   Ms2Hits.SIG_KAI  )) { scr +=w_kai  *(getKaiScore()-basis.get(Ms2Hits.CTR_KAI   ))/basis.get(Ms2Hits.SIG_KAI);   ws+=w_kai; };
-//
-//    setScore(SCR_COMP, scr/ws);
-//    return getComposite();
-//  }
-//  public TreeMap<Integer, Double> getMods() { return mMods; }
 
   public Map<Integer, Double> getMods() { return mMods; }
 
@@ -166,19 +135,8 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
   {
     mSequence=null; mY=null; mB=null;
   }
-//  public Ms2Hit   setPrecursorCharge(int s)
-//  {
-//    mCharge=s
-//    if (mCalc==null) mCalc = new Peak();
-//    mCalc.setMzAndCharge(mCalc.getMz(), s); return this;
-//  }
-//  public Ms2Hit   setLeft(          int s) { mLeft =s; return this; }
-//  public Ms2Hit   setRight(         int s) { mRight=s; return this; }
   public Ms2Hit   setLocation(int left,int right)
   {
-//    if (left>=0 && right>=0 && left>right)
-//      System.out.print("");
-
     mRight=right; mLeft=left; return this;
   }
   public Ms2Hit   setCharge(        int s) { mCharge=s; return this; }
@@ -293,30 +251,13 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
     {
       if (mMods==null) mMods = new TreeMap<>();
       for (ModLocation mod : mods)
-      {
         addMod(mod.locations, mod.mods);
-//        if (mMods.containsKey(mod.locations) && !mMods.get(mod.locations).equals(mod.mods))
-//          throw new RuntimeException("Conflicting mod from N/C terminus!");
-//        else mMods.put(mod.locations, mod.mods);
-      }
     }
 
     return this;
   }
   public Ms2Hit setFpmEntries(FpmEntry y, FpmEntry b) { mY=null; mY=y; mB=null; mB=b; return this; }
 
-//  public Ms2Hit setProb()
-//  {
-//    mProb=(getY()!=null?getY().getProb():0d)+(getB()!=null?getB().getProb():0d);
-//    return this;
-//  }
-//  public Ms2Hit calcScore(double precision_ppm)
-//  {
-//    NormalDistribution norm = new NormalDistributionImpl(0, precision_ppm);
-//    // TODO to be completed
-//
-//    return this;
-//  }
   public Ms2Hit shallow_copy()
   {
     Ms2Hit clone = new Ms2Hit(getProteinKey(), mY.shallow_copy(), mB.shallow_copy(), mLeft, mRight, mCharge);
@@ -392,183 +333,7 @@ public class Ms2Hit implements Comparable<Ms2Hit>, Disposable
 
     return hash;
   }
-  //  public Integer hashcodeByIntervals(float[] AAs)
-//  {
-//    // straight up hash, not worry about the mods, etc
-//    if (Strs.isSet(getSequence()))
-//    {
-//      float[] intervals = new float[getSequence().length()];
-//      for (int i=0; i<getSequence().length(); i++) intervals[i]=AAs[getSequence().charAt(i)];
-//
-//      int hash=0;
-//      for (int i=0; i<intervals.length; i++) hash+=(i+1)*intervals[i]/tol;
-//      return hash+getCharge();
-//    }
-//
-//    return getCharge();
-//  }
-//  public List<Integer> hashcodeByIntervals(float[] AAs, OffsetPpmTolerance tolerance, Range<Integer> isotopeErr, float deci)
-//  {
-//    if (getCalcMH()==0) mCalc=new Peak(Peptides.calcMH(getSequence().toCharArray(), 0, getSequence().length()-1, AAs), 0d);
-//
-//    float tol = (float )(tolerance.getMax(getCalcMH())-tolerance.getMin(getCalcMH()));
-//    if (Strs.isSet(getSequence()))
-//    {
-//      List<Float> intervals = new ArrayList<>();
-//      for (int i=0; i<getSequence().length(); i++) intervals.add(AAs[getSequence().charAt(i)]);
-//
-//      // let's consider the case of false-extension
-//      List<Integer> putatives = null;
-//      Integer  mod = Tools.isSet(mMods)?Collections.max(mMods.keySet()):null;
-//      double delta = Tools.isSet(mMods)?mMods.get(mod):0;
-//      if (     delta<-56)
-//      {
-//        putatives = Peptides.seekRemoval(getSequence(), true,  getCalcMH(), delta, tolerance, isotopeErr, AAs);
-//        if (Tools.isSet(putatives))
-//        {
-//          mMods.remove(mod);
-//          // TODO to be tested
-//          for (Integer putative : putatives)
-//            intervals.remove(putative.intValue());
-//        }
-//      }
-//      else if (delta> 56)
-//      {
-//        putatives = Peptides.seekRemoval(getNext(), false, getCalcMH(), delta, tolerance, isotopeErr, AAs);
-//        if (Tools.isSet(putatives))
-//        {
-//          mMods.remove(mod);
-//          for (Integer putative : putatives) intervals.add(AAs[getNext().charAt(putative)]);
-//        }
-//      }
-//
-//      // need the base one without mod
-//      int hash0=0;
-//      for (int i=0; i<intervals.size(); i++) hash0+=(i+1)*intervals.get(i)/deci;
-//
-//      List<List<Float>> Intervals = new ArrayList<>(), Additionals = new ArrayList<>();
-//
-//      // now the increment due to site-specific mods
-//      if (Tools.isSet(getMod0()))
-//      {
-//        // check if the mod==AA
-//        for (Integer m : getMod0().keySet())
-//        {
-//          Float AA = Tools.findClosest(AAs, getMod0().get(m).floatValue(), deci);
-//          if (AA!=null)
-//          {
-//            List<Float> cloned = new ArrayList<>(intervals);
-//            cloned.add(m+1, AA); Additionals.add(cloned);
-//            List<Float> clone2 = new ArrayList<>(intervals);
-//            clone2.add(m,   AA); Additionals.add(clone2);
-//          }
-//        }
-//        for (Integer m : getMod0().keySet())
-//        {
-//          intervals.set(m, intervals.get(m) + getMod0().get(m).floatValue());
-//          // replace it with the accurate mass if matches to an AA
-//          Float AA = Tools.findClosest(AAs, intervals.get(m), deci);
-//          if (AA != null) intervals.set(m, AA);
-//        }
-//      }
-//      // trim the residue if the mass is zero within the tolerance
-//      Set<Integer> removed = new HashSet<>();
-//      for (int i=0; i<intervals.size(); i++)
-//      {
-//        if      (                        Math.abs(intervals.get(i))               <=tol)   removed.add(i);
-////        if      (i>0 &&                  Math.abs(intervals[i-1])             <=tol)   removed.add(i-1); // in case the localization is not perfect
-////        if      (i<intervals.length-1 && Math.abs(intervals[i+1])             <=tol)   removed.add(i+1); // in case the localization is not perfect
-//        else if (i>0 &&                  Math.abs(intervals.get(i-1)+intervals.get(i))<=tol) { removed.add(i-1); removed.add(i); }
-//        else if (i<intervals.size()-1 && Math.abs(intervals.get(i)  +intervals.get(i+1))<=tol) { removed.add(i);   removed.add(i+1); }
-//      }
-//
-//      Intervals.add(intervals); Intervals.addAll(Additionals);
-//
-//      // enumerate the situation where neighboring residues can be combined to one
-//      if (!Tools.isSet(removed) && Tools.isSet(mMods) && mMods.size()==1)
-//      {
-//        int pos = Tools.front(mMods.keySet())-getLeft();
-//        if (pos>0 && pos<intervals.size())
-//        {
-//          // with residue prior
-//          float m = intervals.get(pos)+intervals.get(pos-1);
-//          Collection<Float> found = Tools.find(AAs, m - deci, m + deci);
-//          if (Tools.isSet(found))
-//          {
-//            // remove the old residues
-//            List<Float> cloned = new ArrayList<>(intervals);
-//            cloned.remove(pos-1); cloned.remove(pos - 1);
-//            for (Float A : found)
-//            {
-//              List<Float> c = new ArrayList<>(cloned);
-//              c.add(pos-1, A);
-//              Intervals.add(c);
-//            }
-//          }
-//        }
-//        if (pos>=0 && pos<intervals.size()-1)
-//        {
-//          // with residue after
-//          float m = intervals.get(pos)+intervals.get(pos+1);
-//          Collection<Float> found = Tools.find(AAs, m - deci, m + deci);
-//          if (Tools.isSet(found))
-//          {
-//            // remove the old residues
-//            List<Float> cloned = new ArrayList<>(intervals);
-//            cloned.remove(pos); cloned.remove(pos);
-//            for (Float A : found)
-//            {
-//              List<Float> c = new ArrayList<>(cloned);
-//              c.add(pos, A);
-//              Intervals.add(c);
-//            }
-//          }
-//        }
-//        // now consider multiple residue for one K
-//        // TTTIGA(+9.1134)NY
-//        // TTTIGK
-//        if (pos>=0 && pos<intervals.size()-1)
-//        {
-//          float m=0; // run it up to the C-t end
-//          for (int k=pos; k<intervals.size(); k++) m+=intervals.get(k);
-//          if (Math.abs(m-AAs['K'])<=deci)
-//          {
-//            // remove the old residues
-//            List<Float> cloned = new ArrayList<>(intervals);
-//            for (int k=pos; k<intervals.size(); k++) cloned.remove(pos);
-//            cloned.add(pos, AAs['K']);
-//            // another possibility
-//            Intervals.add(cloned);
-//          }
-//        }
-//      }
-//      List<Integer> hashes = new ArrayList<>();
-//
-//      int hash=0, k=0;
-//      for (int i=0; i<intervals.size(); i++)
-//      {
-//        // no need to remove it, only out of hash
-//        if (!Tools.isSet(removed) || !removed.contains(i)) { hash+=Math.round((k+1)*intervals.get(i)/deci); k++; }
-//      }
-//      hashes.add(hash+getCharge()); hashes.add(hash0+getCharge());
-//
-//      if (Intervals.size()>1)
-//      for (int j=1; j<Intervals.size(); j++)
-//      {
-//        hash=k=0;
-//        for (int i=0; i<Intervals.get(j).size(); i++)
-//        {
-//          // no need to remove it, only out of hash
-//          hash+=Math.round((i+1)*Intervals.get(j).get(i)/deci);
-//        }
-//        hashes.add(hash+getCharge());
-//      }
-//
-//      return hashes;
-//    }
-//
-//    return null;
-//  }
+
   // "blocks" is a dictionary of AA combination to be considered as building blocks
   public List<Integer> hashcodeByIntervals(float[] AAs, OffsetPpmTolerance tolerance, Range<Integer> isotopeErr, float deci, TreeMultimap<Float, String> blocks)
   {
