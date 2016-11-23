@@ -9,7 +9,6 @@ import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeList;
 import org.ms2ms.data.ms.IsoEnvelope;
-import org.ms2ms.data.ms.Ms2Hits_;
 import org.ms2ms.data.ms.OffsetPpmTolerance;
 import org.ms2ms.math.Histogram;
 import org.ms2ms.math.Stats;
@@ -550,18 +549,24 @@ public class Spectra
     return peaks;
   }
   // locate the std peak and re-calibrate the rest of the peaks
-  public static PeakList self_calibrate(PeakList peaks, double std, Tolerance tol)
+  public static PeakList self_calibrate(PeakList peaks, Tolerance tol, double... stds)
   {
+    if (peaks==null || peaks.size()<3 || !Tools.isSet(stds) || tol==null) return peaks;
+
     PeakList out = peaks.copy(new PurgingPeakProcessor()); out.clear();
 
-    int pos = find(peaks, std, tol, 0, 0d, 0d);
-    if (pos>=0)
+    Collection<Double> offsets = new ArrayList<>();
+    for (double std : stds)
     {
-      double offset = (std-peaks.getMz(pos))/std;
+      int pos = find(peaks, std, tol, 0, 0d, 0d);
+      if (pos>=0) offsets.add(1E6*(std-peaks.getMz(pos))/std);
+    }
+    if (Tools.isSet(offsets))
+    {
+      Double offset = 1E-6*Stats.mean(offsets);
       for (int i=0; i<peaks.size(); i++)
         out.add(peaks.getMz(i)+peaks.getMz(i)*offset, peaks.getIntensity(i), peaks.getAnnotations(i));
     }
-    else return peaks;
 
     return out;
   }
@@ -739,6 +744,8 @@ public class Spectra
     boolean skewed_iso = Spectra.deisotope(ms, precision, 3, 350d);
 
     PeakList deisotoped = Spectra.toRegionalNorm(ms.copy(new PurgingPeakProcessor()), 7, 0.5d); // with sqrt transform
+    // perform self-calibration using small fragments that are likely to show up in most of the TMT-labelled spectra
+    deisotoped = Spectra.self_calibrate(deisotoped, new OffsetPpmTolerance(15d), 175.11949,230.170757d,376.27627);
 
     if (verbose)
     {
@@ -751,35 +758,6 @@ public class Spectra
     ms.clear(); ms.addPeaks(deisotoped); if (skewed_iso) ms.setMsLevel(-1);
 
     return ms;
-  }
-  public static Map<String, Object> qualify(MsnSpectrum ms, Tolerance tol, boolean verbose)
-  {
-    // assess the spectral quality
-    boolean split = Spectra.hasPeakSplitting(ms, 75d, 0.85, 33d);
-
-    // perform the de-isotoping and peak equalization
-    ms = Spectra.prepare(ms, tol, verbose);
-    Map<String, Object> peak_counts = Spectra.countPeaks(ms, Range.closed(126d, 131.2d));
-
-    if (split)
-    {
-//      System.out.println("        rejected due to peak splitting");
-      // return without the search
-      peak_counts.put("Rejected", Ms2Hits_.REJECT_PEAKSPLITTING);
-    }
-//    else if (ms.getMsLevel()==-1)
-//    {
-//      peak_counts.put("Rejected", Ms2Hits_.REJECT_SKEWED_ISO);
-//    }
-    else if ((Integer )peak_counts.get(Peaks.CNT_PRECURSOR_2_GOOD)<2)
-    {
-//      System.out.println("        rejected due to sparse peaks above the precursor");
-      // return without the search
-      peak_counts.put("Rejected", Ms2Hits_.REJECT_SPARSEPEAK);
-    }
-    peak_counts.put("MSMS", ms);
-
-    return peak_counts;
   }
   public static MsnSpectrum purgeC13(MsnSpectrum ms)
   {
