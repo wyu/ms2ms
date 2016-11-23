@@ -3,15 +3,13 @@ package org.ms2ms.algo;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
-import com.google.common.collect.Sets;
-import org.expasy.mzjava.core.ms.PpmTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.*;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeList;
 import org.ms2ms.data.ms.IsoEnvelope;
-import org.ms2ms.data.ms.Ms2Hits;
+import org.ms2ms.data.ms.Ms2Hits_;
 import org.ms2ms.data.ms.OffsetPpmTolerance;
 import org.ms2ms.math.Histogram;
 import org.ms2ms.math.Stats;
@@ -767,17 +765,17 @@ public class Spectra
     {
 //      System.out.println("        rejected due to peak splitting");
       // return without the search
-      peak_counts.put("Rejected", Ms2Hits.REJECT_PEAKSPLITTING);
+      peak_counts.put("Rejected", Ms2Hits_.REJECT_PEAKSPLITTING);
     }
 //    else if (ms.getMsLevel()==-1)
 //    {
-//      peak_counts.put("Rejected", Ms2Hits.REJECT_SKEWED_ISO);
+//      peak_counts.put("Rejected", Ms2Hits_.REJECT_SKEWED_ISO);
 //    }
     else if ((Integer )peak_counts.get(Peaks.CNT_PRECURSOR_2_GOOD)<2)
     {
 //      System.out.println("        rejected due to sparse peaks above the precursor");
       // return without the search
-      peak_counts.put("Rejected", Ms2Hits.REJECT_SPARSEPEAK);
+      peak_counts.put("Rejected", Ms2Hits_.REJECT_SPARSEPEAK);
     }
     peak_counts.put("MSMS", ms);
 

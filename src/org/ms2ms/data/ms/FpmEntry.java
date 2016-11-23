@@ -1,16 +1,14 @@
 package org.ms2ms.data.ms;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.ms2ms.Disposable;
 import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /** The Fragment(predicted)-peak(obs)-match entry
  *
@@ -21,7 +19,6 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
   private boolean mHas1st=false, mExpectedY1=false;
   private int                 mMotifs=0, m1stPass=0, mWeaks=0, mC13=0;
   private double              mGapScore=0, mIntensities=0d;
-//  private double              mProb=0, mKaiScore=0;
   private FragmentEntry       mFragment   =null;
   private ImmutableList<AnnotatedPeak> mTrack      =null;
 
@@ -38,14 +35,9 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
       mGapScore=f.mGapScore; mIntensities=f.mIntensities;
 //      mProb=f.mProb; mKaiScore=f.mKaiScore;
       mFragment = new FragmentEntry(f.mFragment);
-      mTrack=f.mTrack;
+      mTrack = f.mTrack.asList();
     }
   }
-//  public FpmEntry(FragmentEntry f)
-//  {
-//    super();
-//    mFragment=f;
-//  }
   public FpmEntry(FragmentEntry f, List<AnnotatedPeak> t)
   {
     super();
@@ -150,6 +142,11 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
         hash+=getTrack().get(i).getMz()*1000;
 
     return hash;
+  }
+  @Override
+  public FpmEntry clone()
+  {
+    return new FpmEntry(this);
   }
   @Override
   public int hashCode()

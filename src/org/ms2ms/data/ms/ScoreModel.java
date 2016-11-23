@@ -83,16 +83,22 @@ public class ScoreModel
   }
   public double score(double s, eType type)
   {
-//    return mCenter!=null && mSigma!=null ? mWeight*(s-mCenter-getOffset(type))/mSigma : mWeight*(s-getOffset(type));
     return s-getOffset(type);
   }
   public ScoreModel model(eType main, eType open)
   {
-    setOffset(main, 0d).setOffset(open, 0d);
     if (mDecoys!=null &&
         mDecoys.get(main)!=null && mDecoys.get(main).getData()!=null && mDecoys.get(main).getData().size()>1 &&
         mDecoys.get(open)!=null && mDecoys.get(open).getData()!=null && mDecoys.get(open).getData().size()>1)
+    {
+      setOffset(main, 0d).setOffset(open, 0d);
       setOffset(eType.open, 10d * Math.log10((double )mDecoys.get(open).getData().size()/(double )mDecoys.get(main).getData().size()));
+    }
+    else
+    {
+      setOffset(eType.open, 10d * Math.log10(getOffset(open)/getOffset(main)));
+      setOffset(main, 0d);
+    }
 
 //    // use the centroid and upper quartile for normalization. Gaussian fit is not robust enough
 //    generate(eType.exact,eType.open);
