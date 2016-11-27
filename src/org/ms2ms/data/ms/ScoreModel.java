@@ -96,7 +96,7 @@ public class ScoreModel
     }
     else
     {
-      setOffset(eType.open, 10d * Math.log10(getOffset(open)/getOffset(main)));
+      setOffset(eType.open, 10d * Math.log10(getOffset(open)/Math.max(0.5, getOffset(main))));
       setOffset(main, 0d);
     }
 
