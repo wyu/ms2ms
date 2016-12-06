@@ -579,6 +579,15 @@ public class Spectra
 
     return -1;
   }
+  public static double intensity(PeakList peaks, double mz, Tolerance tol)
+  {
+    double abund=0d;
+    for (int i=0; i<peaks.size(); i++)
+      if (tol.withinTolerance(peaks.getMz(i), mz)) abund+=peaks.getIntensity(i);
+      else if (peaks.getMz(i)>tol.getMax(mz)) break;
+
+    return abund;
+  }
   public static int precursorByComplements(PeakList ms, Tolerance tol)
   {
     Histogram     precursor = new Histogram("");
@@ -698,8 +707,12 @@ public class Spectra
     if (ms!=null && ms.size()>0)
     {
       boolean wasC12=false, isC13=false;
-      int above_precursor_good=0, above_precursor=0, reporters=0, goods=0;
+      int above_precursor_good=0, above_precursor=0, reporters=0, goods=0, maxz=7;
       double reporter_low=Double.MAX_VALUE, global_low=Double.MAX_VALUE, mz_low=Double.MAX_VALUE, mz_high=0;
+      double[] zmz = new double[maxz]; int[] nmz = new int[maxz];
+
+      // setup the region unique to each charge state
+      for (int z=2; z<=maxz; z++) zmz[z-2] = ms.getPrecursor().getMz()*(z-1)+2;
       for (int i=0; i<ms.size(); i++)
       {
         if (ms.getMz(i)<mz_low)  mz_low =ms.getMz(i);
@@ -713,6 +726,11 @@ public class Spectra
         {
           above_precursor++;
           if (isC13 && wasC12) above_precursor_good++;
+        }
+        for (int z=maxz; z>1; z--)
+        {
+          // starting from the upper end and check for any evidence toward the charge state
+          if (ms.getMz(i)>=zmz[z-2] && ms.getMz(i)<zmz[z-1]) nmz[z-2]++;
         }
         wasC12=(!isC13);
 
@@ -728,6 +746,7 @@ public class Spectra
       stats.put(Peaks.CNT_PRECURSOR_2_GOOD, above_precursor_good);
       stats.put(Peaks.CNT_REPORTER,         reporters);
       stats.put(Peaks.CNT_GOOD,             goods);
+      stats.put(Peaks.CNT_MULTIZ,           nmz);
 
       stats.put(Peaks.AI_MIN,          global_low);
       stats.put(Peaks.AI_MIN_REPORTER, reporter_low);

@@ -42,6 +42,7 @@ public class Peaks {
   public static final String HCD = "hcd";
   public static final String ETD = "etd";
 
+  public static final String CNT_MULTIZ = "peak counts toward each charge state";
   public static final String CNT_GLOBAL = "total peak counts";
   public static final String CNT_GOOD = "good peak counts";
   public static final String CNT_PRECURSOR_2_GOOD = "good peak counts above precursor";
