@@ -23,14 +23,9 @@ import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
-import uk.ac.ebi.jmzidml.model.mzidml.AnalysisSoftware;
-import uk.ac.ebi.jmzidml.model.mzidml.Param;
-import uk.ac.ebi.jmzidml.xml.io.MzIdentMLMarshaller;
 import uk.ac.ebi.jmzml.model.mzml.*;
 
-import javax.annotation.Nonnull;
 import java.io.*;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 /** Responsible for writing out the MS objects in binary format. Not to be confused with import duty
@@ -232,12 +227,12 @@ public class MsIO extends IOs
     }
     catch (IOException ie) { throw new RuntimeException("Error while writing the spectra", ie); }
   }
-  public static void writeAAs(DataOutput w, @Nonnull List<AminoAcid> seqs) throws IOException
+  public static void writeAAs(DataOutput w, List<AminoAcid> seqs) throws IOException
   {
     write(w, seqs.size());
     for (int i=0; i<seqs.size(); i++) write(w, seqs.get(i).getSymbol());
   }
-  public static void write(DataOutput w, @Nonnull Modification m) throws IOException
+  public static void write(DataOutput w, Modification m) throws IOException
   {
     write(w, m.getLabel());
     write(w, m.getMolecularMass());
@@ -295,7 +290,7 @@ public class MsIO extends IOs
 
     return m;
   }
-  public static void writeModMatches(DataOutput w, @Nonnull Collection<ModificationMatch> mods) throws IOException
+  public static void writeModMatches(DataOutput w, Collection<ModificationMatch> mods) throws IOException
   {
     write(w, mods.size());
     if (mods.size()>0)
@@ -364,7 +359,7 @@ public class MsIO extends IOs
     return map;
   }
 */
-  public static void write(DataOutput w, @Nonnull PeptideProteinMatch pm) throws IOException
+  public static void write(DataOutput w, PeptideProteinMatch pm) throws IOException
   {
     write(w, pm.getHitType().toString());
     write(w, pm.getAccession());

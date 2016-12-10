@@ -1,7 +1,6 @@
 package org.ms2ms.algo;
 
 import com.google.common.collect.*;
-import org.apache.commons.collections.map.HashedMap;
 import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
@@ -20,7 +19,6 @@ import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
-import javax.annotation.Nonnull;
 import java.util.*;
 
 /** Routines about the peptide-spectrum-matches.
@@ -456,7 +454,7 @@ public class PSMs
     }
     return matches.subList(0, tops <= matches.size() ? tops : matches.size());
   }
-  public static PeptideMatch clone(@Nonnull PeptideMatch m)
+  public static PeptideMatch clone(PeptideMatch m)
   {
     PeptideMatch M = new PeptideMatch(m.toSymbolString());
 
@@ -489,7 +487,7 @@ public class PSMs
    * @param multiple is the score multiple required
    * @return the cloned match with the given score multiple
    */
-  public static PeptideMatch clone2LOD(@Nonnull PeptideMatch m, double multiple)
+  public static PeptideMatch clone2LOD(PeptideMatch m, double multiple)
   {
     // look for the lowest rank for this engine
     PeptideMatch dummy = PSMs.clone(m); dummy.getScoreMap().clear();
@@ -499,7 +497,7 @@ public class PSMs
 
     return dummy;
   }
-  public static PeptideMatch worst(@Nonnull Engine E, @Nonnull Collection<PeptideMatch> matches)
+  public static PeptideMatch worst(Engine E, Collection<PeptideMatch> matches)
   {
     PeptideMatch worst=null;
     for (PeptideMatch match : matches)
@@ -508,7 +506,7 @@ public class PSMs
     return worst;
   }
 
-  public static Multimap<String, PeptideMatch> toBackboneMatchMap(@Nonnull Collection<PeptideMatch> matches)
+  public static Multimap<String, PeptideMatch> toBackboneMatchMap(Collection<PeptideMatch> matches)
   {
     if (matches==null) return null;
 

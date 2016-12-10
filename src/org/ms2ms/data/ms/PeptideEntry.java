@@ -1,10 +1,8 @@
 package org.ms2ms.data.ms;
 
 import org.expasy.mzjava.core.ms.spectrum.IonType;
-import org.ms2ms.algo.MsStats;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
-import uk.ac.ebi.pride.jmztab.model.Mod;
 
 import java.util.*;
 

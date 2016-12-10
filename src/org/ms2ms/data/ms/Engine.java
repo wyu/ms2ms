@@ -10,7 +10,6 @@ import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -89,7 +88,7 @@ public class Engine implements Comparable<Engine>
   @Override
   public int compareTo(Engine o) { return mName.compareTo(o.getName()); }
 
-  public int compareTo(@Nonnull TObjectDoubleMap<String> A, @Nonnull TObjectDoubleMap<String> B)
+  public int compareTo(TObjectDoubleMap<String> A, TObjectDoubleMap<String> B)
   {
     return (isDesending()?
       Stats.compareTo(B.get(getCanonicalScore()), A.get(getCanonicalScore())):

@@ -11,9 +11,7 @@ import org.ms2ms.math.Stats;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
-import uk.ac.ebi.jmzidml.model.mzidml.SpectrumIdentification;
 
-import javax.annotation.Nonnull;
 import java.util.*;
 
 /**
@@ -151,7 +149,7 @@ public class LCMSMS
     return outs;
   }
   // consider only the top-ranked
-  public static <K> Dataframe cut(Multimap<K, PeptideMatch> id_match, String score, @Nonnull double... qvals)
+  public static <K> Dataframe cut(Multimap<K, PeptideMatch> id_match, String score, double... qvals)
   {
     boolean below = qvals[0]>qvals[qvals.length-1];
     if (Tools.isSet(id_match))

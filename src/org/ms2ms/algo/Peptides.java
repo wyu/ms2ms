@@ -1,7 +1,6 @@
 package org.ms2ms.algo;
 
 import com.google.common.collect.*;
-import org.apache.commons.collections.map.HashedMap;
 import org.expasy.mzjava.core.mol.SymbolSequence;
 import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;

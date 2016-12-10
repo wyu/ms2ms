@@ -27,13 +27,13 @@ import java.util.List;
  */
 public class IOsTest extends TestAbstract
 {
-  @Test
-  public void msf() throws Exception
-  {
-    PIACompiler pia = new PIACompiler();
-    String msfile = "/Users/yuw/Documents/Data/PIIQ/151124_DBH_Mosser_TMT1_MS2_All_V1.msf";
-    MsfReader.getDataFromThermoMSFFile("test", "", pia);
-  }
+//  @Test
+//  public void msf() throws Exception
+//  {
+//    PIACompiler pia = new PIACompiler();
+//    String msfile = "/Users/yuw/Documents/Data/PIIQ/151124_DBH_Mosser_TMT1_MS2_All_V1.msf";
+//    MsfReader.getDataFromThermoMSFFile("test", "", pia);
+//  }
   @Test
   public void mzID2Novor() throws Exception
   {

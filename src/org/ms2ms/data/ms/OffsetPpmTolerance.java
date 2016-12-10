@@ -8,7 +8,7 @@ import org.expasy.mzjava.core.ms.PpmTolerance;
  */
 public class OffsetPpmTolerance extends PpmTolerance
 {
-  private double mScale=1d, mOffset=0d, mTol=0d, mTransitionMass=0, mOffsetSlope=0, mTolSlope=0;
+  private double mScale=1d, mOffset=0d, mTol=0d, mTransitionMass=0, mOffsetSlope=0, mTolSlope=0, mZval=0;
 
   public OffsetPpmTolerance() { super(0d); }
   public OffsetPpmTolerance(double tol) { super(tol); mTol=tol; }
@@ -21,17 +21,20 @@ public class OffsetPpmTolerance extends PpmTolerance
   {
     mTransitionMass=transition; mOffsetSlope=slope; mOffset=intercept; return this;
   }
-  public OffsetPpmTolerance setTolParams(double intercept, double slope)
+  public OffsetPpmTolerance setTolParams(double intercept, double slope, double zval)
   {
-    mTolSlope=slope; mTol=intercept; return this;
+    mTolSlope=slope; mTol=intercept; mZval=zval; return this;
   }
   public double getOffset(double m)
   {
-    return m<mTransitionMass?(mOffset+mOffsetSlope*m):(mOffset);
+    // flip the sign to indicate correction
+    if (mOffsetSlope!=0) return m<mTransitionMass?(-mOffset-mOffsetSlope*m):(getOffset(mTransitionMass-1d));
+    return mOffset;
   }
 //  @Deprecated
 //  public double getPpmTol() { return mTol*mScale; }
-  public double getPpmTol(double m) { return (mTol+mTolSlope*m)*mScale; }
+  // 2-sigma to cover the 95% interval
+  public double getPpmTol(double m) { return mTolSlope!=0?Math.exp(mTol+mTolSlope*m)*mZval*mScale : (mTol*mScale); }
 //  public boolean isWithinByPPM(double s) { return Math.abs(s)<=mTol*mScale; }
 
   public OffsetPpmTolerance scale( double s) { mScale =s; return this; }
@@ -64,8 +67,8 @@ public class OffsetPpmTolerance extends PpmTolerance
 
   public OffsetPpmTolerance clone()
   {
-    return new OffsetPpmTolerance().setOffsetParams(mTransitionMass, mOffset, mOffsetSlope).setTolParams(mTol, mTolSlope);
+    return new OffsetPpmTolerance().setOffsetParams(mTransitionMass, mOffset, mOffsetSlope).setTolParams(mTol, mTolSlope, 3d);
   }
-  private double calcError( double expectedMass) { return expectedMass * (getPpmTol(expectedMass)*mScale/1000000d); }
+  private double calcError( double expectedMass) { return expectedMass * (getPpmTol(expectedMass)/1000000d); }
   private double calcOffset(double expectedMass) { return expectedMass * (getOffset(expectedMass)/1000000d); }
 }

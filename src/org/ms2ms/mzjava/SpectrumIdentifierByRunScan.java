@@ -1,9 +1,6 @@
 package org.ms2ms.mzjava;
 
 import org.expasy.mzjava.proteomics.ms.ident.SpectrumIdentifier;
-import org.ms2ms.utils.Tools;
-
-import javax.annotation.Nonnull;
 
 /** Not working!!!
  * Created by yuw on 10/22/2015.
@@ -15,7 +12,7 @@ public class SpectrumIdentifierByRunScan extends SpectrumIdentifier implements C
   {
     super(spectrum);
   }
-  public SpectrumIdentifierByRunScan(@Nonnull SpectrumIdentifier id)
+  public SpectrumIdentifierByRunScan(SpectrumIdentifier id)
   {
     super(id.getSpectrum());
 

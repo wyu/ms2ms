@@ -9,7 +9,6 @@ import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
-import javax.annotation.Nonnull;
 import java.util.*;
 
 /** A concept of meta engine where the scoring attributes are collected from a single or multiple search engines.
@@ -126,7 +125,7 @@ public class MetaPeptideMatch
 
     return engine_dirt;
   }
-  protected PeptideMatch getCombinedMatch(@Nonnull String peptide, @Nonnull Map<Engine, PeptideMatch> engine_dirt)
+  protected PeptideMatch getCombinedMatch(String peptide, Map<Engine, PeptideMatch> engine_dirt)
   {
     PeptideMatch top = PSMs.clone(Tools.front(mPeptideEngineMatch.row(peptide).values()));
 
@@ -152,7 +151,7 @@ public class MetaPeptideMatch
     return top;
   }
   // fill in the missing scores
-  protected PeptideMatch getCombinedMatch(@Nonnull PeptideMatch match, @Nonnull Engine E, @Nonnull Map<Engine, PeptideMatch> engine_dirt)
+  protected PeptideMatch getCombinedMatch(PeptideMatch match, Engine E, Map<Engine, PeptideMatch> engine_dirt)
   {
     PeptideMatch top = PSMs.clone(match);
 
@@ -265,7 +264,7 @@ public class MetaPeptideMatch
     }
     return buf.toString();
   }
-  public static void rank(@Nonnull Collection<MetaPeptideMatch> matches)
+  public static void rank(Collection<MetaPeptideMatch> matches)
   {
     for (MetaPeptideMatch m : matches) m.rank();
   }
@@ -289,7 +288,7 @@ public class MetaPeptideMatch
     return rt_engine_dirt;
   }
   public static Multimap<SpectrumIdentifier, PeptideMatch> getTopPeptideMatches(
-    @Nonnull Map<SpectrumIdentifier, MetaPeptideMatch> meta, boolean keepConsensus)
+    Map<SpectrumIdentifier, MetaPeptideMatch> meta, boolean keepConsensus)
   {
     double pool = 100d;
     RowSortedTable<Double, Engine, PeptideMatch> rt_engine_dirt = getEngineDirts(meta, pool);
@@ -324,7 +323,7 @@ public class MetaPeptideMatch
 
     return tops;
   }
-  public static Map<Engine, PeptideMatch> interpolate(@Nonnull RowSortedTable<Double, Engine, PeptideMatch> dirts, double rt)
+  public static Map<Engine, PeptideMatch> interpolate(RowSortedTable<Double, Engine, PeptideMatch> dirts, double rt)
   {
     Map<Engine, PeptideMatch> dirt = new HashMap<>();
 

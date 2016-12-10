@@ -1,8 +1,5 @@
 package org.ms2ms.data.ms;
 
-import com.compomics.util.experiment.identification.matches.PeptideMatch;
-import com.google.common.collect.Multimap;
-
 import java.util.Collection;
 
 /**
@@ -14,5 +11,5 @@ public class ProteinID
   ProteinID mParent=null;
   Collection<ProteinID> mChildren=null;
 
-  Multimap<String, PeptideMatch> mSeqMatch=null;
+//  Multimap<String, PeptideMatch> mSeqMatch=null;
 }
