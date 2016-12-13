@@ -101,7 +101,14 @@ public class AnnotatedPeak extends Peak
     if (Tools.isSet(mAnnotations))
       for (String key : mAnnotations.keySet())
         if (mAnnotations.get(key)!=null)
-          line = Strs.extend(line, key+":"+Tools.d2s(mAnnotations.get(key), 1), ", ");
+        {
+          int deci=1, t = key.indexOf('#'); Double val = mAnnotations.get(key);
+          if (t>0)
+          {
+            deci = Integer.valueOf(key.substring(t+1)); key = key.substring(0, t);
+          }
+          line=Strs.extend(line, key+":"+Tools.d2s(val, deci), ", ");
+        }
 
     return line;
   }

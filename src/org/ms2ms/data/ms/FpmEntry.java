@@ -67,7 +67,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
   public ImmutableList<AnnotatedPeak> getTrack()     { return mTrack; }
   public AnnotatedPeak       at(int s)      { return mTrack.get(s); }
 
-  public FpmEntry increIntensities(double s) { mIntensities+=s; return this; }
+//  public FpmEntry increIntensities(double s) { mIntensities+=s; return this; }
 
   public FpmEntry has1st(        boolean s) { mHas1st    =s; return this; }
   public FpmEntry hasExpectedY1( boolean s) { mExpectedY1=s; return this; }
