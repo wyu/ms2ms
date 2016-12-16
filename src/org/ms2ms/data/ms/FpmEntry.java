@@ -19,6 +19,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
   private boolean mHas1st=false, mExpectedY1=false;
   private int                 mMotifs=0, m1stPass=0, mWeaks=0, mC13=0;
   private double              mGapScore=0, mIntensities=0d;
+  private Double              mMatchScore=null;
   private FragmentEntry       mFragment   =null;
   private ImmutableList<AnnotatedPeak> mTrack      =null;
 
@@ -62,6 +63,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
   public double              getIntensity() { return mIntensities; }
 //  public double              getProb()      { return mProb; }
   public int                 getMotifs()    { return mMotifs; }
+  public Double             getMatchScore() { return mMatchScore; }
 //  public int                 get1stPass()   { return m1stPass; }
   public FragmentEntry       getFragment()  { return mFragment; }
   public ImmutableList<AnnotatedPeak> getTrack()     { return mTrack; }
@@ -69,10 +71,12 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
 
 //  public FpmEntry increIntensities(double s) { mIntensities+=s; return this; }
 
-  public FpmEntry has1st(        boolean s) { mHas1st    =s; return this; }
-  public FpmEntry hasExpectedY1( boolean s) { mExpectedY1=s; return this; }
-  public FpmEntry setMotifs(         int s) { mMotifs    =s; return this; }
-//  public FpmEntry set1stPass(        int s) { m1stPass   =s; return this; }
+  public FpmEntry has1st(        boolean s) { mHas1st    =s;  return this; }
+  public FpmEntry hasExpectedY1( boolean s) { mExpectedY1=s;  return this; }
+  public FpmEntry setMotifs(         int s) { mMotifs    =s;  return this; }
+  public FpmEntry setMatchScore(  Double s) { mMatchScore=s; return this; }
+
+  //  public FpmEntry set1stPass(        int s) { m1stPass   =s; return this; }
 //  public FpmEntry setWeaks(          int s) { mWeaks     =s; return this; }
 //  public FpmEntry setC13(            int s) { mC13       =s; return this; }
 //  public FpmEntry setProb(        double s) { mProb      =s; return this; }
