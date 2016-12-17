@@ -17,11 +17,13 @@ import org.ms2ms.algo.LCMSMS;
 import org.ms2ms.algo.Peaks;
 import org.ms2ms.algo.PurgingPeakProcessor;
 import org.ms2ms.algo.Spectra;
+import org.ms2ms.data.collect.ImmutableNavigableMap;
 import org.ms2ms.data.ms.MsSpectrum;
 import org.ms2ms.math.Stats;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.data.HData;
 import org.ms2ms.data.ms.LcMsMsDataset;
+import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
@@ -633,6 +635,58 @@ public class MsReaders
 
     MGF.close();
   }
+  public static SortedMap<Integer, MsnSpectrum> read(String ms1)
+  {
+    SortedMap<Integer, MsnSpectrum> spectra = new TreeMap<>();
+    RandomAccessFile bin = null;
+
+    try
+    {
+      try
+      {
+        bin = new RandomAccessFile(ms1, "r");
+        while (1==1)
+        {
+          byte[] bs = new byte[bin.readInt()]; bin.read(bs);
+          MsnSpectrum spec = MsSpectrum.fromBytes(bs).toMsnSpectrum(); bs=null;
+          spectra.put(spec.getScanNumbers().getFirst().getValue(), spec);
+        }
+      }
+      finally {
+        if (bin!=null) bin.close();
+      }
+    }
+    catch (IOException e)
+    {
+
+    }
+    return spectra;
+  }
+  // read the MS1 scan and save them as the binary objects
+  public static void mzML2MS1(String mzml, String peaks) throws IOException
+  {
+    System.out.println("Saving the scans to " + peaks);
+
+    MzMLUnmarshaller unmarshaller = new MzMLUnmarshaller(new File(mzml));
+    // looping through the scans
+    MzMLObjectIterator<Spectrum> spectrumIterator = unmarshaller.unmarshalCollectionFromXpath("/run/spectrumList/spectrum", Spectrum.class);
+
+    System.out.println("Going through the MS1 scans from:"+mzml);
+    int counts=0;
+    RandomAccessFile bin = new RandomAccessFile(peaks, "rw"), scans = new RandomAccessFile(peaks+".scans", "rw");
+    Map<Integer, Long> scan_fseek = new HashMap<>();
+
+    while (spectrumIterator.hasNext())
+    {
+      MsnSpectrum ms = MsReaders.from(spectrumIterator.next());
+      if (++counts % 1000 == 0) System.out.print(".");
+      if (ms.getMsLevel()==1)
+        scan_fseek.put(ms.getScanNumbers().getFirst().getValue(), MsIO.write(bin, MsSpectrum.adopt(ms)));
+    }
+    IOs.writeIntLongMap(scans, scan_fseek);
+    bin.close(); scans.close();
+  }
+
   private static void writeMGF(MgfWriter MGF, MsnSpectrum ms10, MsnSpectrum ms11,
                                double left, double right, Collection<MsnSpectrum> spectra, int... scans) throws IOException
   {

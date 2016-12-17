@@ -1027,10 +1027,12 @@ public class Peaks {
     calc.setIntensity(0d);
     calc.setVerifiedCharge(0);
     calc.setOriginalMz(0d);
-    for (double z = max_z; z >= min_z; z--) {
+    for (double z = max_z; z >= min_z; z--)
+    {
       double mz = Peaks.MH2Mz(calc.getMz(), (int) z), ai = 0d, c12 = 0d;
       isotopes = 0;
-      for (int c13 = 0; c13 <= z; c13++) {
+      for (int c13 = 0; c13 <= z; c13++)
+      {
         int[] c = null; ImmutableNavigableMap<Peak> prec=null;
         for (ImmutableNavigableMap<Peak> precursors : isolated_precursors)
         {
@@ -1047,7 +1049,8 @@ public class Peaks {
         isotopes = c13;
         if (c12 == 0) c12 = Peaks.centroid(prec.fetchVals(c), null,null);
       }
-      if (isotopes > best || (isotopes == best && isotopes > 0 && ai > calc.getIntensity())) {
+      if (isotopes > best || (isotopes == best && isotopes > 0 && ai > calc.getIntensity()))
+      {
         best = isotopes;
         calc.setIntensity(ai);
         calc.setOriginalMz(c12).setProperty("isotopes", best).setVerifiedCharge((int) z);

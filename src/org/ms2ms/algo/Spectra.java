@@ -607,7 +607,18 @@ public class Spectra
 
     return 0;
   }
-  public static SortedMap<Double, AnnotatedPeak> toPeaks(PeakList ms, Range<Double>... exclusion)
+  public static SortedMap<Double, Peak> toPeaks(PeakList ms)
+  {
+    // walking thro the peaks and recording the matching peaks
+    SortedMap<Double,Peak> peaks = new TreeMap<>();
+
+    for (int i=0; i<ms.size(); i++)
+      peaks.put(ms.getMz(i), new Peak(ms.getMz(i), ms.getIntensity(i)));
+
+    return peaks;
+  }
+
+  public static SortedMap<Double, AnnotatedPeak> toPeaksWithExclusion(PeakList ms, Range<Double>... exclusion)
   {
     // walking thro the peaks and recording the matching peaks
     SortedMap<Double, AnnotatedPeak> peaks = new TreeMap<>();
