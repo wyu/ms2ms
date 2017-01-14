@@ -1187,12 +1187,32 @@ public class Peaks {
     return 0;
   }
 
-  public static int getMostIntense(PeakList ms, Collection<Integer> peaks) {
-    if (ms != null && Tools.isSet(peaks)) {
+  public static int getMostIntense(PeakList ms, Collection<Integer> peaks)
+  {
+    if (ms!=null && peaks!=null)
+    {
       double base = 0;
       int pk = -1;
       for (Integer i : peaks)
-        if (ms.getIntensity(i) > base) {
+        if (ms.getIntensity(i) > base)
+        {
+          base = ms.getIntensity(i);
+          pk = i;
+        }
+
+      return pk;
+    }
+    return -1;
+  }
+  public static int getMostIntense(PeakList ms, Integer... peaks)
+  {
+    if (ms!=null && peaks!=null)
+    {
+      double base = 0;
+      int pk = -1;
+      for (Integer i : peaks)
+        if (ms.getIntensity(i) > base)
+        {
           base = ms.getIntensity(i);
           pk = i;
         }
@@ -1204,12 +1224,26 @@ public class Peaks {
 
   public static int find(SortedMap<Double, Integer> peaks, PeakList ms, double m, Tolerance tol)
   {
+    int found = -1;
     if (m>0)
     {
       Map<Double, Integer> pk = peaks.subMap(tol.getMin(m), tol.getMax(m));
       // locate the most intense peak
-      if (Tools.isSet(pk)) return Peaks.getMostIntense(ms, pk.values());
+      if (pk.size()>0) found = Peaks.getMostIntense(ms, pk.values());
+      //Tools.dispose(  pk);
     }
-    return -1;
+    return found;
+  }
+  public static int find(ImmutableNavigableMap<Integer> peaks, PeakList ms, double m, Tolerance tol)
+  {
+    int found = -1;
+    if (m>0)
+    {
+      int[] pks = peaks.query(tol.getMin(m), tol.getMax(m));
+      // locate the most intense peak
+      if (Tools.isSet(pks)) found = Peaks.getMostIntense(ms, peaks.fetchVals(pks));
+      //Tools.dispose(  pk);
+    }
+    return found;
   }
 }

@@ -34,6 +34,19 @@ public class PeptideEntry
   public int    getPeptSeqKey() { return mPeptSeqKey; }
   public int     getTerminal()   { return mTerminal; }
   public List<ModLocation> getMods() { return mMods!=null?Arrays.asList(mMods):null; }
+  public Map<Integer, Double> getLocMods()
+  {
+    if (Tools.isSet(mMods))
+    {
+      Map<Integer, Double> mods = new TreeMap<>();
+      for (ModLocation mod : mMods)
+        mods.put(mod.locations, mod.mods);
+
+      return mods;
+    }
+
+    return null;
+  }
 
   public IonType getIonType()    { return mIonType; }
   public boolean isY()           { return IonType.y==mIonType; }
