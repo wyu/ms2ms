@@ -768,14 +768,15 @@ public class Spectra
 
     return stats;
   }
-  public static MsnSpectrum prepare(MsnSpectrum ms, Tolerance precision, boolean verbose)
+  public static MsnSpectrum prepare(MsnSpectrum ms, Tolerance precision, boolean self_calibration, boolean verbose)
   {
 //    PeakList deisotoped = Spectra.deisotope(ms, precision, 3, 350d);
     boolean skewed_iso = Spectra.deisotope(ms, precision, 3, 350d);
 
     PeakList deisotoped = Spectra.toRegionalNorm(ms.copy(new PurgingPeakProcessor()), 7, 0.5d); // with sqrt transform
     // perform self-calibration using small fragments that are likely to show up in most of the TMT-labelled spectra
-    deisotoped = Spectra.self_calibrate(deisotoped, new OffsetPpmTolerance(15d), 175.11949,230.170757d,376.27627);
+    if (self_calibration)
+      deisotoped = Spectra.self_calibrate(deisotoped, new OffsetPpmTolerance(15d), 175.11949,230.170757d,376.27627);
 
     if (verbose)
     {

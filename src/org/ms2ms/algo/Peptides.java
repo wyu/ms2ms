@@ -175,6 +175,15 @@ public class Peptides
 
     return y;
   }
+  public static int numTryptic(String peptide)
+  {
+    // check the uncleaved site
+    int sites=0;
+    for (int i=0; i<peptide.length()-1; i++)
+      if (isTryptic(peptide.charAt(i), peptide.charAt(i+1))) sites++;
+
+    return sites;
+  }
   public static boolean isTryptic(char[] sequence, int n0, int n1)
   {
     // not checking for sequence validity to save time. Do it before call this function!

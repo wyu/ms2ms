@@ -370,6 +370,9 @@ H  2
 //      pk.setMzAndCharge(pk.getMz() * scale, pk.getChargeList());
 //      if (pk.getIntensity() < min_ai) itr.remove();
 //    }
+    if (!Tools.isSet(result))
+      System.out.print("");
+
     return new IsoEnvelope(result, charge);
   }
   public static IsoEnvelope estIsotopesByMz(double c12, int charge, double minri, double ai, Table<Integer, Integer, IsoEnvelope> sIsoEnveloped)
