@@ -1,5 +1,6 @@
 package org.ms2ms.mzjava;
 
+import com.sun.xml.bind.v2.schemagen.xmlschema.Annotated;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.ms2ms.utils.Strs;
@@ -53,25 +54,26 @@ public class AnnotatedPeak extends Peak
   public boolean hasProperty(String k, Double s) { return mAnnotations!=null && Tools.equals(s, mAnnotations.get(k)); }
 //  public boolean hasProperty(String k) { return mAnnotations!=null && mAnnotations.get(k)!=null; }
 
-  public int getVerifiedCharge() { return mVerifiedCharge; }
-  public boolean isOutlier() { return mIsOutlier; }
-  public Double getProperty(String k) { return mAnnotations.get(k); }
-  public long getCounts() { return mCounts; }
-  public double getSNR() { return mSNR; }
-  public double getFrequency() { return mFreq; }
-  public double getOriginalMz() { return mOrigMz; }
-  public IonType getIonType() { return ionType; }
+  public int     getVerifiedCharge()   { return mVerifiedCharge; }
+  public boolean isOutlier()           { return mIsOutlier; }
+  public Double  getProperty(String k) { return mAnnotations!=null?mAnnotations.get(k):null; }
+  public long    getCounts()           { return mCounts; }
+  public double  getSNR()              { return mSNR; }
+  public double  getFrequency()        { return mFreq; }
+  public double  getOriginalMz()       { return mOrigMz; }
+  public IonType getIonType()          { return ionType; }
 
   public AnnotatedPeak removeProperty(String s) { if (mAnnotations!=null) mAnnotations.remove(s); return this; }
 
-  public AnnotatedPeak setCharge(int z) { super.setMzAndCharge(getMz(), z); return this; }
+  public AnnotatedPeak setCharge(        int z) { super.setMzAndCharge(getMz(), z); return this; }
   public AnnotatedPeak setVerifiedCharge(int z) { mVerifiedCharge=z; return this; }
-  public AnnotatedPeak isOutlier(boolean s) { mIsOutlier=s; return this; }
-  public AnnotatedPeak setSNR(        double s) { mSNR=s; return this; }
-  public AnnotatedPeak setFrequency(  double s) { mFreq=s; return this; }
-  public AnnotatedPeak setOriginalMz(double s) { mOrigMz=s; return this; }
-  public AnnotatedPeak setCounts(long s) { mCounts=s; return this; }
-  public AnnotatedPeak setProperty(   String k, double s)
+  public AnnotatedPeak isOutlier(    boolean s) { mIsOutlier     =s; return this; }
+  public AnnotatedPeak setSNR(        double s) { mSNR           =s; return this; }
+  public AnnotatedPeak setFrequency(  double s) { mFreq          =s; return this; }
+  public AnnotatedPeak setOriginalMz( double s) { mOrigMz        =s; return this; }
+  public AnnotatedPeak setCounts(       long s) { mCounts        =s; return this; }
+
+  public AnnotatedPeak setProperty(String k, double s)
   {
     if (mAnnotations==null) mAnnotations=new HashMap<>(24);
 
@@ -114,6 +116,16 @@ public class AnnotatedPeak extends Peak
   }
   public AnnotatedPeak clone()
   {
-    return new AnnotatedPeak(this);
+    AnnotatedPeak p = new AnnotatedPeak();
+
+    p.setMzAndCharge(getMz(), getCharge());
+    p.setIntensity(getIntensity());
+
+    p.isOutlier(isOutlier()).setVerifiedCharge(getVerifiedCharge()).setCounts(getCounts());
+    p.setSNR(getSNR()).setFrequency(getFrequency()).setOriginalMz(getOriginalMz());
+    if (mAnnotations!=null) p.mAnnotations = new HashMap<>(mAnnotations);
+    p.ionType=ionType;
+
+    return p;
   }
 }

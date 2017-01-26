@@ -31,11 +31,8 @@ public class OffsetPpmTolerance extends PpmTolerance
     if (mOffsetSlope!=0) return m<mTransitionMass?(-mOffset-mOffsetSlope*m):(getOffset(mTransitionMass-1d));
     return mOffset;
   }
-//  @Deprecated
-//  public double getPpmTol() { return mTol*mScale; }
   // 2-sigma to cover the 95% interval
   public double getPpmTol(double m) { return mTolSlope!=0?Math.exp(mTol+mTolSlope*m)*mZval*mScale : (mTol*mScale); }
-//  public boolean isWithinByPPM(double s) { return Math.abs(s)<=mTol*mScale; }
 
   public OffsetPpmTolerance scale( double s) { mScale =s; return this; }
   public OffsetPpmTolerance offset(double s) { mOffset=s; return this; }
@@ -49,13 +46,9 @@ public class OffsetPpmTolerance extends PpmTolerance
   }
 
 //  @Deprecated
-//  public double getOffset() { return mOffset; }
   public Range<Double> getBoundary(double mz) { return Range.closed(getMin(mz), getMax(mz)); }
-  // because of the directionality of the offset, we have to specify the direction as well.
-//  public double[] toExpectedBoundary(double mz) { return new double[] {mz-calcError(mz)+calcOffset(mz), mz+calcError(mz)+calcOffset(mz)}; }
   public double[] toActualBoundary(  double mz) { return new double[] {mz-calcError(mz)-calcOffset(mz), mz+calcError(mz)-calcOffset(mz)}; }
   public float[]  toExpectedBoundary(float mz)  { return new float[] {(float )(mz-calcError(mz)+calcOffset(mz)), (float )(mz+calcError(mz)+calcOffset(mz))}; }
-//  public float[]  toActualBoundary(  float mz)  { return new float[] {(float )(mz-calcError(mz)-calcOffset(mz)), (float )(mz+calcError(mz)-calcOffset(mz))}; }
 
   @Override
   public boolean withinTolerance(double expected, double actual) { return actual >= getMin(expected) && actual <= getMax(expected); }

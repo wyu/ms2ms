@@ -31,7 +31,11 @@ public class FragmentEntry implements Comparable<FragmentEntry>, Disposable
   public Integer       getPeptideKey() { return mPeptideKey; }
   public FragmentEntry getPrev()       { return mPrev; }
 
-  public FragmentEntry setPeptideKey(Integer s) { mPeptideKey=s; return this; }
+  public FragmentEntry setPeptideKey(Integer s)
+  {
+    mPeptideKey=s;
+    return this;
+  }
   public FragmentEntry setLen(int s)   { mLength=s; return this; }
 
   public FragmentEntry copy()

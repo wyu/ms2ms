@@ -1,9 +1,12 @@
 package org.ms2ms.data.ms;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import com.google.common.collect.UnmodifiableIterator;
+import com.sun.xml.bind.v2.schemagen.xmlschema.Annotated;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.ms2ms.Disposable;
+import org.ms2ms.algo.Peaks;
+import org.ms2ms.math.Stats;
 import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
@@ -92,6 +95,83 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
     clone.mTrack=mTrack;
 
     return clone;
+  }
+
+  // update the ion matches and return the local base intensity
+  public double match(OffsetPpmTolerance tol)
+  {
+    double local_base=0;
+    if (Tools.isSet(getTrack()))
+    {
+      List<AnnotatedPeak> pts = new ArrayList<>(getTrack().size());
+      for (AnnotatedPeak  pt : getTrack())
+      {
+        Double calc = pt.getProperty("calc"), obs = pt.getIntensity();
+        if (calc!=null && obs!=null && tol.withinTolerance(calc, obs))
+        {
+          AnnotatedPeak p = pt.clone();
+          p.setMzAndCharge(Stats.ppm(obs, calc)+tol.getOffset(obs), pt.getCharge());
+          pts.add(p);
+          if (p.getSNR()>local_base) local_base=p.getSNR();
+        }
+      }
+      mTrack = ImmutableList.copyOf(pts);
+    }
+
+    return local_base;
+  }
+  // following the re-match, update the scores of the series
+  public FpmEntry score(Double local_base)
+  {
+    if (Tools.isSet(getTrack()))
+    {
+      // we used to score only the y1.
+      int best=0, start=1, delta=0;
+      double percentile=0, score=(has1st()?calcGapScore(getTrack().get(getTrack().size()-1), 1, 1d)*0.1d:0),
+          sumAI=0d, base=local_base!=null?1d/local_base:0.01d;
+      for (int i=getTrack().size()-1; i>=0; i--)
+      {
+        AnnotatedPeak pk = getTrack().get(i);
+
+        delta = pk.getCharge()-start;
+        percentile = (pk.getSNR()*base); // set a minimum
+        // accumualte the gap score
+        if (delta>0) score+=(calcGapScore(pk, delta, 1d))*percentile;
+
+        start=pk.getCharge(); sumAI+=percentile;
+
+        int first=getTrack().get(i).getCharge(), last=first;
+        for (int j=i+1; j<getTrack().size(); j++)
+          if (last-getTrack().get(j).getCharge()!=1) break; else last=getTrack().get(j).getCharge();
+
+        if (first-last>best) best=first-last;
+      }
+      setMotifs(best).setGapScore(-10d*score);
+    }
+
+    return this;
+  }
+  // BEWARE that the information are saved in the 'match' object in a non-std way.
+  private double calcGapScore(AnnotatedPeak match, int gap, double min_ppm)
+  {
+    // no point to proceed...
+    if (gap<=0/* || gap>4*/) return 0;
+
+    // average AA mass: 115, largest - smallest: 129
+    int     bins = (int )(Math.log(2)/Math.log(1d+1E-6*Math.max(Math.abs(match.getMz()), min_ppm))),
+        nsamples = 0, ntrials=(int )Math.round(((gap-1)*115d+129d)*match.getFrequency());
+
+    // cumulative numbers of gaps
+    for (int i=1; i<=gap; i++)
+      if (i<19 && nsamples<bins) nsamples+=Math.exp(Stats.ln_combination(19, i)); else break;
+
+    double score0=0;
+    if (nsamples<bins/2)
+    {
+      score0 = -0.07491232 + 0.41163668*Math.log((double )nsamples/(double )bins) + 0.40504996*Math.log((double )ntrials);
+      if (score0 > -0.1) score0=0;
+    }
+    return score0;
   }
 
   @Override
