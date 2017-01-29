@@ -26,6 +26,7 @@ public class CustomFastaProteinReader extends FastaProteinReader
   protected void parseHeader(String header, Protein.Builder builder)
   {
     int left = header.indexOf('>')+1, right = header.indexOf(' ');
-    builder.setAccessionId((right>0?header.substring(left, right):header.substring(left)).replaceAll("\\|", "_"));
+//    builder.setAccessionId((right>0?header.substring(left, right):header.substring(left)).replaceAll("\\|", "_"));
+    builder.setAccessionId(header.substring(left).replaceAll("\\|", "_"));
   }
 }

@@ -335,8 +335,8 @@ public class Ms2Hit_ implements Comparable<Ms2Hit_>, Disposable
   public Integer hashcodeByYBmz()
   {
     int hash=0;
-    if (getY()!=null) hash+=getY().hashcodeByTrackMz();
-    if (getB()!=null) hash+=getB().hashcodeByTrackMz();
+    if (getY()!=null) hash+=getY().hashcodeByTrackMz(2);
+    if (getB()!=null) hash+=getB().hashcodeByTrackMz(2);
 
     return hash;
   }

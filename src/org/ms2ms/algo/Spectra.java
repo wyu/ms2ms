@@ -3,6 +3,7 @@ package org.ms2ms.algo;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
+import org.expasy.mzjava.core.io.ms.spectrum.MgfWriter;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.*;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
@@ -10,6 +11,7 @@ import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeList;
 import org.ms2ms.data.ms.IsoEnvelope;
 import org.ms2ms.data.ms.OffsetPpmTolerance;
+import org.ms2ms.io.MsReaders;
 import org.ms2ms.math.Histogram;
 import org.ms2ms.math.Stats;
 import org.ms2ms.mzjava.AnnotatedPeak;
@@ -17,6 +19,7 @@ import org.ms2ms.mzjava.IsotopePeakAnnotation;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -799,6 +802,23 @@ public class Spectra
 
       return ms.copy(new PurgingPeakProcessor<>());
     }
+    return ms;
+  }
+  // -2.3,2.9
+  public static MsnSpectrum setIsolationComment(MsnSpectrum ms, double left, double right, MsnSpectrum ms10, MsnSpectrum ms11)
+  {
+    // parse the isolated m/z. It maybe different from the precursor m/z
+    String[] strs = ms.getComment().split("@")[0].split(" ");
+    double center = (Tools.isSet(strs)? Stats.toDouble(strs[strs.length-1]):ms.getPrecursor().getMz());
+
+    // save the precursor isolation region
+    String isolation = "isolation/"+ms10.getScanNumbers().getFirst().getValue()+"/"+center+
+        (ms11!=null?("/"+ms11.getScanNumbers().getFirst().getValue()):""),
+        line = MsReaders.Peaks2Str(Peaks.isolate(ms10, center+left, center+right)) +
+            (ms11!=null?(","+MsReaders.Peaks2Str(Peaks.isolate(ms11, center+left, center+right))):"");
+
+    if (Strs.isSet(line)) ms.setComment(isolation+","+line);
+
     return ms;
   }
 }

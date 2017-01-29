@@ -9,6 +9,7 @@ import org.expasy.mzjava.core.ms.PpmTolerance;
 public class OffsetPpmTolerance extends PpmTolerance
 {
   private double mScale=1d, mOffset=0d, mTol=0d, mTransitionMass=0, mOffsetSlope=0, mTolSlope=0, mZval=0;
+  private boolean mIsIncremental=false;
 
   public OffsetPpmTolerance() { super(0d); }
   public OffsetPpmTolerance(double tol) { super(tol); mTol=tol; }
@@ -16,6 +17,9 @@ public class OffsetPpmTolerance extends PpmTolerance
   {
     super(tol); mOffset=offset; mTol=tol;
   }
+
+  public OffsetPpmTolerance isIncremental(boolean s) { mIsIncremental=s; return this; }
+  public boolean            isIncremental()          { return mIsIncremental; }
 
   public OffsetPpmTolerance setOffsetParams(double transition, double intercept, double slope)
   {
@@ -33,6 +37,7 @@ public class OffsetPpmTolerance extends PpmTolerance
   }
   // 2-sigma to cover the 95% interval
   public double getPpmTol(double m) { return mTolSlope!=0?Math.exp(mTol+mTolSlope*m)*mZval*mScale : (mTol*mScale); }
+  public double getPpmTol() { return mTol; }
 
   public OffsetPpmTolerance scale( double s) { mScale =s; return this; }
   public OffsetPpmTolerance offset(double s) { mOffset=s; return this; }
@@ -60,7 +65,7 @@ public class OffsetPpmTolerance extends PpmTolerance
 
   public OffsetPpmTolerance clone()
   {
-    return new OffsetPpmTolerance().setOffsetParams(mTransitionMass, mOffset, mOffsetSlope).setTolParams(mTol, mTolSlope, 3d);
+    return new OffsetPpmTolerance().setOffsetParams(mTransitionMass, mOffset, mOffsetSlope).setTolParams(mTol, mTolSlope, mZval).isIncremental(mIsIncremental);
   }
   private double calcError( double expectedMass) { return expectedMass * (getPpmTol(expectedMass)/1000000d); }
   private double calcOffset(double expectedMass) { return expectedMass * (getOffset(expectedMass)/1000000d); }

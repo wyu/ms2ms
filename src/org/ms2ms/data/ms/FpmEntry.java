@@ -218,14 +218,22 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
 
     return hash;
   }
-  public int hashcodeByTrackMz()
+  public int hashcodeByTrackMz(int precision)
   {
-    int hash=0;
+    int hash=0; double multi = Math.pow(10d, precision);
     if (Tools.isSet(getTrack()))
       for (int i=0; i<getTrack().size(); i++)
-        hash+=getTrack().get(i).getMz()*1000;
+        // grab the obs m/z rather than the ppm
+        hash+=Math.round(getTrack().get(i).getIntensity()*multi);
 
     return hash;
+  }
+  public Collection<Double> fillMz(Collection<Double> data)
+  {
+    if (Tools.isSet(getTrack()))
+      for (AnnotatedPeak p : getTrack()) data.add(p.getIntensity());
+
+    return data;
   }
   @Override
   public FpmEntry clone()

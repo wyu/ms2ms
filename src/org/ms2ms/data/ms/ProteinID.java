@@ -27,6 +27,7 @@ public class ProteinID implements Comparable<ProteinID>
 
   public Double getBestQVal() { return mBestQVal; }
   public String getSequence() { return mSequence; }
+  public String getAccession() { return mAccessionId; }
   public Multimap<String, PeptideMatch> getSeqMatch() { return mSeqMatch; }
 
   public ProteinID updateBestQVal(Double s) { if (mBestQVal==null || (s!=null && mBestQVal>s)) mBestQVal=s; return this; }
@@ -69,7 +70,7 @@ public class ProteinID implements Comparable<ProteinID>
       if (Tools.isSet(protein.getSeqMatch()) && protein.getSequence()!=null)
       {
 //        Float abund = (float )protein.getSeqMatch().values().size() / (float )protein.getSequence().length();
-        Float abund = (float )protein.getSeqMatch().values().size();
+        Float abund = (float )protein.getSeqMatch().keySet().size();
         peptide_protein.put(abund, protein);
       }
 
