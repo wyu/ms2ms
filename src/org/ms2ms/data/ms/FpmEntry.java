@@ -235,6 +235,52 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
 
     return data;
   }
+  public FpmEntry inspect(Set<Double> y1s, Double local_base)
+  {
+    if (!Tools.isSet(getTrack())) return this;
+
+    boolean has1st = false, y1=false;
+    AnnotatedPeak pk1 = null;
+    List<AnnotatedPeak> track = new ArrayList<>(getTrack().size());
+    for (int i=0; i<getTrack().size(); i++)
+    {
+      track.add(at(i));
+      // check the presence of y1
+      if (at(i).getCharge()==1 && !has1st) { has1st=true; pk1=at(i); }
+      // the observed m/z was saved in the 'intensity' field!!!
+      if (at(i).getCharge()==1 && y1s!=null && y1s.contains(at(i).getIntensity())) y1=true;
+    }
+
+    // return now if there isn't enough matches
+    if (track.size()==0)
+      return has1st(has1st).hasExpectedY1(Tools.isSet(y1s) && y1).setIntensity(0).setMotifs(0).setGapScore(0);
+
+    // we used to score only the y1.
+    int best=0, start=1, delta=0;
+    double percentile=0, score=(has1st?calcGapScore(track.get(track.size() - 1), 1, 1d)*0.1d:0),
+        sumAI=0d, base=local_base!=null?1d/local_base:0.01d;
+    for (int i=track.size()-1; i>=0; i--)
+    {
+      AnnotatedPeak pk = track.get(i);
+
+      delta = pk.getCharge()-start;
+      percentile = (pk.getSNR()*base); // set a minimum
+      // accumualte the gap score
+      if (delta>0) score+=(calcGapScore(pk, delta, 1d))*percentile;
+
+      start=pk.getCharge(); sumAI+=percentile;
+
+      int first=track.get(i).getCharge(), last=first;
+      for (int j=i+1; j<track.size(); j++)
+        if (last-track.get(j).getCharge()!=1) break; else last=track.get(j).getCharge();
+
+      if (first-last>best) best=first-last;
+    }
+
+    // http://sfb649.wiwi.hu-berlin.de/fedc_homepage/xplore/tutorials/xegbohtmlnode16.html
+    return has1st(has1st).hasExpectedY1(Tools.isSet(y1s) && y1).setIntensity(sumAI).setMotifs(best).setGapScore(-10d*score);
+  }
+
   @Override
   public FpmEntry clone()
   {

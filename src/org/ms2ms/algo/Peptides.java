@@ -20,6 +20,16 @@ import java.util.*;
  */
 public class Peptides
 {
+  public static final double C   = 12.00;
+  public static final double H   = 1.007825;
+  public static final double O   = 15.994915;
+  public static final double N   = 14.003074;
+  public static final double S   = 31.972072;
+  public static final double H2O = 2d*H+O;
+  public static final double NH3 = N+3d*H;
+  public static final double CO  = C+O;
+  public static final double OH  = H+O;
+
   static final ImmutableMap.Builder<Character, Float> AAsBuilder =
       new ImmutableMap.Builder<Character, Float>()
           .put('G',57.02146f  ).put('A', 71.03711f).put('S', 87.03203f).put('P', 97.05276f).put('V', 99.06841f)
@@ -213,5 +223,90 @@ public class Peptides
       if (reverse?(i<0):(i>stop)) break;
     }
     return null;
+  }
+  public static Map<String, Double> newCtStarters(String tag)
+  {
+    Map<String, Double> Ct = new HashMap<>();
+
+    Multimap<Float, Character> AAs = Peptides.newMassAAs(tag);
+    for (Float f : AAs.keySet())
+      Ct.put(Tools.front(AAs.get(f))+"", f+Peptides.H+Peptides.H2O);
+
+    return Ct;
+  }
+  // generate the predicted fragments of the peptide.
+  public static Map<Float, String> toFragments(char[] peptide, Map<Integer, Double> mods, float[] AAs)
+  {
+    if (peptide==null || peptide.length==0) return null;
+
+//    Float H=1.007825f, O=15.994915f, C=12f, CO=C+O, OH=O+H, N=14.003074f, NH3=N+3*H, H2O=2*H+O,
+//        b=(AAs['^']+1.007825f), y=(AAs['$']+2*1.007825f), a=b-CO,z=y-NH3;
+    double b=(AAs['^']+H), y=(AAs['$']+2*H), a=b-CO,z=y-NH3;
+
+    Map<Float, String> frags = new TreeMap<>(); int y_18=0, y_17=0, b_18=0, b_17=0;
+    for (int i=0; i<peptide.length; i++)
+    {
+      int j=peptide.length-i-1;
+      y+=AAs[peptide[j]]+(mods!=null&&mods.get(j)!=null?mods.get(j).floatValue():0f);
+      b+=AAs[peptide[i]]+(mods!=null&&mods.get(i)!=null?mods.get(i).floatValue():0f);
+
+      if ("RKQN".indexOf(peptide[j])>=0) y_17++;
+      if ("STED".indexOf(peptide[j])>=0) y_18++;
+      if ("RKQN".indexOf(peptide[i])>=0) b_17++;
+      if ("STED".indexOf(peptide[i])>=0) b_18++;
+
+      frags.put((float )y,      "y"+(i+1));
+      frags.put((float)(y-NH3), "z"+(i+1));
+      frags.put((float )b,      "b"+(i+1));
+      frags.put((float )(b-CO), "a"+(i+1));
+
+      // any neutral loss?
+      if (y_17>0) frags.put((float )(y-NH3), "y"+(i+1)+"-17");
+      if (b_18>0) frags.put((float )(b-H2O), "b"+(i+1)+"-18");
+
+      // get the internal ions
+      if (i>0)
+      {
+        Float internal=(float )H, intn28=null;
+        for (int k=2; k<5; k++)
+        {
+          if (i+k>=peptide.length) break;
+          // calculate the expected mass
+          internal+=AAs[peptide[k+i]]; intn28=(float )(internal-CO);
+          if (!frags.containsKey(internal)) frags.put(internal, Strs.toString(peptide, i,i+k));
+          if (!frags.containsKey(intn28))   frags.put(intn28,   Strs.toString(peptide, i,i+k)+"-28");
+        }
+      }
+    }
+    return frags;
+  }
+  // generate the predicted fragments of the peptide.
+  public static float[] toYs(char[] peptide, Map<Integer, Double> mods, float[] AAs)
+  {
+    if (peptide==null || peptide.length==0) return null;
+
+    Float   y  = (AAs['$']+2*1.007825f);
+    float[] ys = new float[peptide.length];
+    for (int i=0; i<peptide.length; i++)
+    {
+      int j=peptide.length-i-1;
+      y+=AAs[peptide[j]]+(mods!=null&&mods.get(j)!=null?mods.get(j).floatValue():0f);
+      ys[j] = y;
+    }
+    return ys;
+  }
+  // generate the predicted fragments of the peptide.
+  public static float[] toBs(char[] peptide, Map<Integer, Double> mods, float[] AAs)
+  {
+    if (peptide==null || peptide.length==0) return null;
+
+    float   b  = (AAs['^']+1.007825f);
+    float[] bs = new float[peptide.length];
+    for (int i=0; i<peptide.length; i++)
+    {
+      b+=AAs[peptide[i]]+(mods!=null&&mods.get(i)!=null?mods.get(i).floatValue():0f);
+      bs[i] = b;
+    }
+    return bs;
   }
 }
