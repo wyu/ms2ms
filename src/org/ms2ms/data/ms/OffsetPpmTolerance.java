@@ -2,6 +2,7 @@ package org.ms2ms.data.ms;
 
 import com.google.common.collect.Range;
 import org.expasy.mzjava.core.ms.PpmTolerance;
+import org.ms2ms.utils.Tools;
 
 /**
  * Created by yuw on 8/6/16.
@@ -69,4 +70,14 @@ public class OffsetPpmTolerance extends PpmTolerance
   }
   private double calcError( double expectedMass) { return expectedMass * (getPpmTol(expectedMass)/1000000d); }
   private double calcOffset(double expectedMass) { return expectedMass * (getOffset(expectedMass)/1000000d); }
+
+  @Override
+  public String toString()
+  {
+    String scale = (mScale==1?("*"+Tools.d2s(mScale,2)):"");
+    String ppm = (mTolSlope   !=0 ? "exp("+Tools.d2s(mTol,2)+"+"+Tools.d2s(mTolSlope,7)+"*m)*"+Tools.d2s(mZval,2)+scale : (Tools.d2s(mTol,2)+scale));
+    String oft = (mOffsetSlope!=0 ? (Tools.d2s(-mOffset,2)+"-"+Tools.d2s(mOffsetSlope,7)+"*m or " + Tools.d2s(-mOffset,2) + " above m/z") : "") + Tools.d2s(mTransitionMass, 2);
+
+    return "ppm = "+ppm+ ", offset = "+oft+ (mIsIncremental?", Incremental":"");
+  }
 }
