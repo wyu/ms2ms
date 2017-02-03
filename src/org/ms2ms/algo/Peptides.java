@@ -291,7 +291,7 @@ public class Peptides
     {
       int j=peptide.length-i-1;
       y+=AAs[peptide[j]]+(mods!=null&&mods.get(j)!=null?mods.get(j).floatValue():0f);
-      ys[j] = y;
+      ys[i] = y;
     }
     return ys;
   }

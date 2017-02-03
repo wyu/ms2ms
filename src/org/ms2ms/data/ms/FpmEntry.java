@@ -171,6 +171,8 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
       score0 = -0.07491232 + 0.41163668*Math.log((double )nsamples/(double )bins) + 0.40504996*Math.log((double )ntrials);
       if (score0 > -0.1) score0=0;
     }
+    match.setProperty("score", score0);
+
     return score0;
   }
 
@@ -186,7 +188,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
   @Override
   public String toString()
   {
-    return "#"+(Tools.isSet(mTrack)?mMotifs+"/"+mTrack.size():0)+"@"+mFragment.toString();
+    return "#"+(Tools.isSet(mTrack)?mMotifs+"/"+mTrack.size():0)+"@"+(mFragment!=null?mFragment.toString():"");
   }
   public static Map<String, Object> report(List<AnnotatedPeak> track)
   {
