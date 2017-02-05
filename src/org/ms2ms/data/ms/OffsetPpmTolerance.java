@@ -22,6 +22,7 @@ public class OffsetPpmTolerance extends PpmTolerance
   public OffsetPpmTolerance isIncremental(boolean s) { mIsIncremental=s; return this; }
   public boolean            isIncremental()          { return mIsIncremental; }
 
+  public OffsetPpmTolerance setTransitionMass(double s) { mTransitionMass=s; return this; }
   public OffsetPpmTolerance setOffsetParams(double transition, double intercept, double slope)
   {
     mTransitionMass=transition; mOffsetSlope=slope; mOffset=intercept; return this;
@@ -33,12 +34,19 @@ public class OffsetPpmTolerance extends PpmTolerance
   public double getOffset(double m)
   {
     // flip the sign to indicate correction
-    if (mOffsetSlope!=0) return m<mTransitionMass?(-mOffset-mOffsetSlope*m):(getOffset(mTransitionMass-1d));
+    if (!isIncremental() && mOffsetSlope!=0) return m<mTransitionMass?(-mOffset-mOffsetSlope*m):(getOffset(mTransitionMass-1d));
     return mOffset;
   }
   // 2-sigma to cover the 95% interval
-  public double getPpmTol(double m) { return mTolSlope!=0?Math.exp(mTol+mTolSlope*m)*mZval*mScale : (mTol*mScale); }
-  public double getPpmTol() { return mTol; }
+  public double getPpmTol(double m)
+  {
+    if (isIncremental())
+    {
+      return m<mTransitionMass?(mTol+mTolSlope*m)*mZval*mScale:(getPpmTol(mTransitionMass-1d));
+    }
+    return mTolSlope!=0?Math.exp(mTol+mTolSlope*m)*mZval*mScale : (mTol*mScale);
+  }
+//  public double getPpmTol() { return mTol; }
 
   public OffsetPpmTolerance scale( double s) { mScale =s; return this; }
   public OffsetPpmTolerance offset(double s) { mOffset=s; return this; }
@@ -76,7 +84,7 @@ public class OffsetPpmTolerance extends PpmTolerance
   {
     String scale = (mScale==1?("*"+Tools.d2s(mScale,2)):"");
     String ppm = (mTolSlope   !=0 ? "exp("+Tools.d2s(mTol,2)+"+"+Tools.d2s(mTolSlope,7)+"*m)*"+Tools.d2s(mZval,2)+scale : (Tools.d2s(mTol,2)+scale));
-    String oft = (mOffsetSlope!=0 ? (Tools.d2s(-mOffset,2)+"-"+Tools.d2s(mOffsetSlope,7)+"*m or " + Tools.d2s(-mOffset,2) + " above m/z") : "") + Tools.d2s(mTransitionMass, 2);
+    String oft = (mOffsetSlope!=0 ? (Tools.d2s(-mOffset,2)+"-"+Tools.d2s(mOffsetSlope,7)+"*m or " + Tools.d2s(getOffset(mTransitionMass-1D),2) + " above m/z") : "") + Tools.d2s(mTransitionMass, 2);
 
     return "ppm = "+ppm+ ", offset = "+oft+ (mIsIncremental?", Incremental":"");
   }
