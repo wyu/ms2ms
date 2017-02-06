@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="module_ms2ms" default="compile.module.ms2ms">
+  <dirname property="module.ms2ms.basedir" file="${ant.file.module_ms2ms}"/>
+  
+  <property name="module.jdk.home.ms2ms" value="${project.jdk.home}"/>
+  <property name="module.jdk.bin.ms2ms" value="${project.jdk.bin}"/>
+  <property name="module.jdk.classpath.ms2ms" value="${project.jdk.classpath}"/>
+  
+  <property name="compiler.args.ms2ms" value="-encoding UTF-8 -source 8 ${compiler.args}"/>
+  
+  <property name="ms2ms.output.dir" value="${module.ms2ms.basedir}/../../../../Apps/pipeline/Chorus/out/production/ms2ms"/>
+  <property name="ms2ms.testoutput.dir" value="${module.ms2ms.basedir}/../../../../Apps/pipeline/Chorus/out/test/ms2ms"/>
+  
+  <path id="ms2ms.module.bootclasspath">
+    <!-- Paths to be included in compilation bootclasspath -->
+  </path>
+  
+  <path id="ms2ms.module.production.classpath">
+    <path refid="${module.jdk.classpath.ms2ms}"/>
+    <path refid="library.ms2ms.classpath"/>
+    <pathelement location="${javardata.output.dir}"/>
+    <path refid="library.javardata.classpath"/>
+  </path>
+  
+  <path id="ms2ms.runtime.production.module.classpath">
+    <pathelement location="${ms2ms.output.dir}"/>
+    <path refid="library.ms2ms.classpath"/>
+    <path refid="javardata.runtime.production.module.classpath"/>
+  </path>
+  
+  <path id="ms2ms.module.classpath">
+    <path refid="${module.jdk.classpath.ms2ms}"/>
+    <pathelement location="${ms2ms.output.dir}"/>
+    <path refid="library.ms2ms.classpath"/>
+    <pathelement location="${javardata.testoutput.dir}"/>
+    <pathelement location="${javardata.output.dir}"/>
+    <path refid="library.javardata.classpath"/>
+  </path>
+  
+  <path id="ms2ms.runtime.module.classpath">
+    <pathelement location="${ms2ms.testoutput.dir}"/>
+    <pathelement location="${ms2ms.output.dir}"/>
+    <path refid="library.ms2ms.classpath"/>
+    <path refid="javardata.runtime.module.classpath"/>
+  </path>
+  
+  
+  <patternset id="excluded.from.module.ms2ms">
+    <patternset refid="ignored.files"/>
+  </patternset>
+  
+  <patternset id="excluded.from.compilation.ms2ms">
+    <patternset refid="excluded.from.module.ms2ms"/>
+  </patternset>
+  
+  <path id="ms2ms.module.sourcepath">
+    <dirset dir="${module.ms2ms.basedir}">
+      <include name="src"/>
+    </dirset>
+  </path>
+  
+  <path id="ms2ms.module.test.sourcepath">
+    <dirset dir="${module.ms2ms.basedir}">
+      <include name="test"/>
+    </dirset>
+  </path>
+  
+  
+  <target name="compile.module.ms2ms" depends="compile.module.ms2ms.production,compile.module.ms2ms.tests" description="Compile module ms2ms"/>
+  
+  <target name="compile.module.ms2ms.production" depends="register.custom.compilers,compile.module.javardata" description="Compile module ms2ms; production classes">
+    <mkdir dir="${ms2ms.output.dir}"/>
+    <javac2 destdir="${ms2ms.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.ms2ms}/javac">
+      <compilerarg line="${compiler.args.ms2ms}"/>
+      <bootclasspath refid="ms2ms.module.bootclasspath"/>
+      <classpath refid="ms2ms.module.production.classpath"/>
+      <src refid="ms2ms.module.sourcepath"/>
+      <patternset refid="excluded.from.compilation.ms2ms"/>
+    </javac2>
+    
+    <copy todir="${ms2ms.output.dir}">
+      <fileset dir="${module.ms2ms.basedir}/src">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+    </copy>
+  </target>
+  
+  <target name="compile.module.ms2ms.tests" depends="register.custom.compilers,compile.module.ms2ms.production" description="compile module ms2ms; test classes" unless="skip.tests">
+    <mkdir dir="${ms2ms.testoutput.dir}"/>
+    <javac2 destdir="${ms2ms.testoutput.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.ms2ms}/javac">
+      <compilerarg line="${compiler.args.ms2ms}"/>
+      <bootclasspath refid="ms2ms.module.bootclasspath"/>
+      <classpath refid="ms2ms.module.classpath"/>
+      <src refid="ms2ms.module.test.sourcepath"/>
+      <patternset refid="excluded.from.compilation.ms2ms"/>
+    </javac2>
+    
+    <copy todir="${ms2ms.testoutput.dir}">
+      <fileset dir="${module.ms2ms.basedir}/test">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+    </copy>
+  </target>
+  
+  <target name="clean.module.ms2ms" description="cleanup module">
+    <delete dir="${ms2ms.output.dir}"/>
+    <delete dir="${ms2ms.testoutput.dir}"/>
+  </target>
+</project>
