@@ -530,6 +530,25 @@ public class Spectra
 
     return peaks;
   }
+  public static PeakList toRegionalRanks(PeakList peaks, int regions)
+  {
+    int bundle = (int )Math.round(0.5*peaks.size()/regions), left, right, max=peaks.size()-1, found=0;
+
+    List<Double> ai = new ArrayList<>();
+    for (int i=0; i<peaks.size(); i++) ai.add(peaks.getIntensity(i));
+
+    for (int i=0; i<peaks.size(); i++)
+    {
+      left = Math.max(i-bundle, 0); right=left+2*bundle;
+      if (right>max) { right=max; left=right-2*bundle; }
+
+      List<Double> region = Tools.copyOf(ai, left, right+1); Collections.sort(region); found=-1;
+      for (int k=0; k<region.size(); k++) if (Math.abs(region.get(k)-peaks.getIntensity(i))<0.1) { found=k; break; }
+      if (found>0) peaks.setIntensityAt(100d*(1d/(double )found), i);
+    }
+
+    return peaks;
+  }
   public static PeakList toRegionalPercentile(PeakList peaks, int regions)
   {
     int bundle = (int )Math.round(0.5*peaks.size()/regions), left, right, max=peaks.size()-1, found=0;
@@ -771,12 +790,14 @@ public class Spectra
 
     return stats;
   }
-  public static MsnSpectrum prepare(MsnSpectrum ms, Tolerance precision, boolean self_calibration, boolean verbose)
+  public static MsnSpectrum prepare(MsnSpectrum ms, Tolerance precision, boolean self_calibration, double peak_transform, boolean verbose)
   {
 //    PeakList deisotoped = Spectra.deisotope(ms, precision, 3, 350d);
     boolean skewed_iso = Spectra.deisotope(ms, precision, 3, 350d);
 
-    PeakList deisotoped = Spectra.toRegionalNorm(ms.copy(new PurgingPeakProcessor()), 7, 0.5d); // with sqrt transform
+//    PeakList deisotoped = Spectra.toRegionalRanks(ms.copy(new PurgingPeakProcessor()), 7);
+//    PeakList deisotoped = Spectra.toRegionalPercentile(ms.copy(new PurgingPeakProcessor()), 7);
+    PeakList deisotoped = Spectra.toRegionalNorm(ms.copy(new PurgingPeakProcessor()), 7, peak_transform); // with sqrt transform
     // perform self-calibration using small fragments that are likely to show up in most of the TMT-labelled spectra
     if (self_calibration)
       deisotoped = Spectra.self_calibrate(deisotoped, new OffsetPpmTolerance(15d), 175.11949,230.170757d,376.27627);
