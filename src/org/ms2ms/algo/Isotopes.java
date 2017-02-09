@@ -86,7 +86,7 @@ public class Isotopes
   {
     try
     {
-      init_data(Isotopes.class.getResourceAsStream("org/ms2ms/algo/ISOTOPE.DAT"), SAD, EM);
+      init_data(Isotopes.class.getClassLoader().getResourceAsStream("org/ms2ms/algo/ISOTOPE.DAT"), SAD, EM);
 //      init_data("/Users/yuw/Documents/Apps/contrib/ms2ms/data/ISOTOPE.DAT");
     }
     catch (Exception e) { throw new RuntimeException("Not able to initialize the isotope util: ", e); }
