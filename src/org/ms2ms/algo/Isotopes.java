@@ -86,8 +86,8 @@ public class Isotopes
   {
     try
     {
-      //init_data("/home/wyu/contrib/Rockwood/emass/ISOTOPE.DAT");
-      init_data("/Users/yuw/Documents/Apps/contrib/ms2ms/data/ISOTOPE.DAT");
+      init_data(Isotopes.class.getResourceAsStream("org/ms2ms/algo/ISOTOPE.DAT"), SAD, EM);
+//      init_data("/Users/yuw/Documents/Apps/contrib/ms2ms/data/ISOTOPE.DAT");
     }
     catch (Exception e) { throw new RuntimeException("Not able to initialize the isotope util: ", e); }
   }
@@ -107,12 +107,12 @@ H  2
   */
   public static boolean init_data(String filename) throws IOException
   {
-    return init_data(filename, SAD, EM);
+    return init_data(new FileInputStream(filename), SAD, EM);
   }
 
-  private static boolean init_data(String filename, List<List<List<Peak>>> sad, Map<String, Long> em) throws IOException
+  private static boolean init_data(InputStream dat, List<List<List<Peak>>> sad, Map<String, Long> em) throws IOException
   {
-    BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filename)));
+    BufferedReader reader = new BufferedReader(new InputStreamReader(dat));
 
     sad.clear();
      em.clear();
