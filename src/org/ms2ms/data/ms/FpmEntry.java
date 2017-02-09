@@ -188,7 +188,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
   @Override
   public String toString()
   {
-    return "#"+(Tools.isSet(mTrack)?mMotifs+"/"+mTrack.size():0)+"@"+(mFragment!=null?mFragment.toString():"");
+    return "#"+(Tools.isSet(mTrack)?mMotifs+"/"+mTrack.size():0)+"@"+(mFragment!=null?mFragment.toString():"")+"$"+Tools.d2s(getGapScore(), 1);
   }
   public static Map<String, Object> report(List<AnnotatedPeak> track)
   {

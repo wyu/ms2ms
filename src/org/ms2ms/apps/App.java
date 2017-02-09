@@ -100,7 +100,7 @@ abstract public class App
   protected void usage()
   {
     System.out.println("");
-    System.out.println("USAGE FOR " + mAppName + ": " + mAppName + " [options]");
+    System.out.println("USAGE FOR " + mAppName + ": " + mBuild + " [options]");
     System.out.println("\n    COMMAND-LINE OPTIONS:");
 
     if (Tools.isSet(mUsages))
@@ -115,6 +115,13 @@ abstract public class App
 
   public String getAppName()         { return mAppName; }
   public void   setAppName(String s) { mAppName = s; }
+  protected App addUsage(String tags, String usage)
+  {
+    if (mUsages==null) mUsages = new ArrayList<>();
+    mUsages.add(tags + (Strs.isSet(usage) ? "\t:\t" + usage : ""));
+
+    return this;
+  }
   protected String option(String var, String usage, String[] args, int i, String... tags)
   {
     if (args[i].charAt(0)=='-' && Tools.isSet(args) && args.length>i+1 && Tools.isA(args[i], tags))

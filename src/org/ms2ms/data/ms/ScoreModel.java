@@ -15,7 +15,7 @@ public class ScoreModel
 {
   public enum eType
   {
-    exact("Exact"), open("Open"), all("ALL");
+    exact("Exact"), open("Open"), all("ALL"), sim("Simulated");
 
     private final String name;
     eType(String n) { this.name = n; }
@@ -62,7 +62,7 @@ public class ScoreModel
   public ScoreModel addExactDecoy(double s) { return add(s, eType.exact); }
   public ScoreModel addOpenDecoy( double s) { return add(s, eType.open); }
 
-  private ScoreModel add(double s, eType t)
+  public ScoreModel add(double s, eType t)
   {
     if (mDecoys==null) mDecoys = new EnumMap<>(eType.class);
     if (mDecoys.get(t)==null) mDecoys.put(t, new Histogram(t.getName()));
@@ -71,7 +71,7 @@ public class ScoreModel
     return this;
   }
 
-  private void generate(eType... types)
+  public void generate(eType... types)
   {
     if (mDecoys!=null && Tools.isSet(types))
       for (eType type : types)
@@ -79,6 +79,15 @@ public class ScoreModel
         Histogram H = mDecoys.get(type);
         if (H!=null) H=H.generate2pts(15, 0.5);
         if (H!=null) H=H.assessTruncated(0);
+      }
+  }
+  public void generate(int steps, eType... types)
+  {
+    if (mDecoys!=null && Tools.isSet(types))
+      for (eType type : types)
+      {
+        Histogram H = mDecoys.get(type);
+        if (H!=null) H=H.generate(steps);
       }
   }
   public double score(double s, eType type)

@@ -692,7 +692,7 @@ public class MsReaders
   {
     for (MsnSpectrum ms : spectra)
     for (int scan : scans)
-      if (scan==ms.getScanNumbers().getFirst().getValue())
+      if (scan==-1 || scan==ms.getScanNumbers().getFirst().getValue())
       {
         // parse the isolated m/z. It maybe different from the precursor m/z
         String[] strs = ms.getComment().split("@")[0].split(" ");

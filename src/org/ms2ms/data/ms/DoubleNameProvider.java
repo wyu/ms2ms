@@ -17,6 +17,8 @@ public class DoubleNameProvider<V> implements VertexNameProvider<V>
     mDecimal=decimal;
   }
 
+  @Override
+  public String getName(V vertex) { return getVertexName(vertex); }
   /**
    * Returns the String representation of the unique integer representing a
    * vertex.
