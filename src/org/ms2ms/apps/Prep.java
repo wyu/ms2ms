@@ -29,6 +29,13 @@ public class Prep extends App
 
     return true;
   }
+
+  @Override
+  protected void addProperty(String... vals)
+  {
+
+  }
+
   protected void processCommandLine(String args[])
   {
     System.out.println(mAppName);

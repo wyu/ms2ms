@@ -1,13 +1,16 @@
 package org.ms2ms.apps;
 
+import com.google.common.collect.BiMap;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import org.ms2ms.graph.Property;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.GZIPInputStream;
 
 /**
  * Created with IntelliJ IDEA.
@@ -18,6 +21,9 @@ import java.util.List;
  */
 abstract public class App
 {
+  protected static BiMap<String, String> sParamKeys;
+
+  protected Property                 mParameters;
   protected String                   mOutfileRoot;
   protected boolean                  mVerbose;
   protected List<String>             mUsages;
@@ -82,6 +88,10 @@ abstract public class App
       {
         mOutfileRoot = args[i+1];
       }
+      else if (args[i].equals("-cfg") || args[i].equals("-config"))
+      {
+        readConfig(args[i+1]);
+      }
     }
   }//--------------------------------------------------------------------------
   private void verboseMsg(String inMsg)
@@ -108,6 +118,7 @@ abstract public class App
         System.out.println("    " + u);
   }
   abstract protected boolean doRun() throws Exception;
+  abstract protected void addProperty(String... vals);
 
   protected void close() throws IOException
   {
@@ -131,6 +142,39 @@ abstract public class App
       mUsages.add(Strs.toString(tags, "\t") + (Strs.isSet(usage) ? "\t:\t" + usage : ""));
     }
     return var;
+  }
+  protected void addParamKey(String... names)
+  {
+    if (names!=null && names.length>1) sParamKeys.put(names[0], names[1]);
+  }
+  protected App readConfig(String cfgname)
+  {
+    try
+    {
+      System.out.println("Reading the configuration from " + cfgname);
+      BufferedReader cfg = null;
+      try
+      {
+        cfg = new BufferedReader(new InputStreamReader(new FileInputStream(cfgname)));
+        while (cfg.ready())
+        {
+          String line = cfg.readLine().trim();
+          // ignore the comments
+          if (line.indexOf("//")==0 || line.indexOf("#")==0) continue;
+
+          if (line.indexOf(":")>0) addParamKey(Strs.split(line, ':', true));
+          else                     addProperty(Strs.split(line, '=', true));
+        }
+      }
+      finally {
+        if (cfg!=null) cfg.close();
+      }
+    }
+    catch (IOException ie)
+    {
+      ie.printStackTrace();
+    }
+    return this;
   }
 //  protected Config option(Config config, String usage, String[] args, int i, String... tags)
 //  {

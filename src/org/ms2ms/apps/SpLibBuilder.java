@@ -66,6 +66,13 @@ public class SpLibBuilder extends App
 
     return true;
   }
+
+  @Override
+  protected void addProperty(String... vals)
+  {
+
+  }
+
   public static void main(String args[]) throws Exception
   {
     System.exit((new SpLibBuilder()).tryRun(args));
