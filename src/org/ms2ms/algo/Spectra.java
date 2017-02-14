@@ -3,6 +3,7 @@ package org.ms2ms.algo;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
+import com.hfg.bio.ms.MsPeak;
 import org.expasy.mzjava.core.io.ms.spectrum.MgfWriter;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.*;
@@ -841,5 +842,26 @@ public class Spectra
     if (Strs.isSet(line)) ms.setComment(isolation+","+line);
 
     return ms;
+  }
+  public static Peak getFacileLost(MsnSpectrum ms, int bunch, double dominance)
+  {
+    if (ms!=null && ms.size()>3)
+    {
+      List<Peak> peaks = new ArrayList<>();
+      for (int i=0; i<ms.size(); i++)
+        peaks.add(new Peak(ms.getMz(i),ms.getIntensity(i)));
+
+      Collections.sort(peaks, new Peaks.IntensityDesendComparator());
+
+      Collection<Double> next = new ArrayList<>();
+      for (int i=1; i<peaks.size(); i++)
+      {
+        if (Math.abs(peaks.get(0).getMz()-peaks.get(i).getMz())>4) next.add(peaks.get(i).getIntensity());
+        if (next.size()>bunch) break;
+      }
+
+      return (peaks.get(0).getIntensity()/Stats.mean(next)>=dominance ? peaks.get(0):null);
+    }
+    return null;
   }
 }

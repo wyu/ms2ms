@@ -86,6 +86,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
   public FpmEntry setGapScore(    double s) { mGapScore  =s; return this; }
 //  public FpmEntry setStdErrRegression(double s) { mKaiScore  =s; return this; }
   public FpmEntry setIntensity(   double s) { mIntensities=s; return this; }
+  public FpmEntry setTrack(ImmutableList<AnnotatedPeak> s) { mTrack=s; return this; }
 
   public FpmEntry shallow_copy()
   {
