@@ -51,7 +51,30 @@ public class Peaks {
   public static final String CNT_PER_10AA = "peak counts per 10 residues";
   public static final String AI_MIN_REPORTER = "min intensity in the reporter region";
   public static final String AI_MIN = "min intensity";
+  public static final String PK_FACILE = "peak following facile neutral loss";
+  public static final String PK_DOM = "dominance";
+  public static final String MSMS = "MSMS";
+  public static final String REJECTED = "Rejected";
 
+  public static Map<String, String> sAbbr;
+
+  static
+  {
+    sAbbr = new HashMap<>();
+
+    sAbbr.put(CNT_GLOBAL,           "n.total");
+    sAbbr.put(CNT_GOOD,             "n.gd");
+    sAbbr.put(CNT_MULTIZ,           "n.z");
+    sAbbr.put(CNT_PER_10AA,         "n.10AA");
+    sAbbr.put(CNT_PRECURSOR_2,      "n>P");
+    sAbbr.put(CNT_PRECURSOR_2_GOOD, "n.gd>P");
+    sAbbr.put(CNT_REPORTER,         "n.rpt");
+    sAbbr.put(AI_MIN,              "ai.min");
+    sAbbr.put(AI_MIN_REPORTER,    "rpt.min");
+    sAbbr.put(PK_DOM,             "domn");
+    sAbbr.put(PK_FACILE,          "NL>");
+  }
+  public static String abbr(String s) { return sAbbr.get(s)!=null?sAbbr.get(s):s; }
   public static class IntensityDesendComparator implements Comparator<Peak> {
     public int compare(Peak o1, Peak o2) {
       return o1 != null && o2 != null ? Double.compare(o2.getIntensity(), o1.getIntensity()) : 0;

@@ -843,7 +843,7 @@ public class Spectra
 
     return ms;
   }
-  public static Peak getFacileLost(MsnSpectrum ms, int bunch, double dominance)
+  public static Peak getFacileLost(MsnSpectrum ms, int bunch)
   {
     if (ms!=null && ms.size()>3)
     {
@@ -860,7 +860,7 @@ public class Spectra
         if (next.size()>bunch) break;
       }
 
-      return (peaks.get(0).getIntensity()/Stats.mean(next)>=dominance ? peaks.get(0):null);
+      return new Peak(peaks.get(0).getMz(), peaks.get(0).getIntensity()/Stats.mean(next));
     }
     return null;
   }
