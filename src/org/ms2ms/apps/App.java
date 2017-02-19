@@ -119,6 +119,9 @@ abstract public class App
   }
   abstract protected boolean doRun() throws Exception;
   abstract protected void addProperty(String... vals);
+  abstract public String getOutFile();
+
+  public String getLogFile() { return getOutFile()+"_"+System.nanoTime()+".log"; }
 
   protected void close() throws IOException
   {
@@ -176,6 +179,23 @@ abstract public class App
     }
     return this;
   }
+  protected void logn()         { log("\n"); }
+  protected void logn(String s) { log(s+"\n"); }
+  protected void log( String s)
+  {
+    try
+    {
+      FileWriter w = null;
+      try
+      {
+        w = new FileWriter(getLogFile(), true);
+        w.write(s);
+      }
+      finally { if (w!=null) w.close(); }
+    }
+    catch (Exception e) { System.out.print(s); }
+  }
+
 //  protected Config option(Config config, String usage, String[] args, int i, String... tags)
 //  {
 //    if (args[i].charAt(0)=='-' && Tools.isSet(args) && args.length>i+1 && Tools.isA(args[i], tags))

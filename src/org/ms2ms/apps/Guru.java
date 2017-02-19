@@ -27,6 +27,8 @@ public class Guru extends App
       mIdRoot     = option(mIdRoot, "The folder containing the mzXML files and msms.txt from MaxQuant", args, i, "-I", "-ids");
     }
   }
+  public String getOutFile() { return null; }
+
   @Override
   protected boolean doRun() throws Exception
   {

@@ -35,6 +35,7 @@ public class Prep extends App
   {
 
   }
+  public String getOutFile() { return null; }
 
   protected void processCommandLine(String args[])
   {

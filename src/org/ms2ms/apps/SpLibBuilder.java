@@ -42,6 +42,7 @@ public class SpLibBuilder extends App
       mLibRoot     = option(mLibRoot, "Root folder where the libraries are stored", args, i, "-in");
     }
   }
+  public String getOutFile() { return null; }
   @Override
   protected boolean doRun() throws Exception
   {
