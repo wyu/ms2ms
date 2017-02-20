@@ -118,8 +118,8 @@ abstract public class App
         System.out.println("    " + u);
   }
   abstract protected boolean doRun() throws Exception;
-  abstract protected void addProperty(String... vals);
-  abstract public String getOutFile();
+  abstract protected void    addProperty(String... vals);
+  abstract public    String  getOutFile();
 
   public String getLogFile() { return getOutFile()+"_"+System.nanoTime()+".log"; }
 
