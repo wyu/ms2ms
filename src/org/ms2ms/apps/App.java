@@ -24,7 +24,7 @@ abstract public class App
   protected static BiMap<String, String> sParamKeys;
 
   protected Property                 mParameters;
-  protected String                   mOutfileRoot;
+  protected String                   mOutfileRoot, mWorkingRoot;
   protected boolean                  mVerbose;
   protected List<String>             mUsages;
   protected Config                   mConfig = ConfigFactory.load();
@@ -84,6 +84,10 @@ abstract public class App
       {
         setVerbose(true); // Turn verbose mode on
       }
+      else if (args[i].equals("-w") || args[i].equals("-working"))
+      {
+        mWorkingRoot = args[i+1];
+      }
       else if (args[i].equals("-o") || args[i].equals("-outfile"))
       {
         mOutfileRoot = args[i+1];
@@ -121,7 +125,8 @@ abstract public class App
   abstract protected void    addProperty(String... vals);
   abstract public    String  getOutFile();
 
-  public String getLogFile() { return getOutFile()+"_"+System.nanoTime()+".log"; }
+  public String getWorkingRoot() { return Strs.isSet(mWorkingRoot) ? mWorkingRoot+"/":""; }
+  public String getLogFile()     { return getOutFile()+"_"+System.nanoTime()+".log"; }
 
   protected void close() throws IOException
   {
