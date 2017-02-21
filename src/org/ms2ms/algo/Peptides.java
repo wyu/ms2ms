@@ -145,24 +145,14 @@ public class Peptides
   // setup a simple mapping of the AA symbol and their incremental masses
   public static ImmutableMap<Character, Float> newAAsMass(String fixed)
   {
-//    Map<Character, Double> AAs = new HashMap<>();
-//    AAs.put('G', 57.02146d );AAs.put('A', 71.03711d );AAs.put('S', 87.03203d );AAs.put('P', 97.05276d );AAs.put('V', 99.06841d);
-//    AAs.put('T', 101.04768d);AAs.put('I', 113.08406d);AAs.put('L', 113.08406d);AAs.put('N', 114.04293d);AAs.put('D', 115.02694d);
-//    AAs.put('Q', 128.05858d);AAs.put('E', 129.04259d);AAs.put('M', 131.04049d);AAs.put('H', 137.05891d);AAs.put('F', 147.06841d);
-//    AAs.put('R', 156.10111d);AAs.put('C', 160.03065d);AAs.put('Y', 163.06333d);AAs.put('W', 186.07931d);AAs.put('K', 128.09496d); AAs.put('U',150.95363d);
-//    AAs.put('^', 1.00783d  ); // N-terminal mod
-//    AAs.put('$', 17.00273d ); // C-terminal mod
-
     if ("tmt10".equalsIgnoreCase(fixed) || "tmt6".equalsIgnoreCase(fixed))
     {
       TreeMap<Character, Float> map = new TreeMap<>(AAsBuilder.build());
       map.put('K', 357.25789f); map.put('^', 229.162932f); // TMT-10
 
       return ImmutableMap.copyOf(map);
-//      AAs.put('K', 357.25789d);
-//      AAs.put('^', 229.162932d); // TMT-10
     }
-    return null;
+    return ImmutableMap.copyOf(new TreeMap<>(AAsBuilder.build()));
   }
   // calculate the MH value of the peptide defined by the positions (left, right, inclusive) onto the 'sequence'
   public static double calcMH(char[] sequence, int left, int right, float[] AAs)
