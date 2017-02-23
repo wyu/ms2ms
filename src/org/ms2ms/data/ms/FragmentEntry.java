@@ -1,13 +1,19 @@
 package org.ms2ms.data.ms;
 
 import org.ms2ms.Disposable;
+import org.ms2ms.data.Binary;
+import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
+
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 
 /**
  * Created by yuw on 8/4/16.
  */
-public class FragmentEntry implements Comparable<FragmentEntry>, Disposable
+public class FragmentEntry implements Comparable<FragmentEntry>, Disposable, Binary
 {
   private int   mLength;
   private int  mPeptideKey;
@@ -59,4 +65,26 @@ public class FragmentEntry implements Comparable<FragmentEntry>, Disposable
 
   @Override
   public void dispose() { mPrev=null; }
+
+  @Override
+  public void write(DataOutput ds) throws IOException
+  {
+    IOs.write(ds, mLength);
+    IOs.write(ds, mPeptideKey);
+    IOs.write(ds, mMH);
+    // can't write the actual object. to avoid recursive
+    // write the peptide seq key and MH so we can hook up the right frag at later time
+    IOs.write(ds, mPrev!=null?mPrev.mMH:0f);
+  }
+
+  @Override
+  public void read(DataInput ds) throws IOException
+  {
+    mLength = IOs.read(ds, mLength);
+    mPeptideKey = IOs.read(ds, mPeptideKey);
+    mMH = IOs.read(ds, mMH);
+
+    float p = IOs.read(ds, mMH);
+    if (p!=0f) mPrev = new FragmentEntry(p, 0, null, 0);
+  }
 }
