@@ -519,6 +519,7 @@ public class Spectra
     // keep a copy of the intensities
     List<Double> ai = new ArrayList<>();
     for (int i=0; i<peaks.size(); i++) ai.add(Math.pow(peaks.getIntensity(i), power));
+//    for (int i=0; i<peaks.size(); i++) ai.add(Math.log(peaks.getIntensity(i)));
 
     for (int i=0; i<peaks.size(); i++)
     {
