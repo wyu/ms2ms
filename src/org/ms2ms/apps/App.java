@@ -126,7 +126,7 @@ abstract public class App
   abstract public    String  getOutFile();
 
   public String getWorkingRoot() { return Strs.isSet(mWorkingRoot) ? mWorkingRoot+"/":""; }
-  public String getLogFile()     { return getOutFile()+"_"+System.nanoTime()+".log"; }
+  public String getLogFile()     { return getOutFile()+".log"; }
 
   protected void close() throws IOException
   {

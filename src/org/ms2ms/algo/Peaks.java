@@ -16,6 +16,7 @@ import org.ms2ms.data.collect.NavigableMultimap;
 import org.ms2ms.data.collect.TreeListMultimap;
 import org.ms2ms.data.ms.FragmentEntry;
 import org.ms2ms.data.ms.IsoEnvelope;
+import org.ms2ms.data.ms.OffsetPpmTolerance;
 import org.ms2ms.math.Points;
 import org.ms2ms.math.Stats;
 import org.ms2ms.mzjava.AnnotatedPeak;
@@ -277,9 +278,8 @@ public class Peaks {
     return toMH(p.getMz(), p.getCharge());
   }
 
-  public static double toMH(double mz, int z) {
-    return (mz * z - (z - 1) * 1.007825);
-  }
+  public static double toMH(double mz, int z) { return (mz * z - (z - 1) * 1.007825); }
+  public static double MnH2MnH(double mh, int z1, int z2) { return toMH(toMass(mh,z1),z2); }
 
   public static double toMass(double mz, int z) {
     return (mz - 1.007825) * z;
@@ -795,9 +795,26 @@ public class Peaks {
     return Tools.isSet(mz) ? Tools.isSet(indices.asMap().subMap(mz.lowerEndpoint().floatValue(), mz.upperEndpoint().floatValue())) : false;
   }
 
-  public static List<FragmentEntry> query(NavigableMultimap<Float, FragmentEntry> indices, float[] range) {
+  // TODO need to clear the list when done!
+  public static List<FragmentEntry> query(NavigableMultimap<Float, FragmentEntry> indices, float[] range)
+  {
     return range != null ? indices.subList(range[0], range[1]) : null;
   }
+//  public static List<FragmentEntry> query(NavigableMultimap<Float, FragmentEntry> indices, float mh, OffsetPpmTolerance tol, int maxZ)
+//  {
+//    // setup the 1+ fragments
+//    float[]               R = tol.toExpectedBoundary(mh);
+//    List<FragmentEntry> out = indices.subList(R[0], R[1]);
+//
+//    if (maxZ>1 && out!=null)
+//      for (int z=2; z<=maxZ; z++)
+//      {
+//        R = tol.toExpectedBoundary((float )Peaks.MnH2MnH(mh,1,z));
+//        Tools.addAll(out, indices.subList(R[0], R[1]));
+//      }
+//
+//    return out;
+//  }
 
   public static boolean match(TreeListMultimap<Double, FragmentEntry> indices, Range<Double> mz) {
     return Tools.isSet(mz) ? indices.containsKey(mz.lowerEndpoint(), mz.upperEndpoint()) : false;

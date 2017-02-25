@@ -391,10 +391,17 @@ public class Spectra
 
     return ms;
   }
+  public static PeakList accumulate(PeakList A, PeakList B, Tolerance tol)
+  {
+    PeakList out = A.copy(new PurgingPeakProcessor());
+
+    out.addPeaks(B);
+    A.clear(); A.addPeaks(Peaks.consolidate(out, tol));
+
+    return A;
+  }
   public static boolean deisotope(PeakList peaks, Tolerance tol, int maxcharge, double zzstart)
   {
-//    System.out.println();
-
     PeakList out = peaks.copy(new PurgingPeakProcessor()); out.clear();
 
     Set<Integer> searched = new HashSet<>(peaks.size()); double isos=0, isobad=0;

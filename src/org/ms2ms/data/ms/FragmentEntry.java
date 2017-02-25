@@ -15,8 +15,9 @@ import java.io.IOException;
  */
 public class FragmentEntry implements Comparable<FragmentEntry>, Disposable, Binary
 {
+  private char  mCharge=1;
   private int   mLength;
-  private int  mPeptideKey;
+  private int   mPeptideKey;
   private float mMH;
   private FragmentEntry mPrev;
 
@@ -26,10 +27,16 @@ public class FragmentEntry implements Comparable<FragmentEntry>, Disposable, Bin
     super();
     mLength=s.mLength; mPeptideKey=s.mPeptideKey; mMH=s.mMH; mPrev=s.mPrev;
   }
+  @Deprecated
   public FragmentEntry(Float mh, int peptide, FragmentEntry prev, int len)
   {
     super();
     mMH=mh; mPeptideKey=peptide; mPrev=prev; mLength=len;
+  }
+  public FragmentEntry(Float mh, char z, int peptide, FragmentEntry prev, int len)
+  {
+    super();
+    mMH=mh; mPeptideKey=peptide; mPrev=prev; mLength=len; mCharge=z;
   }
 
   public int           getLength()     { return mLength; }
@@ -46,7 +53,7 @@ public class FragmentEntry implements Comparable<FragmentEntry>, Disposable, Bin
 
   public FragmentEntry copy()
   {
-    return new FragmentEntry(mMH, mPeptideKey, mPrev, mLength);
+    return new FragmentEntry(mMH, mCharge, mPeptideKey, mPrev, mLength);
   }
   @Override
   public int compareTo(FragmentEntry o)
@@ -70,6 +77,7 @@ public class FragmentEntry implements Comparable<FragmentEntry>, Disposable, Bin
   public void write(DataOutput ds) throws IOException
   {
     IOs.write(ds, mLength);
+    IOs.write(ds, mCharge);
     IOs.write(ds, mPeptideKey);
     IOs.write(ds, mMH);
     // can't write the actual object. to avoid recursive
@@ -81,10 +89,11 @@ public class FragmentEntry implements Comparable<FragmentEntry>, Disposable, Bin
   public void read(DataInput ds) throws IOException
   {
     mLength = IOs.read(ds, mLength);
+    mCharge = IOs.read(ds, mCharge);
     mPeptideKey = IOs.read(ds, mPeptideKey);
     mMH = IOs.read(ds, mMH);
 
     float p = IOs.read(ds, mMH);
-    if (p!=0f) mPrev = new FragmentEntry(p, 0, null, 0);
+    if (p!=0f) mPrev = new FragmentEntry(p, '0', 0, null, 0);
   }
 }
