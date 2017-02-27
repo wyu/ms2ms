@@ -3,6 +3,7 @@ package org.ms2ms.data.ms;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.UnmodifiableIterator;
 import com.sun.xml.bind.v2.schemagen.xmlschema.Annotated;
+import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.ms2ms.Disposable;
 import org.ms2ms.algo.Peaks;

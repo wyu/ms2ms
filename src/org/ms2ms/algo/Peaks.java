@@ -94,6 +94,12 @@ public class Peaks {
     }
   }
 
+  public static class MzDesendComparator implements Comparator<Peak> {
+    public int compare(Peak o1, Peak o2) {
+      return o1 != null && o2 != null ? Double.compare(o2.getMz(), o1.getMz()) : 0;
+    }
+  }
+
   public static boolean isType(PepLibPeakAnnotation s, IonType... types) {
     try {
       IonType ion = s.getOptFragmentAnnotation().get().getIonType();
@@ -279,7 +285,8 @@ public class Peaks {
   }
 
   public static double toMH(double mz, int z) { return (mz * z - (z - 1) * 1.007825); }
-  public static double MnH2MnH(double mh, int z1, int z2) { return toMH(toMass(mh,z1),z2); }
+  public static double MnH2MnH(double mh, int z1, int z2) { return (toMass(mh,z1)+z2*Peptides.H)/(double )z2; }
+  public static float  MnH2MnH(float mh, int z1, int z2) { return (float )(toMass((double )mh,z1)+z2*Peptides.H)/(float )z2; }
 
   public static double toMass(double mz, int z) {
     return (mz - 1.007825) * z;
@@ -1285,5 +1292,24 @@ public class Peaks {
       //Tools.dispose(  pk);
     }
     return found;
+  }
+  public static List<AnnotatedPeak> accumulate(List<AnnotatedPeak> A, List<AnnotatedPeak> B)
+  {
+    if (A==null) return B;
+    if (B==null) return A;
+
+    for (AnnotatedPeak pk : B)
+      if (!A.contains(pk)) A.add(pk);
+
+    Collections.sort(A);
+    return A;
+  }
+  public static double[] MH2Mzs(double mh, int zlower, int zupper)
+  {
+    double mzs[] = new double[zupper-zlower+1];
+    for (int z=zlower; z<=zupper; z++)
+      mzs[z-zlower] = MnH2MnH(mh, 1, z);
+
+    return mzs;
   }
 }

@@ -286,6 +286,19 @@ public class Peptides
     return ys;
   }
   // generate the predicted fragments of the peptide.
+  public static int[] toZYs(char[] peptide)
+  {
+    if (peptide==null || peptide.length==0) return null;
+
+    int z=0; int[] ys = new int[peptide.length];
+    for (int i=0; i<peptide.length; i++)
+    {
+      z    += ("KR".indexOf(peptide[peptide.length-i-1])>=0?1:0);
+      ys[i] = z;
+    }
+    return ys;
+  }
+  // generate the predicted fragments of the peptide.
   public static float[] toBs(char[] peptide, Map<Integer, Double> mods, float[] AAs)
   {
     if (peptide==null || peptide.length==0) return null;
@@ -296,6 +309,18 @@ public class Peptides
     {
       b+=AAs[peptide[i]]+(mods!=null&&mods.get(i)!=null?mods.get(i).floatValue():0f);
       bs[i] = b;
+    }
+    return bs;
+  }
+  public static int[] toZBs(char[] peptide)
+  {
+    if (peptide==null || peptide.length==0) return null;
+
+    int z=0; int[] bs = new int[peptide.length];
+    for (int i=0; i<peptide.length; i++)
+    {
+      z    += ("KR".indexOf(peptide[i])>=0?1:0);
+      bs[i] = z;
     }
     return bs;
   }
