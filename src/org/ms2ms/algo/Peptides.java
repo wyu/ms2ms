@@ -290,11 +290,11 @@ public class Peptides
   {
     if (peptide==null || peptide.length==0) return null;
 
-    int z=0; int[] ys = new int[peptide.length];
+    float z=0; int[] ys = new int[peptide.length];
     for (int i=0; i<peptide.length; i++)
     {
-      z    += ("KR".indexOf(peptide[peptide.length-i-1])>=0?1:0);
-      ys[i] = z;
+      z    += ("KR".indexOf(peptide[peptide.length-i-1])>=0?1:("H".indexOf(peptide[i])>=0?0.5:0));
+      ys[i] = Math.round(z);
     }
     return ys;
   }
@@ -316,11 +316,11 @@ public class Peptides
   {
     if (peptide==null || peptide.length==0) return null;
 
-    int z=0; int[] bs = new int[peptide.length];
+    float z=0.5f; int[] bs = new int[peptide.length];
     for (int i=0; i<peptide.length; i++)
     {
-      z    += ("KR".indexOf(peptide[i])>=0?1:0);
-      bs[i] = z;
+      z    += ("KR".indexOf(peptide[i])>=0?1:("H".indexOf(peptide[i])>=0?0.5:0));
+      bs[i] = Math.round(z);
     }
     return bs;
   }
