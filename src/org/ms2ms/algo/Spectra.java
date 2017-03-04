@@ -673,7 +673,7 @@ public class Spectra
 
       // estimates the local frequency
       left=i-10;right=i+10;
-      if      (left <0)           { left =0;          right=Math.min(left+20,ms.size()); }
+      if      (left <0)           { left =0;          right=Math.min(left+20,ms.size()-1); }
       else if (right>ms.size()-1) { right=ms.size()-1; left=Math.max(right-20, 0); }
 
       AnnotatedPeak pk = new AnnotatedPeak(ms.getMz(i), ms.getIntensity(i));
