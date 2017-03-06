@@ -459,6 +459,7 @@ public class Spectra
     // indicating rejection due to skewed isotope envelop
     return (isobad/isos>=0.5);
   }
+
   public static PeakList toSNR(PeakList peaks)
   {
     double noise=Double.MAX_VALUE;

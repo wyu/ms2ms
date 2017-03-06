@@ -3,6 +3,7 @@ package org.ms2ms.data.ms;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.ms2ms.algo.Isotopes;
+import org.ms2ms.algo.Isotopics;
 import org.ms2ms.algo.Peaks;
 import org.ms2ms.algo.Similarity;
 import org.ms2ms.utils.Tools;
@@ -42,6 +43,35 @@ public class IsoEnvelope extends Peak
     mPredicted.add(new Peak(0.0, 1.0));
 
     Isotopes.calculate(tmp, mPredicted, formula, limit, charge);
+
+    // move the predictions to the c12
+    double offset = c12 - mPredicted.get(0).getMz(), min_ai = mPredicted.get(0).getIntensity()*minri*0.01;
+    // scale the ai to the 1st c12
+    ai /= mPredicted.get(0).getIntensity();
+
+    Iterator<Peak> itr = mPredicted.iterator();
+    while (itr.hasNext())
+    {
+      Peak pk = itr.next();
+      pk.setMzAndCharge(pk.getMz()+offset, pk.getChargeList());
+      pk.setIntensity(pk.getIntensity()*ai);
+      if (pk.getIntensity() < min_ai) itr.remove();
+    }
+  }
+  public IsoEnvelope(double c12, int charge, double minri, double ai, Isotopics iso)
+  {
+    super(c12, ai, charge);
+
+    double               limit = 0;
+    List<Peak>             tmp = new ArrayList<>();
+    Map<Integer, Long> formula = iso.newFormulaMapByAveragine(c12 * charge);
+
+    mPredicted = new ArrayList<>();
+
+    // initialize the result
+    mPredicted.add(new Peak(0.0, 1.0));
+
+    iso.calculate(tmp, mPredicted, formula, limit, charge);
 
     // move the predictions to the c12
     double offset = c12 - mPredicted.get(0).getMz(), min_ai = mPredicted.get(0).getIntensity()*minri*0.01;

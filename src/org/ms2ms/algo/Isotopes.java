@@ -1,6 +1,5 @@
 package org.ms2ms.algo;
 
-import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Range;
 import com.google.common.collect.Table;
 import com.hfg.bio.Element;
@@ -361,15 +360,6 @@ H  2
       if (pk.getIntensity() < min_ai) itr.remove();
     }
 
-    // scale the isotopes
-//    double scale = c12 / result.get(0).getMz(), min_ai = result.get(0).getIntensity() * 0.001;
-//    Iterator<Peak> itr = result.iterator();
-//    while (itr.hasNext())
-//    {
-//      Peak pk = itr.next();
-//      pk.setMzAndCharge(pk.getMz() * scale, pk.getChargeList());
-//      if (pk.getIntensity() < min_ai) itr.remove();
-//    }
     if (!Tools.isSet(result))
       System.out.print("");
 
