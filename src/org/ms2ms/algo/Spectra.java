@@ -1,8 +1,6 @@
 package org.ms2ms.algo;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Range;
+import com.google.common.collect.*;
 import com.hfg.bio.ms.MsPeak;
 import org.expasy.mzjava.core.io.ms.spectrum.MgfWriter;
 import org.expasy.mzjava.core.ms.Tolerance;
@@ -10,6 +8,7 @@ import org.expasy.mzjava.core.ms.peaklist.*;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeList;
+import org.junit.Test;
 import org.ms2ms.data.ms.IsoEnvelope;
 import org.ms2ms.data.ms.OffsetPpmTolerance;
 import org.ms2ms.io.MsReaders;
@@ -873,4 +872,76 @@ public class Spectra
     }
     return null;
   }
+  public static Map<String, MsnSpectrum> combineCharges(Map<String, MsnSpectrum> spectra, OffsetPpmTolerance precursor, double rt_sec, boolean verbose)
+  {
+    // looking for charge combo
+    int z3=0;
+    TreeMap<               Double, MsnSpectrum>    ai_ms = new TreeMap<>(Ordering.natural().reverse());
+    TreeBasedTable<Double, Double, MsnSpectrum> mh_rt_ms = TreeBasedTable.create();
+    for (MsnSpectrum ms : spectra.values())
+    {
+//      if (ms.getPrecursor().getCharge()>2)
+//        z3++;
+      if (ms.getMsLevel()<2) ms.setMsLevel(2);
+      ai_ms.put(ms.getTotalIonCurrent(), ms);
+      mh_rt_ms.put(Peaks.toMH(ms.getPrecursor().getMz(), ms.getPrecursor().getCharge()), ms.getRetentionTimes().getFirst().getTime(), ms);
+    }
+
+    // go down the intensity ladder
+    int cluster_counts=0;
+    TreeMultimap<Double, Integer> clusters = TreeMultimap.create();
+    for (Double ai : ai_ms.keySet())
+    {
+      MsnSpectrum M = ai_ms.get(ai);
+
+      if (M==null || M.getMsLevel()==0) continue;
+
+      // fetch the spectra in the vicinity
+      Double        rt0 = M.getRetentionTimes().getFirst().getTime(), mh0 = Peaks.toMH(M.getPrecursor());
+      Range<Double> mzr = precursor.getBoundary(mh0);
+      SortedMap<Double, Map<Double, MsnSpectrum>> slice = mh_rt_ms.rowMap().subMap(mzr.lowerEndpoint(), mzr.upperEndpoint());
+      if (Tools.isSet(slice))
+      {
+        for (Map<Double, MsnSpectrum> mm : slice.values())
+          for (MsnSpectrum m : mm.values())
+            if (Math.abs(m.getRetentionTimes().getFirst().getTime()-rt0)<=rt_sec) // secs
+            {
+              clusters.put(mh0, m.getScanNumbers().getFirst().getValue());
+              m.setMsLevel(0);
+            }
+
+        if (Tools.isSet(clusters.get(mh0)) && clusters.get(mh0).size()>1) cluster_counts++;
+      }
+    }
+    // preduce the output
+    Map<String, MsnSpectrum> combo = new TreeMap<>();
+
+    // check to see if there are any 3+ or higher MS/MS without siblings
+    if (verbose) System.out.println("M+H\tScan\tz\tm/z");
+    for (Double mh : clusters.keySet())
+    {
+      MsnSpectrum combined=null;
+      for (Integer scan : clusters.get(mh))
+      {
+        MsnSpectrum ms = spectra.get(scan+"");
+        combined = combined==null?ms:(MsnSpectrum )Spectra.accumulate(combined, ms, precursor);
+      }
+      combined.setFragMethod(Strs.toString(clusters.get(mh), "+"));
+
+      // deposit the combined for each scan
+      for (Integer scan : clusters.get(mh))
+        combo.put(scan+"", combined);
+
+      if (verbose && clusters.get(mh).size()==1)
+      {
+        MsnSpectrum ms=spectra.get(Tools.front(clusters.get(mh))+"");
+        if (ms!=null&&ms.getPrecursor().getCharge()>2)
+          System.out.println(Tools.d2s(mh, 4)+"\t"+ms.getScanNumbers().getFirst().getValue()+"\t"+ms.getPrecursor().getCharge()+"\t"+Tools.d2s(ms.getPrecursor().getMz(), 4));
+      }
+    }
+    if (verbose) System.out.println("Spectra counts (multi/cluster/total): " + cluster_counts+"/"+clusters.keySet().size()+"/"+spectra.values().size());
+
+    return combo;
+  }
+
 }
