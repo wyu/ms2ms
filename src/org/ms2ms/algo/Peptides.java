@@ -225,7 +225,7 @@ public class Peptides
     return Ct;
   }
   // generate the predicted fragments of the peptide.
-  public static Map<Float, String> toFragments(char[] peptide, Map<Integer, Double> mods, float[] AAs)
+  public static Map<Float, String> toFragments(char[] peptide, Map<Integer, Double> mods, float[] AAs, Float minMH)
   {
     if (peptide==null || peptide.length==0) return null;
 
@@ -245,14 +245,14 @@ public class Peptides
       if ("RKQN".indexOf(peptide[i])>=0) b_17++;
       if ("STED".indexOf(peptide[i])>=0) b_18++;
 
-      frags.put((float )y,      "y"+(i+1));
-      frags.put((float)(y-NH3), "z"+(i+1));
-      frags.put((float )b,      "b"+(i+1));
-      frags.put((float )(b-CO), "a"+(i+1));
+      Tools.put(frags, (float) y, "y"+(i+1),      minMH);
+      Tools.put(frags, (float)(y-NH3), "z"+(i+1), minMH);
+      Tools.put(frags, (float )b,      "b"+(i+1), minMH);
+      Tools.put(frags, (float) (b-CO), "a"+(i+1), minMH);
 
       // any neutral loss?
-      if (y_17>0) frags.put((float )(y-NH3), "y"+(i+1)+"-17");
-      if (b_18>0) frags.put((float )(b-H2O), "b"+(i+1)+"-18");
+      if (y_17>0) Tools.put(frags, (float) (y-NH3), "y"+(i+1)+"-17", minMH);
+      if (b_18>0) Tools.put(frags, (float) (b-H2O), "b"+(i+1)+"-18", minMH);
 
       // get the internal ions
       if (i>0)
@@ -263,8 +263,8 @@ public class Peptides
           if (i+k>=peptide.length) break;
           // calculate the expected mass
           internal+=AAs[peptide[k+i]]; intn28=(float )(internal-CO);
-          if (!frags.containsKey(internal)) frags.put(internal, Strs.toString(peptide, i,i+k));
-          if (!frags.containsKey(intn28))   frags.put(intn28,   Strs.toString(peptide, i,i+k)+"-28");
+          if (!frags.containsKey(internal)) Tools.put(frags, internal, Strs.toString(peptide, i, i+k),     minMH);
+          if (!frags.containsKey(intn28))   Tools.put(frags, intn28, Strs.toString(peptide, i, i+k)+"-28", minMH);
         }
       }
     }

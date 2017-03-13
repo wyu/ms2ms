@@ -1,14 +1,11 @@
 package org.ms2ms.algo;
 
 import com.google.common.collect.*;
-import com.hfg.bio.ms.MsPeak;
-import org.expasy.mzjava.core.io.ms.spectrum.MgfWriter;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.*;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeList;
-import org.junit.Test;
 import org.ms2ms.data.ms.IsoEnvelope;
 import org.ms2ms.data.ms.OffsetPpmTolerance;
 import org.ms2ms.io.MsReaders;
@@ -18,6 +15,8 @@ import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.mzjava.IsotopePeakAnnotation;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
+import uk.ac.ebi.jmzml.model.mzml.Spectrum;
+import uk.ac.ebi.jmzml.xml.io.MzMLObjectIterator;
 
 import java.io.IOException;
 import java.util.*;
@@ -390,14 +389,18 @@ public class Spectra
 
     return ms;
   }
-  public static PeakList accumulate(PeakList A, PeakList B, Tolerance tol)
+  public static PeakList accumulate(Tolerance tol, PeakList... As)
   {
-    PeakList out = A.copy(new PurgingPeakProcessor());
+    if (!Tools.isSet(As)) return null;
 
-    out.addPeaks(B);
-    A.clear(); A.addPeaks(Peaks.consolidate(out, tol));
+    PeakList out = As[0].copy(new PurgingPeakProcessor());
 
-    return A;
+    for (int i=1; i<As.length; i++) out.addPeaks(As[i]);
+
+    PeakList merged = As[0].copy(new PurgingPeakProcessor());
+    merged.clear(); merged.addPeaks(Peaks.consolidate(out, tol));
+
+    return merged;
   }
   public static boolean deisotope(PeakList peaks, Tolerance tol, int maxcharge, double zzstart)
   {
@@ -872,6 +875,25 @@ public class Spectra
     }
     return null;
   }
+  public static MsnSpectrum combineCharges(Map<String, MsnSpectrum> spectra, OffsetPpmTolerance precursor, Collection<Integer> scans)
+  {
+    return combineCharges(spectra, precursor, Strs.toStringArray(scans));
+  }
+  public static MsnSpectrum combineCharges(Map<String, MsnSpectrum> spectra, OffsetPpmTolerance precursor, String... scans)
+  {
+    PeakList[] specs = new PeakList[scans.length]; String line=null;
+    for (int i=0; i<scans.length; i++)
+    {
+      specs[i] = spectra.get(scans[i]);
+      line = Strs.extend(line, spectra.get(scans[i]).getScanNumbers().getFirst().getValue()+"@"+
+          (specs[i].getPrecursor().getCharge()>0?"+":"")+specs[i].getPrecursor().getCharge(),";");
+    }
+
+    MsnSpectrum combined = (MsnSpectrum )Spectra.accumulate(precursor, specs);
+    combined.setFragMethod(line);
+
+    return combined;
+  }
   public static Map<String, MsnSpectrum> combineCharges(Map<String, MsnSpectrum> spectra, OffsetPpmTolerance precursor, double rt_sec, boolean verbose)
   {
     // looking for charge combo
@@ -920,13 +942,13 @@ public class Spectra
     if (verbose) System.out.println("M+H\tScan\tz\tm/z");
     for (Double mh : clusters.keySet())
     {
-      MsnSpectrum combined=null;
-      for (Integer scan : clusters.get(mh))
-      {
-        MsnSpectrum ms = spectra.get(scan+"");
-        combined = combined==null?ms:(MsnSpectrum )Spectra.accumulate(combined, ms, precursor);
-      }
-      combined.setFragMethod(Strs.toString(clusters.get(mh), "+"));
+      MsnSpectrum combined=combineCharges(spectra, precursor, clusters.get(mh));
+//      for (Integer scan : clusters.get(mh))
+//      {
+//        MsnSpectrum ms = spectra.get(scan+"");
+//        combined = combined==null?ms:(MsnSpectrum )Spectra.accumulate(precursor, combined, ms);
+//      }
+//      combined.setFragMethod(Strs.toString(clusters.get(mh), "+"));
 
       // deposit the combined for each scan
       for (Integer scan : clusters.get(mh))
@@ -944,4 +966,60 @@ public class Spectra
     return combo;
   }
 
+  public static TreeMultimap<Double, Integer> locChargeClusters(MzMLObjectIterator<Spectrum> spectrumIterator, OffsetPpmTolerance tol, double rt_sec) throws IOException
+  {
+    // looping through the scans
+    int counts=0;
+
+    TreeMap<               Double, MsnSpectrum>    ai_ms = new TreeMap<>(Ordering.natural().reverse());
+    TreeBasedTable<Double, Double, MsnSpectrum> mh_rt_ms = TreeBasedTable.create();
+    while (spectrumIterator.hasNext())
+    {
+      MsnSpectrum ms = MsReaders.from(spectrumIterator.next());
+      if (ms.getMsLevel()==2)
+      {
+        if (++counts % 1000 == 0) System.out.print(".");
+        // tag the MS level to indicate unaffected spectrum
+        if (ms.getMsLevel()<2) ms.setMsLevel(2);
+        ai_ms.put(ms.getTotalIonCurrent(), ms);
+        mh_rt_ms.put(Peaks.toMH(ms.getPrecursor().getMz(), ms.getPrecursor().getCharge()), ms.getRetentionTimes().getFirst().getTime(), ms);
+      }
+    }
+
+    // go down the intensity ladder
+    TreeMultimap<Double, Integer> clusters = cluster(mh_rt_ms, ai_ms, tol, rt_sec);
+
+    Tools.dispose(ai_ms); Tools.dispose(mh_rt_ms);
+    return clusters;
+  }
+  public static TreeMultimap<Double, Integer> cluster(TreeBasedTable<Double, Double, MsnSpectrum> mh_rt_ms,
+                                                      TreeMap<               Double, MsnSpectrum>    ai_ms,
+                                                      OffsetPpmTolerance tol, double rt_sec)
+  {
+    // go down the intensity ladder
+    TreeMultimap<Double, Integer> clusters = TreeMultimap.create();
+    for (Double ai : ai_ms.keySet())
+    {
+      MsnSpectrum M = ai_ms.get(ai);
+
+      if (M==null || M.getMsLevel()==0) continue;
+
+      // fetch the spectra in the vicinity
+      Double        rt0 = M.getRetentionTimes().getFirst().getTime(), mh0 = Peaks.toMH(M.getPrecursor());
+      Range<Double> mzr = tol.getBoundary(mh0);
+      SortedMap<Double, Map<Double, MsnSpectrum>> slice = mh_rt_ms.rowMap().subMap(mzr.lowerEndpoint(), mzr.upperEndpoint());
+      if (Tools.isSet(slice))
+      {
+        for (Map<Double, MsnSpectrum> mm : slice.values())
+          for (MsnSpectrum m : mm.values())
+            if (Math.abs(m.getRetentionTimes().getFirst().getTime()-rt0)<=rt_sec) // secs
+            {
+              clusters.put(mh0, m.getScanNumbers().getFirst().getValue());
+              m.setMsLevel(0);
+            }
+      }
+    }
+
+    return clusters;
+  }
 }
