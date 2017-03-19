@@ -22,8 +22,10 @@ import org.ms2ms.math.Stats;
 import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.mzjava.IsotopePeakAnnotation;
 import org.ms2ms.utils.Strs;
+import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -965,7 +967,22 @@ public class Peaks {
 
     return sum;
   }
+  public static <T extends Peak> double IntensitySum(T... peaks)
+  {
+    if (!Tools.isSet(peaks)) return 0;
 
+    double sum = 0d;
+    for (T peak : peaks) sum += peak.getIntensity();
+
+    return sum;
+  }
+  public static <T extends Peak> boolean hasNegativeIntensity(T... peaks)
+  {
+    if (Tools.isSet(peaks))
+      for (T peak : peaks) if (peak.getIntensity()<0) return true;
+
+    return false;
+  }
   public static int[] charges(PeakList peaks, int i) {
     List<Integer> zs = new ArrayList<>();
     if (peaks != null && i >= 0 && i < peaks.size()) {
@@ -1311,5 +1328,13 @@ public class Peaks {
       mzs[z-zlower] = MnH2MnH(mh, 1, z);
 
     return mzs;
+  }
+  public static AnnotatedPeak setProperties(AnnotatedPeak pk, TabFile f, String... keys) throws IOException
+  {
+    if (f!=null && Tools.isSet(keys))
+      for (String key : keys)
+        pk.setProperty(key, f.getDouble(key));
+
+    return pk;
   }
 }

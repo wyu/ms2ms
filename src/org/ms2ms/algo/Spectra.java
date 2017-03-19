@@ -440,7 +440,7 @@ public class Spectra
         if (found>=i && !searched.contains(found))
         {
           out.add(peaks.getMz(found)*charge - (charge-1)*1.007825d, peaks.getIntensity(found),
-                  new IsotopePeakAnnotation(iso.getCharge(), order++));
+                  new IsotopePeakAnnotation(iso.getCharge(), order++, peaks.getIntensity(found)));
           searched.add(found);
         }
         else break;
@@ -660,8 +660,14 @@ public class Spectra
     int i=0, left,right;
     while (i<ms.size())
     {
-      // skipping the c13 isotopes
-      if (Peaks.hasC13(ms.getAnnotations(i))) { i++; continue; }
+//      // skipping the c13 isotopes
+//      if (Peaks.hasC13(ms.getAnnotations(i))) { i++; continue; }
+      // save the c13 with negative intensity, WYU 20170318
+      if (Peaks.hasC13(ms.getAnnotations(i)))
+      {
+        peaks.put(ms.getMz(i), new AnnotatedPeak(ms.getMz(i), ((IsotopePeakAnnotation )Tools.front(ms.getAnnotations(i))).getIntensity()*-1d));
+        i++; continue;
+      }
 
       double mz=ms.getMz(i);
 
@@ -685,10 +691,11 @@ public class Spectra
       // advance the pointer
       i++;
       // need to remove the rest of the isotopes from future consideration
-      while (i<ms.size())
-      {
-        if (!Peaks.hasC13(ms.getAnnotations(i))) break; else i++;
-      }
+      // disabled, WYU 20170318. need to count the c13 intensities later on
+//      while (i<ms.size())
+//      {
+//        if (!Peaks.hasC13(ms.getAnnotations(i))) break; else i++;
+//      }
     }
     return peaks;
   }
@@ -831,7 +838,11 @@ public class Spectra
     if (ms!=null && ms.size()>0)
     {
       for (int i=0; i<ms.size(); i++)
-        if (Peaks.hasC13(ms.getAnnotations(i))) ms.setIntensityAt(-1, i);
+        if (Peaks.hasC13(ms.getAnnotations(i)))
+        {
+          ((IsotopePeakAnnotation )ms.getFirstAnnotation(i).get()).setIntensity(ms.getIntensity(i));
+          ms.setIntensityAt(-1, i);
+        }
 
       return ms.copy(new PurgingPeakProcessor<>());
     }

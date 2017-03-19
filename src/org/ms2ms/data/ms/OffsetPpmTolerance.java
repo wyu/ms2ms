@@ -60,9 +60,10 @@ public class OffsetPpmTolerance extends PpmTolerance
   }
 
 //  @Deprecated
-  public Range<Double> getBoundary(double mz) { return Range.closed(getMin(mz), getMax(mz)); }
-  public double[] toActualBoundary(  double mz) { return new double[] {mz-calcError(mz)-calcOffset(mz), mz+calcError(mz)-calcOffset(mz)}; }
-  public float[]  toExpectedBoundary(float mz)  { return new float[] {(float )(mz-calcError(mz)+calcOffset(mz)), (float )(mz+calcError(mz)+calcOffset(mz))}; }
+  public Range<Double> getBoundary(  double mz) { return Range.closed(getMin(mz), getMax(mz)); }
+  public double[] toActualBoundary(  double mz) { return new double[] {         mz-calcError(mz)-calcOffset(mz),           mz+calcError(mz)-calcOffset(mz)}; }
+  public float[]  toExpectedBoundary( float mz) { return new float[]  {(float )(mz-calcError(mz)+calcOffset(mz)), (float )(mz+calcError(mz)+calcOffset(mz))}; }
+  public double[] toExpectedBoundary(double mz) { return new double[] {         mz-calcError(mz)+calcOffset(mz),           mz+calcError(mz)+calcOffset(mz)}; }
 
   @Override
   public boolean withinTolerance(double expected, double actual) { return actual >= getMin(expected) && actual <= getMax(expected); }

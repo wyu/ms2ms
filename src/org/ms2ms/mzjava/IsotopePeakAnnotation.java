@@ -8,23 +8,32 @@ import org.expasy.mzjava.core.ms.peaklist.PeakAnnotation;
 public class IsotopePeakAnnotation implements PeakAnnotation
 {
   private int mIsotopeOrder=0, mCharge=0;
+  private double mIntensity=0d;
 
   public IsotopePeakAnnotation() { super(); }
   public IsotopePeakAnnotation(IsotopePeakAnnotation s)
   {
     super();
-    mCharge=s.mCharge; mIsotopeOrder=s.mIsotopeOrder;
+    mCharge=s.mCharge; mIsotopeOrder=s.mIsotopeOrder; mIntensity=s.mIntensity;
   }
-  public IsotopePeakAnnotation(int z, int s)
+//  public IsotopePeakAnnotation(int z, int s)
+//  {
+//    super();
+//    mCharge=z; mIsotopeOrder=s;
+//  }
+  public IsotopePeakAnnotation(int z, int s, double ai)
   {
     super();
-    mCharge=z; mIsotopeOrder=s;
+    mCharge=z; mIsotopeOrder=s; mIntensity=ai;
   }
 
   public int getIsotopeOrder() { return mIsotopeOrder; }
 
   @Override
   public int getCharge() { return mCharge; }
+
+  public double getIntensity() { return mIntensity; }
+  public IsotopePeakAnnotation setIntensity(double s) { mIntensity=s; return this; }
 
   @Override
   public PeakAnnotation copy() { return new IsotopePeakAnnotation(this); }
@@ -45,5 +54,5 @@ public class IsotopePeakAnnotation implements PeakAnnotation
     return Integer.valueOf(mIsotopeOrder+mCharge+mIsotopeOrder*mCharge).hashCode();
   }
   @Override
-  public String toString() { return "z"+mCharge+" @"+mIsotopeOrder; }
+  public String toString() { return "z"+mCharge+" @"+mIsotopeOrder+"#"+mIntensity; }
 }

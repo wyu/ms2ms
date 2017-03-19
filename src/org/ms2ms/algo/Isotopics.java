@@ -2,8 +2,12 @@ package org.ms2ms.algo;
 
 import com.hfg.bio.Element;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
+import org.ms2ms.data.collect.ImmutableNavigableMap;
 import org.ms2ms.data.ms.IsoEnvelope;
+import org.ms2ms.data.ms.OffsetPpmTolerance;
 import org.ms2ms.math.Histogram;
+import org.ms2ms.math.Stats;
+import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.utils.Tools;
 
 import java.io.*;
@@ -251,4 +255,43 @@ public class Isotopics
     return true;
   }
 
+  public IsoEnvelope gatherIsotopes(ImmutableNavigableMap<AnnotatedPeak> peaks, double mz, double mh, OffsetPpmTolerance tol)
+  {
+    int[]             mz_ai = peaks.query(tol.toActualBoundary(mz));
+    AnnotatedPeak[] matched = peaks.fetchVals(mz_ai);
+
+    // quit if not matching to the first mz!
+    if (matched!=null && !Peaks.hasNegativeIntensity(matched))
+    {
+      IsoEnvelope iso = new IsoEnvelope(Stats.mean0(peaks.fetchKeys(mz_ai)), 0, 0d,
+                              Peaks.AbsIntensitySum(matched));
+      iso.setMzAndCharge(iso.getMz(), (int) Math.round(mh/iso.getMz()));
+      iso.setScore(matched[0].getFrequency());
+
+      // check for any below m/z
+      mz_ai=peaks.query(tol.toActualBoundary(mz-(1.0025/(double) iso.getCharge())));
+      if (mz_ai!=null)
+      {
+        // got an incorrect c12!
+        iso.setChargeScore(-1);
+//        iso.addIsotope(new Peak(Stats.mean0(peaks.fetchKeys(mz_ai)),Peaks.AbsIntensitySum(peaks.fetchVals(mz_ai)),iso.getCharge()));
+//        iso.setIntensity(iso.getIntensity()+Peaks.AbsIntensitySum(peaks.fetchVals(mz_ai)));
+      }
+      else
+      {
+        iso.setChargeScore(1d);
+        // looking forward
+        for (int i=1; i<iso.getCharge()+1; i++)
+        {
+          mz_ai=peaks.query(tol.toActualBoundary(mz+(i*1.0025/(double) iso.getCharge())));
+          if (mz_ai==null) break;
+
+          iso.setChargeScore(iso.getChargeScore()+1d);
+          iso.setIntensity(iso.getIntensity()+Peaks.AbsIntensitySum(peaks.fetchVals(mz_ai)));
+        }
+      }
+      return iso;
+    }
+    return null;
+  }
 }
