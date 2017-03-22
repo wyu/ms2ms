@@ -162,8 +162,8 @@ public class Peptides
     for (int c=right; c>=left; c--)
       if (c>=0 && c<sequence.length)
         y+=AAs[sequence[c]];
-      else
-        System.out.print("");
+//      else
+//        System.out.print("");
 
     return y;
   }

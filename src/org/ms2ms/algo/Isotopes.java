@@ -360,8 +360,8 @@ H  2
       if (pk.getIntensity() < min_ai) itr.remove();
     }
 
-    if (!Tools.isSet(result))
-      System.out.print("");
+//    if (!Tools.isSet(result))
+//      System.out.print("");
 
     return new IsoEnvelope(result, charge);
   }

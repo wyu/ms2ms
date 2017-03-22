@@ -1,11 +1,12 @@
 package org.ms2ms.algo;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Table;
 import com.hfg.bio.Element;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.ms2ms.data.collect.ImmutableNavigableMap;
 import org.ms2ms.data.ms.IsoEnvelope;
 import org.ms2ms.data.ms.OffsetPpmTolerance;
-import org.ms2ms.math.Histogram;
 import org.ms2ms.math.Stats;
 import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.utils.Tools;
@@ -28,6 +29,7 @@ public class Isotopics
   Map<String, Long>         EM = new HashMap<String, Long>();
   List<List<List<Peak>>>   SAD = new ArrayList<List<List<Peak>>>();
 
+  Map<Integer, List<Peak>> mMassIso = new HashMap<>();
 //  public static Histogram dp_prediction = new Histogram();
 
   public Isotopics()
@@ -42,36 +44,97 @@ public class Isotopics
     }
   }
 
+  public List<Peak> predictEnvelope(double c12, int charge, double minri)
+  {
+    Integer      mass = (int )c12 * charge;
+    List<Peak> result = mMassIso.get(mass);
+
+    if (result==null)
+    {
+      // initialize the result
+      result = new ArrayList<>();
+      result.add(new Peak(0.0, 1.0));
+      result = calculate(new ArrayList<>(), result, newFormulaMapByAveragine(mass), 0, charge);
+
+      Iterator<Peak> itr = result.iterator();
+      while (itr.hasNext())
+        if (itr.next().getIntensity() < minri) itr.remove();
+
+//      if (mass==960)
+//        System.out.print("");
+//
+      mMassIso.put(mass, result);
+    }
+
+    return result;
+  }
   public IsoEnvelope calcIsotopesByMz(double c12, int charge, double minri, double ai)
   {
-    double               limit = 0;
-    List<Peak> result = new ArrayList<Peak>(), tmp = new ArrayList<Peak>();
-    Map<Integer, Long> formula = newFormulaMapByAveragine(c12 * charge);
+//    double               limit = 0;
+//    List<Peak> result = new ArrayList<Peak>(), tmp = new ArrayList<Peak>();
+//    Map<Integer, Long> formula = newFormulaMapByAveragine(c12 * charge);
+//
+//    // initialize the result
+//    result.add(new Peak(0.0, 1.0));
+//
+//    calculate(tmp, result, formula, limit, charge);
 
-    // initialize the result
-    result.add(new Peak(0.0, 1.0));
-
-    calculate(tmp, result, formula, limit, charge);
+    List<Peak> result = predictEnvelope(c12, charge, minri);
 
     // move the predictions to the c12
-    double offset = c12 - result.get(0).getMz(), min_ai = result.get(0).getIntensity()*minri*0.01;
+    double offset = c12 - result.get(0).getMz();
     // scale the ai to the 1st c12
     ai /= result.get(0).getIntensity();
 
-    Iterator<Peak> itr = result.iterator();
-    while (itr.hasNext())
-    {
-      Peak pk = itr.next();
-      pk.setMzAndCharge(pk.getMz()+offset, pk.getChargeList());
-      pk.setIntensity(pk.getIntensity()*ai);
-      if (pk.getIntensity() < min_ai) itr.remove();
-    }
+    List<Peak> isotopes = new ArrayList<>();
+    for (Peak pk : result)
+      isotopes.add(new Peak(pk.getMz()+offset, ai*pk.getIntensity(), pk.getChargeList()));
 
-    if (!Tools.isSet(result))
-      System.out.print("");
+//    Iterator<Peak> itr = result.iterator();
+//    while (itr.hasNext())
+//    {
+//      Peak pk = itr.next();
+//      pk.setMzAndCharge(pk.getMz()+offset, pk.getChargeList());
+//      pk.setIntensity(pk.getIntensity()*ai);
+//      if (pk.getIntensity() < min_ai) itr.remove();
+//    }
 
-    return new IsoEnvelope(result, charge);
+//    if (!Tools.isSet(result))
+//      System.out.print("");
+
+    return new IsoEnvelope(isotopes, charge);
   }
+
+//  public IsoEnvelope calcIsotopesByMz(double c12, int charge, double minri, double ai)
+//  {
+//    double               limit = 0;
+//    List<Peak> result = new ArrayList<Peak>(), tmp = new ArrayList<Peak>();
+//    Map<Integer, Long> formula = newFormulaMapByAveragine(c12 * charge);
+//
+//    // initialize the result
+//    result.add(new Peak(0.0, 1.0));
+//
+//    calculate(tmp, result, formula, limit, charge);
+//
+//    // move the predictions to the c12
+//    double offset = c12 - result.get(0).getMz(), min_ai = result.get(0).getIntensity()*minri*0.01;
+//    // scale the ai to the 1st c12
+//    ai /= result.get(0).getIntensity();
+//
+//    Iterator<Peak> itr = result.iterator();
+//    while (itr.hasNext())
+//    {
+//      Peak pk = itr.next();
+//      pk.setMzAndCharge(pk.getMz()+offset, pk.getChargeList());
+//      pk.setIntensity(pk.getIntensity()*ai);
+//      if (pk.getIntensity() < min_ai) itr.remove();
+//    }
+//
+////    if (!Tools.isSet(result))
+////      System.out.print("");
+//
+//    return new IsoEnvelope(result, charge);
+//  }
 
   public List<Peak> calculate(List<Peak> tmp, List<Peak> result, Map<Integer, Long> fm, double limit, long charge)
   {
@@ -263,9 +326,10 @@ public class Isotopics
     // quit if not matching to the first mz!
     if (matched!=null && !Peaks.hasNegativeIntensity(matched))
     {
-      IsoEnvelope iso = new IsoEnvelope(Stats.mean0(peaks.fetchKeys(mz_ai)), 0, 0d,
-                              Peaks.AbsIntensitySum(matched));
+      IsoEnvelope iso = new IsoEnvelope();
+      iso.setMzAndCharge(Stats.mean0(peaks.fetchKeys(mz_ai)), 0);
       iso.setMzAndCharge(iso.getMz(), (int) Math.round(mh/iso.getMz()));
+      iso.setIntensity(Peaks.AbsIntensitySum(matched));
       iso.setScore(matched[0].getFrequency());
 
       // check for any below m/z
