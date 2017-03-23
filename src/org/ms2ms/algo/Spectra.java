@@ -1009,6 +1009,15 @@ public class Spectra
   {
     // go down the intensity ladder
     TreeMultimap<Double, Integer> clusters = TreeMultimap.create();
+
+//    if (rt_sec<=0)
+//    {
+//      for (MsnSpectrum ms : ai_ms.values())
+//        clusters.put(ms.getPrecursor().getMz()*ms.getScanNumbers().getFirst().getValue(), ms.getScanNumbers().getFirst().getValue());
+//
+//      return clusters;
+//    }
+//
     for (Double ai : ai_ms.keySet())
     {
       MsnSpectrum M = ai_ms.get(ai);
