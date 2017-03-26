@@ -1,7 +1,6 @@
 package org.ms2ms.algo;
 
 import com.google.common.collect.*;
-import org.expasy.mzjava.core.ms.PpmTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.DoublePeakList;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
@@ -16,7 +15,6 @@ import org.ms2ms.data.collect.NavigableMultimap;
 import org.ms2ms.data.collect.TreeListMultimap;
 import org.ms2ms.data.ms.FragmentEntry;
 import org.ms2ms.data.ms.IsoEnvelope;
-import org.ms2ms.data.ms.OffsetPpmTolerance;
 import org.ms2ms.math.Points;
 import org.ms2ms.math.Stats;
 import org.ms2ms.mzjava.AnnotatedPeak;
@@ -313,8 +311,9 @@ public class Peaks {
    * @param frags variable number of fragment ions. e.g. "334.5", "562/23", "mz/ai". Only the mz is required
    * @return
    */
-  public static PeakList<PepLibPeakAnnotation> newPeakList(double mz, int z, String... frags) {
-    PeakList<PepLibPeakAnnotation> spec = new DoublePeakList<PepLibPeakAnnotation>();
+  public static PeakList<PepLibPeakAnnotation> newPeakList(double mz, int z, String... frags)
+  {
+    PeakList<PepLibPeakAnnotation> spec = new DoublePeakList<>();
     spec.setPrecursor(new Peak(mz, 0d, z));
     // go thro the fragment ions if any
     for (String f : frags) {
@@ -865,7 +864,8 @@ public class Peaks {
     return centroid(points, null, null);
   }
 
-  public static <T extends Peak> Double centroid(Collection<T> points, Double x0, Double x1) {
+  public static <T extends Peak> Double centroid(Collection<T> points, Double x0, Double x1)
+  {
     if (!Tools.isSet(points)) return null;
 
     double sumXY = 0, sumY = 0;
@@ -1044,7 +1044,8 @@ public class Peaks {
   }
 
   // is the putative MH supported by the precursors detected in the isolation window?
-  public static AnnotatedPeak verifyCalcMH(int max_z, AnnotatedPeak calc, Tolerance tol, SortedMap<Double, Peak>... isolated_precursors) {
+  public static AnnotatedPeak verifyCalcMH(int max_z, AnnotatedPeak calc, Tolerance tol, SortedMap<Double, Peak>... isolated_precursors)
+  {
     // n opinion without additional information
     if (!Tools.isSet(isolated_precursors)) return calc;
 
@@ -1058,7 +1059,8 @@ public class Peaks {
       isotopes = 0;
       for (int c13 = 0; c13 <= z; c13++) {
         Map<Double, Peak> c = null;
-        for (SortedMap<Double, Peak> precursors : isolated_precursors) {
+        for (SortedMap<Double, Peak> precursors : isolated_precursors)
+        {
           c = precursors.subMap(tol.getMin(mz + c13 * 1.003355d / z), tol.getMax(mz + c13 * 1.003355d / z));
           if (Tools.isSet(c)) break;
         }

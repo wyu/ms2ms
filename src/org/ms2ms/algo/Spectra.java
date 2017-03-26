@@ -8,6 +8,7 @@ import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeList;
 import org.ms2ms.data.ms.IsoEnvelope;
 import org.ms2ms.data.ms.OffsetPpmTolerance;
+import org.ms2ms.data.ms.PeakMatch;
 import org.ms2ms.io.MsReaders;
 import org.ms2ms.math.Histogram;
 import org.ms2ms.math.Stats;
@@ -660,8 +661,6 @@ public class Spectra
     int i=0, left,right;
     while (i<ms.size())
     {
-//      // skipping the c13 isotopes
-//      if (Peaks.hasC13(ms.getAnnotations(i))) { i++; continue; }
       // save the c13 with negative intensity, WYU 20170318
       if (Peaks.hasC13(ms.getAnnotations(i)))
       {
@@ -690,12 +689,6 @@ public class Spectra
       peaks.put(mz, pk);
       // advance the pointer
       i++;
-      // need to remove the rest of the isotopes from future consideration
-      // disabled, WYU 20170318. need to count the c13 intensities later on
-//      while (i<ms.size())
-//      {
-//        if (!Peaks.hasC13(ms.getAnnotations(i))) break; else i++;
-//      }
     }
     return peaks;
   }

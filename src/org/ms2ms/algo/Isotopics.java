@@ -7,6 +7,7 @@ import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.ms2ms.data.collect.ImmutableNavigableMap;
 import org.ms2ms.data.ms.IsoEnvelope;
 import org.ms2ms.data.ms.OffsetPpmTolerance;
+import org.ms2ms.data.ms.PeakMatch;
 import org.ms2ms.math.Stats;
 import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.utils.Tools;
@@ -318,18 +319,18 @@ public class Isotopics
     return true;
   }
 
-  public IsoEnvelope gatherIsotopes(ImmutableNavigableMap<AnnotatedPeak> peaks, double mz, double mh, OffsetPpmTolerance tol)
+  public IsoEnvelope gatherIsotopes(ImmutableNavigableMap<PeakMatch> peaks, double mz, double mh, OffsetPpmTolerance tol)
   {
-    int[]             mz_ai = peaks.query(tol.toActualBoundary(mz));
-    AnnotatedPeak[] matched = peaks.fetchVals(mz_ai);
+    int[]         mz_ai = peaks.query(tol.toActualBoundary(mz));
+    PeakMatch[] matched = peaks.fetchVals(mz_ai);
 
     // quit if not matching to the first mz!
-    if (matched!=null && !Peaks.hasNegativeIntensity(matched))
+    if (matched!=null && !PeakMatch.hasNegativeIntensity(matched))
     {
       IsoEnvelope iso = new IsoEnvelope();
       iso.setMzAndCharge(Stats.mean0(peaks.fetchKeys(mz_ai)), 0);
       iso.setMzAndCharge(iso.getMz(), (int) Math.round(mh/iso.getMz()));
-      iso.setIntensity(Peaks.AbsIntensitySum(matched));
+      iso.setIntensity(PeakMatch.AbsIntensitySum(matched));
       iso.setScore(matched[0].getFrequency());
 
       // check for any below m/z
@@ -351,7 +352,7 @@ public class Isotopics
           if (mz_ai==null) break;
 
           iso.setChargeScore(iso.getChargeScore()+1d);
-          iso.setIntensity(iso.getIntensity()+Peaks.AbsIntensitySum(peaks.fetchVals(mz_ai)));
+          iso.setIntensity(iso.getIntensity()+PeakMatch.AbsIntensitySum(peaks.fetchVals(mz_ai)));
         }
       }
       return iso;

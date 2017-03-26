@@ -94,7 +94,7 @@ public class Isotopes
   // C4.9384 H7.7583 N1.3577 O1.4773 S0.0417
   // M(mono) = 111.0543052
   // M(avg)  = 111.1237368
-  
+
   /** suck in the parameters
 X  2
 1  0.9
@@ -157,7 +157,7 @@ H  2
     }
     reader.close();
     EM = em;
-    
+
     return true;
   }
 

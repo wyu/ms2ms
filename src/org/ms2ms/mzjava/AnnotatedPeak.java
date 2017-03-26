@@ -1,6 +1,5 @@
 package org.ms2ms.mzjava;
 
-import com.sun.xml.bind.v2.schemagen.xmlschema.Annotated;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.ms2ms.utils.Strs;
@@ -63,6 +62,8 @@ public class AnnotatedPeak extends Peak
   public double  getFrequency()        { return mFreq; }
   public double  getOriginalMz()       { return mOrigMz; }
   public IonType getIonType()          { return ionType; }
+
+  public Map<String, Double> getProperties() { return mAnnotations; }
 
   public AnnotatedPeak removeProperty(String s) { if (mAnnotations!=null) mAnnotations.remove(s); return this; }
 

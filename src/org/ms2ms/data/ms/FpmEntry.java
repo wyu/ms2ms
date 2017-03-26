@@ -1,14 +1,8 @@
 package org.ms2ms.data.ms;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.UnmodifiableIterator;
-import com.sun.xml.bind.v2.schemagen.xmlschema.Annotated;
-import org.expasy.mzjava.core.ms.Tolerance;
-import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.ms2ms.Disposable;
-import org.ms2ms.algo.Peaks;
 import org.ms2ms.math.Stats;
-import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
@@ -25,7 +19,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
   private double              mGapScore=0, mIntensities=0d;
   private Double              mMatchScore=null;
   private FragmentEntry       mFragment   =null;
-  private ImmutableList<AnnotatedPeak> mTrack      =null;
+  private ImmutableList<PeakMatch> mTrack      =null;
 
   public FpmEntry()
   {
@@ -43,18 +37,18 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
       mTrack = f.mTrack.asList();
     }
   }
-  public FpmEntry(FragmentEntry f, List<AnnotatedPeak> t)
+  public FpmEntry(FragmentEntry f, List<PeakMatch> t)
   {
     super();
     mFragment=f; mTrack=ImmutableList.copyOf(t);
   }
-//  public FpmEntry(FragmentEntry f, List<AnnotatedPeak> t, int motifs, int size_1st)
+//  public FpmEntry(FragmentEntry f, List<PeakMatch> t, int motifs, int size_1st)
 //  {
 //    super();
 //    mFragment=f; mTrack=ImmutableList.copyOf(t); mMotifs=motifs; m1stPass=size_1st;
 //  }
 //
-//  public FpmEntry(FragmentEntry f, List<AnnotatedPeak> t, double ai)
+//  public FpmEntry(FragmentEntry f, List<PeakMatch> t, double ai)
 //  {
 //    super();
 //    mFragment=f; mTrack=ImmutableList.copyOf(t); mIntensities=ai;
@@ -70,8 +64,8 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
   public Double             getMatchScore() { return mMatchScore; }
 //  public int                 get1stPass()   { return m1stPass; }
   public FragmentEntry       getFragment()  { return mFragment; }
-  public ImmutableList<AnnotatedPeak> getTrack()     { return mTrack; }
-  public AnnotatedPeak       at(int s)      { return mTrack.get(s); }
+  public ImmutableList<PeakMatch> getTrack()     { return mTrack; }
+  public PeakMatch       at(int s)      { return mTrack.get(s); }
 
 //  public FpmEntry increIntensities(double s) { mIntensities+=s; return this; }
 
@@ -87,7 +81,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
   public FpmEntry setGapScore(    double s) { mGapScore  =s; return this; }
 //  public FpmEntry setStdErrRegression(double s) { mKaiScore  =s; return this; }
   public FpmEntry setIntensity(   double s) { mIntensities=s; return this; }
-  public FpmEntry setTrack(ImmutableList<AnnotatedPeak> s) { mTrack=s; return this; }
+  public FpmEntry setTrack(ImmutableList<PeakMatch> s) { mTrack=s; return this; }
 
   public FpmEntry shallow_copy()
   {
@@ -105,13 +99,13 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
     double local_base=0;
     if (Tools.isSet(getTrack()))
     {
-      List<AnnotatedPeak> pts = new ArrayList<>(getTrack().size());
-      for (AnnotatedPeak  pt : getTrack())
+      List<PeakMatch> pts = new ArrayList<>(getTrack().size());
+      for (PeakMatch  pt : getTrack())
       {
         Double calc = pt.getProperty("calc"), obs = pt.getIntensity();
         if (calc!=null && obs!=null && tol.withinTolerance(calc, obs))
         {
-          AnnotatedPeak p = pt.clone();
+          PeakMatch p = pt.clone();
           p.setMzAndCharge(Stats.ppm(obs, calc)+tol.getOffset(obs), pt.getCharge());
           pts.add(p);
           if (p.getSNR()>local_base) local_base=p.getSNR();
@@ -133,7 +127,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
           sumAI=0d, base=local_base!=null?1d/local_base:0.01d;
       for (int i=getTrack().size()-1; i>=0; i--)
       {
-        AnnotatedPeak pk = getTrack().get(i);
+        PeakMatch pk = getTrack().get(i);
 
         delta = pk.getCharge()-start;
         percentile = (pk.getSNR()*base); // set a minimum
@@ -154,7 +148,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
     return this;
   }
   // BEWARE that the information are saved in the 'match' object in a non-std way.
-  private double calcGapScore(AnnotatedPeak match, int gap, double min_ppm)
+  private double calcGapScore(PeakMatch match, int gap, double min_ppm)
   {
     // no point to proceed...
     if (gap<=0/* || gap>4*/) return 0;
@@ -192,14 +186,14 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
   {
     return "#"+(Tools.isSet(mTrack)?mMotifs+"/"+mTrack.size():0)+"@"+(mFragment!=null?mFragment.toString():"")+"$"+Tools.d2s(getGapScore(), 1);
   }
-  public static Map<String, Object> report(List<AnnotatedPeak> track)
+  public static Map<String, Object> report(List<PeakMatch> track)
   {
     Map<String, Object> stats = null;
 
     String ppms=null, pos=null; double ais=0;
     if (Tools.isSet(track))
     {
-      for (Peak pk : track)
+      for (PeakMatch pk : track)
       {
         ppms = Strs.extend(ppms, Tools.d2s(pk.getMz(), 1), ",");
         pos  = Strs.extend(pos,  pk.getCharge()+"",        ",");
@@ -235,7 +229,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
   public Collection<Double> fillMz(Collection<Double> data)
   {
     if (Tools.isSet(getTrack()))
-      for (AnnotatedPeak p : getTrack()) data.add(p.getIntensity());
+      for (PeakMatch p : getTrack()) data.add(p.getIntensity());
 
     return data;
   }
@@ -244,8 +238,8 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
     if (!Tools.isSet(getTrack())) return this;
 
     boolean has1st = false, y1=false;
-    AnnotatedPeak pk1 = null;
-    List<AnnotatedPeak> track = new ArrayList<>(getTrack().size());
+    PeakMatch pk1 = null;
+    List<PeakMatch> track = new ArrayList<>(getTrack().size());
     for (int i=0; i<getTrack().size(); i++)
     {
       track.add(at(i));
@@ -265,7 +259,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
         sumAI=0d, base=local_base!=null?1d/local_base:0.01d;
     for (int i=track.size()-1; i>=0; i--)
     {
-      AnnotatedPeak pk = track.get(i);
+      PeakMatch pk = track.get(i);
 
       delta = pk.getCharge()-start;
       percentile = (pk.getSNR()*base); // set a minimum
