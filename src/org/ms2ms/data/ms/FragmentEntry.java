@@ -51,7 +51,9 @@ public class FragmentEntry implements Comparable<FragmentEntry>, Disposable, Bin
     mPeptideKey=s;
     return this;
   }
-  public FragmentEntry setLen(int s)   { mLength=s; return this; }
+  public FragmentEntry setLen(           int s)   { mLength=s; return this; }
+  public FragmentEntry setMH(          float s)   { mMH    =s; return this; }
+  public FragmentEntry setPrev(FragmentEntry s)   { mPrev  =s; return this; }
 
   public FragmentEntry copy()
   {
