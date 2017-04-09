@@ -260,7 +260,7 @@ public class LcMsMsFeatures
       List<Features> found = new ArrayList<>();
       for (Map<Double, Features> fs : slice.values())
         for (Features ff : fs.values())
-          if (rt.contains(ff.getDouble(COL_RT))) found.add(ff);
+          if (rt.contains(ff.getDouble(COL_RT))) { found.add(ff); ff.add("LCMS", lcms); }
 
       return found;
     }

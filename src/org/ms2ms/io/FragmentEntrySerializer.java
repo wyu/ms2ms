@@ -31,9 +31,9 @@ public class FragmentEntrySerializer implements Serializer<FragmentEntry>
   {
     if (value==null)
       System.out.print("");
-    out.packInt(   value.getLength());
+    out.writeInt(  value.getLength());
     out.writeByte( value.getCharge());
-    out.packInt(   value.getPeptideKey());
+    out.writeInt(  value.getPeptideKey());
     out.writeFloat(value.getMH());
     // can't write the actual object. to avoid recursive
     // write the peptide seq key and MH so we can hook up the right frag at later time
@@ -55,7 +55,7 @@ public class FragmentEntrySerializer implements Serializer<FragmentEntry>
     if (available>0)
     {
       FragmentEntry F = new FragmentEntry();
-      F.setLen(input.unpackInt()).setCharge(input.readChar()).setPeptideKey(input.unpackInt()).setMH(input.readFloat());
+      F.setLen(input.readInt()).setCharge(input.readChar()).setPeptideKey(input.readInt()).setMH(input.readFloat());
 
       float p = input.readFloat();
       if (p!=0f) F.setPrev(new FragmentEntry(p, '0', 0, null, 0));
