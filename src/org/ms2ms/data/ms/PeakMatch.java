@@ -19,17 +19,14 @@ import java.util.*;
  */
 public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>
 {
-  private double mz=0.0D;
-  private double intensity=0.0D;
-  private int[] chargeList=new int[0];
-  private double mass=0.0D;
+  private double mz=0.0d, intensity=0.0d, mass=0.0d, mSNR, mFreq, mOrigMz, mCalcMz, mScore;
   private Polarity polarity;
+  private int[] chargeList=new int[0];
 
   private boolean mIsOutlier=false;
-  private int mVerifiedCharge=0, mIsotopes=1;
+  private int mVerifiedCharge=0, mIsotopes=1, mIndex;
   private long mCounts;
-  private double mSNR, mFreq, mOrigMz;
-  private Map<String, Double> mAnnotations = null;
+//  private Map<String, Double> mAnnotations = null;
   private IonType ionType ;
 
   public static class IntensityDesendComparator implements Comparator<PeakMatch>
@@ -80,7 +77,8 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>
     this.polarity=peak.polarity;
     this.mass=peak.mass;
 
-    mAnnotations=peak.mAnnotations; ionType=peak.getIonType();
+//    mAnnotations=peak.mAnnotations;
+    ionType=peak.getIonType();
   }
   public void setValues(double mz, double intensity, int... charge)
   {
@@ -167,20 +165,24 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>
   }
 
 
-  public boolean hasProperty(String k, Double s) { return mAnnotations!=null && Tools.equals(s, mAnnotations.get(k)); }
+//  public boolean hasProperty(String k, Double s) { return mAnnotations!=null && Tools.equals(s, mAnnotations.get(k)); }
 
+  public int     getIndex()            { return mIndex; }
   public int     getIsotopes()         { return mIsotopes; }
   public int     getVerifiedCharge()   { return mVerifiedCharge; }
   public boolean isOutlier()           { return mIsOutlier; }
-  public Double  getProperty(String k) { return mAnnotations!=null?mAnnotations.get(k):null; }
+//  public Double  getProperty(String k) { return mAnnotations!=null?mAnnotations.get(k):null; }
   public long    getCounts()           { return mCounts; }
   public double  getSNR()              { return mSNR; }
   public double  getFrequency()        { return mFreq; }
   public double  getOriginalMz()       { return mOrigMz; }
+  public double  getCalcMz()           { return mCalcMz; }
+  public double  getScore()            { return mScore; }
   public IonType getIonType()          { return ionType; }
 
-  public PeakMatch removeProperty(String s) { if (mAnnotations!=null) mAnnotations.remove(s); return this; }
+//  public PeakMatch removeProperty(String s) { if (mAnnotations!=null) mAnnotations.remove(s); return this; }
 
+  public PeakMatch setIndex(         int z) { mIndex=z; return this; }
   public PeakMatch setCharge(        int z) { setMzAndCharge(getMz(), z); return this; }
   public PeakMatch setVerifiedCharge(int z) { mVerifiedCharge=z; return this; }
   public PeakMatch setIsotopes(      int s) { mIsotopes      =s; return this; }
@@ -189,41 +191,43 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>
   public PeakMatch setSNR(        double s) { mSNR           =s; return this; }
   public PeakMatch setFrequency(  double s) { mFreq          =s; return this; }
   public PeakMatch setOriginalMz( double s) { mOrigMz        =s; return this; }
+  public PeakMatch setCalcMz(     double s) { mCalcMz        =s; return this; }
+  public PeakMatch setScore(      double s) { mScore         =s; return this; }
   public PeakMatch setCounts(       long s) { mCounts        =s; return this; }
 
-  public PeakMatch setProperty(String k, double s)
-  {
-    if (mAnnotations==null) mAnnotations=new HashMap<>(24);
-
-    mAnnotations.put(k,s);
-    return this;
-  }
-  public PeakMatch setProperty(PeakMatch s, String... ks)
-  {
-    // nothing to copy over
-    if (s.mAnnotations==null) return this;
-    // with an initial capacity
-    if (mAnnotations==null) mAnnotations=new HashMap<>(24);
-
-    if (!Tools.isSet(ks)) mAnnotations.putAll(s.mAnnotations);
-    else
-    {
-      for (String k : ks) mAnnotations.put(k,s.getProperty(k));;
-    }
-    return this;
-  }
-  public PeakMatch setProperty(AnnotatedPeak s, String... ks)
-  {
-    // with an initial capacity
-    if (mAnnotations==null) mAnnotations=new HashMap<>(24);
-
-    if (!Tools.isSet(ks)) mAnnotations.putAll(s.getProperties());
-    else
-    {
-      for (String k : ks) mAnnotations.put(k,s.getProperty(k));;
-    }
-    return this;
-  }
+//  public PeakMatch setProperty(String k, double s)
+//  {
+//    if (mAnnotations==null) mAnnotations=new HashMap<>(24);
+//
+//    mAnnotations.put(k,s);
+//    return this;
+//  }
+//  public PeakMatch setProperty(PeakMatch s, String... ks)
+//  {
+//    // nothing to copy over
+//    if (s.mAnnotations==null) return this;
+//    // with an initial capacity
+//    if (mAnnotations==null) mAnnotations=new HashMap<>(24);
+//
+//    if (!Tools.isSet(ks)) mAnnotations.putAll(s.mAnnotations);
+//    else
+//    {
+//      for (String k : ks) mAnnotations.put(k,s.getProperty(k));;
+//    }
+//    return this;
+//  }
+//  public PeakMatch setProperty(AnnotatedPeak s, String... ks)
+//  {
+//    // with an initial capacity
+//    if (mAnnotations==null) mAnnotations=new HashMap<>(24);
+//
+//    if (!Tools.isSet(ks)) mAnnotations.putAll(s.getProperties());
+//    else
+//    {
+//      for (String k : ks) mAnnotations.put(k,s.getProperty(k));;
+//    }
+//    return this;
+//  }
 
   @Override
   public String toString()
@@ -231,17 +235,17 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>
     String line = "m/z"+Tools.d2s(getMz(),2)+", %"+Tools.d2s(getIntensity(),4)+", z"+getCharge()+
         ", S/N"+Tools.d2s(getSNR(),1)+(getIsotopes()>1?"$"+getIsotopes():"");
 
-    if (Tools.isSet(mAnnotations))
-      for (String key : mAnnotations.keySet())
-        if (mAnnotations.get(key)!=null)
-        {
-          int deci=1, t = key.indexOf('#'); Double val = mAnnotations.get(key);
-          if (t>0)
-          {
-            deci = Integer.valueOf(key.substring(t+1)); key = key.substring(0, t);
-          }
-          line=Strs.extend(line, key+":"+Tools.d2s(val, deci), ", ");
-        }
+//    if (Tools.isSet(mAnnotations))
+//      for (String key : mAnnotations.keySet())
+//        if (mAnnotations.get(key)!=null)
+//        {
+//          int deci=1, t = key.indexOf('#'); Double val = mAnnotations.get(key);
+//          if (t>0)
+//          {
+//            deci = Integer.valueOf(key.substring(t+1)); key = key.substring(0, t);
+//          }
+//          line=Strs.extend(line, key+":"+Tools.d2s(val, deci), ", ");
+//        }
 
     return line;
   }
@@ -254,8 +258,9 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>
 
     p.isOutlier(isOutlier()).setVerifiedCharge(getVerifiedCharge()).setCounts(getCounts());
     p.setSNR(getSNR()).setFrequency(getFrequency()).setOriginalMz(getOriginalMz());
-    if (mAnnotations!=null) p.mAnnotations = new HashMap<>(mAnnotations);
+//    if (mAnnotations!=null) p.mAnnotations = new HashMap<>(mAnnotations);
     p.ionType=ionType;
+    p.mCalcMz=mCalcMz; p.mScore=mScore;
 
     return p;
   }
@@ -271,7 +276,7 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>
           Double.compare(peak.mz, this.mz)==0 && Arrays.equals(this.chargeList, peak.chargeList) &&
       mIsOutlier==peak.mIsOutlier && mVerifiedCharge==peak.mVerifiedCharge && mIsotopes==peak.mIsotopes &&
       mCounts==peak.mCounts && mSNR==peak.mSNR && mFreq==peak.mFreq && mOrigMz==peak.mOrigMz &&
-          ionType==peak.ionType && Tools.equals(mAnnotations, peak.mAnnotations);
+          ionType==peak.ionType/* && Tools.equals(mAnnotations, peak.mAnnotations)*/;
     } else {
       return false;
     }

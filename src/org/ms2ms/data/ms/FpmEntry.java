@@ -102,7 +102,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
       List<PeakMatch> pts = new ArrayList<>(getTrack().size());
       for (PeakMatch  pt : getTrack())
       {
-        Double calc = pt.getProperty("calc"), obs = pt.getIntensity();
+        Double calc = pt.getScore(), obs = pt.getIntensity();
         if (calc!=null && obs!=null && tol.withinTolerance(calc, obs))
         {
           PeakMatch p = pt.clone();
@@ -167,7 +167,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
       score0 = -0.07491232 + 0.41163668*Math.log((double )nsamples/(double )bins) + 0.40504996*Math.log((double )ntrials);
       if (score0 > -0.1) score0=0;
     }
-    match.setProperty("score", score0);
+    match.setScore(score0);
 
     return score0;
   }
