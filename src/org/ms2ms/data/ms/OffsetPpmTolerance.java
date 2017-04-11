@@ -77,8 +77,8 @@ public class OffsetPpmTolerance extends PpmTolerance
   {
     return new OffsetPpmTolerance().setOffsetParams(mTransitionMass, mOffset, mOffsetSlope).setTolParams(mTol, mTolSlope, mZval).isIncremental(mIsIncremental);
   }
-  private double calcError( double expectedMass) { return expectedMass * (getPpmTol(expectedMass)/1000000d); }
-  private double calcOffset(double expectedMass) { return expectedMass * (getOffset(expectedMass)/1000000d); }
+  public double calcError( double expectedMass) { return expectedMass * (getPpmTol(expectedMass)/1000000d); }
+  public double calcOffset(double expectedMass) { return expectedMass * (getOffset(expectedMass)/1000000d); }
 
   @Override
   public String toString()

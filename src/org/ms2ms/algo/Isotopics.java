@@ -321,26 +321,20 @@ public class Isotopics
 
   public IsoEnvelope gatherIsotopes(ImmutableNavigableMap<PeakMatch> peaks, double mz, double mh, OffsetPpmTolerance tol)
   {
-    int[]         mz_ai = peaks.query(tol.toActualBoundary(mz));
-    PeakMatch[] matched = peaks.fetchVals(mz_ai);
+    // return null, if has negative intensity
+    IsoEnvelope iso = PeakMatch.query4isotope(peaks, mz, tol, false);
+//    int[]         mz_ai = peaks.query(tol.toActualBoundary(mz));
+//    PeakMatch[] matched = peaks.fetchVals(mz_ai);
 
     // quit if not matching to the first mz!
-    if (matched!=null && !PeakMatch.hasNegativeIntensity(matched))
+    if (iso!=null)
     {
-      IsoEnvelope iso = new IsoEnvelope();
-      iso.setMzAndCharge(Stats.mean0(peaks.fetchKeys(mz_ai)), 0);
       iso.setMzAndCharge(iso.getMz(), (int) Math.round(mh/iso.getMz()));
-      iso.setIntensity(PeakMatch.AbsIntensitySum(matched));
-      iso.setScore(matched[0].getFrequency());
-
       // check for any below m/z
-      mz_ai=peaks.query(tol.toActualBoundary(mz-(1.0025/(double) iso.getCharge())));
-      if (mz_ai!=null)
+      if (PeakMatch.query4counts(peaks, tol, mz-(1.0025/(double) iso.getCharge()))>0)
       {
         // got an incorrect c12!
         iso.setChargeScore(-1);
-//        iso.addIsotope(new Peak(Stats.mean0(peaks.fetchKeys(mz_ai)),Peaks.AbsIntensitySum(peaks.fetchVals(mz_ai)),iso.getCharge()));
-//        iso.setIntensity(iso.getIntensity()+Peaks.AbsIntensitySum(peaks.fetchVals(mz_ai)));
       }
       else
       {
@@ -348,15 +342,65 @@ public class Isotopics
         // looking forward
         for (int i=1; i<iso.getCharge()+1; i++)
         {
-          mz_ai=peaks.query(tol.toActualBoundary(mz+(i*1.0025/(double) iso.getCharge())));
-          if (mz_ai==null) break;
+          double ai = PeakMatch.query4ai(peaks, mz+(i*1.0025/(double) iso.getCharge()), tol);
+          if (ai<=0) break;
 
           iso.setChargeScore(iso.getChargeScore()+1d);
-          iso.setIntensity(iso.getIntensity()+PeakMatch.AbsIntensitySum(peaks.fetchVals(mz_ai)));
+          iso.setIntensity(iso.getIntensity()+ai);
         }
       }
+
       return iso;
     }
+
     return null;
   }
+
+  // deprecated
+//  public IsoEnvelope gatherIsotopes(ImmutableNavigableMap<PeakMatch> peaks, double mz, double mh, OffsetPpmTolerance tol)
+//  {
+//    int[]         mz_ai = peaks.query(tol.toActualBoundary(mz));
+//    PeakMatch[] matched = peaks.fetchVals(mz_ai);
+//
+//    // quit if not matching to the first mz!
+//    if (matched!=null && !PeakMatch.hasNegativeIntensity(matched))
+//    {
+//      IsoEnvelope iso = new IsoEnvelope();
+//      iso.setMzAndCharge(Stats.mean0(peaks.fetchKeys(mz_ai)), 0);
+//      iso.setMzAndCharge(iso.getMz(), (int) Math.round(mh/iso.getMz()));
+//      iso.setIntensity(PeakMatch.AbsIntensitySum(matched));
+//      iso.setScore(matched[0].getFrequency());
+//
+//      // check for any below m/z
+//      double[] bound = tol.toActualBoundary(mz-(1.0025/(double) iso.getCharge()));
+//      mz_ai=peaks.query(bound);
+//      if (mz_ai!=null)
+//      {
+//        // got an incorrect c12!
+//        iso.setChargeScore(-1);
+//      }
+//      else
+//      {
+//        iso.setChargeScore(1d);
+//        // looking forward
+//        for (int i=1; i<iso.getCharge()+1; i++)
+//        {
+//          bound = tol.toActualBoundary(mz+(i*1.0025/(double) iso.getCharge()));
+//          mz_ai = peaks.query(bound);
+//          if (mz_ai==null) break;
+//
+//          matched = peaks.fetchVals(mz_ai);
+//          iso.setChargeScore(iso.getChargeScore()+1d);
+//          iso.setIntensity(iso.getIntensity()+PeakMatch.AbsIntensitySum(matched));
+//          matched=null; mz_ai=null; bound=null;
+//        }
+//      }
+//      bound=null; mz_ai=null; matched=null;
+//
+//      return iso;
+//    }
+//    mz_ai=null; matched=null;
+//
+//    return null;
+//  }
 }

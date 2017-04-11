@@ -6,7 +6,10 @@ import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.peaklist.Polarity;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.expasy.mzjava.utils.Copyable;
+import org.ms2ms.Disposable;
 import org.ms2ms.algo.Peaks;
+import org.ms2ms.data.collect.ImmutableNavigableMap;
+import org.ms2ms.math.Stats;
 import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.mzjava.IsotopePeakAnnotation;
 import org.ms2ms.utils.Strs;
@@ -17,7 +20,7 @@ import java.util.*;
 /** A simplified, riskier version Peak
  * Created by yuw on 3/26/17.
  */
-public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>
+public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Disposable
 {
   private double mz=0.0d, intensity=0.0d, mass=0.0d, mSNR, mFreq, mOrigMz, mCalcMz, mScore;
   private Polarity polarity;
@@ -28,6 +31,14 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>
   private long mCounts;
 //  private Map<String, Double> mAnnotations = null;
   private IonType ionType ;
+
+  @Override
+  public void dispose()
+  {
+    polarity  =null;
+    chargeList=null;
+    ionType   =null;
+  }
 
   public static class IntensityDesendComparator implements Comparator<PeakMatch>
   {
@@ -299,17 +310,17 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>
   }
 
   /** static helper **/
-  public static <T extends PeakMatch> Double centroid(Collection<T> points)
+  public static <T extends PeakMatch> double centroid(Collection<T> points)
   {
-    if (!Tools.isSet(points)) return null;
+    if (!Tools.isSet(points)) return 0;
 
     double sumXY = 0, sumY = 0;
     for (PeakMatch xy : points)
     {
       sumXY += xy.getMz() * xy.getIntensity();
-      sumY += xy.getIntensity();
+      sumY  += xy.getIntensity();
     }
-    return sumY != 0 ? sumXY / sumY : null;
+    return sumY != 0 ? sumXY / sumY : 0;
   }
   public static <T extends PeakMatch> boolean hasNegativeIntensity(T... peaks)
   {
@@ -366,4 +377,62 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>
     }
     return peaks;
   }
+  public static double query4ai(ImmutableNavigableMap<PeakMatch> peaks, double m, OffsetPpmTolerance tol)
+  {
+    double err=tol.calcError(m), offset=tol.calcOffset(m), k0=m-err-offset, k1=m+err+offset, ai=0;
+    int i0=Math.max(0, peaks.index(k0)), start=peaks.start(i0);
+
+    if (start>=0)
+    {
+      int j0=-1, j1=-1;
+      for (int k=start; k<peaks.getKeys().length; k++)
+      {
+        if (j0==-1 && peaks.getKeys()[k]>=k0)   j0=k;
+        if (          peaks.getKeys()[k]> k1) { j1=k; break; }
+      }
+      if (j0>=0 && j1>j0)
+        for (int j=j0; j<j1; j++)
+          ai+=Math.abs(peaks.getVals()[j].getIntensity());
+    }
+
+    return ai;
+  }
+  // negative: OK with negative intensity?
+  public static IsoEnvelope query4isotope(ImmutableNavigableMap<PeakMatch> peaks, double m, OffsetPpmTolerance tol, boolean negative)
+  {
+    double err=tol.calcError(m), offset=tol.calcOffset(m), k0=m-err-offset, k1=m+err+offset;
+    int i0=Math.max(0, peaks.index(k0)), start=peaks.start(i0);
+
+    IsoEnvelope pk = null;
+    if (start>=0)
+    {
+      int j0=-1, j1=-1;
+      for (int k=start; k<peaks.getKeys().length; k++)
+      {
+        if (j0==-1 && peaks.getKeys()[k]>=k0)   j0=k;
+        if (          peaks.getKeys()[k]> k1) { j1=k; break; }
+      }
+      if (j0>=0 && j1>j0)
+      {
+        double m0=0, ai=0, fr=0d;
+
+        for (int j=j0; j<j1; j++)
+        {
+          if (!negative && peaks.getVals()[j].getIntensity()<0) return null;
+
+          m0+=peaks.getVals()[j].getMz();
+          fr+=peaks.getVals()[j].getFrequency();
+          ai+=Math.abs(peaks.getVals()[j].getIntensity());
+        }
+        pk = new IsoEnvelope(m0/(double )(j1-j0),0,0, ai).setScore(fr/(double )(j1-j0));
+      }
+    }
+
+    return pk;
+  }
+  public static int query4counts(ImmutableNavigableMap<PeakMatch> peaks, OffsetPpmTolerance tol, double m)
+  {
+    double err=tol.calcError(m), offset=tol.calcOffset(m);
+    return peaks.query4counts(m-err-offset, m+err+offset);
+ }
 }
