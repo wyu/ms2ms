@@ -91,6 +91,7 @@ public class Isotopics
     for (Peak pk : result)
       isotopes.add(new Peak(pk.getMz()+offset, ai*pk.getIntensity(), pk.getChargeList()));
 
+//    Tools.dispose(result);
 //    Iterator<Peak> itr = result.iterator();
 //    while (itr.hasNext())
 //    {
@@ -103,7 +104,9 @@ public class Isotopics
 //    if (!Tools.isSet(result))
 //      System.out.print("");
 
-    return new IsoEnvelope(isotopes, charge);
+    IsoEnvelope iso = new IsoEnvelope(isotopes, charge);
+    Tools.dispose(isotopes);
+    return iso;
   }
 
 //  public IsoEnvelope calcIsotopesByMz(double c12, int charge, double minri, double ai)
