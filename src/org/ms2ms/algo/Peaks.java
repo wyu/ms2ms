@@ -15,6 +15,8 @@ import org.ms2ms.data.collect.NavigableMultimap;
 import org.ms2ms.data.collect.TreeListMultimap;
 import org.ms2ms.data.ms.FragmentEntry;
 import org.ms2ms.data.ms.IsoEnvelope;
+import org.ms2ms.data.ms.OffsetPpmTolerance;
+import org.ms2ms.data.ms.PeakMatch;
 import org.ms2ms.math.Points;
 import org.ms2ms.math.Stats;
 import org.ms2ms.mzjava.AnnotatedPeak;
@@ -1099,21 +1101,37 @@ public class Peaks {
       isotopes = 0;
       for (int c13 = 0; c13 <= z; c13++)
       {
-        int[] c = null; ImmutableNavigableMap<Peak> prec=null;
+        Peak pk = null; ImmutableNavigableMap<Peak> prec=null;
         for (ImmutableNavigableMap<Peak> precursors : isolated_precursors)
         {
-          c = precursors!=null?precursors.query(tol.getMin(mz + c13 * 1.003355d / z), tol.getMax(mz + c13 * 1.003355d / z)):null;
-          if (c!=null) { prec=precursors; break; }
+          pk = precursors!=null?Peaks.query4peak(precursors, tol.getMin(mz+c13*1.003355d/z), tol.getMax(mz+c13*1.003355d/z)):null;
+          if (pk!=null) { prec=precursors; break; }
         }
-        if (c==null)
+        if (pk==null)
         {
           isotopes = c13-1;
           break;
         }
         // accumulate the intensities
-        ai += AbsIntensitySum(prec.fetchVals(c));
+        ai += pk.getIntensity();
         isotopes = c13;
-        if (c12 == 0) c12 = Peaks.centroid(prec.fetchVals(c), null,null);
+        if (c12 == 0) c12 = pk.getMz();
+//        int[] c = null; ImmutableNavigableMap<Peak> prec=null;
+//        for (ImmutableNavigableMap<Peak> precursors : isolated_precursors)
+//        {
+//          c = precursors!=null?precursors.query(tol.getMin(mz + c13 * 1.003355d / z), tol.getMax(mz + c13 * 1.003355d / z)):null;
+//          if (c!=null) { prec=precursors; break; }
+//        }
+//        if (c==null)
+//        {
+//          isotopes = c13-1;
+//          break;
+//        }
+//        // accumulate the intensities
+//        ai += AbsIntensitySum(prec.fetchVals(c));
+//        isotopes = c13;
+//        if (c12 == 0) c12 = Peaks.centroid(prec.fetchVals(c), null,null);
+//        c=null;
       }
       if (isotopes > best || (isotopes == best && isotopes > 0 && ai > calc.getIntensity()))
       {
@@ -1125,6 +1143,54 @@ public class Peaks {
 
     // no need to look for the true c12 since we starts with the calculated MH
     return calc;
+  }
+  public static boolean query4index(ImmutableNavigableMap<PeakMatch> peaks, double k0, double k1, Collection<Integer> index)
+  {
+    int i0=Math.max(0, peaks.index(k0)), start=peaks.start(i0);
+
+    if (start>=0)
+    {
+      int j0=-1, j1=-1;
+      for (int k=start; k<peaks.getKeys().length; k++)
+      {
+        if (j0==-1 && peaks.getKeys()[k]>=k0)   j0=k;
+        if (          peaks.getKeys()[k]> k1) { j1=k; break; }
+      }
+      if (j0>=0 && j1>j0)
+      {
+        for (int j=j0; j<j1; j++) index.add(j);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  public static Peak query4peak(ImmutableNavigableMap<Peak> peaks, double k0, double k1)
+  {
+    double ai=0, mz=0;
+    int i0=Math.max(0, peaks.index(k0)), start=peaks.start(i0);
+
+    if (start>=0)
+    {
+      int j0=-1, j1=-1;
+      for (int k=start; k<peaks.getKeys().length; k++)
+      {
+        if (j0==-1 && peaks.getKeys()[k]>=k0)   j0=k;
+        if (          peaks.getKeys()[k]> k1) { j1=k; break; }
+      }
+      if (j0>=0 && j1>j0)
+      {
+        for (int j=j0; j<j1; j++)
+        {
+          ai+=Math.abs(peaks.getVals()[j].getIntensity());
+          mz+=peaks.getKeys()[j];
+        }
+        mz/=(double )(j1-j0);
+      }
+    }
+
+    return ai>0?(new Peak(mz, ai, 0)):null;
   }
   // doo we have good evidence for such charge state in our precursors
   synchronized public static boolean hasIsotopeEnvelop(
@@ -1155,9 +1221,10 @@ public class Peaks {
       for (ImmutableNavigableMap<Peak> precursors : isolated_precursors)
         if (precursors!=null)
         {
-          int[] found = precursors.query(tol.getMin(iso.getMz()), tol.getMax(iso.getMz()));
-          if (Tools.isSet(found))
-            for (Peak p : precursors.fetchVals(found)) ai+=p.getIntensity();
+          ai+=Peaks.query4ai(precursors, tol.getMin(iso.getMz()), tol.getMax(iso.getMz()));
+//          int[] found = precursors.query(tol.getMin(iso.getMz()), tol.getMax(iso.getMz()));
+//          if (Tools.isSet(found))
+//            for (Peak p : precursors.fetchVals(found)) ai+=p.getIntensity();
         }
 
       if (ai>0) { ev.addIsotope(new Peak(iso.getMz(), ai)); order++; } else break;
@@ -1218,9 +1285,11 @@ public class Peaks {
           for (double p0 : precursors.getKeys()) {
             if (p0 > isolation.upperEndpoint()) return 0;
             double maxmz = 0, c13 = 0;
-            for (c13 = 1; c13 <= z; c13++) {
-              int[] c = precursors.query(tol.getMin(p0 + c13 * spacing / (double) z), tol.getMax(p0 + c13 * spacing / (double) z));
-              if (c!=null) break;
+            for (c13 = 1; c13 <= z; c13++)
+            {
+              if (precursors.query4counts(tol.getMin(p0+c13*spacing/(double) z), tol.getMax(p0+c13*spacing/(double) z))>0) break;
+//              int[] c = precursors.query(tol.getMin(p0 + c13 * spacing / (double) z), tol.getMax(p0 + c13 * spacing / (double) z));
+//              if (c!=null) break;
               maxmz = p0 + c13 * spacing / (double) z;
             }
             if (c13 > (z < 2 ? 1 : 2) && maxmz > isolation.lowerEndpoint()) return p0;
@@ -1338,5 +1407,25 @@ public class Peaks {
         pk.setProperty(key, f.getDouble(key));
 
     return pk;
+  }
+  public static double query4ai(ImmutableNavigableMap<Peak> peaks, double k0, double k1)
+  {
+    double ai=0;
+    int i0=Math.max(0, peaks.index(k0)), start=peaks.start(i0);
+
+    if (start>=0)
+    {
+      int j0=-1, j1=-1;
+      for (int k=start; k<peaks.getKeys().length; k++)
+      {
+        if (j0==-1 && peaks.getKeys()[k]>=k0)   j0=k;
+        if (          peaks.getKeys()[k]> k1) { j1=k; break; }
+      }
+      if (j0>=0 && j1>j0)
+        for (int j=j0; j<j1; j++)
+          ai+=Math.abs(peaks.getVals()[j].getIntensity());
+    }
+
+    return ai;
   }
 }

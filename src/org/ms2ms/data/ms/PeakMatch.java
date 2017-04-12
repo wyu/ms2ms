@@ -377,6 +377,7 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Di
     }
     return peaks;
   }
+
   public static double query4ai(ImmutableNavigableMap<PeakMatch> peaks, double m, OffsetPpmTolerance tol)
   {
     double err=tol.calcError(m), offset=tol.calcOffset(m), k0=m-err-offset, k1=m+err+offset, ai=0;
@@ -397,6 +398,27 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Di
 
     return ai;
   }
+  public static Collection<Double> query4keys(ImmutableNavigableMap<PeakMatch> peaks, double m, OffsetPpmTolerance tol, Collection<Double> keys)
+  {
+    double k0=tol.getMin(m), k1=tol.getMax(m);
+    int i0=Math.max(0, peaks.index(k0)), start=peaks.start(i0);
+
+    if (start>=0)
+    {
+      int j0=-1, j1=-1;
+      for (int k=start; k<peaks.getKeys().length; k++)
+      {
+        if (j0==-1 && peaks.getKeys()[k]>=k0)   j0=k;
+        if (          peaks.getKeys()[k]> k1) { j1=k; break; }
+      }
+      if (j0>=0 && j1>j0)
+        for (int j=j0; j<j1; j++)
+          keys.add(peaks.getKeys()[j]);
+    }
+
+    return keys;
+  }
+
   // negative: OK with negative intensity?
   public static IsoEnvelope query4isotope(ImmutableNavigableMap<PeakMatch> peaks, double m, OffsetPpmTolerance tol, boolean negative)
   {
@@ -424,7 +446,10 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Di
           fr+=peaks.getVals()[j].getFrequency();
           ai+=Math.abs(peaks.getVals()[j].getIntensity());
         }
-        pk = new IsoEnvelope(m0/(double )(j1-j0),0,0, ai).setScore(fr/(double )(j1-j0));
+        pk = new IsoEnvelope();
+        pk.setMzAndCharge(m0/(double )(j1-j0),0);
+        pk.setIntensity(ai);
+        pk.setScore(fr/(double) (j1-j0));
       }
     }
 
@@ -434,5 +459,6 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Di
   {
     double err=tol.calcError(m), offset=tol.calcOffset(m);
     return peaks.query4counts(m-err-offset, m+err+offset);
- }
+  }
+
 }

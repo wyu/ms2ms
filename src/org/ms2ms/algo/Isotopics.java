@@ -356,7 +356,7 @@ public class Isotopics
     return null;
   }
 
-  // deprecated
+//  // deprecated
 //  public IsoEnvelope gatherIsotopes(ImmutableNavigableMap<PeakMatch> peaks, double mz, double mh, OffsetPpmTolerance tol)
 //  {
 //    int[]         mz_ai = peaks.query(tol.toActualBoundary(mz));
