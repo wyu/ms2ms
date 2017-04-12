@@ -17,21 +17,30 @@ import java.util.Map;
  * User: wyu
  * Date: Apr 5, 2011
  */
-public class IsoEnvelope extends Peak
+public class IsoEnvelope
 {
+  private double mz = 0.0D;
+  private double intensity = 0.0D;
+  private int charge = 0;
+//  private double mass = 0.0D;
+
   private double mScore = 0d, mChargeScore = 0d;
   private List<Peak> mIsotopes = new ArrayList<Peak>(), mPredicted = new ArrayList<Peak>();
 
   public IsoEnvelope()        { super(); }
-  public IsoEnvelope(Peak s) { super(s); }
-  public IsoEnvelope(List<Peak> s, int charge)
+  public IsoEnvelope(Peak s)
   {
-    super(s.get(0).getMz(), 1, charge);
+    init(mz, s.getIntensity(), s.getCharge());
+  }
+  public IsoEnvelope(List<Peak> s, int z)
+  {
+    init(s.get(0).getMz(),1,z);
     mPredicted.addAll(s);
   }
-  public IsoEnvelope(double c12, int charge, double minri, double ai)
+  public IsoEnvelope(double c12, double ai, int z) { init(c12, ai, z); }
+  public IsoEnvelope(double c12, int z, double minri, double ai)
   {
-    super(c12, ai, charge);
+    init(c12, ai, z);
 
     double               limit = 0;
     List<Peak>           tmp = new ArrayList<>();
@@ -58,9 +67,9 @@ public class IsoEnvelope extends Peak
       if (pk.getIntensity() < min_ai) itr.remove();
     }
   }
-  public IsoEnvelope(double c12, int charge, double minri, double ai, Isotopics iso)
+  public IsoEnvelope(double c12, int z, double minri, double ai, Isotopics iso)
   {
-    super(c12, ai, charge);
+    init(c12, ai, z);
 
     double               limit = 0;
     List<Peak>             tmp = new ArrayList<>();
@@ -87,6 +96,17 @@ public class IsoEnvelope extends Peak
       if (pk.getIntensity() < min_ai) itr.remove();
     }
   }
+  public IsoEnvelope init(double m, double ai, int z)
+  {
+    mz=m; intensity=ai; charge=z;
+    return this;
+  }
+  public double getMz() { return mz; }
+  public double getIntensity() { return intensity; }
+  public int getCharge() { return charge; }
+  public IsoEnvelope setMz(double s) { mz=s; return this; }
+  public IsoEnvelope setIntensity(double s) { intensity=s; return this; }
+  public IsoEnvelope setCharge(int s) { charge=s; return this; }
 
   public IsoEnvelope setChargeScore(double s) { mChargeScore = s; return this; }
   public IsoEnvelope setScore(double s) { mScore = s; return this; }

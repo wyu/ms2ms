@@ -332,7 +332,7 @@ public class Isotopics
     // quit if not matching to the first mz!
     if (iso!=null)
     {
-      iso.setMzAndCharge(iso.getMz(), (int) Math.round(mh/iso.getMz()));
+      iso.setMz(iso.getMz()).setCharge((int) Math.round(mh/iso.getMz()));
       // check for any below m/z
       if (PeakMatch.query4counts(peaks, tol, mz-(1.0025/(double) iso.getCharge()))>0)
       {

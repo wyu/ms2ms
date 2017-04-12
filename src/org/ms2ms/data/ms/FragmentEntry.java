@@ -41,8 +41,8 @@ public class FragmentEntry implements Comparable<FragmentEntry>, Disposable, Bin
 
   public int           getLength()       { return mLength; }
   public char          getCharge()       { return mCharge; }
-  public Float         getMH()           { return mMH; }
-  public Integer       getPeptideKey()   { return mPeptideKey; }
+  public float         getMH()           { return mMH; }
+  public int           getPeptideKey()   { return mPeptideKey; }
   public FragmentEntry getPrev()         { return mPrev; }
 
   public FragmentEntry setCharge(char s) { mCharge=s; return this; }

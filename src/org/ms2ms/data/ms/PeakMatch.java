@@ -23,8 +23,9 @@ import java.util.*;
 public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Disposable
 {
   private double mz=0.0d, intensity=0.0d, mass=0.0d, mSNR, mFreq, mOrigMz, mCalcMz, mScore;
-  private Polarity polarity;
-  private int[] chargeList=new int[0];
+//  private Polarity polarity;
+//  private int[] chargeList=new int[0];
+  private int charge=0;
 
   private boolean mIsOutlier=false;
   private int mVerifiedCharge=0, mIsotopes=1, mIndex;
@@ -35,8 +36,8 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Di
   @Override
   public void dispose()
   {
-    polarity  =null;
-    chargeList=null;
+//    polarity  =null;
+//    chargeList=null;
     ionType   =null;
   }
 
@@ -47,58 +48,65 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Di
     }
   }
 
-  public PeakMatch() { this.polarity=Polarity.UNKNOWN; }
-
-  public PeakMatch(double mz, double intensity, int... charge)
+//  public PeakMatch() { this.polarity=Polarity.UNKNOWN; }
+  public PeakMatch() { }
+  public PeakMatch(double mz, double intensity)
   {
-    this.polarity=Polarity.UNKNOWN;
-    this.setValues(mz, intensity, charge);
+    this.setValues(mz, intensity, 0);
   }
 
-  public static PeakMatch noIntensity(double mz, int... charge)
+  public PeakMatch(double mz, double intensity, int z)
   {
-    return new PeakMatch(mz, 0.0D, charge);
+//    this.polarity=Polarity.UNKNOWN;
+    this.setValues(mz, intensity, z);
+  }
+
+  public static PeakMatch noIntensity(double mz, int z)
+  {
+    return new PeakMatch(mz, 0.0D, z);
   }
 
   public PeakMatch(double mz, double ai, int z, double snr)
   {
-    this.polarity=Polarity.UNKNOWN;
+//    this.polarity=Polarity.UNKNOWN;
     this.setValues(mz, ai, z);
     setSNR(snr);
   }
   public PeakMatch(double mz, double ai, int z, double snr, double freq)
   {
-    this.polarity=Polarity.UNKNOWN;
+//    this.polarity=Polarity.UNKNOWN;
     this.setValues(mz, ai, z);
     setSNR(snr).setFrequency(freq);
   }
   public PeakMatch(double mz, double ai, int z, float snr, IonType type)
   {
-    this.polarity=Polarity.UNKNOWN;
+//    this.polarity=Polarity.UNKNOWN;
     this.setValues(mz, ai, z);
     setSNR(snr); ionType = type;
   }
   public PeakMatch(PeakMatch peak)
   {
-    this.polarity=Polarity.UNKNOWN;
+//    this.polarity=Polarity.UNKNOWN;
     this.mz=peak.mz;
     this.mass=peak.mass;
     this.intensity=peak.intensity;
-    this.chargeList=peak.chargeList;
-    this.polarity=peak.polarity;
+//    this.chargeList=peak.chargeList;
+    this.charge=peak.charge;
+//    this.polarity=peak.polarity;
     this.mass=peak.mass;
 
 //    mAnnotations=peak.mAnnotations;
     ionType=peak.getIonType();
   }
-  public void setValues(double mz, double intensity, int... charge)
+  public void setValues(double mz, double intensity, int charge)
   {
     this.setMzAndCharge(mz, charge);
     this.intensity=intensity;
   }
 
   public double getMz() { return this.mz; }
-  public int getCharge() { return this.chargeList.length==0 ? 0 : this.chargeList[0]; }
+//  public int getCharge() { return this.chargeList.length==0 ? 0 : this.chargeList[0]; }
+  public int getCharge() { return this.charge; }
   public double getIntensity() { return this.intensity; }
 
 //  public double getMass()
@@ -116,45 +124,50 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Di
 //    return this.polarity;
 //  }
 
-  public int[] getChargeList()
-  {
-    int[] list=new int[this.chargeList.length];
-    System.arraycopy(this.chargeList, 0, list, 0, this.chargeList.length);
-    return list;
-  }
+//  public int[] getChargeList()
+//  {
+//    int[] list=new int[this.chargeList.length];
+//    System.arraycopy(this.chargeList, 0, list, 0, this.chargeList.length);
+//    return list;
+//  }
 
   public void setMz(double mz) { this.mz=mz; }
-  public void setCharge(int... charge)
+//  public void setCharge(int z)
+//  {
+//    charge=z;
+//    this.mass=mz*(double) this.charge;
+//  }
+
+//  public void setCharge(int... charge)
+//  {
+//    if (charge.length==1&&charge[0]==0) {
+//      charge=new int[0];
+//    }
+//
+//    this.polarity=charge.length>0 ? Polarity.getPolarity(charge[0]) : Polarity.UNKNOWN;
+//
+//    for (int i=charge.length-1; i>=0; --i)
+//    {
+//      int z=charge[i];
+////      Preconditions.checkArgument(z!=0, "Charge cannot be 0. An unknown charge is specified by a empty array (new int[0])");
+//      charge[i]=Math.abs(z);
+//    }
+//
+//    if (this.chargeList==null||this.chargeList.length!=charge.length) {
+//      this.chargeList=new int[charge.length];
+//    }
+//
+//    System.arraycopy(charge, 0, this.chargeList, 0, charge.length);
+//    if (this.chargeList.length>=1) {
+//      this.mass=mz*(double) this.chargeList[0];
+//    } else {
+//      this.mass=0.0D;
+//    }
+//  }
+
+  public void setMzAndCharge(double mz, int z)
   {
-    if (charge.length==1&&charge[0]==0) {
-      charge=new int[0];
-    }
-
-    this.polarity=charge.length>0 ? Polarity.getPolarity(charge[0]) : Polarity.UNKNOWN;
-
-    for (int i=charge.length-1; i>=0; --i)
-    {
-      int z=charge[i];
-//      Preconditions.checkArgument(z!=0, "Charge cannot be 0. An unknown charge is specified by a empty array (new int[0])");
-      charge[i]=Math.abs(z);
-    }
-
-    if (this.chargeList==null||this.chargeList.length!=charge.length) {
-      this.chargeList=new int[charge.length];
-    }
-
-    System.arraycopy(charge, 0, this.chargeList, 0, charge.length);
-    if (this.chargeList.length>=1) {
-      this.mass=mz*(double) this.chargeList[0];
-    } else {
-      this.mass=0.0D;
-    }
-  }
-
-  public void setMzAndCharge(double mz, int... charge)
-  {
-    setMz(mz);
-    setCharge(charge);
+    setMz(mz); setCharge(z);
   }
 
   public void setIntensity(double intensity)
@@ -194,7 +207,7 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Di
 //  public PeakMatch removeProperty(String s) { if (mAnnotations!=null) mAnnotations.remove(s); return this; }
 
   public PeakMatch setIndex(         int z) { mIndex=z; return this; }
-  public PeakMatch setCharge(        int z) { setMzAndCharge(getMz(), z); return this; }
+  public PeakMatch setCharge(        int z) { charge=z; return this; }
   public PeakMatch setVerifiedCharge(int z) { mVerifiedCharge=z; return this; }
   public PeakMatch setIsotopes(      int s) { mIsotopes      =s; return this; }
   public PeakMatch increIsotope()           { mIsotopes++;       return this; }
@@ -283,8 +296,8 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Di
     } else if (o!=null&&this.getClass()==o.getClass())
     {
       PeakMatch peak=(PeakMatch) o;
-      return this.polarity==peak.polarity && Double.compare(peak.intensity, this.intensity)==0 &&
-          Double.compare(peak.mz, this.mz)==0 && Arrays.equals(this.chargeList, peak.chargeList) &&
+      return Double.compare(peak.intensity, this.intensity)==0 &&
+          Double.compare(peak.mz, this.mz)==0 && this.charge==peak.charge &&
       mIsOutlier==peak.mIsOutlier && mVerifiedCharge==peak.mVerifiedCharge && mIsotopes==peak.mIsotopes &&
       mCounts==peak.mCounts && mSNR==peak.mSNR && mFreq==peak.mFreq && mOrigMz==peak.mOrigMz &&
           ionType==peak.ionType/* && Tools.equals(mAnnotations, peak.mAnnotations)*/;
@@ -299,8 +312,8 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Di
     int result=(int) (temp^temp>>>32);
     temp=this.intensity!=0.0D ? Double.doubleToLongBits(this.intensity) : 0L;
     result=31*result+(int) (temp^temp>>>32);
-    result=31*result+Arrays.hashCode(this.chargeList);
-    result=31*result+this.polarity.hashCode();
+    result=31*result+this.charge;
+//    result=31*result+this.polarity.hashCode();
 
 //    result=31*result+mIsOutlier==peak.mIsOutlier && mVerifiedCharge==peak.mVerifiedCharge && mIsotopes==peak.mIsotopes &&
 //        mCounts==peak.mCounts && mSNR==peak.mSNR && mFreq==peak.mFreq && mOrigMz==peak.mOrigMz &&
@@ -446,9 +459,7 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Di
           fr+=peaks.getVals()[j].getFrequency();
           ai+=Math.abs(peaks.getVals()[j].getIntensity());
         }
-        pk = new IsoEnvelope();
-        pk.setMzAndCharge(m0/(double )(j1-j0),0);
-        pk.setIntensity(ai);
+        pk = new IsoEnvelope(m0/(double )(j1-j0),ai, 0);
         pk.setScore(fr/(double) (j1-j0));
       }
     }

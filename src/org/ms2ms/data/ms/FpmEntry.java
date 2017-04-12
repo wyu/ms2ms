@@ -19,7 +19,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
   private double              mGapScore=0, mIntensities=0d;
   private Double              mMatchScore=null;
   private FragmentEntry       mFragment   =null;
-  private ImmutableList<PeakMatch> mTrack      =null;
+  private ImmutableList<PeakMatch> mTrack =null;
 
   public FpmEntry()
   {
@@ -54,7 +54,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
 //    mFragment=f; mTrack=ImmutableList.copyOf(t); mIntensities=ai;
 //  }
 
-  public boolean             isDecoy()      { return mFragment!=null && mFragment.getPeptideKey()!=null && mFragment.getPeptideKey()<0; }
+  public boolean             isDecoy()      { return mFragment!=null && /*mFragment.getPeptideKey()!=null &&*/ mFragment.getPeptideKey()<0; }
   public boolean             has1st()       { return mHas1st; }
 //  public double              getKaiScore()  { return mKaiScore; }
   public double              getGapScore()  { return mGapScore; }

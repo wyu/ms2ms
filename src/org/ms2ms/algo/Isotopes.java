@@ -413,8 +413,9 @@ H  2
         sum += pos.getIntensity(); sumiso += iso.getPredicted(i).getIntensity();
         if (i == 0)
         {
-          iso.setMzAndCharge(pos.getMz(), pos.getChargeList());
-          iso.setIntensity(pos.getIntensity()); c12 = pos.getIntensity();
+          iso.init(pos.getMz(), pos.getIntensity(), pos.getCharge());
+          //iso.setIntensity(pos.getIntensity());
+          c12 = pos.getIntensity();
         }
       }
       else break;
@@ -476,8 +477,9 @@ H  2
         sum += ais[pos]; sumiso += iso.getPredicted(i).getIntensity();
         if (i == 0)
         {
-          iso.setMzAndCharge(mzs[pos], iso.getChargeList());
-          iso.setIntensity(ais[pos]); c12 = ais[pos];
+          iso.init(mzs[pos], ais[pos], iso.getCharge());
+          //iso.setIntensity(ais[pos]);
+          c12 = ais[pos];
         }
       }
       else break;
