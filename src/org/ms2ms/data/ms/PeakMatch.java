@@ -23,6 +23,7 @@ import java.util.*;
 public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Disposable
 {
   private double mz=0.0d, intensity=0.0d, mass=0.0d, mSNR, mFreq, mOrigMz, mCalcMz, mScore;
+  private Float mz_low, mz_high;
 //  private Polarity polarity;
 //  private int[] chargeList=new int[0];
   private int charge=0;
@@ -104,9 +105,11 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Di
     this.intensity=intensity;
   }
 
-  public double getMz() { return this.mz; }
+  public double getMz()        { return this.mz; }
+  public Float getMzLow()     { return this.mz_low; }
+  public Float getMzHigh()    { return this.mz_high; }
 //  public int getCharge() { return this.chargeList.length==0 ? 0 : this.chargeList[0]; }
-  public int getCharge() { return this.charge; }
+  public int getCharge()       { return this.charge; }
   public double getIntensity() { return this.intensity; }
 
 //  public double getMass()
@@ -132,6 +135,12 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Di
 //  }
 
   public void setMz(double mz) { this.mz=mz; }
+  public PeakMatch setMzExpectedBound(OffsetPpmTolerance tol)
+  {
+    double err=tol.calcError(mz), offset=tol.calcOffset(mz);
+    this.mz_low=(float )(mz-err+offset); this.mz_high=(float )(mz+err+offset);
+    return this;
+  }
 //  public void setCharge(int z)
 //  {
 //    charge=z;
