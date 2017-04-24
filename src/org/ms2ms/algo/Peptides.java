@@ -29,6 +29,7 @@ public class Peptides
   public static final double NH3 = N+3d*H;
   public static final double CO  = C+O;
   public static final double OH  = H+O;
+  public static final double C2H4O = C*2+H*4+O;
 
   static final ImmutableMap.Builder<Character, Float> AAsBuilder =
       new ImmutableMap.Builder<Character, Float>()
