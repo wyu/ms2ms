@@ -171,4 +171,17 @@ public class ScoreModel
     return this;
   }
 
+  public StringBuffer toWiki(StringBuffer buf)
+  {
+    if (buf==null) buf = new StringBuffer();
+
+    buf.append(getName()+"\n");
+    for (eType t : mDecoys.keySet())
+    {
+      buf.append(t.toString()+"\n");
+      buf = mDecoys.get(t).wikiHistogram(buf);
+    }
+
+    return buf;
+  }
 }
