@@ -537,9 +537,10 @@ public class Spectra
       left = Math.max(i-bundle, 0); right=left+2*bundle;
       if (right>max) { right=max; left=right-2*bundle; }
 
-      double top = Collections.max(ai.subList(left, right));
+      double top = (right>left && right<=max ?Collections.max(ai.subList(left, right)):0);
       peaks.setIntensityAt(100d*Math.pow(peaks.getIntensity(i), power)/(top>0?top:1d), i);
     }
+    Tools.dispose(ai);
 
     return peaks;
   }
@@ -602,6 +603,7 @@ public class Spectra
       for (int i=0; i<peaks.size(); i++)
         out.add(peaks.getMz(i)+peaks.getMz(i)*offset, peaks.getIntensity(i), peaks.getAnnotations(i));
     }
+    Tools.dispose(offsets);
 
     return out;
   }
@@ -1034,5 +1036,64 @@ public class Spectra
     }
 
     return clusters;
+  }
+  public static boolean deisotope(PeakList peaks, Tolerance tol, int maxcharge, double zzstart, Isotopics isotopes)
+  {
+    PeakList out = peaks.copy(new PurgingPeakProcessor()); out.clear();
+
+    Set<Integer> searched = new HashSet<>(peaks.size()); double isos=0, isobad=0;
+    for (int i=0; i<peaks.size(); i++)
+    {
+      if (searched.contains(i)) continue;
+
+      int charge=1; IsoEnvelope best=null;
+      if (peaks.getMz(i)>zzstart)
+        for (int z=2; z<=maxcharge; z++)
+        {
+          // predicted isotope envelop above 10% ri.
+          IsoEnvelope ev = isotopes.calcIsotopesByMz(peaks.getMz(i), z, 0.05d, peaks.getIntensity(i));
+          // for the charge state to be real, we must detect the same numbers of the isotopes as the charge state
+          boolean ok=true;
+          for (int k=1; k<z; k++)
+          {
+            if (Spectra.find(peaks, ev.getPredicted(k).getMz(), tol, i, ev.getPredicted(k).getIntensity(), 50d)<=0) { ok=false; break; }
+          }
+          // the charge envelop if good. Let's copy the peaks
+          if (ok)
+          {
+            charge=z; best=ev; break;
+          }
+        }
+
+      // transfer the peak(s)
+      if (best==null) best = new IsoEnvelope(peaks.getMz(i), 1, 10d, peaks.getIntensity(i), isotopes);
+      int order=0;
+      for (Peak iso : best.getPredicted())
+      {
+        int found=Spectra.find(peaks, iso.getMz(), tol, i, iso.getIntensity(), 25d);
+        if (found>=i) best.addIsotope(new Peak(peaks.getMz(found), peaks.getIntensity(found), charge));
+        if (found>=i && !searched.contains(found))
+        {
+          out.add(peaks.getMz(found)*charge - (charge-1)*1.007825d, peaks.getIntensity(found),
+              new IsotopePeakAnnotation(iso.getCharge(), order++, peaks.getIntensity(found)));
+          searched.add(found);
+        }
+        else break;
+      }
+      // check the accuracy of the isotope distribution
+      if (order>1 && best.getPredicted(0).getMz()>peaks.getPrecursor().getMz())
+      {
+        isos++;
+        double dp = Similarity.dp(best.getPredicted().subList(0,order), best.getIsotopes().subList(0,order));
+//        System.out.print(Tools.d2s(dp, 3)+",");
+        Isotopes.dp_prediction.add(Math.log10(dp)*10);
+        if (dp<0.95) isobad++;
+      }
+    }
+
+//    System.out.println();
+    peaks.clear(); peaks.addPeaks(Peaks.consolidate(out, tol));
+    // indicating rejection due to skewed isotope envelop
+    return (isobad/isos>=0.5);
   }
 }
