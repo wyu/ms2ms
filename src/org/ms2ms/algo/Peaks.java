@@ -830,23 +830,29 @@ public class Peaks {
     return Tools.isSet(mz) ? indices.containsKey(mz.lowerEndpoint(), mz.upperEndpoint()) : false;
   }
 
-  public static PeakList consolidate(PeakList peaks, Tolerance tol) {
+  public static PeakList consolidate(PeakList peaks, Tolerance tol, int min_pks)
+  {
     if (peaks == null || peaks.size() < 2) return peaks;
 
     Collection<Point> pts = new ArrayList<>();
     Collection<Peak> news = new ArrayList<>();
     Multimap<Integer, PeakAnnotation> pa = HashMultimap.create();
-    for (int i = 0; i < peaks.size(); i++) {
+    for (int i = 0; i < peaks.size(); i++)
+    {
       double max = tol.getMax(peaks.getMz(i));
       pts.clear();
-      for (int j = i + 1; j < peaks.size(); j++) {
-        if (j < peaks.size() && peaks.getMz(j) <= max) {
+      for (int j = i + 1; j < peaks.size(); j++)
+      {
+        if (j < peaks.size() && peaks.getMz(j) <= max)
+        {
           pts.add(new Point(peaks.getMz(j), peaks.getIntensity(j)));
           peaks.setIntensityAt(-1d, j);
           if (peaks.getAnnotations(j) != null) pa.putAll(i, peaks.getAnnotations(j));
         } else break;
       }
-      if (pts.size() > 0) {
+      // require a min number of peaks
+      if (pts.size() > min_pks)
+      {
         pts.add(new Point(peaks.getMz(i), peaks.getIntensity(i)));
         if (peaks.getAnnotations(i) != null) pa.putAll(i, peaks.getAnnotations(i));
 
@@ -857,6 +863,9 @@ public class Peaks {
     if (Tools.isSet(news))
       for (Peak xy : news)
         peaks.add(xy.getMz(), xy.getIntensity(), pa.get(xy.getCharge()));
+
+    // dispose the intermediate objects
+    Tools.dispose(pts, news); Tools.dispose(pa);
 
     // keeping just the peaks with positive intensities
     return peaks.copy(new PurgingPeakProcessor());

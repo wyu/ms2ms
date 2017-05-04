@@ -4,6 +4,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import org.expasy.mzjava.core.io.ms.spectrum.MgfReader;
+import org.expasy.mzjava.core.io.ms.spectrum.MgfWriter;
 import org.expasy.mzjava.core.mol.NumericMass;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
@@ -17,6 +18,7 @@ import org.expasy.mzjava.proteomics.ms.ident.ModificationMatch;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideProteinMatch;
 import org.expasy.mzjava.proteomics.ms.ident.SpectrumIdentifier;
+import org.ms2ms.algo.Peaks;
 import org.ms2ms.data.ms.MsSpectrum;
 import org.ms2ms.math.Stats;
 import org.ms2ms.r.Dataframe;
@@ -590,7 +592,14 @@ public class MsIO extends IOs
     mgf.close();
     return spectra;
   }
-//  // write the content of the spectrum from an mzML file to another MGF file
+  public static void writeMGF(String mgf, Collection<MsnSpectrum> spectra) throws IOException
+  {
+    MgfWriter MGF = new MgfWriter(new File(mgf), PeakList.Precision.DOUBLE);
+    for (MsnSpectrum ms : spectra) MGF.write(ms);
+    MGF.close();
+  }
+
+  //  // write the content of the spectrum from an mzML file to another MGF file
 //  public static void writeMGF(MgfWriter w, uk.ac.ebi.jmzml.model.mzml.Spectrum ms) throws IOException
 //  {
 //    if (w==null || ms==null) return;

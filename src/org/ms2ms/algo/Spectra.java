@@ -8,7 +8,6 @@ import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeList;
 import org.ms2ms.data.ms.IsoEnvelope;
 import org.ms2ms.data.ms.OffsetPpmTolerance;
-import org.ms2ms.data.ms.PeakMatch;
 import org.ms2ms.io.MsReaders;
 import org.ms2ms.math.Histogram;
 import org.ms2ms.math.Stats;
@@ -385,7 +384,7 @@ public class Spectra
   {
     if (ms==null || ms.size()<2) return ms;
 
-    PeakList m = Peaks.consolidate(ms, tol);
+    PeakList m = Peaks.consolidate(ms, tol, 0);
     ms.clear(); ms.addPeaks(m);
 
     return ms;
@@ -399,7 +398,7 @@ public class Spectra
     for (int i=1; i<As.length; i++) out.addPeaks(As[i]);
 
     PeakList merged = As[0].copy(new PurgingPeakProcessor());
-    merged.clear(); merged.addPeaks(Peaks.consolidate(out, tol));
+    merged.clear(); merged.addPeaks(Peaks.consolidate(out, tol, 0));
 
     return merged;
   }
@@ -458,7 +457,7 @@ public class Spectra
     }
 
 //    System.out.println();
-    peaks.clear(); peaks.addPeaks(Peaks.consolidate(out, tol));
+    peaks.clear(); peaks.addPeaks(Peaks.consolidate(out, tol, 0));
     // indicating rejection due to skewed isotope envelop
     return (isobad/isos>=0.5);
   }
@@ -1092,7 +1091,7 @@ public class Spectra
     }
 
 //    System.out.println();
-    peaks.clear(); peaks.addPeaks(Peaks.consolidate(out, tol));
+    peaks.clear(); peaks.addPeaks(Peaks.consolidate(out, tol, 0));
     // indicating rejection due to skewed isotope envelop
     return (isobad/isos>=0.5);
   }
