@@ -592,10 +592,12 @@ public class MsIO extends IOs
     mgf.close();
     return spectra;
   }
-  public static void writeMGF(String mgf, Collection<MsnSpectrum> spectra) throws IOException
+  public static void writeMGF(String mgf, Collection<MsnSpectrum> spectra, int min_dup) throws IOException
   {
     MgfWriter MGF = new MgfWriter(new File(mgf), PeakList.Precision.DOUBLE);
-    for (MsnSpectrum ms : spectra) MGF.write(ms);
+    for (MsnSpectrum ms : spectra)
+      if (ms.getSpectrumIndex()>=0) MGF.write(ms);
+
     MGF.close();
   }
 
