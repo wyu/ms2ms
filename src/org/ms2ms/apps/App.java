@@ -1,6 +1,7 @@
 package org.ms2ms.apps;
 
 import com.google.common.collect.BiMap;
+import com.google.common.collect.Range;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import org.ms2ms.graph.Property;
@@ -151,6 +152,9 @@ abstract public class App
     }
     return var;
   }
+  protected String param(String s) { return mParameters!=null?mParameters.getProperty(s):null; }
+  protected Property param() { return mParameters; }
+
   protected void addParamKey(String... names)
   {
     if (names!=null && names.length>1) sParamKeys.put(names[0], names[1]);
