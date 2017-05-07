@@ -594,9 +594,11 @@ public class MsIO extends IOs
   }
   public static void writeMGF(String mgf, Collection<MsnSpectrum> spectra, int min_dup) throws IOException
   {
+    System.out.println("Writing "+spectra.size()+" MS/MS spectra with "+min_dup+" or more members to "+mgf);
+
     MgfWriter MGF = new MgfWriter(new File(mgf), PeakList.Precision.DOUBLE);
     for (MsnSpectrum ms : spectra)
-      if (ms.getSpectrumIndex()>=0) MGF.write(ms);
+      if (ms.getSpectrumIndex()>=min_dup) MGF.write(ms);
 
     MGF.close();
   }
