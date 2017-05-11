@@ -71,15 +71,6 @@ public class Isotopics
   }
   public IsoEnvelope calcIsotopesByMz(double c12, int charge, double minri, double ai)
   {
-//    double               limit = 0;
-//    List<Peak> result = new ArrayList<Peak>(), tmp = new ArrayList<Peak>();
-//    Map<Integer, Long> formula = newFormulaMapByAveragine(c12 * charge);
-//
-//    // initialize the result
-//    result.add(new Peak(0.0, 1.0));
-//
-//    calculate(tmp, result, formula, limit, charge);
-
     List<Peak> result = predictEnvelope(c12, charge, minri);
 
     // move the predictions to the c12
@@ -91,54 +82,10 @@ public class Isotopics
     for (Peak pk : result)
       isotopes.add(new Peak(pk.getMz()+offset, ai*pk.getIntensity(), pk.getChargeList()));
 
-//    Tools.dispose(result);
-//    Iterator<Peak> itr = result.iterator();
-//    while (itr.hasNext())
-//    {
-//      Peak pk = itr.next();
-//      pk.setMzAndCharge(pk.getMz()+offset, pk.getChargeList());
-//      pk.setIntensity(pk.getIntensity()*ai);
-//      if (pk.getIntensity() < min_ai) itr.remove();
-//    }
-
-//    if (!Tools.isSet(result))
-//      System.out.print("");
-
     IsoEnvelope iso = new IsoEnvelope(isotopes, charge);
     Tools.dispose(isotopes);
     return iso;
   }
-
-//  public IsoEnvelope calcIsotopesByMz(double c12, int charge, double minri, double ai)
-//  {
-//    double               limit = 0;
-//    List<Peak> result = new ArrayList<Peak>(), tmp = new ArrayList<Peak>();
-//    Map<Integer, Long> formula = newFormulaMapByAveragine(c12 * charge);
-//
-//    // initialize the result
-//    result.add(new Peak(0.0, 1.0));
-//
-//    calculate(tmp, result, formula, limit, charge);
-//
-//    // move the predictions to the c12
-//    double offset = c12 - result.get(0).getMz(), min_ai = result.get(0).getIntensity()*minri*0.01;
-//    // scale the ai to the 1st c12
-//    ai /= result.get(0).getIntensity();
-//
-//    Iterator<Peak> itr = result.iterator();
-//    while (itr.hasNext())
-//    {
-//      Peak pk = itr.next();
-//      pk.setMzAndCharge(pk.getMz()+offset, pk.getChargeList());
-//      pk.setIntensity(pk.getIntensity()*ai);
-//      if (pk.getIntensity() < min_ai) itr.remove();
-//    }
-//
-////    if (!Tools.isSet(result))
-////      System.out.print("");
-//
-//    return new IsoEnvelope(result, charge);
-//  }
 
   public List<Peak> calculate(List<Peak> tmp, List<Peak> result, Map<Integer, Long> fm, double limit, long charge)
   {

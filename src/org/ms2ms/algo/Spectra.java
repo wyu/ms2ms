@@ -1065,7 +1065,9 @@ public class Spectra
         }
 
       // transfer the peak(s)
-      if (best==null) best = new IsoEnvelope(peaks.getMz(i), 1, 10d, peaks.getIntensity(i), isotopes);
+//      if (best==null) best = new IsoEnvelope(peaks.getMz(i), 1, 10d, peaks.getIntensity(i), isotopes);
+      if (best==null) best = isotopes.calcIsotopesByMz(peaks.getMz(i), 1, 0.05d, peaks.getIntensity(i)); // 20170511
+
       int order=0;
       for (Peak iso : best.getPredicted())
       {
