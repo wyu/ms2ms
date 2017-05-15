@@ -31,6 +31,7 @@ public class OffsetPpmTolerance extends PpmTolerance
   {
     mTolSlope=slope; mTol=intercept; mZval=zval; return this;
   }
+  public OffsetPpmTolerance setOffset(double s) { mOffset=s; return this; }
   public double getOffset(double m)
   {
     // flip the sign to indicate correction

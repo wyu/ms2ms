@@ -444,7 +444,7 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Di
   // negative: OK with negative intensity?
   public static IsoEnvelope query4isotope(ImmutableNavigableMap<PeakMatch> peaks, double m, OffsetPpmTolerance tol, boolean negative)
   {
-    double err=tol.calcError(m), offset=tol.calcOffset(m), k0=m-err-offset, k1=m+err+offset;
+    double err=tol.calcError(m), offset=tol.getOffset(m), k0=m-err-offset, k1=m+err+offset;
     int i0=Math.max(0, peaks.index(k0)), start=peaks.start(i0);
 
     IsoEnvelope pk = null;
