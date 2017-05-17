@@ -430,12 +430,15 @@ public class Spectra
 
     MsnSpectrum out = lead.copy(new PurgingPeakProcessor());
 
+//    lead.getPrecursor().setIntensity(lead.getTotalIonCurrent());
     PpmTolerance tol2 = tol.scale(2); Collection<Peak> pcs = new ArrayList<>(); pcs.add(lead.getPrecursor());
     for (MsnSpectrum A : As)
     {
       if (A==lead) continue;
 
+//      A.getPrecursor().setIntensity(A.getTotalIonCurrent());
       pcs.add(A.getPrecursor());
+
       double delta = deviation(tol2, pivots, A), mz=0, err=0;
       // add to the pivots
       for (int i=0; i<A.size(); i++)
@@ -461,7 +464,7 @@ public class Spectra
       }
     }
     // deposit the merged peaks
-    out.clear(); int n=As.size()>1?Math.max(2,Math.round(As.size()*fr)):1;
+    out.clear(); int n=As.size()>1?Math.max(2, Math.round(As.size()*fr)):1;
 //    System.out.println("||m/z||ai||count||");
     for (Double mz : pivots.keySet())
     {
@@ -472,7 +475,14 @@ public class Spectra
         out.add(pm.getSNR()/pm.getIntensity(), pm.getIntensity(), new LibPeakAnnotation((int) pm.getCounts(), 0d, 0d));
       }
     }
-    out.setPrecursor(new Peak(Peaks.centroid(pcs), Peaks.AbsIntensitySum(pcs), lead.getPrecursor().getCharge()));
+    try
+    {
+      out.setPrecursor(new Peak(Peaks.centroid(pcs), Peaks.AbsIntensitySum(pcs), lead.getPrecursor().getCharge()));
+    }
+    catch (NullPointerException ne)
+    {
+      ne.printStackTrace();
+    }
 
     return out;
   }
