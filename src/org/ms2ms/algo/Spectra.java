@@ -1,13 +1,16 @@
 package org.ms2ms.algo;
 
 import com.google.common.collect.*;
+import org.expasy.mzjava.core.ms.PpmTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.*;
+import org.expasy.mzjava.core.ms.spectrum.LibPeakAnnotation;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeList;
 import org.ms2ms.data.ms.IsoEnvelope;
 import org.ms2ms.data.ms.OffsetPpmTolerance;
+import org.ms2ms.data.ms.PeakMatch;
 import org.ms2ms.io.MsReaders;
 import org.ms2ms.math.Histogram;
 import org.ms2ms.math.Stats;
@@ -401,6 +404,77 @@ public class Spectra
     merged.clear(); merged.addPeaks(Peaks.consolidate(out, tol, 0));
 
     return merged;
+  }
+  public static double deviation(Tolerance tol, SortedMap<Double, PeakMatch> As, PeakList B)
+  {
+    Collection<Double> ppms = new ArrayList<>();
+    for (int i=0; i<B.size(); i++)
+    {
+      SortedMap<Double, PeakMatch> slice = As.subMap(tol.getMin(B.getMz(i)), tol.getMax(B.getMz(i)));
+      PeakMatch best=null;
+      if (Tools.isSet(slice))
+        for (PeakMatch pm : slice.values())
+          if (best==null || pm.getIntensity()>best.getIntensity()) best=pm;
+
+      if (best!=null) ppms.add(1E6*(best.getMz()-B.getMz(i))/B.getMz(i));
+    }
+    return Tools.isSet(ppms)?Stats.mean(ppms):0d;
+  }
+  public static MsnSpectrum accumulate(MsnSpectrum lead, OffsetPpmTolerance tol, float fr, Collection<MsnSpectrum> As)
+  {
+    if (!Tools.isSet(As)) return lead;
+
+    SortedMap<Double, PeakMatch> pivots = PeakMatch.toPeaksWithExclusion(lead);
+    // initiate the peaks
+    for (PeakMatch pm : pivots.values()) pm.setSNR(pm.getMz()*pm.getIntensity());
+
+    MsnSpectrum out = lead.copy(new PurgingPeakProcessor());
+
+    PpmTolerance tol2 = tol.scale(2); Collection<Peak> pcs = new ArrayList<>(); pcs.add(lead.getPrecursor());
+    for (MsnSpectrum A : As)
+    {
+      if (A==lead) continue;
+
+      pcs.add(A.getPrecursor());
+      double delta = deviation(tol2, pivots, A), mz=0, err=0;
+      // add to the pivots
+      for (int i=0; i<A.size(); i++)
+      {
+        mz = A.getMz(i)+delta*A.getMz(i)*1E-6;
+        SortedMap<Double, PeakMatch> slice = pivots.subMap(tol.getMin(mz), tol.getMax(mz));
+        PeakMatch best=null;
+        if (Tools.isSet(slice))
+          for (PeakMatch pm : slice.values())
+            if (best==null || Math.abs(pm.getMz()-mz)<err) { best=pm; err=Math.abs(pm.getMz()-mz); }
+
+        if (best!=null)
+        {
+          PeakMatch pm = pivots.get(best.getMz());
+          pm.setSNR(pm.getSNR()+A.getMz(i)*A.getIntensity(i));
+          pm.setIntensity(pm.getIntensity()+A.getIntensity(i));
+          pm.setCounts(pm.getCounts()+1);
+        }
+        else
+        {
+          pivots.put(A.getMz(i), new PeakMatch(A.getMz(i), A.getIntensity(i)).setSNR(A.getMz(i)*A.getIntensity(i)));
+        }
+      }
+    }
+    // deposit the merged peaks
+    out.clear(); int n=As.size()>1?Math.max(2,Math.round(As.size()*fr)):1;
+//    System.out.println("||m/z||ai||count||");
+    for (Double mz : pivots.keySet())
+    {
+      PeakMatch pm = pivots.get(mz);
+      if (pm.getCounts()>=n)
+      {
+//        System.out.println("|"+Tools.d2s(pm.getSNR()/pm.getIntensity(), 4)+"|"+Tools.d2s(pm.getIntensity(),0)+"|"+pm.getCounts()+"|");
+        out.add(pm.getSNR()/pm.getIntensity(), pm.getIntensity(), new LibPeakAnnotation((int) pm.getCounts(), 0d, 0d));
+      }
+    }
+    out.setPrecursor(new Peak(Peaks.centroid(pcs), Peaks.AbsIntensitySum(pcs), lead.getPrecursor().getCharge()));
+
+    return out;
   }
   public static boolean deisotope(PeakList peaks, Tolerance tol, int maxcharge, double zzstart)
   {
@@ -1096,5 +1170,18 @@ public class Spectra
     peaks.clear(); peaks.addPeaks(Peaks.consolidate(out, tol, 0));
     // indicating rejection due to skewed isotope envelop
     return (isobad/isos>=0.5);
+  }
+  public static PeakList invalidateByPPM(PeakList A, double ppm)
+  {
+    if (A==null || A.size()<2) return A;
+
+    // need at least 50ppm to avoid being labelled as "not centroided" by MSGF+
+    for (int i=0; i<A.size(); i++)
+      if (isValid(A, i))
+        for (int j=i; j<A.size(); j++)
+          if (isValid(A, j) && 1E6*Math.abs(A.getMz(j)-A.getMz(i))/A.getMz(i)>ppm)
+          { invalidate(A, (A.getIntensity(i)>A.getIntensity(j))?j:i); break; }
+
+    return A;
   }
 }

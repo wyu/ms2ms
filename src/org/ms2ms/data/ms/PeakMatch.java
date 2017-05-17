@@ -22,15 +22,15 @@ import java.util.*;
  */
 public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Disposable
 {
-  private double mz=0.0d, intensity=0.0d, mass=0.0d, mSNR, mFreq, mOrigMz, mCalcMz, mScore;
-  private Float mz_low, mz_high;
+  private double mz=0.0d, intensity=0.0d, mass=0.0d, mSNR=0d, mFreq=0d, mOrigMz=0d, mCalcMz=0d, mScore=0d;
+  private Float mz_low=0f, mz_high=0f;
 //  private Polarity polarity;
 //  private int[] chargeList=new int[0];
   private int charge=0;
 
   private boolean mIsOutlier=false;
   private int mVerifiedCharge=0, mIsotopes=1, mIndex;
-  private long mCounts;
+  private long mCounts=1;
 //  private Map<String, Double> mAnnotations = null;
   private IonType ionType ;
 

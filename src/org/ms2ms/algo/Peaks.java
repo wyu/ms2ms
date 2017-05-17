@@ -288,6 +288,7 @@ public class Peaks {
 
   public static double toMH(double mz, int z) { return (mz * z - (z - 1) * 1.007825); }
   public static double MnH2MnH(double mh, int z1, int z2) { return (toMass(mh,z1)+z2*Peptides.H)/(double )z2; }
+  public static Peak   MnH2MnH(Peak mh, int z1, int z2) { return new Peak(MnH2MnH(mh.getMz(), z1, z2), mh.getIntensity(), mh.getCharge()); }
   public static float  MnH2MnH(float mh, int z1, int z2) { return (float )(toMass((double )mh,z1)+z2*Peptides.H)/(float )z2; }
 
   public static double toMass(double mz, int z) {
