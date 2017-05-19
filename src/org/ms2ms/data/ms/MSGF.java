@@ -1,9 +1,6 @@
 package org.ms2ms.data.ms;
 
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Table;
-import com.google.common.collect.TreeMultimap;
+import com.google.common.collect.*;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.TabFile;
@@ -33,7 +30,7 @@ public class MSGF
 
       Map<String, String> props = out.get(row, peptide);
       if (props==null || Tools.getDouble(props, "MSGFScore")>msgf.getDouble("MSGFScore"))
-        out.put(row, peptide, msgf.getMappedRow());
+        out.put(row, peptide, new HashMap<>(msgf.getMappedRow()));
     }
     msgf.close();
 
@@ -55,7 +52,7 @@ public class MSGF
     }
 
     TreeMultimap<Integer, Double> all = TreeMultimap.create(), annot = TreeMultimap.create();
-    Set<String> distincts = new HashSet<>();
+    Multimap<String, String> distincts = HashMultimap.create();
 
     Table<String, String, Map<String, String>> psm = parseMSGF(search);
 
@@ -83,7 +80,7 @@ public class MSGF
         passed++; ids += scans.length;
 
         annot.put(scans.length, fdr);
-        distincts.add(peptide.replaceAll("[0|1|2|3|4|5|6|7|8|9|\\\\+|\\\\.|\\\\-]", ""));
+        distincts.put(peptide.replaceAll("[0|1|2|3|4|5|6|7|8|9|\\\\+|\\\\.|\\\\-]", ""), row+"*"+scans.length+"*"+scans[0]);
 
         out.put(row, "Charge",       Tools.getInt(props, "Charge"));
         out.put(row, "DeNovoScore",  Tools.getDouble(props,"DeNovoScore"));
@@ -99,7 +96,7 @@ public class MSGF
       }
       else if (Sets.intersection(scns, runscan_seq.keySet()).size()>0)
       {
-        good_miss++;
+        good_miss+=scans.length;
         if (scans.length>2)
         {
           System.out.println(row+", "+peptide+"@"+props.get("QValue")+" m/z"+Tools.d2s(Tools.getDouble(props, "Precursor"), 4)+" @z"+Tools.getInt(props, "Charge"));

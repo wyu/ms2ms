@@ -29,10 +29,10 @@ public class LcMsMsFeatures
   public static final String COL_PROPERTY   = "Properties";
 
   // RT, m
-  private TreeMap<Integer, Double> mScan_RT;
-  private TreeMap<Integer, Features> mScan_MS2;
-  private TreeBasedTable<Double, Double, Features> mIons, mMsMs;
-  private TreeMultimap<Double, Features> mPeptides;
+  private TreeBasedTable<Integer, String, Double>   mScan_RT;
+  private MultiTreeTable<Integer, String, Features> mScan_MS2;
+  private TreeBasedTable<Double, Double, Features>  mIons, mMsMs; // mz,rt, feature
+  private TreeMultimap<Double, Features>            mPeptides;
 
   public LcMsMsFeatures() { super(); }
   public LcMsMsFeatures(TabFile lcms, String mq, OffsetPpmTolerance mz)
@@ -40,7 +40,7 @@ public class LcMsMsFeatures
     try
     {
       readMaxquantMS1(     new TabFile(mq+"/msScans.txt", "\t"));
-      readMaxquant(        new TabFile(mq+"/msmsScans.txt", "\t"));
+      readMaxquantMsMs(new TabFile(mq+"/msmsScans.txt", "\t"));
       readMaxquantFeatures(new TabFile(mq+"/allPeptides.txt", "\t"));
 
       readDinosauer(lcms);
@@ -60,7 +60,7 @@ public class LcMsMsFeatures
     try
     {
       readMaxquantMS1(     new TabFile(mq+"/msScans.txt", "\t"));
-      readMaxquant(        new TabFile(mq+"/msmsScans.txt", "\t"));
+      readMaxquantMsMs(new TabFile(mq+"/msmsScans.txt", "\t"));
       readMaxquantFeatures(new TabFile(mq+"/allPeptides.txt", "\t"));
 
       System.out.println(mIons.size());
@@ -78,10 +78,10 @@ public class LcMsMsFeatures
   {
 
   }
-  public void readMaxquant(TabFile features) throws IOException
+  public void readMaxquantMsMs(TabFile features) throws IOException
   {
     System.out.println("Reading the features from "+features.getFileName());
-    int counts=0; mScan_MS2 = new TreeMap<>();
+    int counts=0; mScan_MS2 = MultiTreeTable.create();
     while (features.hasNext())
     {
       // Raw file        Scan number     Retention time  Ion injection time      Total ion current       Collision energy        Summations      Base peak intensity     Elapsed time
@@ -101,7 +101,7 @@ public class LcMsMsFeatures
       addMsMs(rt, mz, COL_AI_APEX,  features.getDouble("Precursor intensity"));
       addMsMs(rt, mz, COL_PROPERTY, features.getMappedRow());
 
-      mScan_MS2.put(features.getInt("Scan number"), mMsMs.get(rt, mz));
+      mScan_MS2.put(features.getInt("Scan number"), features.get("Raw file"), mMsMs.get(mz,rt));
 
       if (++counts%10000==0) System.out.print(".");
       if (counts%1000000==0) System.out.println();
@@ -112,7 +112,7 @@ public class LcMsMsFeatures
   {
     System.out.println("Reading the MS1 scans from "+features.getFileName()); int counts=0;
 
-    mScan_RT = new TreeMap<>();
+    mScan_RT = TreeBasedTable.create();
     while (features.hasNext())
     {
       // Raw file        Scan number     Scan index      Retention time  Cycle time      Ion injection time
@@ -121,7 +121,7 @@ public class LcMsMsFeatures
       // Single isotope patterns / s     Multiplets / s  Identified multiplets / s       Multiplet identification rate [%]
       // MS/MS / s       Identified MS/MS / s    MS/MS identification rate [%]   Intens Comp Factor
       // CTCD Comp       RawOvFtT        AGC Fill
-      mScan_RT.put(features.getInt("Scan number"), features.getDouble("Retention time"));
+      mScan_RT.put(features.getInt("Scan number"), features.get("Raw file"), features.getDouble("Retention time"));
 
       if (++counts%10000==0) System.out.print(".");
       if (counts%1000000==0) System.out.println();
@@ -145,7 +145,9 @@ public class LcMsMsFeatures
       addFeature(rt, mz, COL_Z,        features.getInt("Charge"));
       addFeature(rt, mz, COL_MASS,     features.getDouble("Mass"));
       addFeature(rt, mz, COL_AI_APEX,  features.getDouble("Intensity"));
-      addFeature(rt, mz, COL_RT_BOUND, Range.closed(mScan_RT.get(features.getInt("Min scan number")), mScan_RT.get(features.getInt("Max scan number"))));
+      addFeature(rt, mz, COL_RT_BOUND, Range.closed(
+          mScan_RT.get(features.getInt("Min scan number"), features.get("Raw file")),
+          mScan_RT.get(features.getInt("Max scan number"), features.get("Raw file"))));
       addFeature(rt, mz, COL_SCAN_BOUND, Range.closed(features.getInt("Min scan number"), features.getInt("Max scan number")));
       addFeature(rt, mz, COL_PROPERTY, features.getMappedRow());
 
@@ -292,5 +294,15 @@ public class LcMsMsFeatures
     F.add(key, val);
 
     return this;
+  }
+
+  public TreeMultimap<Double, Features> getFeaturesByIntensity()
+  {
+    if (!Tools.isSet(mIons)) return null;
+
+    TreeMultimap<Double, Features> F = TreeMultimap.create(Ordering.natural().reverse(), Ordering.natural());
+    for (Features ff : mIons.values()) F.put(ff.getDouble("Intensity"), ff);
+
+    return F;
   }
 }
