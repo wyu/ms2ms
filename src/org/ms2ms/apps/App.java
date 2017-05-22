@@ -162,7 +162,7 @@ abstract public class App
     else
     {
       for (String key : sParamKeys.keySet())
-        buf.append(key+"\t"+param(key) + "\t" + sParamKeys.get(key)+"\n");
+        buf.append(key+"\t\t"+param(key) + "\t" + sParamKeys.get(key)+"\n");
     }
 
     return buf.toString();
