@@ -174,6 +174,7 @@ public class Peptides
 
     return y;
   }
+  public static double calcMH(double mz, int z) { return (mz*z-(z-1)*H); }
   public static int numTryptic(String peptide)
   {
     // check the uncleaved site

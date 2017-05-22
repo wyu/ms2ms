@@ -47,8 +47,8 @@ public class LcMsMsFeatures
 
       System.out.println(mIons.size());
 
-      Ions2Peptides(mz);
-      Peptides2MsMs(mz);
+//      Ions2Peptides(mz);
+//      Peptides2MsMs(mz);
     }
     catch (IOException ie)
     {
@@ -60,13 +60,13 @@ public class LcMsMsFeatures
     try
     {
       readMaxquantMS1(     new TabFile(mq+"/msScans.txt", "\t"));
-      readMaxquantMsMs(new TabFile(mq+"/msmsScans.txt", "\t"));
+      readMaxquantMsMs(    new TabFile(mq+"/msmsScans.txt", "\t"));
       readMaxquantFeatures(new TabFile(mq+"/allPeptides.txt", "\t"));
 
       System.out.println(mIons.size());
 
-      Ions2Peptides(mz);
-      Peptides2MsMs(mz);
+//      Ions2Peptides(mz);
+//      Peptides2MsMs(mz);
     }
     catch (IOException ie)
     {
@@ -202,8 +202,8 @@ public class LcMsMsFeatures
         Double mass        = pk.getDouble(COL_MASS);
         Double mass_unique = Tools.unique(mPeptides.keySet(), mass);
 
-        if (Math.abs(1251.636-mass)<0.01 && Math.abs(77-pk.getDouble(COL_RT))<2)
-          System.out.print("");
+//        if (Math.abs(1251.636-mass)<0.01 && Math.abs(77-pk.getDouble(COL_RT))<2)
+//          System.out.print("");
 
         Map<Double, Collection<Features>> slice = mass_feature.asMap().subMap(mz.getMin(mass), mz.getMax(mass));
 
@@ -228,7 +228,7 @@ public class LcMsMsFeatures
         }
       }
 
-    Tools.dispose(ai_pts); Tools.dispose(mass_feature);
+    ai_pts.clear(); ai_pts=null; mass_feature.clear(); mass_feature=null; rt_features.clear(); rt_features=null;
 
     System.out.println(mPeptides.keySet().size()+" Peptide clusters based on " + mIons.size() + " charge clusters");
     return mPeptides;
@@ -301,7 +301,8 @@ public class LcMsMsFeatures
     if (!Tools.isSet(mIons)) return null;
 
     TreeMultimap<Double, Features> F = TreeMultimap.create(Ordering.natural().reverse(), Ordering.natural());
-    for (Features ff : mIons.values()) F.put(ff.getDouble("Intensity"), ff);
+    for (Features ff : mIons.values())
+      F.put(ff.getDouble("intensityApex"), ff);
 
     return F;
   }

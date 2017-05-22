@@ -152,8 +152,26 @@ abstract public class App
     }
     return var;
   }
-  protected String param(String s) { return mParameters!=null?mParameters.getProperty(s):null; }
-  protected Property param() { return mParameters; }
+  public String showParams(String... keys)
+  {
+    StringBuffer buf = new StringBuffer();
+    buf.append("Param\tValue\tDescription\n");
+
+    if (Tools.isSet(keys))
+      for (String key : keys) buf.append(key+"\t"+param(key) + "\t" + sParamKeys.get(key)+"\n");
+    else
+    {
+      for (String key : sParamKeys.keySet())
+        buf.append(key+"\t"+param(key) + "\t" + sParamKeys.get(key)+"\n");
+    }
+
+    return buf.toString();
+  }
+  protected String   param(String s)            { return mParameters!=null?mParameters.getProperty(s):null; }
+  protected Double   param(String s, Double d)  { return mParameters!=null?mParameters.getProperty(s,d):null; }
+  protected Float    param(String s, Float d)   { return mParameters!=null?mParameters.getProperty(s,d):null; }
+  protected Integer  param(String s, Integer d) { return mParameters!=null?mParameters.getProperty(s,d):null; }
+  protected Property param()                    { return mParameters; }
 
   protected void addParamKey(String... names)
   {
