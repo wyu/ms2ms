@@ -29,7 +29,7 @@ public class MSGF
           peptide = msgf.get("Peptide").replaceAll("[0|1|2|3|4|5|6|7|8|9|\\\\+|\\\\.|\\\\-]", "");
 
       Map<String, String> props = out.get(row, peptide);
-      if (props==null || Tools.getDouble(props, "MSGFScore")>msgf.getDouble("MSGFScore"))
+      if (props==null || Tools.getDouble(props, "MSGFScore")<msgf.getDouble("MSGFScore"))
         out.put(row, peptide, new HashMap<>(msgf.getMappedRow()));
     }
     msgf.close();
@@ -113,5 +113,77 @@ public class MSGF
     for (Integer cnt :   all.keySet())      alls+=cnt*  all.get(cnt).size();
 
     System.out.println("Annot/All: " + annotated+"/"+alls + "--> " + Tools.d2s(100d*annotated/alls, 2));
+  }
+  public static Map<String, String> readAssignments(String assignments) throws IOException
+  {
+    System.out.println("Reading the assignments from " + assignments);
+
+    Map<String, String> runscan_seq=new HashMap<>();
+
+    if (Strs.isSet(assignments)) {
+      TabFile refs=new TabFile(assignments, TabFile.comma);
+      while (refs.hasNext()) {
+        if (refs.get("Protein")==null||refs.get("Protein").indexOf("XXX")<0)
+          runscan_seq.put(refs.get("Run")+"#"+refs.getInt("Scan"), refs.get("Sequence")+" m/z"+refs.get("mz")+"@z"+refs.get("z"));
+      }
+      refs.close();
+    }
+    return runscan_seq;
+  }
+  public static StringBuffer countMSGFSearches(String search, Map<String, String> runscan_seq, String name) throws IOException
+  {
+    System.out.print("Counting the matches: "+search);
+
+    TreeMultimap<Integer, Double> all = TreeMultimap.create(), annot = TreeMultimap.create();
+    Multimap<String, String> distincts = HashMultimap.create();
+
+    int passed=0, ids=0, specs=0, good_miss=0, counts=0;
+
+    TabFile  msgf = new TabFile(search, TabFile.tabb);
+    Map<Integer, Double> scores = new HashMap<>();
+    while(msgf.hasNext())
+    {
+      int        row = msgf.getInt("ScanNum");
+      String peptide = msgf.get("Peptide").replaceAll("[0|1|2|3|4|5|6|7|8|9|\\\\+|\\\\.|\\\\-]", "");
+
+      // total number of MSGF hits
+      if (++counts%10000==0) System.out.print(".");
+
+      if (scores.get(row)==null || scores.get(row)<msgf.getDouble("MSGFScore"))
+      {
+        double     fdr = msgf.getDouble("QValue");
+        String[] scans = Strs.split(msgf.get("Title"), '+');
+
+        // only count it once
+        if (!scores.containsKey(row)) specs += scans.length;
+
+        Set<String> scns = new HashSet<>();
+        for (String scan : scans)
+        {
+          scns.add(Strs.split(scan, "m", true).get(0));
+        }
+        all.put(scans.length, fdr);
+        if (fdr<=0.01)
+        {
+          passed++; ids += scans.length;
+
+          annot.put(scans.length, fdr);
+          distincts.put(peptide, row+"*"+scans.length+"*"+scans[0]);
+        }
+        else if (Sets.intersection(scns, runscan_seq.keySet()).size()>0)
+        {
+          good_miss+=scans.length;
+        }
+        scores.put(row, msgf.getDouble("MSGFScore"));
+      }
+    }
+    msgf.close();
+    System.out.println();
+
+    int annotated=0, alls=0;
+    for (Integer cnt : annot.keySet()) annotated+=cnt*annot.get(cnt).size();
+    for (Integer cnt :   all.keySet())      alls+=cnt*  all.get(cnt).size();
+
+    return new StringBuffer("|"+name+"|"+passed+"|"+ids+"|"+good_miss+"|"+Tools.d2s(100d*ids/specs, 2)+"|"+specs+"|"+counts+"|\n");
   }
 }

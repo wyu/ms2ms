@@ -99,7 +99,7 @@ public class LcMsMsFeatures
       addMsMs(rt, mz, COL_Z,        features.getInt("Charge"));
       addMsMs(rt, mz, COL_MASS,     features.getDouble("Mass"));
       addMsMs(rt, mz, COL_AI_APEX,  features.getDouble("Precursor intensity"));
-      addMsMs(rt, mz, COL_PROPERTY, features.getMappedRow());
+//      addMsMs(rt, mz, COL_PROPERTY, new HashMap<>(features.getMappedRow()));
 
       mScan_MS2.put(features.getInt("Scan number"), features.get("Raw file"), mMsMs.get(mz,rt));
 
@@ -149,7 +149,7 @@ public class LcMsMsFeatures
           mScan_RT.get(features.getInt("Min scan number"), features.get("Raw file")),
           mScan_RT.get(features.getInt("Max scan number"), features.get("Raw file"))));
       addFeature(rt, mz, COL_SCAN_BOUND, Range.closed(features.getInt("Min scan number"), features.getInt("Max scan number")));
-      addFeature(rt, mz, COL_PROPERTY, features.getMappedRow());
+//      addFeature(rt, mz, COL_PROPERTY, new HashMap<>(features.getMappedRow()));
 
       if (++counts%10000==0) System.out.print(".");
       if (counts%1000000==0) System.out.println();
