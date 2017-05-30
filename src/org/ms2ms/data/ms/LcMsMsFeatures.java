@@ -157,6 +157,18 @@ public class LcMsMsFeatures
     System.out.println(counts); features.close();
   }
 
+  public LcMsMsFeatures readDinosauer(String features)
+  {
+    try
+    {
+      readDinosauer(new TabFile(features, TabFile.tabb));
+    }
+    catch (IOException ie)
+    {
+      ie.printStackTrace();
+    }
+    return this;
+  }
   public void readDinosauer(TabFile features) throws IOException
   {
     System.out.println("Reading the features from "+features.getFileName()); int counts=0;
