@@ -1,10 +1,13 @@
 package org.ms2ms.data.ms;
 
+import com.compomics.util.experiment.identification.matches.PeptideMatch;
 import com.google.common.collect.*;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.ms2ms.data.Features;
 import org.ms2ms.data.Point;
 import org.ms2ms.data.collect.MultiTreeTable;
+import org.ms2ms.r.Dataframe;
+import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
 
@@ -31,8 +34,18 @@ public class LcMsMsFeatures
   // RT, m
   private TreeBasedTable<Integer, String, Double>   mScan_RT;
   private MultiTreeTable<Integer, String, Features> mScan_MS2;
+  private Map<Long, Features>                       mDistinctPeptides;
   private TreeBasedTable<Double, Double, Features>  mIons, mMsMs; // mz,rt, feature
   private TreeMultimap<Double, Features>            mPeptides;
+
+  private Table<ProteinID, String, Map<String, Float>> mProteinInfo;
+  private Table<PeptideFeature, String, Float>      mPeptideExptAI;;
+  private Multimap<String, String>                  mExptRun;
+
+  // assemble the protein and peptide matches
+  private Map<String, ProteinID> mProteinIDs;
+  private Table<PeptideMatch, String, Features> mPeptideRunFeatures;
+  private Table<String, String, Features> mSampleProperties;
 
   public LcMsMsFeatures() { super(); }
   public LcMsMsFeatures(TabFile lcms, String mq, OffsetPpmTolerance mz)
@@ -78,6 +91,16 @@ public class LcMsMsFeatures
   {
 
   }
+
+  public Table<ProteinID, String, Map<String, Float>> getProteinInfo()   { return mProteinInfo; }
+  public Table<PeptideFeature, String, Float>         getPeptideExptAI() { return mPeptideExptAI; }
+  public Multimap<String, String>                     getExptRun()       { return mExptRun; }
+  public Collection<String>                           getRuns4Expt(String s) { return mExptRun!=null?mExptRun.get(s):null; }
+
+  public LcMsMsFeatures setProteinInfo(  Table<ProteinID, String, Map<String, Float>> s) { mProteinInfo  =s; return this; }
+  public LcMsMsFeatures setPeptideExptAI(Table<PeptideFeature, String, Float>         s) { mPeptideExptAI=s; return this; }
+  public LcMsMsFeatures setExptRuns(     Multimap<String, String>                     s) { mExptRun      =s; return this; }
+
   public void readMaxquantMsMs(TabFile features) throws IOException
   {
     System.out.println("Reading the features from "+features.getFileName());
@@ -317,5 +340,26 @@ public class LcMsMsFeatures
       F.put(ff.getDouble("intensityApex"), ff);
 
     return F;
+  }
+  public Dataframe toPeptideExptMatrix()
+  {
+    Dataframe df = new Dataframe("peptide-charge vs experiment matrix");
+    // going thro each peptide features
+    for (PeptideFeature F : getPeptideExptAI().rowKeySet())
+    {
+      String row = F.getTitle()+"z"+F.getCharge()+","+Tools.d2s(F.getRT(), 3)+"min";
+      // put in the peptide cols
+      df.put(row, "Peptide",   F.getTitle());
+      df.put(row, "Sequence",  F.toSymbolString());
+      df.put(row, "mass",      F.getNeutralPeptideMass());
+      df.put(row, "Protein",   F.getProteinID().getName());
+      df.put(row, "Accession", F.getProteinID().getAccession());
+      df.put(row, "Gene",      F.getProteinID().getGene());
+
+      for (String expt : getPeptideExptAI().row(F).keySet())
+        df.put(row, expt, getPeptideExptAI().get(F, expt));
+    }
+
+    return df.init(false);
   }
 }

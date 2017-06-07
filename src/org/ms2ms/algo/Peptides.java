@@ -31,6 +31,8 @@ public class Peptides
   public static final double OH  = H+O;
   public static final double C2H4O = C*2+H*4+O;
 
+  public static final Double TMT10 = 229.162932d;
+
   static final ImmutableMap.Builder<Character, Float> AAsBuilder =
       new ImmutableMap.Builder<Character, Float>()
           .put('G',57.02146f  ).put('A', 71.03711f).put('S', 87.03203f).put('P', 97.05276f).put('V', 99.06841f)
@@ -149,7 +151,7 @@ public class Peptides
     if ("tmt10".equalsIgnoreCase(fixed) || "tmt6".equalsIgnoreCase(fixed))
     {
       TreeMap<Character, Float> map = new TreeMap<>(AAsBuilder.build());
-      map.put('K', 357.25789f); map.put('^', 229.162932f); // TMT-10
+      map.put('K', 357.25789f); map.put('^', TMT10.floatValue()); // TMT-10
 
       return ImmutableMap.copyOf(map);
     }

@@ -14,6 +14,7 @@ import org.expasy.mzjava.proteomics.ms.spectrum.PepFragAnnotation;
 import org.expasy.mzjava.proteomics.ms.spectrum.PeptideSpectrum;
 import org.ms2ms.data.ms.Engine;
 import org.ms2ms.data.ms.MetaPeptideMatch;
+import org.ms2ms.math.Stats;
 import org.ms2ms.mzjava.NumModMatchResolver;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.Strs;
@@ -247,6 +248,16 @@ public class PSMs
 //    }
 //    return m;
 //  }
+
+  public static PeptideMatch addScore(PeptideMatch m, Map<String, Object> info, String... keys)
+  {
+    if (m!=null && Tools.isSet(info) && Tools.isSet(keys))
+      for (String key : keys)
+        if (info.containsKey(key) && Stats.toDouble(info.get(key).toString())!=null &&
+            !Stats.toDouble(info.get(key).toString()).isNaN() && !Stats.toDouble(info.get(key).toString()).isInfinite())
+          m.addScore(key, Stats.toDouble(info.get(key).toString()));
+    return m;
+  }
 
   public static PeptideMatch addScore(PeptideMatch m, String t, Double s)
   {

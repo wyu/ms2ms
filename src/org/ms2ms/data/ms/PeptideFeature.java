@@ -13,6 +13,7 @@ import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,24 +30,41 @@ public class PeptideFeature extends PeptideMatch
 {
   public static final String SCORE = "Score";
 
+  private ProteinID mProteinID;
+  private Collection<PeptideMatch> mMatches;
   private Map<String, Double> mExptAbundance = new HashMap<>();;
   private int mCharge;
   private String mTitle;
+  private Double mRT;
 
   public PeptideFeature() { super(); }
   public PeptideFeature(String s) { super(s); }
+  public PeptideFeature(PeptideMatch s)
+  {
+    super(s);
+  }
 
-  public String   getTitle()              { return mTitle; }
-  public int      getCharge()             { return mCharge; }
-  public Double   getAbundance(String s)  { return mExptAbundance.get(s); }
-  public Collection<String> getExperiments() { return mExptAbundance!=null?mExptAbundance.keySet():null; }
+  public ProteinID          getProteinID()         { return mProteinID; }
+  public String             getTitle()             { return mTitle; }
+  public int                getCharge()            { return mCharge; }
+  public Double             getRT()                { return mRT; }
+  public Double             getAbundance(String s) { return mExptAbundance.get(s); }
+  public Collection<String> getExperiments()       { return mExptAbundance!=null?mExptAbundance.keySet():null; }
 
+  public PeptideFeature setProteinID(ProteinID        s){ mProteinID=s; return this; }
   public PeptideFeature setAbundance(String t, Double s){ mExptAbundance.put(t, s); return this; }
   public PeptideFeature setCharge(int s)                { mCharge=s; return this; }
+  public PeptideFeature setRT(Double s)                 { mRT=s; return this; }
   public PeptideFeature setTitle(String s)              { mTitle=s; return this; }
   public PeptideFeature addAbundance(String t, Double s)
   {
     mExptAbundance.put(t, getAbundance(t)!=null?s+getAbundance(t):s);
+    return this;
+  }
+  public PeptideFeature addMatch(PeptideMatch s)
+  {
+    if (mMatches==null) mMatches = new ArrayList<>();
+    mMatches.add(s);
     return this;
   }
 

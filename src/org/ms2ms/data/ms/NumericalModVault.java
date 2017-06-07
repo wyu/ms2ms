@@ -3,7 +3,6 @@ package org.ms2ms.data.ms;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodManager;
 import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodMod;
-import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
 
@@ -82,6 +81,8 @@ public class NumericalModVault
     if (Tools.isSet(AAs))
       for (Integer A : AAs)
       {
+        if (delta-d>delta+d)
+          System.out.println();
         SortedMap<Double, Double> slice = sAAMods[A].subMap(delta-d, delta+d);
         if (Tools.isSet(slice) && Collections.max(slice.values())>score) score = Collections.max(slice.values());
       }
