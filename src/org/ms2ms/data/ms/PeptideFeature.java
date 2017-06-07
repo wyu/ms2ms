@@ -35,7 +35,7 @@ public class PeptideFeature extends PeptideMatch
   private Map<String, Double> mExptAbundance = new HashMap<>();;
   private int mCharge;
   private String mTitle;
-  private Double mRT;
+  private Double mRT, mMZ;
 
   public PeptideFeature() { super(); }
   public PeptideFeature(String s) { super(s); }
@@ -48,6 +48,7 @@ public class PeptideFeature extends PeptideMatch
   public String             getTitle()             { return mTitle; }
   public int                getCharge()            { return mCharge; }
   public Double             getRT()                { return mRT; }
+  public Double             getMz()                { return mMZ; }
   public Double             getAbundance(String s) { return mExptAbundance.get(s); }
   public Collection<String> getExperiments()       { return mExptAbundance!=null?mExptAbundance.keySet():null; }
 
@@ -55,6 +56,7 @@ public class PeptideFeature extends PeptideMatch
   public PeptideFeature setAbundance(String t, Double s){ mExptAbundance.put(t, s); return this; }
   public PeptideFeature setCharge(int s)                { mCharge=s; return this; }
   public PeptideFeature setRT(Double s)                 { mRT=s; return this; }
+  public PeptideFeature setMz(Double s)                 { mMZ=s; return this; }
   public PeptideFeature setTitle(String s)              { mTitle=s; return this; }
   public PeptideFeature addAbundance(String t, Double s)
   {

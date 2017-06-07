@@ -347,11 +347,12 @@ public class LcMsMsFeatures
     // going thro each peptide features
     for (PeptideFeature F : getPeptideExptAI().rowKeySet())
     {
-      String row = F.getTitle()+"z"+F.getCharge()+","+Tools.d2s(F.getRT(), 3)+"min";
+      String row = F.getTitle()+"z"+F.getCharge()+","+Tools.d2s(F.getRT(), 3)+"sec";
       // put in the peptide cols
       df.put(row, "Peptide",   F.getTitle());
       df.put(row, "Sequence",  F.toSymbolString());
-      df.put(row, "mass",      F.getNeutralPeptideMass());
+      df.put(row, "m/z",       F.getMz());
+      df.put(row, "z",         F.getCharge());
       df.put(row, "Protein",   F.getProteinID().getName());
       df.put(row, "Accession", F.getProteinID().getAccession());
       df.put(row, "Gene",      F.getProteinID().getGene());

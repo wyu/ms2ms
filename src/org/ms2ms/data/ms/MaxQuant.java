@@ -164,6 +164,8 @@ public class MaxQuant extends LcMsMsDataset
     Set<String> experiments = new TreeSet<>(Strs.toStrings(summary.col("Experiment").values())),
                        runs = new TreeSet<>(Strs.toStrings(summary.col("Raw file").values()));
 
+    experiments.remove("");
+
     // capture the protein, peptides and alignment
     Table<ProteinID, String, Map<String, Float>> protein_info = HashBasedTable.create();
     Table<PeptideFeature, String, Float>      peptide_expt_ai = HashBasedTable.create();
@@ -179,7 +181,7 @@ public class MaxQuant extends LcMsMsDataset
         {
           // fill-in the reported information about the protein in each experiment
           if (protein_info.get(protein, expt)==null) protein_info.put(protein, expt, Maps.newHashMap());
-          protein_info.get(protein, expt).put(info, P.getFloat(info+" "+expt));
+          if (P.getFloat(info+" "+expt)      !=null) protein_info.get(protein, expt).put(info, P.getFloat(info+" "+expt));
         }
       // now focus on the peptide and MS/MS
       Long[] ev_ids = Stats.toLongArray(P.get("Evidence IDs"), ';');
@@ -196,12 +198,12 @@ public class MaxQuant extends LcMsMsDataset
               ai = Stats.toDouble(F.get("Intensity"));
 
           // setup the entry
-          PeptideFeature pf = protein.put(M, F.get("Modified sequence").toString(), Stats.toInt(F.get("Charge")));
-          if (pf==null && expt==null && ai==null) peptide_expt_ai.put(pf.setProteinID(protein), expt, ai.floatValue());
+          PeptideFeature pf = protein.put(M, F.get("Modified sequence").toString(), Stats.toInt(F.get("Charge")), rt,mz);
+          if (pf!=null && expt!=null && ai!=null) peptide_expt_ai.put(pf.setProteinID(protein), expt, ai.floatValue());
           expt_run.put(expt, run);
         }
     }
-    return lcmsms.setProteinInfo(protein_info).setPeptideExptAI(peptide_expt_ai);
+    return lcmsms.setProteinInfo(protein_info).setPeptideExptAI(peptide_expt_ai).setExptRuns(expt_run);
   }
   public static Map<String, TreeBasedTable<Double, Double, Float>> newIntensityDistributions(String folder) throws IOException
   {
@@ -255,17 +257,23 @@ public class MaxQuant extends LcMsMsDataset
     lcmsms.toPeptideExptMatrix().csv("/Users/yuw/Downloads/before.csv", 3, "\t");
 
     // estimate the baseline
+    Collection<String> expts = lcmsms.getPeptideExptAI().columnKeySet(); int counts=0;
     for (PeptideFeature P : lcmsms.getPeptideExptAI().rowKeySet())
-      for (String expt : lcmsms.getPeptideExptAI().row(P).keySet())
+    {
+      if (++counts%100==0) System.out.print(".");
+      if (counts%10000==0) System.out.println();
+
+      for (String expt : expts)
         if (lcmsms.getPeptideExptAI().get(P, expt)==null)
         {
           // come up with an estimate
           Float sum=0f;
           for (String run : lcmsms.getExptRun().get(expt))
-            sum+=estBaseline(dist.get(run), Tools.toBound(M, P.getNeutralPeptideMass()/P.getCharge()), Tools.toBound(RT, P.getRT()));
+            sum+=estBaseline(dist.get(run), Tools.toBound(M, P.getMz()), Tools.toBound(RT, P.getRT()));
 
           lcmsms.getPeptideExptAI().put(P, expt, sum);
         }
+    }
 
     lcmsms.toPeptideExptMatrix().csv("/Users/yuw/Downloads/after.csv", 3, "\t");
   }

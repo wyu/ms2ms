@@ -42,12 +42,12 @@ public class ProteinID implements Comparable<ProteinID>
 
   public ProteinID updateBestQVal(Double s) { if (mBestQVal==null || (s!=null && mBestQVal>s)) mBestQVal=s; return this; }
 
-  public PeptideFeature put(PeptideMatch match, String modseq, Integer charge)
+  public PeptideFeature put(PeptideMatch match, String modseq, Integer charge, Double rt, Double mz)
   {
     if (mSeqChargeFeature==null) mSeqChargeFeature = HashBasedTable.create();
     if (mSeqChargeFeature.get(modseq, charge)==null)
     {
-      PeptideFeature F = new PeptideFeature(match).addMatch(match).setTitle(modseq);
+      PeptideFeature F = new PeptideFeature(match).addMatch(match).setTitle(modseq).setRT(rt).setMz(mz);
       mSeqChargeFeature.put(modseq, charge, F);
     }
     else
@@ -82,6 +82,11 @@ public class ProteinID implements Comparable<ProteinID>
   public int hashCode()
   {
     return super.hashCode() + Tools.hashCode(mID,mBestQVal,mSequence,mAccession,mGene) + Tools.hashCode(mSeqMatch);
+  }
+  @Override
+  public String toString()
+  {
+    return +mID+"|"+mAccession+"|"+mGene+" "+mName+", "+(mSeqMatch!=null?mSeqMatch.size():0);
   }
 
   @Override
