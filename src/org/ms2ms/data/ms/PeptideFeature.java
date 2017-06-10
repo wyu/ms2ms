@@ -49,6 +49,7 @@ public class PeptideFeature extends PeptideMatch
   public int                getCharge()            { return mCharge; }
   public Double             getRT()                { return mRT; }
   public Double             getMz()                { return mMZ; }
+  public Collection<PeptideMatch> getMatches()     { return mMatches; }
   public Double             getAbundance(String s) { return mExptAbundance.get(s); }
   public Collection<String> getExperiments()       { return mExptAbundance!=null?mExptAbundance.keySet():null; }
 
@@ -68,6 +69,17 @@ public class PeptideFeature extends PeptideMatch
     if (mMatches==null) mMatches = new ArrayList<>();
     mMatches.add(s);
     return this;
+  }
+
+  @Override
+  public int hashCode()
+  {
+    return Tools.hashCode(getTitle(), getProteinID().getAccession());
+  }
+  @Override
+  public String toString()
+  {
+    return super.toString();
   }
 
   @Override

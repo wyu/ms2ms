@@ -115,10 +115,11 @@ public class MaxQuant extends LcMsMsDataset
       d.setVar("Calibrated RT", MsStats.matrix_sum(d.getDoubleCol("Retention time", true), d.getDoubleCol("Retention time calibration", true)));
     }
   }
-  public static PeptideMatch newPeptideMatchFromEvidence(Map<String, Object> info)
+  public static PeptideMatch newPeptideMatch(Map<String, Object> info)
   {
     PeptideMatch M = new PeptideMatch(info.get("Sequence").toString());
 
+    if (Stats.toInt(info.get("MS MS scan number")) !=null) M.setTotalNumIons(Stats.toInt(info.get("MS MS scan number")));
     if (Stats.toDouble(info.get("Mass error [Da]")) !=null) M.setMassDiff(Stats.toDouble(info.get("Mass error [Da]")));
     if (Stats.toDouble(info.get("Mass"))            !=null) M.setNeutralPeptideMass(Stats.toDouble(info.get("Mass")));
     if (Stats.toInt(   info.get("Missed cleavages"))!=null) M.setNumMissedCleavages(Stats.toInt(info.get("Missed cleavages")));
@@ -167,9 +168,8 @@ public class MaxQuant extends LcMsMsDataset
     experiments.remove("");
 
     // capture the protein, peptides and alignment
-    Table<ProteinID, String, Map<String, Float>> protein_info = HashBasedTable.create();
-    Table<PeptideFeature, String, Float>      peptide_expt_ai = HashBasedTable.create();
-    Multimap<String, String>                         expt_run = HashMultimap.create();
+//    lcmsms.setProteinInfo(HashBasedTable.create()).setPeptideExptAI(HashBasedTable.create()).setExptRuns(HashMultimap.create());
+
     for (Long pid : proteins.keySet())
     {
       ProteinID protein = new ProteinID(pid); Features P = proteins.get(pid);
@@ -180,31 +180,106 @@ public class MaxQuant extends LcMsMsDataset
         for (String info : sProteinInfo)
         {
           // fill-in the reported information about the protein in each experiment
-          if (protein_info.get(protein, expt)==null) protein_info.put(protein, expt, Maps.newHashMap());
-          if (P.getFloat(info+" "+expt)      !=null) protein_info.get(protein, expt).put(info, P.getFloat(info+" "+expt));
+          lcmsms.addProteinInfo(protein, expt, info, P.getFloat(info+" "+expt));
+//          if (protein_info.get(protein, expt)==null) protein_info.put(protein, expt, Maps.newHashMap());
+//          if (P.getFloat(info+" "+expt)      !=null) protein_info.get(protein, expt).put(info, P.getFloat(info+" "+expt));
         }
       // now focus on the peptide and MS/MS
-      Long[] ev_ids = Stats.toLongArray(P.get("Evidence IDs"), ';');
-      if (ev_ids!=null)
-        for (Long ev : ev_ids)
-        {
-          // deposit the peptide match
-          PeptideMatch M = protein.put( newPeptideMatchFromEvidence(evidences.get(ev).getProperties()));
+      lcmsms = lookupEvidences(lcmsms, P.get("Evidence IDs"), evidences, protein);
 
-          Features F = evidences.get(ev);
-          String run = F.get("Raw file").toString(), expt=F.get("Experiment").toString();
-          Double  mz = Stats.toDouble(F.get("m/z")),
-              rt = Stats.toDouble(F.get("Calibrated retention time")),
-              ai = Stats.toDouble(F.get("Intensity"));
-
-          // setup the entry
-          PeptideFeature pf = protein.put(M, F.get("Modified sequence").toString(), Stats.toInt(F.get("Charge")), rt,mz);
-          if (pf!=null && expt!=null && ai!=null) peptide_expt_ai.put(pf.setProteinID(protein), expt, ai.floatValue());
-          expt_run.put(expt, run);
-        }
+//      Long[] ev_ids = Stats.toLongArray(P.get("Evidence IDs"), ';');
+//      if (ev_ids!=null)
+//        for (Long ev : ev_ids)
+//        {
+//          // deposit the peptide match
+//          PeptideMatch M = protein.put( newPeptideMatchFromEvidence(evidences.get(ev).getProperties()));
+//
+//          Features F = evidences.get(ev);
+//          String run = F.get("Raw file").toString(), expt=F.get("Experiment").toString();
+//          Double  mz = Stats.toDouble(F.get("m/z")),
+//              rt = Stats.toDouble(F.get("Calibrated retention time")),
+//              ai = Stats.toDouble(F.get("Intensity"));
+//
+//          // setup the entry
+//          PeptideFeature pf = protein.put(protein, M, F.get("Modified sequence").toString(), Stats.toInt(F.get("Charge")), rt,mz);
+//          if (ai==null)
+//            System.out.println();
+//          if (pf!=null && expt!=null && ai!=null)
+//            peptide_expt_ai.put(pf, expt, Stats.sumFloats(peptide_expt_ai.get(pf, expt), ai.floatValue()));
+//          expt_run.put(expt, run);
+//        }
     }
-    return lcmsms.setProteinInfo(protein_info).setPeptideExptAI(peptide_expt_ai).setExptRuns(expt_run);
+    return lcmsms;
   }
+  private static LcMsMsFeatures lookupEvidences(LcMsMsFeatures lcmsms, Object evIDs, Map<Long, Features> evidences, ProteinID protein)
+  {
+    // now focus on the peptide and MS/MS
+    Long[] ev_ids = Stats.toLongArray(evIDs, ';');
+    if (ev_ids!=null)
+      for (Long ev : ev_ids)
+      {
+        Features F = evidences.get(ev);
+        // deposit the peptide match
+        PeptideMatch M = protein.put( newPeptideMatch(F.getProperties()));
+
+        String run = F.get("Raw file").toString(), expt=F.get("Experiment").toString();
+        Double  mz = Stats.toDouble(F.get("m/z")),
+            rt = Stats.toDouble(F.get("Calibrated retention time")),
+            ai = Stats.toDouble(F.get("Intensity"));
+
+        // setup the entry
+        lcmsms.addPeptideExptIntensity(
+            protein.put(protein, M, F.get("Modified sequence").toString(), Stats.toInt(F.get("Charge")), rt,mz),
+            expt, ai).addExptRun(expt, run);
+      }
+
+    return lcmsms;
+  }
+//  > colnames(p)
+//    [1] "Sequence"                  "N.term.cleavage.window"    "C.term.cleavage.window"    "Amino.acid.before"         "First.amino.acid"
+//    [6] "Second.amino.acid"         "Second.last.amino.acid"    "Last.amino.acid"           "Amino.acid.after"          "A.Count"
+//    [11] "R.Count"                   "N.Count"                   "D.Count"                   "C.Count"                   "Q.Count"
+//    [16] "E.Count"                   "G.Count"                   "H.Count"                   "I.Count"                   "L.Count"
+//    [21] "K.Count"                   "M.Count"                   "F.Count"                   "P.Count"                   "S.Count"
+//    [26] "T.Count"                   "W.Count"                   "Y.Count"                   "V.Count"                   "U.Count"
+//    [31] "O.Count"                   "Length"                    "Missed.cleavages"          "Mass"                      "Proteins"
+//    [36] "Leading.razor.protein"     "Start.position"            "End.position"              "Gene.names"                "Protein.names"
+//    [41] "Unique..Groups."           "Unique..Proteins."         "Charges"                   "PEP"                       "Score"
+//    [46] "Identification.type.A1"    "Identification.type.A2"    "Identification.type.A3"    "Identification.type.A4"    "Identification.type.A5"
+//    [51] "Identification.type.N1"    "Identification.type.N2"    "Identification.type.N3"    "Identification.type.N4"    "Identification.type.N5"
+//    [56] "Experiment.A1"             "Experiment.A2"             "Experiment.A3"             "Experiment.A4"             "Experiment.A5"
+//    [61] "Experiment.N1"             "Experiment.N2"             "Experiment.N3"             "Experiment.N4"             "Experiment.N5"
+//    [66] "Intensity"                 "Intensity.A1"              "Intensity.A2"              "Intensity.A3"              "Intensity.A4"
+//    [71] "Intensity.A5"              "Intensity.N1"              "Intensity.N2"              "Intensity.N3"              "Intensity.N4"
+//    [76] "Intensity.N5"              "Reverse"                   "Potential.contaminant"     "id"                        "Protein.group.IDs"
+//    [81] "Mod..peptide.IDs"          "Evidence.IDs"              "MS.MS.IDs"                 "Best.MS.MS"                "Deamidation..NQ..site.IDs"
+//    [86] "Oxidation..M..site.IDs"    "MS.MS.Count"
+//  private static LcMsMsFeatures lookupPeptides(LcMsMsFeatures lcmsms, Object pepIDs, Map<Long, Features> peptides, ProteinID protein, Collection<String> expts)
+//  {
+//    // now focus on the peptide and MS/MS
+//    Long[] peptide_ids = Stats.toLongArray(pepIDs, ';');
+//    if (peptide_ids!=null)
+//      for (Long ev : peptide_ids)
+//      {
+//        Features F = peptides.get(ev);
+//        // deposit the peptide match
+//        PeptideMatch M = protein.put(newPeptideMatch(F.getProperties()));
+//
+//        for (String expt : expts)
+//        {
+//          Double  mz = Stats.toDouble(F.get("m/z")),
+//              rt = Stats.toDouble(F.get("Calibrated retention time")),
+//              ai = Stats.toDouble(F.get("Intensity"));
+//
+//          // setup the entry
+//          lcmsms.addPeptideExptIntensity(
+//              protein.put(protein, M, F.get("Modified sequence").toString(), Stats.toInt(F.get("Charge")), rt,mz),
+//              expt, ai).addExptRun(expt, run);
+//        }
+//      }
+//
+//    return lcmsms;
+//  }
   public static Map<String, TreeBasedTable<Double, Double, Float>> newIntensityDistributions(String folder) throws IOException
   {
     System.out.println("Reading the features from "+folder);
@@ -255,6 +330,7 @@ public class MaxQuant extends LcMsMsDataset
     LcMsMsFeatures lcmsms = newMaxquant(folder);
 
     lcmsms.toPeptideExptMatrix().csv("/Users/yuw/Downloads/before.csv", 3, "\t");
+    lcmsms.toProteinExptMatrix().csv("/Users/yuw/Downloads/before.protein.csv", 3, "\t");
 
     // estimate the baseline
     Collection<String> expts = lcmsms.getPeptideExptAI().columnKeySet(); int counts=0;
@@ -276,6 +352,7 @@ public class MaxQuant extends LcMsMsDataset
     }
 
     lcmsms.toPeptideExptMatrix().csv("/Users/yuw/Downloads/after.csv", 3, "\t");
+    lcmsms.toProteinExptMatrix().csv("/Users/yuw/Downloads/after.protein.csv", 3, "\t");
   }
   public static Float estBaseline(TreeBasedTable<Double, Double, Float> mz_rt_ai, Range<Double> mz, Range<Double> rt)
   {

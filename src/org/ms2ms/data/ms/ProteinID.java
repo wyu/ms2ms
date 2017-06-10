@@ -42,12 +42,12 @@ public class ProteinID implements Comparable<ProteinID>
 
   public ProteinID updateBestQVal(Double s) { if (mBestQVal==null || (s!=null && mBestQVal>s)) mBestQVal=s; return this; }
 
-  public PeptideFeature put(PeptideMatch match, String modseq, Integer charge, Double rt, Double mz)
+  public PeptideFeature put(ProteinID pid, PeptideMatch match, String modseq, Integer charge, Double rt, Double mz)
   {
     if (mSeqChargeFeature==null) mSeqChargeFeature = HashBasedTable.create();
     if (mSeqChargeFeature.get(modseq, charge)==null)
     {
-      PeptideFeature F = new PeptideFeature(match).addMatch(match).setTitle(modseq).setRT(rt).setMz(mz);
+      PeptideFeature F = new PeptideFeature(match).addMatch(match).setTitle(modseq).setRT(rt).setMz(mz).setCharge(charge).setProteinID(pid);
       mSeqChargeFeature.put(modseq, charge, F);
     }
     else

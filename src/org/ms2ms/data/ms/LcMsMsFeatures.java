@@ -5,7 +5,9 @@ import com.google.common.collect.*;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.ms2ms.data.Features;
 import org.ms2ms.data.Point;
+import org.ms2ms.data.collect.MultiHashTable;
 import org.ms2ms.data.collect.MultiTreeTable;
+import org.ms2ms.math.Stats;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.TabFile;
@@ -341,6 +343,30 @@ public class LcMsMsFeatures
 
     return F;
   }
+  public LcMsMsFeatures addProteinInfo(ProteinID protein, String expt, String info, Float val)
+  {
+    if (mProteinInfo==null) mProteinInfo=HashBasedTable.create();
+    if (mProteinInfo.get(protein, expt)==null) mProteinInfo.put(protein, expt, Maps.newHashMap());
+    if (val      !=null) mProteinInfo.get(protein, expt).put(info, val);
+
+    return this;
+  }
+  public LcMsMsFeatures addPeptideExptIntensity(PeptideFeature pf, String expt, Double ai)
+  {
+    if (mPeptideExptAI==null) mPeptideExptAI=HashBasedTable.create();
+    if (pf!=null && expt!=null && ai!=null)
+      mPeptideExptAI.put(pf, expt, Stats.sumFloats(mPeptideExptAI.get(pf, expt), ai.floatValue()));
+
+    return this;
+  }
+  public LcMsMsFeatures addExptRun(String expt, String run)
+  {
+    if (mExptRun==null) mExptRun=HashMultimap.create();
+    if (expt!=null && run!=null) mExptRun.put(expt, run);
+
+    return this;
+  }
+
   public Dataframe toPeptideExptMatrix()
   {
     Dataframe df = new Dataframe("peptide-charge vs experiment matrix");
@@ -351,6 +377,7 @@ public class LcMsMsFeatures
       // put in the peptide cols
       df.put(row, "Peptide",   F.getTitle());
       df.put(row, "Sequence",  F.toSymbolString());
+      df.put(row, "PSMs",      F.getMatches().size());
       df.put(row, "m/z",       F.getMz());
       df.put(row, "z",         F.getCharge());
       df.put(row, "Protein",   F.getProteinID().getName());
@@ -359,6 +386,38 @@ public class LcMsMsFeatures
 
       for (String expt : getPeptideExptAI().row(F).keySet())
         df.put(row, expt, getPeptideExptAI().get(F, expt));
+    }
+
+    return df.init(false);
+  }
+  public Dataframe toProteinExptMatrix()
+  {
+    // let's build the protein-peptide groups
+    Multimap<ProteinID, PeptideFeature> protein_peptide = HashMultimap.create();
+    for (PeptideFeature F : getPeptideExptAI().rowKeySet()) protein_peptide.put(F.getProteinID(), F);
+
+    Dataframe df = new Dataframe("protein vs experiment matrix");
+    // going thro each peptide features
+    for (ProteinID pid : protein_peptide.keySet())
+    {
+      String row = pid.toString();
+      df.put(row, "Protein",   pid.getName());
+      df.put(row, "Accession", pid.getAccession());
+      df.put(row, "Gene", pid.getGene());
+      df.put(row, "Peptides", protein_peptide.get(pid).size());
+
+      int psm=0;
+      for (PeptideFeature F : protein_peptide.get(pid)) psm+=F.getMatches().size();
+      df.put(row, "PSMs",     psm);
+
+      for (String expt : getExptRun().keySet())
+      {
+        double ai=0;
+        for (PeptideFeature F : protein_peptide.get(pid))
+          if (getPeptideExptAI().get(F, expt)!=null) ai+=getPeptideExptAI().get(F, expt);
+
+        df.put(row, expt, ai);
+      }
     }
 
     return df.init(false);
