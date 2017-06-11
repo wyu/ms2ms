@@ -21,6 +21,7 @@ import java.util.*;
 public class Peptides
 {
   public static final double C   = 12.00;
+  public static final double C13 = 1.003355d;
   public static final double H   = 1.007825;
   public static final double O   = 15.994915;
   public static final double N   = 14.003074;

@@ -273,8 +273,14 @@ public class Isotopics
   {
     // return null, if has negative intensity
     IsoEnvelope iso = PeakMatch.query4isotope(peaks, mz, tol, false);
-//    int[]         mz_ai = peaks.query(tol.toActualBoundary(mz));
-//    PeakMatch[] matched = peaks.fetchVals(mz_ai);
+
+    // for large peptide, also check the 1st c13
+    if (iso==null && mz>1000)
+    {
+      iso = PeakMatch.query4isotope(peaks, mz+Peptides.C13, tol, false);
+      if (iso!=null)
+        iso = new IsoEnvelope(iso.getMz()-Peptides.C13, iso.getIntensity(), 0).setScore(iso.getScore());
+    }
 
     // quit if not matching to the first mz!
     if (iso!=null)
