@@ -1,6 +1,7 @@
 package org.ms2ms.algo;
 
 import com.google.common.collect.*;
+import org.expasy.mzjava.core.mol.Mass;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.DoublePeakList;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
@@ -1298,11 +1299,9 @@ public class Peaks {
             for (c13 = 1; c13 <= z; c13++)
             {
               if (precursors.query4counts(tol.getMin(p0+c13*spacing/(double) z), tol.getMax(p0+c13*spacing/(double) z))>0) break;
-//              int[] c = precursors.query(tol.getMin(p0 + c13 * spacing / (double) z), tol.getMax(p0 + c13 * spacing / (double) z));
-//              if (c!=null) break;
               maxmz = p0 + c13 * spacing / (double) z;
             }
-            if (c13 > (z < 2 ? 1 : 2) && maxmz > isolation.lowerEndpoint()) return p0;
+            if (c13 > (z < 2 ? 1 : 2) && maxmz > isolation.lowerEndpoint()) return Peaks.toMH(p0,z);
           }
 
     // no need to look for the true c12 since we starts with the calculated MH

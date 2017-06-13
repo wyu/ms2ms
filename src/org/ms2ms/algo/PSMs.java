@@ -279,6 +279,10 @@ public class PSMs
     // anywhere among the ranks
     return (m!=null && m.hasScore(tag) && m.getScore(tag)<=score);
   }
+  public static int ppm2bins(double mz0, double mz1, double ppm)
+  {
+    return (int )(Math.log(1+(mz1-mz0)/mz0)/Math.log(1d+1E-6*ppm));
+  }
 
   /** FragmentAnnotator is a facade that highly simplifies and hides the complexity of annotating a PeakList given a peptide.
    *  Annotating a peak list requires a theoretical spectra to be generated, the peaks of the theoretical and query spectra
