@@ -23,7 +23,7 @@ public class Peptides
   public static final double C   = 12.00;
   public static final double C13 = 1.003355d;
   public static final double H   = 1.007825;
-  public static final double O   = 15.994915;
+  public static final Double O   = 15.994915;
   public static final double N   = 14.003074;
   public static final double S   = 31.972072;
   public static final double H2O = 2d*H+O;
@@ -32,7 +32,9 @@ public class Peptides
   public static final double OH  = H+O;
   public static final double C2H4O = C*2+H*4+O;
 
-  public static final Double TMT10 = 229.162932d;
+  public static final Double TMT10_LOSS = -229.162932d;
+  public static final Double TMT10      = 229.162932d;
+  public static final Double N2D        = 0.984016d;
 
   static final ImmutableMap.Builder<Character, Float> AAsBuilder =
       new ImmutableMap.Builder<Character, Float>()
