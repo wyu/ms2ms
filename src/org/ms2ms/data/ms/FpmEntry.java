@@ -61,7 +61,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
   public double              getIntensity() { return mIntensities; }
 //  public double              getProb()      { return mProb; }
   public int                 getMotifs()    { return mMotifs; }
-  public Double             getMatchScore() { return mMatchScore; }
+  public Double             getZScore() { return mMatchScore; }
 //  public int                 get1stPass()   { return m1stPass; }
   public FragmentEntry       getFragment()  { return mFragment; }
   public ImmutableList<PeakMatch> getTrack()     { return mTrack; }
@@ -72,7 +72,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
   public FpmEntry has1st(        boolean s) { mHas1st    =s;  return this; }
   public FpmEntry hasExpectedY1( boolean s) { mExpectedY1=s;  return this; }
   public FpmEntry setMotifs(         int s) { mMotifs    =s;  return this; }
-  public FpmEntry setMatchScore(  Double s) { mMatchScore=s; return this; }
+  public FpmEntry setZScore(      Double s) { mMatchScore=s; return this; }
 
   //  public FpmEntry set1stPass(        int s) { m1stPass   =s; return this; }
 //  public FpmEntry setWeaks(          int s) { mWeaks     =s; return this; }
