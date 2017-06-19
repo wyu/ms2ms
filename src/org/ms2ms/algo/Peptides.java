@@ -10,6 +10,7 @@ import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodManager;
 import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodMod;
 import org.expasy.mzjava.proteomics.ms.fragment.PeptideFragmentAnnotator;
 import org.expasy.mzjava.proteomics.ms.fragment.PeptideFragmenter;
+import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
@@ -230,30 +231,48 @@ public class Peptides
     return Ct;
   }
   // generate the predicted fragments of the peptide.
-  public static Map<Float, String> toFragments(char[] peptide, Map<Integer, Double> mods, float[] AAs, Float minMH)
+  public static Map<Float, String> toFragments(char[] peptide, Map<Integer, Double> mods, double ntMod, double ctMod,
+                                               float[] AAs, Float minMH, SortedMap<Double, Float> sModCharge, int maxZ)
   {
     if (peptide==null || peptide.length==0) return null;
 
-//    Float H=1.007825f, O=15.994915f, C=12f, CO=C+O, OH=O+H, N=14.003074f, NH3=N+3*H, H2O=2*H+O,
-//        b=(AAs['^']+1.007825f), y=(AAs['$']+2*1.007825f), a=b-CO,z=y-NH3;
-    double b=(AAs['^']+H), y=(AAs['$']+2*H), a=b-CO,z=y-NH3;
+    double b=(AAs['^']+H)+ntMod, y=(AAs['$']+2*H)+ctMod, a=b-CO,z=y-NH3;
 
-    Map<Float, String> frags = new TreeMap<>(); int y_18=0, y_17=0, b_18=0, b_17=0;
+    Map<Float, String> frags = new TreeMap<>(); int y_18=0, y_17=0, b_18=0, b_17=0, zy=5, zb=0;
     for (int i=0; i<peptide.length; i++)
     {
-      int j=peptide.length-i-1;
-      y+=AAs[peptide[j]]+(mods!=null&&mods.get(j)!=null?mods.get(j).floatValue():0f);
-      b+=AAs[peptide[i]]+(mods!=null&&mods.get(i)!=null?mods.get(i).floatValue():0f);
+      int j=peptide.length-i-1; char Y = peptide[j], B = peptide[i];
 
-      if ("RKQN".indexOf(peptide[j])>=0) y_17++;
-      if ("STED".indexOf(peptide[j])>=0) y_18++;
-      if ("RKQN".indexOf(peptide[i])>=0) b_17++;
-      if ("STED".indexOf(peptide[i])>=0) b_18++;
+      Double dMy = (mods!=null&&mods.get(j)!=null?mods.get(j).floatValue():0d),
+             dMb = (mods!=null&&mods.get(i)!=null?mods.get(i).floatValue():0d);
+
+      y+=AAs[Y]+dMy;
+      b+=AAs[B]+dMb;
+
+      if ("RKQN".indexOf(Y)>=0) y_17++;
+      if ("STED".indexOf(Y)>=0) y_18++;
+      if ("RKQN".indexOf(B)>=0) b_17++;
+      if ("STED".indexOf(B)>=0) b_18++;
+
+      zy = "KR".indexOf(Y)>=0?10:("H".indexOf(Y)>=0?5:0);
+      zb = "KR".indexOf(B)>=0?10:("H".indexOf(B)>=0?5:0);
+
+      if (sModCharge!=null)
+      {
+        Map<Double, Float> slice = sModCharge.subMap(dMy-0.01, dMy+0.01);
+        if (Tools.isSet(slice)) zy += Stats.sumFloats(slice.values())*10f;
+        slice = sModCharge.subMap(dMb-0.01, dMb+0.01);
+        if (Tools.isSet(slice)) zb += Stats.sumFloats(slice.values())*10f;
+      }
 
       Tools.put(frags, (float) y, "y"+(i+1),      minMH);
       Tools.put(frags, (float)(y-NH3), "z"+(i+1), minMH);
       Tools.put(frags, (float )b,      "b"+(i+1), minMH);
       Tools.put(frags, (float) (b-CO), "a"+(i+1), minMH);
+
+      // multiply-charged?
+      if (zy>=20 && maxZ>2) Tools.put(frags, (float) (y+H)/2f, "y"+(i+1)+"z2", minMH);
+      if (zb>=20 && maxZ>2) Tools.put(frags, (float) (b+H)/2f, "b"+(i+1)+"z2", minMH);
 
       // any neutral loss?
       if (y_17>0) Tools.put(frags, (float) (y-NH3), "y"+(i+1)+"-17", minMH);
