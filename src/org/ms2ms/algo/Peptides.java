@@ -348,4 +348,9 @@ public class Peptides
     }
     return bs;
   }
+  public static String stripNumMods(String s)
+  {
+    if (s!=null) return s.replaceAll("[0-9]", "").replaceAll("\\(", "").replaceAll("\\)","").replaceAll("\\.","").replaceAll("\\-","").replaceAll("\\s","");
+    return s;
+  }
 }

@@ -668,12 +668,10 @@ public class Spectra
 
     return peaks;
   }
-  // locate the std peak and re-calibrate the rest of the peaks
-  public static PeakList self_calibrate(PeakList peaks, Tolerance tol, double... stds)
+  public static Double self_calibrate_offset(PeakList peaks, Tolerance tol, double... stds)
   {
-    if (peaks==null || peaks.size()<3 || !Tools.isSet(stds) || tol==null) return peaks;
+    if (peaks==null || peaks.size()<3 || !Tools.isSet(stds) || tol==null) return null;
 
-    PeakList out = peaks.copy(new PurgingPeakProcessor()); out.clear();
 
     Collection<Double> offsets = new ArrayList<>();
     for (double std : stds)
@@ -681,13 +679,17 @@ public class Spectra
       int pos = find(peaks, std, tol, 0, 0d, 0d);
       if (pos>=0) offsets.add(1E6*(std-peaks.getMz(pos))/std);
     }
-    if (Tools.isSet(offsets))
-    {
-      Double offset = 1E-6*Stats.mean(offsets);
-      for (int i=0; i<peaks.size(); i++)
-        out.add(peaks.getMz(i)+peaks.getMz(i)*offset, peaks.getIntensity(i), peaks.getAnnotations(i));
-    }
-    Tools.dispose(offsets);
+    return Tools.isSet(offsets)?1E-6*Stats.mean(offsets):null;
+  }
+
+  // locate the std peak and re-calibrate the rest of the peaks
+  public static PeakList calibrate(PeakList peaks, Double offset)
+  {
+    if (offset==null || offset==0) return peaks;
+
+    PeakList out = peaks.copy(new PurgingPeakProcessor()); out.clear();
+    for (int i=0; i<peaks.size(); i++)
+      out.add(peaks.getMz(i)+peaks.getMz(i)*offset, peaks.getIntensity(i), peaks.getAnnotations(i));
 
     return out;
   }
@@ -898,7 +900,7 @@ public class Spectra
     PeakList deisotoped = Spectra.toRegionalNorm(ms.copy(new PurgingPeakProcessor()), 7, peak_transform); // with sqrt transform
     // perform self-calibration using small fragments that are likely to show up in most of the TMT-labelled spectra
     if (self_calibration)
-      deisotoped = Spectra.self_calibrate(deisotoped, new OffsetPpmTolerance(15d), 175.11949,230.170757d,376.27627);
+      deisotoped = Spectra.calibrate(deisotoped, self_calibrate_offset(deisotoped, new OffsetPpmTolerance(15d), 175.11949,230.170757d,376.27627));
 
     if (verbose)
     {

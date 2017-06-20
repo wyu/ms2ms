@@ -109,65 +109,6 @@ public class ScoreModel
       setOffset(main, 0d);
     }
 
-//    // use the centroid and upper quartile for normalization. Gaussian fit is not robust enough
-//    generate(eType.exact,eType.open);
-//
-//    if (Tools.isSet(mDecoys))
-//    {
-//      if (mDecoys.get(main)!=null && mDecoys.get(main).getData()!=null && mDecoys.get(main).getData().size()>2)
-//      {
-////        mOffsets = new EnumMap<>(eType.class);
-//        double count0 = Math.log10(mDecoys.get(main).getData().size())*10;
-//        // setup the offsets using the counts
-//        for (eType t : mDecoys.keySet())
-//          setOffset(t, 10d * Math.log10(mDecoys.get(t).getData().size()) - count0);
-//      }
-//      else if (getOffset(main)>0)
-//      {
-//        double count0 = Math.log10(getOffset(main))*10;
-//        // setup the offsets using the counts
-//        for (eType t : mDecoys.keySet())
-//          setOffset(t, 10d * Math.log10(getOffset(t)) - count0);
-//      }
-//      else
-//      {
-//        // disable the offsets
-//        for (eType t : mDecoys.keySet()) setOffset(t, 0d);
-//      }
-
-//      Histogram all = new Histogram(eType.all.getName());
-//      all.addAll(mDecoys.get(main).getData());
-//      for (Double x : mDecoys.get(open).getData()) all.add(x-getOffset(open));
-
-////      mOffsets = new EnumMap<>(eType.class);
-//      for (eType t : mDecoys.keySet())
-//      {
-//        setOffset(t, 0d);
-//        try
-//        {
-//          setOffset(t, mDecoys.get(t).getCenter() - mDecoys.get(main).getCenter());
-//          for (Double x : mDecoys.get(t).getData()) all.add((x-getOffset(t)));
-//        }
-//        // skip the part if we run into some NULL pointer
-//        catch (NullPointerException e)
-//        {
-//          // deposit the uncalibrated points
-//          for (Double x : mDecoys.get(t).getData()) all.add(x);
-//        }
-//      }
-      // avoid the first 2 points to reduce the effect of truncated distribution
-//      Tools.put(mDecoys, eType.all, all.generate(all.getData().size()>100?25:15).assessTruncated(2));
-
-//      List<Double> baseline = all.getData().subList(Math.max(all.getData().size() - 5, 0),all.getData().size());
-//      if (Tools.isSet(baseline))
-//      {
-//        if (baseline.size()<2) mBaseline=baseline.get(0);
-//        else mBaseline = Stats.mean(baseline)+Stats.stdev(baseline)*2d;
-//      }
-//      mCenter=all.getCenter();
-//      mCenter=all.getCenter(); mSigma=all.getSigma()!=null?Math.abs(all.getSigma()):null;
-//    }
-
     return this;
   }
 
