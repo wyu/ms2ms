@@ -1403,6 +1403,8 @@ public class Peaks {
   }
   public static double[] MH2Mzs(double mh, int zlower, int zupper)
   {
+    if (zupper<zlower) return new double[] {mh};
+
     double mzs[] = new double[zupper-zlower+1];
     for (int z=zlower; z<=zupper; z++)
       mzs[z-zlower] = MnH2MnH(mh, 1, z);
