@@ -61,10 +61,17 @@ public class Isotopics
       while (itr.hasNext())
         if (itr.next().getIntensity() < minri) itr.remove();
 
-//      if (mass==960)
-//        System.out.print("");
-//
       mMassIso.put(mass, result);
+    }
+    // a nasty bug, WYU 20170625
+    else if (result.get(0).getCharge()!=charge)
+    {
+      // make sure the charge states are right
+      List<Peak> results = new ArrayList<>(result.size());
+      for (Peak p : result)
+        results.add(new Peak(Peaks.MnH2MnH(p.getMz(), p.getCharge(), charge), p.getIntensity(), charge));
+
+      return results;
     }
 
     return result;
