@@ -1,5 +1,6 @@
 package org.ms2ms.algo;
 
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Table;
 import com.hfg.bio.Element;
@@ -30,7 +31,7 @@ public class Isotopics
   Map<String, Long>         EM = new HashMap<String, Long>();
   List<List<List<Peak>>>   SAD = new ArrayList<List<List<Peak>>>();
 
-  Map<Integer, List<Peak>> mMassIso = new HashMap<>();
+  Table<Integer, Integer, List<Peak>> mMassIso = HashBasedTable.create();
 //  public static Histogram dp_prediction = new Histogram();
 
   public Isotopics()
@@ -48,7 +49,7 @@ public class Isotopics
   public List<Peak> predictEnvelope(double c12, int charge, double minri)
   {
     Integer      mass = (int )c12 * charge;
-    List<Peak> result = mMassIso.get(mass);
+    List<Peak> result = mMassIso.get(charge, mass);
 
     if (result==null)
     {
@@ -61,18 +62,18 @@ public class Isotopics
       while (itr.hasNext())
         if (itr.next().getIntensity() < minri) itr.remove();
 
-      mMassIso.put(mass, result);
+      mMassIso.put(charge, mass, result);
     }
-    // a nasty bug, WYU 20170625
-    else if (result.get(0).getCharge()!=charge)
-    {
-      // make sure the charge states are right
-      List<Peak> results = new ArrayList<>(result.size());
-      for (Peak p : result)
-        results.add(new Peak(Peaks.MnH2MnH(p.getMz(), p.getCharge(), charge), p.getIntensity(), charge));
-
-      return results;
-    }
+//    // a nasty bug, WYU 20170625
+//    else if (result.get(0).getCharge()!=charge)
+//    {
+//      // make sure the charge states are right
+//      List<Peak> results = new ArrayList<>(result.size());
+//      for (Peak p : result)
+//        results.add(new Peak(Peaks.MnH2MnH(p.getMz(), p.getCharge(), charge), p.getIntensity(), charge));
+//
+//      return results;
+//    }
 
     return result;
   }

@@ -32,7 +32,6 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
     {
       mHas1st=f.mHas1st; mExpectedY1=f.mExpectedY1; mMotifs=f.mMotifs; m1stPass=f.m1stPass; mWeaks=f.mWeaks; mC13=f.mC13;
       mGapScore=f.mGapScore; mIntensities=f.mIntensities;
-//      mProb=f.mProb; mKaiScore=f.mKaiScore;
       mFragment = new FragmentEntry(f.mFragment);
       mTrack = f.mTrack.asList();
     }
@@ -42,44 +41,22 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
     super();
     mFragment=f; mTrack=ImmutableList.copyOf(t);
   }
-//  public FpmEntry(FragmentEntry f, List<PeakMatch> t, int motifs, int size_1st)
-//  {
-//    super();
-//    mFragment=f; mTrack=ImmutableList.copyOf(t); mMotifs=motifs; m1stPass=size_1st;
-//  }
-//
-//  public FpmEntry(FragmentEntry f, List<PeakMatch> t, double ai)
-//  {
-//    super();
-//    mFragment=f; mTrack=ImmutableList.copyOf(t); mIntensities=ai;
-//  }
 
   public boolean             isDecoy()      { return mFragment!=null && /*mFragment.getPeptideKey()!=null &&*/ mFragment.getPeptideKey()<0; }
   public boolean             has1st()       { return mHas1st; }
-//  public double              getKaiScore()  { return mKaiScore; }
   public double              getGapScore()  { return mGapScore; }
   public double              getIntensity() { return mIntensities; }
-//  public double              getProb()      { return mProb; }
   public int                 getMotifs()    { return mMotifs; }
   public Double             getZScore() { return mMatchScore; }
-//  public int                 get1stPass()   { return m1stPass; }
   public FragmentEntry       getFragment()  { return mFragment; }
   public ImmutableList<PeakMatch> getTrack()     { return mTrack; }
   public PeakMatch       at(int s)      { return mTrack.get(s); }
 
-//  public FpmEntry increIntensities(double s) { mIntensities+=s; return this; }
-
   public FpmEntry has1st(        boolean s) { mHas1st    =s;  return this; }
   public FpmEntry hasExpectedY1( boolean s) { mExpectedY1=s;  return this; }
   public FpmEntry setMotifs(         int s) { mMotifs    =s;  return this; }
-  public FpmEntry setZScore(      Double s) { mMatchScore=s; return this; }
 
-  //  public FpmEntry set1stPass(        int s) { m1stPass   =s; return this; }
-//  public FpmEntry setWeaks(          int s) { mWeaks     =s; return this; }
-//  public FpmEntry setC13(            int s) { mC13       =s; return this; }
-//  public FpmEntry setProb(        double s) { mProb      =s; return this; }
   public FpmEntry setGapScore(    double s) { mGapScore  =s; return this; }
-//  public FpmEntry setStdErrRegression(double s) { mKaiScore  =s; return this; }
   public FpmEntry setIntensity(   double s) { mIntensities=s; return this; }
   public FpmEntry setTrack(ImmutableList<PeakMatch> s) { mTrack=s; return this; }
 
