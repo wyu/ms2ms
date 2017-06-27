@@ -43,7 +43,7 @@ public class OffsetPpmTolerance extends PpmTolerance
   {
     if (isIncremental())
     {
-      return m<mTransitionMass?(mTol+mTolSlope*m)*mZval*mScale:(getPpmTol(mTransitionMass-1d));
+      return mTransitionMass!=0 && mTolSlope!=0 ? (m<mTransitionMass?(mTol+mTolSlope*m)*mZval*mScale:(getPpmTol(mTransitionMass-1d))):mTol*mScale;
     }
     return mTolSlope!=0?Math.exp(mTol+mTolSlope*m)*mZval*mScale : (mTol*mScale);
   }
