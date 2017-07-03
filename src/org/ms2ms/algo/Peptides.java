@@ -167,8 +167,12 @@ public class Peptides
     left = Math.max(0, left); right = Math.min(sequence.length, right);
 
     double y=AAs['$']+AAs['^']+2*1.007825;
-    for (int c=right; c>=left; c--) y+=AAs[sequence[c]];
-//      if (c>=0 && c<sequence.length) y+=AAs[sequence[c]];
+    for (int c=right; c>=left; c--)
+    {
+      if (right>sequence.length || sequence[c]>AAs.length)
+        System.out.print("");
+      y+=AAs[sequence[c]];
+    }
 
     return y;
   }

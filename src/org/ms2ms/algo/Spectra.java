@@ -994,8 +994,6 @@ public class Spectra
     TreeBasedTable<Double, Double, MsnSpectrum> mh_rt_ms = TreeBasedTable.create();
     for (MsnSpectrum ms : spectra.values())
     {
-//      if (ms.getPrecursor().getCharge()>2)
-//        z3++;
       if (ms.getMsLevel()<2) ms.setMsLevel(2);
       ai_ms.put(ms.getTotalIonCurrent(), ms);
       mh_rt_ms.put(Peaks.toMH(ms.getPrecursor().getMz(), ms.getPrecursor().getCharge()), ms.getRetentionTimes().getFirst().getTime(), ms);
@@ -1035,12 +1033,6 @@ public class Spectra
     for (Double mh : clusters.keySet())
     {
       MsnSpectrum combined=combineCharges(spectra, precursor, clusters.get(mh));
-//      for (Integer scan : clusters.get(mh))
-//      {
-//        MsnSpectrum ms = spectra.get(scan+"");
-//        combined = combined==null?ms:(MsnSpectrum )Spectra.accumulate(precursor, combined, ms);
-//      }
-//      combined.setFragMethod(Strs.toString(clusters.get(mh), "+"));
 
       // deposit the combined for each scan
       for (Integer scan : clusters.get(mh))
