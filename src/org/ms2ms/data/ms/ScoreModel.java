@@ -2,7 +2,6 @@ package org.ms2ms.data.ms;
 
 import com.google.common.collect.Ordering;
 import org.ms2ms.math.Histogram;
-import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Tools;
 
 import java.util.*;
@@ -24,9 +23,12 @@ public class ScoreModel
   };
 
   private String mName;
-  private EnumMap<eType, Histogram> mDecoys, mNorms;
+  private EnumMap<eType, Histogram> mDecoys, mNorms, mBoth;
   private EnumMap<eType, Double> mOffsets;
   private Double mBaseline,mCenter;
+  private Integer mBootstrapSize=1000;
+
+  public static float[] sTrypicity = {0f,0f,0f,0f,0.5f,1f,2f};
 
   public ScoreModel() { super(); }
   public ScoreModel(String s) { super(); mName=s; }
@@ -36,7 +38,22 @@ public class ScoreModel
 
   public Double getOffset(eType t) { return mOffsets.get(t); }
   public String getName() { return mName; }
+  public Integer getBootstrapSize() { return mBootstrapSize; }
 
+  public int size(boolean decoy, eType t)
+  {
+    if ( decoy && mDecoys!=null && mDecoys.get(t)!=null && mDecoys.get(t).getData()!=null) return mDecoys.get(t).getData().size();
+    if (!decoy && mNorms !=null &&  mNorms.get(t)!=null &&  mNorms.get(t).getData()!=null) return  mNorms.get(t).getData().size();
+    return 0;
+  }
+
+  public Histogram get(Boolean decoy, eType t)
+  {
+    if (decoy==null &&          mBoth  !=null) return   mBoth.get(t);
+    if (decoy!=null && decoy && mDecoys!=null) return mDecoys.get(t);
+    if (decoy!=null &&!decoy && mNorms !=null) return  mNorms.get(t);
+    return null;
+  }
   public ScoreModel setCenter(double s) { mCenter=s; return this; }
   public ScoreModel setOffset(eType t, double s)
   {
@@ -53,12 +70,20 @@ public class ScoreModel
         if (mNorms !=null && mNorms.get( t)!=null) mNorms.get( t).clear();
       }
   }
-  public ScoreModel add(Histogram hist, boolean decoy, eType t)
+  public ScoreModel add(Histogram hist, Boolean decoy, eType t)
   {
-    if      ( decoy && mDecoys==null) mDecoys = new EnumMap<>(eType.class);
-    else if (!decoy && mNorms ==null) mNorms  = new EnumMap<>(eType.class);
+    if (decoy==null)
+    {
+      if (mBoth==null) mBoth = new EnumMap<>(eType.class);
+      mBoth.put(t, hist);
+    }
+    else
+    {
+      if      ( decoy && mDecoys==null) mDecoys = new EnumMap<>(eType.class);
+      else if (!decoy && mNorms ==null) mNorms  = new EnumMap<>(eType.class);
 
-    if (decoy) mDecoys.put(t, hist); else mNorms.put(t, hist);
+      if (decoy) mDecoys.put(t, hist); else mNorms.put(t, hist);
+    }
     return this;
   }
   public ScoreModel add(boolean decoy, eType t, double s, boolean distinct)
@@ -74,27 +99,53 @@ public class ScoreModel
     return this;
   }
 
-  public ScoreModel bootstrapping(int samples)
+  public ScoreModel fitEval(int samples)
   {
-    add(bootstrapping(samples, true,  eType.y, eType.b), true,  eType.bs);
-    add(bootstrapping(samples, false, eType.y, eType.b), false, eType.bs);
+    // prepare for the e-val calculation
+    if (mDecoys!=null && mDecoys.get(eType.bs)!=null) mDecoys.get(eType.bs).fitEval(samples,0);
+    if (mNorms !=null &&  mNorms.get(eType.bs)!=null)  mNorms.get(eType.bs).fitEval(samples,0);
+    if (mBoth  !=null &&   mBoth.get(eType.bs)!=null)   mBoth.get(eType.bs).fitEval(samples*2,1);
 
     return this;
   }
-  public Histogram bootstrapping(int samples, Boolean decoy, eType C, eType N)
+  // if y or b is absence, we'll allow it to extend up to 'extension' as in the algorithm itself
+  public ScoreModel bootstrapping(int samples, double jitter, double extension, double trypicity)
+  {
+    mBootstrapSize=samples;
+    add(bootstrapping(samples, jitter, extension, trypicity, true,  eType.y, eType.b), true,  eType.bs);
+    add(bootstrapping(samples, jitter, extension, trypicity, false, eType.y, eType.b), false, eType.bs);
+    // now do the combined dist
+    add(bootstrapping(samples, jitter, extension, trypicity, null,  eType.y, eType.b), null,  eType.bs);
+
+    return this;
+  }
+  public Histogram bootstrapping(int samples, double jitter, double extension, double trypicity, Boolean decoy, eType C, eType N)
   {
     List<Double> Nc=new ArrayList<>(), Cc=new ArrayList<>();
 
-    if ((decoy==null || decoy) && mDecoys!=null)
+    if (decoy==null&& mDecoys!=null && mNorms!=null)
+    {
+      // want both types together
+      if (mDecoys.get(N)!=null) Nc.addAll(mDecoys.get(N).getData());
+      if (mDecoys.get(C)!=null) Cc.addAll(mDecoys.get(C).getData());
+
+      if (mNorms.get(N)!=null) Nc.addAll(mNorms.get(N).getData());
+      if (mNorms.get(C)!=null) Cc.addAll(mNorms.get(C).getData());
+    }
+    if ((decoy!=null &&  decoy) && mDecoys!=null)
     {
       if (mDecoys.get(N)!=null) Nc.addAll(mDecoys.get(N).getData());
       if (mDecoys.get(C)!=null) Cc.addAll(mDecoys.get(C).getData());
     }
-    if ((decoy==null || !decoy) && mNorms!=null)
+    if ((decoy!=null && !decoy) && mNorms!=null)
     {
       if (mNorms.get(N)!=null) Nc.addAll(mNorms.get(N).getData());
       if (mNorms.get(C)!=null) Cc.addAll(mNorms.get(C).getData());
     }
+    // must have at least a value in each type
+    if (Nc.size()==0) Nc.add(0d);
+    if (Cc.size()==0) Cc.add(0d);
+
     // sort the scores
     Collections.sort(Nc); Collections.sort(Cc);
 
@@ -103,13 +154,20 @@ public class ScoreModel
     Random      RND = new Random(System.nanoTime());
     for (int i=0; i<samples; i++)
     {
-      combo.add(Nc.get(RND.nextInt(Nc.size()))+Cc.get(RND.nextInt(Cc.size())));
+      double nt = Nc.get(RND.nextInt(Nc.size())), ct = Cc.get(RND.nextInt(Cc.size())),
+            enz = sTrypicity[RND.nextInt(sTrypicity.length)]*trypicity;
+
+      if (nt<extension/10) nt += RND.nextDouble()*extension;
+      if (ct<extension/10) ct += RND.nextDouble()*extension;
+      combo.add(nt+ct+RND.nextDouble()*jitter+enz);
     }
     combo.generate(25);
     Collections.sort(combo.getData(), Ordering.natural().reverse());
     Tools.dispose(Nc, Cc);
 
     return combo;
+//    // prepare for the e-val calculation
+//    return combo.fitEval((int )(samples*0.05d));
   }
   public ScoreModel addExactDecoy(double s) { return add(s, eType.exact); }
   public ScoreModel addOpenDecoy( double s) { return add(s, eType.open); }
