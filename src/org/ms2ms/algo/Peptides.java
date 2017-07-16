@@ -4,6 +4,7 @@ import com.google.common.collect.*;
 import org.expasy.mzjava.core.mol.SymbolSequence;
 import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;
+import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodManager;
@@ -185,6 +186,7 @@ public class Peptides
     return y;
   }
   public static double calcMH(double mz, int z) { return (mz*z-(z-1)*H); }
+  public static double calcMH(Peak p) { return calcMH(p.getMz(), p.getCharge()); }
   public static int numTryptic(String peptide)
   {
     // check the uncleaved site

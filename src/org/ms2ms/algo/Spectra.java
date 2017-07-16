@@ -946,7 +946,7 @@ public class Spectra
 
     return ms;
   }
-  public static Peak getFacileLost(MsnSpectrum ms, int bunch)
+  public static Peak base2next(MsnSpectrum ms, int bunch)
   {
     if (ms!=null && ms.size()>3)
     {
@@ -959,7 +959,9 @@ public class Spectra
       Collection<Double> next = new ArrayList<>();
       for (int i=1; i<peaks.size(); i++)
       {
-        if (Math.abs(peaks.get(0).getMz()-peaks.get(i).getMz())>4) next.add(peaks.get(i).getIntensity());
+        // look at the peaks that are outside of the base or precursor
+        if (Math.abs(peaks.get(0).getMz()-peaks.get(i).getMz())>4 &&
+            Math.abs(ms.getPrecursor().getMz()-peaks.get(i).getMz())>4) next.add(peaks.get(i).getIntensity());
         if (next.size()>bunch) break;
       }
 
