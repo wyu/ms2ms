@@ -102,9 +102,9 @@ public class ScoreModel
   public ScoreModel fitEval(int samples)
   {
     // prepare for the e-val calculation
-    if (mDecoys!=null && mDecoys.get(eType.bs)!=null) mDecoys.get(eType.bs).fitEval(samples,0);
-    if (mNorms !=null &&  mNorms.get(eType.bs)!=null)  mNorms.get(eType.bs).fitEval(samples,0);
-    if (mBoth  !=null &&   mBoth.get(eType.bs)!=null)   mBoth.get(eType.bs).fitEval(samples*2,1);
+    if (mDecoys!=null && mDecoys.get(eType.bs)!=null) mDecoys.get(eType.bs).fitEval(samples,2,0.95);
+    if (mNorms !=null &&  mNorms.get(eType.bs)!=null)  mNorms.get(eType.bs).fitEval(samples,2,0.95);
+    if (mBoth  !=null &&   mBoth.get(eType.bs)!=null)   mBoth.get(eType.bs).fitEval(samples*2,3, 0.95);
 
     return this;
   }
