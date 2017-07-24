@@ -1,6 +1,9 @@
 package org.ms2ms.data.ms;
 
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
+import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 import org.ms2ms.math.Histogram;
 import org.ms2ms.utils.Tools;
 
@@ -27,6 +30,7 @@ public class ScoreModel
   private EnumMap<eType, Double> mOffsets;
   private Double mBaseline,mCenter;
   private Integer mBootstrapSize=1000;
+  private SortedSetMultimap<String, Double> mBootsrapped;
 
   public static float[] sTrypicity = {0f,0f,0f,0f,0.5f,1f,2f};
 
@@ -234,5 +238,32 @@ public class ScoreModel
     }
 
     return buf;
+  }
+  public void dispose_intermediates(EnumMap<eType, Histogram> data)
+  {
+    if (Tools.isSet(data))
+      for (eType t : data.keySet()) if (!t.equals(eType.bs)) data.get(t).dispose_data();
+  }
+  public void dispose(EnumMap<eType, Histogram>... data)
+  {
+    if (Tools.isSet(data))
+      for (EnumMap<eType, Histogram> d : data)
+        for (eType t : d.keySet()) d.get(t).dispose();
+  }
+  public void retainTops(String tag, EnumMap<eType, Histogram> data, eType t, int tops)
+  {
+    if (Tools.isSet(data) && data.get(t)!=null && data.get(t).getData()!=null && data.get(t).getData().size()>=tops)
+      mBootsrapped.putAll(tag, data.get(t).getData().subList(0, tops));
+  }
+  public void dispose_intermediates()
+  {
+    // copy the necessary data before disposing the histogram
+    mBootsrapped = TreeMultimap.create(Ordering.natural(), Ordering.natural().reverse());
+
+    retainTops("Decoys", mDecoys, eType.bs, 25);
+    retainTops("Norms",  mNorms,  eType.bs, 25);
+    retainTops("Both",   mBoth,   eType.bs, 25);
+
+    dispose(mDecoys, mNorms, mBoth);
   }
 }
