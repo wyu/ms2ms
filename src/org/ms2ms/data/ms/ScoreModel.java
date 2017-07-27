@@ -266,4 +266,16 @@ public class ScoreModel
 
     dispose(mDecoys, mNorms, mBoth);
   }
+  public ScoreModel clone_intermediates(int tops)
+  {
+    ScoreModel cloned = new ScoreModel(getName());
+
+    cloned.mBootsrapped = TreeMultimap.create(Ordering.natural(), Ordering.natural().reverse());
+
+    cloned.retainTops("Decoys", mDecoys, eType.bs, tops);
+    cloned.retainTops("Norms",  mNorms,  eType.bs, tops);
+    cloned.retainTops("Both", mBoth, eType.bs, tops);
+
+    return cloned;
+  }
 }
