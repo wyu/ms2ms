@@ -16,7 +16,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
 {
   private boolean mHas1st=false, mExpectedY1=false;
   private int                 mMotifs=0, m1stPass=0, mWeaks=0, mC13=0;
-  private double              mGapScore=0, mIntensities=0d;
+  private double              mGapScore=0, mIntensities=0d, mGapScore0=0;
   private Double              mMatchScore=null;
   private FragmentEntry       mFragment   =null;
   private ImmutableList<PeakMatch> mTrack =null;
@@ -57,6 +57,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
   public FpmEntry setMotifs(         int s) { mMotifs    =s;  return this; }
 
   public FpmEntry setGapScore(    double s) { mGapScore  =s; return this; }
+  public FpmEntry setGapScore0(   double s) { mGapScore0 =s; return this; }
   public FpmEntry setIntensity(   double s) { mIntensities=s; return this; }
   public FpmEntry setTrack(ImmutableList<PeakMatch> s) { mTrack=s; return this; }
 

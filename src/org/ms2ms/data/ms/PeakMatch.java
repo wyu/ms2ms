@@ -171,7 +171,7 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Di
   public String toString()
   {
     String line = "m/z"+Tools.d2s(getMz(),2)+", %"+Tools.d2s(getIntensity(),4)+", z"+getCharge()+
-        ", S/N"+Tools.d2s(getSNR(),1)+(getIsotopes()>1?"$"+getIsotopes():"");
+        ", S/N"+Tools.d2s(getSNR(),1)+(getIsotopes()>1?"$"+getIsotopes():"")+(", scr="+Tools.d2s(getScore()*-10d,1));
 
     return line;
   }
