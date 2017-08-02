@@ -25,6 +25,7 @@ public class NumericalModVault
   }
   public void init()
   {
+    int known=0;
     try
     {
       mDeltaProb = new TreeMap<>();
@@ -34,6 +35,7 @@ public class NumericalModVault
         mKnown = putAAMod(mKnown, vault.get("Sites"), vault.getDouble("DeltaM"), Math.log10(vault.getDouble("Freq.mil.msms")));
         mDeltaProb.put(vault.getDouble("DeltaM"), Math.log10(vault.getDouble("Freq.mil.msms")));
       }
+      if (mDeltaProb!=null) known=mDeltaProb.size();
     }
     catch (Exception e) { e.printStackTrace(); }
 
@@ -57,6 +59,8 @@ public class NumericalModVault
     if (Tools.isSet(mDeltaProb))
       for (Double d : mDeltaProb.keySet())
         sAAMods = putAAMod(sAAMods, "*", d, mDeltaProb.get(d));
+
+    if (mDeltaProb!=null) System.out.println(mDeltaProb.size() + " modifications loaded, including "+known+" from "+mVaultFile);
   }
   private SortedMap<Double, Double>[] putAAMod(SortedMap<Double, Double>[] AAMods, String aa, double mod, double prob)
   {
