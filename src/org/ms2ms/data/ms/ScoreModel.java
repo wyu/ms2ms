@@ -248,8 +248,9 @@ public class ScoreModel
   {
     if (Tools.isSet(data))
       for (EnumMap<eType, Histogram> d : data)
-        for (eType t : d.keySet())
-          if (d.get(t)!=null) d.get(t).dispose();
+        if (d!=null)
+          for (eType t : d.keySet())
+            if (d.get(t)!=null) d.get(t).dispose();
   }
   public void retainTops(String tag, EnumMap<eType, Histogram> data, eType t, int tops)
   {
