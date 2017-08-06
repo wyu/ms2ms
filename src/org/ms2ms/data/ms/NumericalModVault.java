@@ -85,9 +85,9 @@ public class NumericalModVault
     if (Tools.isSet(AAs))
       for (Integer A : AAs)
       {
-        if (delta-d>delta+d)
-          System.out.println();
-        SortedMap<Double, Double> slice = sAAMods[A].subMap(delta-d, delta+d);
+//        if (delta-d>delta+d)
+//          System.out.println();
+        SortedMap<Double, Double> slice = (sAAMods[A]!=null?sAAMods[A].subMap(delta-d, delta+d):null);
         if (Tools.isSet(slice) && Collections.max(slice.values())>score) score = Collections.max(slice.values());
       }
     else
