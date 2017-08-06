@@ -161,8 +161,8 @@ public class ScoreModel
       double nt = Nc.get(RND.nextInt(Nc.size())), ct = Cc.get(RND.nextInt(Cc.size())),
             enz = sTrypicity[RND.nextInt(sTrypicity.length)]*trypicity;
 
-      if (nt<extension/10) nt += RND.nextDouble()*extension;
-      if (ct<extension/10) ct += RND.nextDouble()*extension;
+//      if (nt<extension/10) nt += RND.nextDouble()*extension;
+//      if (ct<extension/10) ct += RND.nextDouble()*extension;
       combo.add(nt+ct+RND.nextDouble()*jitter+enz);
     }
     combo.generate(25);
@@ -248,7 +248,8 @@ public class ScoreModel
   {
     if (Tools.isSet(data))
       for (EnumMap<eType, Histogram> d : data)
-        for (eType t : d.keySet()) d.get(t).dispose();
+        for (eType t : d.keySet())
+          if (d.get(t)!=null) d.get(t).dispose();
   }
   public void retainTops(String tag, EnumMap<eType, Histogram> data, eType t, int tops)
   {

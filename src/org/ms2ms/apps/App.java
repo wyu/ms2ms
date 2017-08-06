@@ -171,6 +171,7 @@ abstract public class App
   protected Double   param(String s, Double d)  { return mParameters!=null?mParameters.getProperty(s,d):null; }
   protected Float    param(String s, Float d)   { return mParameters!=null?mParameters.getProperty(s,d):null; }
   protected Integer  param(String s, Integer d) { return mParameters!=null?mParameters.getProperty(s,d):null; }
+  protected Boolean  param(String s, boolean d) { return mParameters!=null?(mParameters.getProperty(s)=="Y"):d; }
   protected Property param()                    { return mParameters; }
 
   protected void addParamKey(String... names)
