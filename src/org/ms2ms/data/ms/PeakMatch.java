@@ -8,19 +8,24 @@ import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.expasy.mzjava.utils.Copyable;
 import org.ms2ms.Disposable;
 import org.ms2ms.algo.Peaks;
+import org.ms2ms.data.Binary;
 import org.ms2ms.data.collect.ImmutableNavigableMap;
 import org.ms2ms.math.Stats;
 import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.mzjava.IsotopePeakAnnotation;
+import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.*;
 
 /** A simplified, riskier version Peak
  * Created by yuw on 3/26/17.
  */
-public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Disposable
+public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Disposable, Binary
 {
   private double mz=0.0d, intensity=0.0d, mass=0.0d, mSNR=0d, mFreq=0d, mOrigMz=0d, mCalcMz=0d, mScore=0d;
   private Float mz_low=0f, mz_high=0f;
@@ -32,7 +37,7 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Di
   private int mVerifiedCharge=0, mIsotopes=1, mIndex;
   private long mCounts=1;
 //  private Map<String, Double> mAnnotations = null;
-  private IonType ionType ;
+  private IonType ionType = IonType.unknown ;
 
   @Override
   public void dispose()
@@ -373,4 +378,39 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Di
     return peaks.query4counts(m-err-offset, m+err+offset);
   }
 
+  @Override
+  public void write(DataOutput ds) throws IOException
+  {
+    IOs.write(ds,mz);IOs.write(ds,intensity);IOs.write(ds,mass);IOs.write(ds,mSNR);IOs.write(ds,mFreq);IOs.write(ds,mOrigMz);
+    IOs.write(ds,mCalcMz);IOs.write(ds,mScore);IOs.write(ds,mz_low);IOs.write(ds,mz_high);
+    IOs.write(ds,charge);
+
+    IOs.write(ds,mIsOutlier);
+    IOs.write(ds,mVerifiedCharge);IOs.write(ds,mIsotopes);IOs.write(ds,mIndex);
+    IOs.write(ds,mCounts);
+    IOs.write(ds,ionType.toString());
+  }
+
+  @Override
+  public void read(DataInput ds) throws IOException
+  {
+    mz       =IOs.read(ds, mz);
+    intensity=IOs.read(ds, intensity);
+    mass     =IOs.read(ds, mass);
+    mSNR     =IOs.read(ds, mSNR);
+    mFreq    =IOs.read(ds, mFreq);
+    mOrigMz  =IOs.read(ds, mOrigMz);
+    mCalcMz  =IOs.read(ds, mCalcMz);
+    mScore   =IOs.read(ds, mScore);
+    mz_low   =IOs.read(ds,mz_low);
+    mz_high  =IOs.read(ds, mz_high);
+    charge   =IOs.read(ds, charge);
+
+    mIsOutlier     =IOs.read(ds, mIsOutlier);
+    mVerifiedCharge=IOs.read(ds,mVerifiedCharge);
+    mIsotopes      =IOs.read(ds, mIsotopes);
+    mIndex         =IOs.read(ds, mIndex);
+    mCounts        =IOs.read(ds, mCounts);
+    ionType.valueOf(IOs.read(ds,""));
+  }
 }

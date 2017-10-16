@@ -1,6 +1,5 @@
 package org.ms2ms.data.ms;
 
-import com.google.common.collect.*;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
@@ -12,8 +11,6 @@ import org.ms2ms.math.Stats;
 import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
-
-import java.util.*;
 
 /** Keeper of the peptide matches to a MS/MS spectrum. It's not a single PSM since we don;t assume a single precursor
  *

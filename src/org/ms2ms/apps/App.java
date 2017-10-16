@@ -158,11 +158,15 @@ abstract public class App
     buf.append("Param\tValue\tDescription\n");
 
     if (Tools.isSet(keys))
-      for (String key : keys) buf.append(key+"\t"+param(key) + "\t" + sParamKeys.get(key)+"\n");
+    {
+      for (String key : keys)
+        if (param(key)!=null) buf.append(key+"\t"+param(key) + "\t" + sParamKeys.get(key)+"\n");
+    }
     else
     {
       for (String key : sParamKeys.keySet())
-        buf.append(key+"\t\t"+param(key) + "\t" + sParamKeys.get(key)+"\n");
+        if (param(key)!=null && sParamKeys.get(key)!=null)
+          buf.append(key+"\t\t"+param(key) + "\t" + sParamKeys.get(key)+"\n");
     }
 
     return buf.toString();

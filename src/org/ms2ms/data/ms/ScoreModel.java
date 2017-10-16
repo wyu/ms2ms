@@ -4,16 +4,21 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
+import org.ms2ms.data.Binary;
 import org.ms2ms.math.Histogram;
+import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Tools;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.*;
 
 /** Representation of an individual component score in a composite scheme
  *
  * Created by yuw on 10/10/16.
  */
-public class ScoreModel
+public class ScoreModel implements Binary
 {
   public enum eType
   {
@@ -279,5 +284,89 @@ public class ScoreModel
     cloned.retainTops("Both", mBoth, eType.bs, tops);
 
     return cloned;
+  }
+
+  @Override
+  public void write(DataOutput ds) throws IOException
+  {
+    IOs.write(ds, mName);
+    IOs.write(ds, mBaseline);
+    IOs.write(ds, mCenter);
+    IOs.write(ds, mBootstrapSize);
+    IOs.writeStringDoubles(ds, mBootsrapped);
+
+    write(ds, mDecoys);
+    write(ds, mNorms);
+    write(ds, mBoth);
+    writeEnumDouble(ds, mOffsets);
+  }
+
+  @Override
+  public void read(DataInput ds) throws IOException
+  {
+    mName          = IOs.read(ds, "");
+    mBaseline      = IOs.read(ds, mBaseline);
+    mCenter        = IOs.read(ds, 0d);
+    mBootstrapSize = IOs.read(ds, 0);
+
+    mBootsrapped   = (SortedSetMultimap )IOs.readStringDoubles(ds, mBootsrapped);
+
+    mDecoys        = readEnumHistogram(ds);
+    mNorms         = readEnumHistogram(ds);
+    mBoth          = readEnumHistogram(ds);
+    mOffsets       = readEnumDouble(   ds);
+  }
+
+  private void writeEnumDouble(DataOutput ds, EnumMap<eType, Double> data) throws IOException
+  {
+    IOs.write(ds, Tools.isSet(data) ? data.size() : 0);
+
+    if (Tools.isSet(data))
+      for (eType key : data.keySet())
+      {
+        IOs.write(ds, key.toString());
+        IOs.write(ds, data.get(key));
+      }
+  }
+  private EnumMap<eType, Double> readEnumDouble(DataInput ds) throws IOException
+  {
+    int n = IOs.read(ds, 0);
+    if (n>0)
+    {
+      EnumMap<eType, Double> data = new EnumMap<>(eType.class);
+      for (int i=0; i<n; i++)
+        data.put(eType.valueOf(IOs.read(ds, "")), IOs.read(ds,0d));
+
+      return data;
+    }
+    return null;
+  }
+  private <T extends Binary> void write(DataOutput ds, EnumMap<eType, T> data) throws IOException
+  {
+    IOs.write(ds, Tools.isSet(data) ? data.size() : 0);
+
+    if (Tools.isSet(data))
+      for (eType key : data.keySet())
+      {
+        IOs.write(ds, key.toString());
+        IOs.write(ds, data.get(key));
+      }
+  }
+  private EnumMap<eType, Histogram> readEnumHistogram(DataInput ds) throws IOException
+  {
+    int n = IOs.read(ds, 0);
+    if (n>0)
+    {
+      EnumMap<eType, Histogram> data = new EnumMap<>(eType.class);
+      for (int i=0; i<n; i++)
+      {
+        eType   key = eType.valueOf(IOs.read(ds, ""));
+        Histogram H = new Histogram(); H.read(ds);
+        data.put(key, H);
+      }
+
+      return data;
+    }
+    return null;
   }
 }
