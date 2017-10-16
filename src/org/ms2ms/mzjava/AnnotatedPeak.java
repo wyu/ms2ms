@@ -31,7 +31,7 @@ public class AnnotatedPeak extends Peak implements Binary
   private long mCounts;
   private double mSNR, mFreq, mOrigMz;
   private Map<String, Double> mAnnotations = null;
-  private IonType ionType ;
+  private IonType ionType = IonType.unknown;
 
   public AnnotatedPeak() { super(); }
   public AnnotatedPeak(double mz, double ai) { super(mz, ai); }
