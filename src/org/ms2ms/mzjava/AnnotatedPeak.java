@@ -1,10 +1,16 @@
 package org.ms2ms.mzjava;
 
 import org.expasy.mzjava.core.ms.peaklist.Peak;
+import org.expasy.mzjava.core.ms.peaklist.Polarity;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
+import org.ms2ms.data.Binary;
+import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,7 +18,7 @@ import java.util.Map;
  *
  * Created by wyu on 4/27/14.
  */
-public class AnnotatedPeak extends Peak
+public class AnnotatedPeak extends Peak implements Binary
 {
 //  public static final String FREQUENCY = "Frequency";
 //  public static final String SNR       = "SNR";
@@ -25,7 +31,7 @@ public class AnnotatedPeak extends Peak
   private long mCounts;
   private double mSNR, mFreq, mOrigMz;
   private Map<String, Double> mAnnotations = null;
-  private IonType ionType ;
+  private IonType ionType = IonType.unknown;
 
   public AnnotatedPeak() { super(); }
   public AnnotatedPeak(double mz, double ai) { super(mz, ai); }
@@ -132,5 +138,37 @@ public class AnnotatedPeak extends Peak
     p.ionType=ionType;
 
     return p;
+  }
+
+  @Override
+  public void write(DataOutput ds) throws IOException
+  {
+    IOs.write(ds, getMz());IOs.write(ds, getCharge()); IOs.write(ds, getIntensity());
+
+    IOs.write(ds, mIsOutlier);
+    IOs.write(ds, mVerifiedCharge);
+    IOs.write(ds, mIsotopes);
+    IOs.write(ds, mCounts);
+    IOs.write(ds, mSNR);
+    IOs.write(ds, mFreq);
+    IOs.write(ds, mOrigMz);
+    IOs.writeStrDouble(ds, mAnnotations);
+    IOs.write(ds, ionType.toString());
+  }
+
+  @Override
+  public void read(DataInput ds) throws IOException
+  {
+    setMzAndCharge(IOs.read(ds, getMz()), IOs.read(ds, getCharge())); setIntensity(IOs.read(ds, getIntensity()));
+
+    isOutlier(        IOs.read(ds, mIsOutlier));
+    setVerifiedCharge(IOs.read(ds, mVerifiedCharge));
+    setIsotopes(      IOs.read(ds, mIsotopes));
+    setCounts(        IOs.read(ds, mCounts));
+    setSNR(           IOs.read(ds, mSNR));
+    setFrequency(     IOs.read(ds, mFreq));
+    setOriginalMz(    IOs.read(ds, mOrigMz));
+    mAnnotations =    IOs.readStrDouble(ds);
+    ionType.valueOf(  IOs.read(ds,""));
   }
 }

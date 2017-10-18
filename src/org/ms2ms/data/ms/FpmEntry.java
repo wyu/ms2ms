@@ -2,17 +2,22 @@ package org.ms2ms.data.ms;
 
 import com.google.common.collect.ImmutableList;
 import org.ms2ms.Disposable;
+import org.ms2ms.data.Binary;
 import org.ms2ms.math.Stats;
+import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.*;
 
 /** The Fragment(predicted)-peak(obs)-match entry
  *
  * Created by yuw on 8/6/16.
  */
-public class FpmEntry implements Comparable<FpmEntry>, Disposable
+public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
 {
   private boolean mHas1st=false, mExpectedY1=false;
   private int                 mMotifs=0, m1stPass=0, mWeaks=0, mC13=0;
@@ -279,5 +284,35 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable
   {
     Tools.dispose(mFragment);
     mTrack=null;
+  }
+
+  @Override
+  public void write(DataOutput ds) throws IOException
+  {
+    IOs.write(ds, mHas1st); IOs.write(ds, mExpectedY1);
+    IOs.write(ds, mMotifs); IOs.write(ds, m1stPass); IOs.write(ds, mWeaks); IOs.write(ds, mC13);
+    IOs.write(ds, mGapScore); IOs.write(ds, mIntensities); IOs.write(ds, mGapScore0);
+    IOs.write(ds, mMatchScore);
+    IOs.write(ds, mFragment);
+    IOs.write(ds, mTrack);
+  }
+
+  @Override
+  public void read(DataInput ds) throws IOException
+  {
+    mHas1st     =IOs.read(ds,mHas1st);
+    mExpectedY1 =IOs.read(ds,mExpectedY1);
+    mMotifs     =IOs.read(ds,mMotifs);
+    m1stPass    =IOs.read(ds,m1stPass);
+    mWeaks      =IOs.read(ds,mWeaks);
+    mC13        =IOs.read(ds, mC13);
+    mGapScore   =IOs.read(ds, mGapScore);
+    mIntensities=IOs.read(ds, mIntensities);
+    mGapScore0  =IOs.read(ds, mGapScore0);
+    mMatchScore =IOs.read(ds, mMatchScore);
+    mFragment   =IOs.read(ds, mFragment);
+
+    IOs.readImmutableList(ds, PeakMatch.class);
+
   }
 }

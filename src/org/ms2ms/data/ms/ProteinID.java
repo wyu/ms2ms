@@ -1,14 +1,10 @@
 package org.ms2ms.data.ms;
 
 import com.google.common.collect.*;
-import com.sun.corba.se.impl.encoding.OSFCodeSetRegistry;
-import com.thinkaurelius.titan.diskstorage.EntryMetaData;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
-import org.ms2ms.algo.PSMs;
 import org.ms2ms.utils.Tools;
 
 import java.util.Collection;
-import java.util.Map;
 
 /**
  * Created by yuw on 2/24/16.
