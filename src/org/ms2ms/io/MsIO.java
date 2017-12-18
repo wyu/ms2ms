@@ -109,6 +109,7 @@ public class MsIO extends IOs
     if (counts>0)
       for (RetentionTime rt : ms.getRetentionTimes()) w.writeDouble(rt.getTime());
   }
+
   public static PeakList readSpectrumIdentifier(DataInput w, PeakList ms) throws IOException
   {
     if (ms!=null)

@@ -359,4 +359,11 @@ public class Peptides
     if (s!=null) return s.replaceAll("[0-9]", "").replaceAll("\\(", "").replaceAll("\\)","").replaceAll("\\.","").replaceAll("\\-","").replaceAll("\\s","");
     return s;
   }
+  public static float[] toAAs(Map<Character, Float> aas)
+  {
+    float[] AAs = new float[255]; Arrays.fill(AAs, 0f);
+    for (Character aa : aas.keySet()) AAs[aa] = aas.get(aa);
+
+    return AAs;
+  }
 }

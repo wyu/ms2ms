@@ -381,12 +381,22 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Di
   @Override
   public void write(DataOutput ds) throws IOException
   {
-    IOs.write(ds,mz);IOs.write(ds,intensity);IOs.write(ds,mass);IOs.write(ds,mSNR);IOs.write(ds,mFreq);IOs.write(ds,mOrigMz);
-    IOs.write(ds,mCalcMz);IOs.write(ds,mScore);IOs.write(ds,mz_low);IOs.write(ds,mz_high);
+    IOs.write(ds,mz);
+    IOs.write(ds,intensity);
+    IOs.write(ds,mass);
+    IOs.write(ds,mSNR);
+    IOs.write(ds,mFreq);
+    IOs.write(ds,mOrigMz);
+    IOs.write(ds,mCalcMz);
+    IOs.write(ds,mScore);
+    IOs.write(ds,mz_low);
+    IOs.write(ds,mz_high);
     IOs.write(ds,charge);
 
     IOs.write(ds,mIsOutlier);
-    IOs.write(ds,mVerifiedCharge);IOs.write(ds,mIsotopes);IOs.write(ds,mIndex);
+    IOs.write(ds,mVerifiedCharge);
+    IOs.write(ds,mIsotopes);
+    IOs.write(ds,mIndex);
     IOs.write(ds,mCounts);
     IOs.write(ds,ionType.toString());
   }
@@ -394,23 +404,23 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Di
   @Override
   public void read(DataInput ds) throws IOException
   {
-    mz       =IOs.read(ds, mz);
-    intensity=IOs.read(ds, intensity);
-    mass     =IOs.read(ds, mass);
-    mSNR     =IOs.read(ds, mSNR);
-    mFreq    =IOs.read(ds, mFreq);
-    mOrigMz  =IOs.read(ds, mOrigMz);
-    mCalcMz  =IOs.read(ds, mCalcMz);
-    mScore   =IOs.read(ds, mScore);
-    mz_low   =IOs.read(ds,mz_low);
-    mz_high  =IOs.read(ds, mz_high);
-    charge   =IOs.read(ds, charge);
+    mz       =IOs.read(ds, 0d);
+    intensity=IOs.read(ds, 0d);
+    mass     =IOs.read(ds, 0d);
+    mSNR     =IOs.read(ds, 0d);
+    mFreq    =IOs.read(ds, 0d);
+    mOrigMz  =IOs.read(ds, 0d);
+    mCalcMz  =IOs.read(ds, 0d);
+    mScore   =IOs.read(ds, 0d);
+    mz_low   =IOs.read(ds, 0F);
+    mz_high  =IOs.read(ds, 0F);
+    charge   =IOs.read(ds, 0);
 
-    mIsOutlier     =IOs.read(ds, mIsOutlier);
-    mVerifiedCharge=IOs.read(ds,mVerifiedCharge);
-    mIsotopes      =IOs.read(ds, mIsotopes);
-    mIndex         =IOs.read(ds, mIndex);
-    mCounts        =IOs.read(ds, mCounts);
+    mIsOutlier     =IOs.read(ds, false);
+    mVerifiedCharge=IOs.read(ds, 0);
+    mIsotopes      =IOs.read(ds, 0);
+    mIndex         =IOs.read(ds, 0);
+    mCounts        =IOs.read(ds, 0L);
     ionType.valueOf(IOs.read(ds,""));
   }
 }

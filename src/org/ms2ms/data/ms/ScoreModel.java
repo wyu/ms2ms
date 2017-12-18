@@ -30,11 +30,11 @@ public class ScoreModel implements Binary
     public String getName() { return name; }
   };
 
-  private String mName;
+  private String                    mName;
   private EnumMap<eType, Histogram> mDecoys, mNorms, mBoth;
-  private EnumMap<eType, Double> mOffsets;
-  private Double mBaseline,mCenter;
-  private Integer mBootstrapSize=1000;
+  private EnumMap<eType, Double>    mOffsets;
+  private Double                    mBaseline,mCenter;
+  private Integer                   mBootstrapSize=1000;
   private SortedSetMultimap<String, Double> mBootsrapped;
 
   public static float[] sTrypicity = {0f,0f,0f,0f,0.5f,1f,2f};
@@ -309,7 +309,7 @@ public class ScoreModel implements Binary
     mCenter        = IOs.read(ds, 0d);
     mBootstrapSize = IOs.read(ds, 0);
 
-    mBootsrapped   = (SortedSetMultimap )IOs.readStringDoubles(ds, mBootsrapped);
+    mBootsrapped   = (SortedSetMultimap )IOs.readStringDoubles(ds, TreeMultimap.create(Ordering.natural(), Ordering.natural().reverse()));
 
     mDecoys        = readEnumHistogram(ds);
     mNorms         = readEnumHistogram(ds);

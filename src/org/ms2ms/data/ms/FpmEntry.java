@@ -22,7 +22,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
   private boolean mHas1st=false, mExpectedY1=false;
   private int                 mMotifs=0, m1stPass=0, mWeaks=0, mC13=0;
   private double              mGapScore=0, mIntensities=0d, mGapScore0=0;
-  private Double              mMatchScore=null;
+  private Double              mMatchScore =null;
   private FragmentEntry       mFragment   =null;
   private ImmutableList<PeakMatch> mTrack =null;
 
@@ -47,7 +47,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
     mFragment=f; mTrack=ImmutableList.copyOf(t);
   }
 
-  public boolean             isDecoy()      { return mFragment!=null && /*mFragment.getPeptideKey()!=null &&*/ mFragment.getPeptideKey()<0; }
+  public boolean             isDecoy()      { return mFragment!=null && mFragment.getPeptideKey()<0; }
   public boolean             has1st()       { return mHas1st; }
   public double              getGapScore()  { return mGapScore; }
   public double              getIntensity() { return mIntensities; }
@@ -66,6 +66,32 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
   public FpmEntry setIntensity(   double s) { mIntensities=s; return this; }
   public FpmEntry setTrack(ImmutableList<PeakMatch> s) { mTrack=s; return this; }
 
+  // need the calc mz of the unmodified backbone in the order of the ion series
+  public Long[] hashByWTCalcMz(double[] backbone)
+  {
+    if (!Tools.isSet(getTrack())) return null;
+
+    // by the calculated mass and position
+    int[] ions = new int[backbone.length]; int stop=-1;
+    for (int i=0; i<getTrack().size(); i++)
+    {
+      int k=getTrack().get(i).getCharge()-1;
+      if (k>=backbone.length)
+        continue;
+      ions[k] = getTrack().size()-1-i;
+      if (k>stop) stop=k;
+    }
+
+    Long   hash=0L; double m=0d; int k=0;
+    Long[] hashes = new Long[getTrack().size()];
+    for (int i=0; i<=stop; i++)
+    {
+      m+=backbone[i]; hash += (i+1)*Double.hashCode(m);
+      if (ions[i]>0) hashes[ions[i]]=hash;
+    }
+
+    return hashes;
+  }
   public FpmEntry shallow_copy()
   {
     FpmEntry clone = new FpmEntry();
@@ -312,7 +338,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
     mMatchScore =IOs.read(ds, mMatchScore);
     mFragment   =IOs.read(ds, mFragment);
 
-    IOs.readImmutableList(ds, PeakMatch.class);
+    mTrack=IOs.readImmutableList(ds, PeakMatch.class);
 
   }
 }
