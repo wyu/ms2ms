@@ -126,7 +126,7 @@ abstract public class App
   abstract protected void    addProperty(String... vals);
   abstract public    String  getOutFile();
 
-  public String getWorkingRoot() { return Strs.isSet(mWorkingRoot) ? mWorkingRoot+"/":""; }
+  public String getWorkingRoot() { return (Strs.isSet(mWorkingRoot) ? mWorkingRoot:System.getProperty("user.dir"))+"/"; }
   public String getLogFile()     { return getOutFile()+".log"; }
 
   protected void close() throws IOException
@@ -186,11 +186,11 @@ abstract public class App
   {
     try
     {
-      System.out.println("Reading the configuration from " + cfgname);
+      System.out.println("Reading the configuration: " + getWorkingRoot()+cfgname);
       BufferedReader cfg = null;
       try
       {
-        cfg = new BufferedReader(new InputStreamReader(new FileInputStream(cfgname)));
+        cfg = new BufferedReader(new InputStreamReader(new FileInputStream(getWorkingRoot()+cfgname)));
         while (cfg.ready())
         {
           String line = cfg.readLine().trim();
