@@ -2,14 +2,18 @@ package org.ms2ms.data.ms;
 
 import com.google.common.collect.*;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
+import org.ms2ms.data.Binary;
 import org.ms2ms.utils.Tools;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.Collection;
 
 /**
  * Created by yuw on 2/24/16.
  */
-public class ProteinID implements Comparable<ProteinID>
+public class ProteinID implements Comparable<ProteinID>, Binary
 {
   private Long                           mID;
   private Double                         mBestQVal;
@@ -127,5 +131,25 @@ public class ProteinID implements Comparable<ProteinID>
           peptide_protein.put(seq, protein);
 
     return peptide_protein;
+  }
+
+  @Override
+  public void write(DataOutput ds) throws IOException
+  {
+//    private Long                           mID;
+//    private Double                         mBestQVal;
+//    private String                         mSequence, mAccession, mGene, mName;
+//
+//    private ProteinID                      mParent  =null;
+//    private Collection<ProteinID>          mChildren=null;
+//
+//    private Multimap<String, PeptideMatch> mSeqMatch=null;
+//    private Table<String, Integer, PeptideFeature> mSeqChargeFeature = null;
+  }
+
+  @Override
+  public void read(DataInput ds) throws IOException
+  {
+
   }
 }

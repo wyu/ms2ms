@@ -1,11 +1,9 @@
 package org.ms2ms.data.ms;
 
-import com.compomics.util.experiment.identification.matches.PeptideMatch;
 import com.google.common.collect.*;
-import org.expasy.mzjava.core.ms.Tolerance;
+import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
+import org.ms2ms.data.Binary;
 import org.ms2ms.data.Features;
-import org.ms2ms.data.Point;
-import org.ms2ms.data.collect.MultiHashTable;
 import org.ms2ms.data.collect.MultiTreeTable;
 import org.ms2ms.math.Stats;
 import org.ms2ms.r.Dataframe;
@@ -13,15 +11,19 @@ import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
 
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /** starting with LCMS features from Dinosauer, combine with the MS2 scans from Maxquant, look for the untilization, etc
  *
  * Created by Wen Yu on 4/7/17.
  */
-public class LcMsMsFeatures
+public class LcMsMsFeatures implements Binary
 {
+  public static final String COL_RUN        = "run";
   public static final String COL_MZ         = "mz";
   public static final String COL_Z          = "charge";
   public static final String COL_RT         = "rt";
@@ -31,12 +33,22 @@ public class LcMsMsFeatures
   public static final String COL_SCAN_BOUND = "Scan range";
   public static final String COL_AI_APEX    = "intensityApex";
   public static final String COL_AI_AREA    = "intensitySum";
+  public static final String COL_SEQ        = "sequence";
+  public static final String COL_PEPTIDE    = "peptide";
+  public static final String COL_PROT       = "protein";
+  public static final String COL_MOD        = "mods";
+  public static final String COL_PSMID      = "psmID";
   public static final String COL_PROPERTY   = "Properties";
+
+  static
+  {
+    Features.setOrderBy(COL_RUN, COL_RT, COL_MZ);
+  }
 
   // RT, m
   private TreeBasedTable<Integer, String, Double>   mScan_RT;
   private MultiTreeTable<Integer, String, Features> mScan_MS2;
-  private Map<Long, Features>                       mDistinctPeptides;
+  private Map<Long, Features>                       mPSMs;
   private TreeBasedTable<Double, Double, Features>  mIons, mMsMs; // mz,rt, feature
   private TreeMultimap<Double, Features>            mPeptides;
 
@@ -44,71 +56,80 @@ public class LcMsMsFeatures
   private Table<PeptideFeature, String, Float>      mPeptideExptAI;;
   private Multimap<String, String>                  mExptRun;
 
+  private Collection<Pattern> mRunFilters;
+
   // assemble the protein and peptide matches
   private Map<String, ProteinID> mProteinIDs;
   private Table<PeptideMatch, String, Features> mPeptideRunFeatures;
   private Table<String, String, Features> mSampleProperties;
 
   public LcMsMsFeatures() { super(); }
-  public LcMsMsFeatures(TabFile lcms, String mq, OffsetPpmTolerance mz)
+  public LcMsMsFeatures(TabFile lcms, String mq, OffsetPpmTolerance mz, String... runs)
   {
-    try
-    {
-      readMaxquantMS1(     new TabFile(mq+"/msScans.txt", "\t"));
-      readMaxquantMsMs(new TabFile(mq+"/msmsScans.txt", "\t"));
-      readMaxquantFeatures(new TabFile(mq+"/allPeptides.txt", "\t"));
-
-      readDinosauer(lcms);
-
-      System.out.println(mIons.size());
-
-//      Ions2Peptides(mz);
-//      Peptides2MsMs(mz);
-    }
-    catch (IOException ie)
-    {
-
-    }
+    init(mq, lcms, mz, runs);
   }
-  public LcMsMsFeatures(String mq, OffsetPpmTolerance mz)
+  public LcMsMsFeatures(String mq, OffsetPpmTolerance mz, String... runs)
+  {
+    init(mq, null, mz, runs);
+  }
+
+  private void init(String mq, TabFile lcms, OffsetPpmTolerance mz, String... runs)
   {
     try
     {
+      initRunFilters(runs);
+
       readMaxquantMS1(     new TabFile(mq+"/msScans.txt", "\t"));
       readMaxquantMsMs(    new TabFile(mq+"/msmsScans.txt", "\t"));
       readMaxquantFeatures(new TabFile(mq+"/allPeptides.txt", "\t"));
 
-      System.out.println(mIons.size());
+      readDinosauer(lcms);
+
+//      System.out.println(mIons.size());
 
 //      Ions2Peptides(mz);
 //      Peptides2MsMs(mz);
     }
-    catch (IOException ie)
-    {
+    catch (IOException ie) { }
+  }
 
+  private void initRunFilters(String... runs)
+  {
+    if (Tools.isSet(runs))
+    {
+      mRunFilters = new ArrayList<>();
+      for (String run : runs)
+        mRunFilters.add(Pattern.compile(run));
     }
   }
-
-  private void init()
-  {
-
-  }
-
   public Table<ProteinID, String, Map<String, Float>> getProteinInfo()   { return mProteinInfo; }
   public Table<PeptideFeature, String, Float>         getPeptideExptAI() { return mPeptideExptAI; }
   public Multimap<String, String>                     getExptRun()       { return mExptRun; }
   public Collection<String>                           getRuns4Expt(String s) { return mExptRun!=null?mExptRun.get(s):null; }
+  public RowSortedTable<Double, Double, Features>     getIons()          { return mIons; }
 
   public LcMsMsFeatures setProteinInfo(  Table<ProteinID, String, Map<String, Float>> s) { mProteinInfo  =s; return this; }
   public LcMsMsFeatures setPeptideExptAI(Table<PeptideFeature, String, Float>         s) { mPeptideExptAI=s; return this; }
   public LcMsMsFeatures setExptRuns(     Multimap<String, String>                     s) { mExptRun      =s; return this; }
 
+  private boolean okRun(String s)
+  {
+    if (!Tools.isSet(mRunFilters)) return true;
+    for (Pattern filter : mRunFilters)
+      if (filter.matcher(s).matches()) return true;
+
+    return false;
+  }
   public void readMaxquantMsMs(TabFile features) throws IOException
   {
-    System.out.println("Reading the features from "+features.getFileName());
+    if (mMsMs==null)  mMsMs = TreeBasedTable.create();
     int counts=0; mScan_MS2 = MultiTreeTable.create();
+
+    System.out.println("Reading the features from "+features.getFileName());
     while (features.hasNext())
     {
+      if (!okRun(features.get("Raw file"))) continue;
+
       // Raw file        Scan number     Retention time  Ion injection time      Total ion current       Collision energy        Summations      Base peak intensity     Elapsed time
       // Identified      MS/MS IDs       Sequence        Length  Filtered peaks  m/z     Mass    Charge  Type    Fragmentation   Mass analyzer   Parent intensity fraction
       // Fraction of total spectrum      Base peak fraction      Precursor full scan number      Precursor intensity     Precursor apex fraction Precursor apex offset
@@ -118,15 +139,25 @@ public class LcMsMsFeatures
 
       Double mz = features.getDouble("m/z"), rt = features.getDouble("Retention time");
       // add the features
-      addMsMs(rt, mz, COL_MZ,       mz);
-      addMsMs(rt, mz, COL_RT,       rt);
-      addMsMs(rt, mz, COL_SCAN,     features.getInt("Scan number"));
-      addMsMs(rt, mz, COL_Z,        features.getInt("Charge"));
-      addMsMs(rt, mz, COL_MASS,     features.getDouble("Mass"));
-      addMsMs(rt, mz, COL_AI_APEX,  features.getDouble("Precursor intensity"));
-//      addMsMs(rt, mz, COL_PROPERTY, new HashMap<>(features.getMappedRow()));
+      Features F = new Features();
+      F.add(COL_MZ,       mz);
+      F.add(COL_RT,       rt);
+      F.add(COL_SCAN,     features.getInt("Scan number"));
+      F.add(COL_Z,        features.getInt("Charge"));
+      F.add(COL_MASS,     features.getDouble("Mass"));
+      F.add(COL_AI_APEX,  features.getDouble("Precursor intensity"));
+      F.add(COL_RUN,      features.get("Raw file"));
 
-      mScan_MS2.put(features.getInt("Scan number"), features.get("Raw file"), mMsMs.get(mz,rt));
+      if (features.getInt("MS/MS IDs")>0)
+      {
+        F.add(COL_PSMID, features.getInt("MS.MS.IDs"));
+        F.add(COL_SEQ, features.get("Sequence"));
+        F.add(COL_PROT, features.get("Proteins"));
+        if (!"Unmodified".equals(features.get("Modifications"))) F.add(COL_MOD, features.get("Modifications"));
+      }
+
+      mMsMs.put(mz,rt, F);
+      mScan_MS2.put(features.getInt("Scan number"), features.get("Raw file"), F);
 
       if (++counts%10000==0) System.out.print(".");
       if (counts%1000000==0) System.out.println();
@@ -140,6 +171,8 @@ public class LcMsMsFeatures
     mScan_RT = TreeBasedTable.create();
     while (features.hasNext())
     {
+      if (!okRun(features.get("Raw file"))) continue;
+
       // Raw file        Scan number     Scan index      Retention time  Cycle time      Ion injection time
       // Base peak intensity     Total ion current       MS/MS count     Mass calibration        Peak length
       // Isotope pattern length  Multiplet length        Peaks / s       Single peaks / s        Isotope patterns / s
@@ -155,9 +188,14 @@ public class LcMsMsFeatures
   }
   public void readMaxquantFeatures(TabFile features) throws IOException
   {
+    // initiate the collections
+    if (mIons    ==null) mIons     = TreeBasedTable.create();
+
     System.out.println("Reading the features from "+features.getFileName()); int counts=0;
     while (features.hasNext())
     {
+      if (!okRun(features.get("Raw file"))) continue;
+
       // Raw file        Type    Charge  m/z     Mass    Uncalibrated m/z        Resolution      Number of data points
       // Number of scans Number of isotopic peaks        PIF     Mass fractional part    Mass deficit    Mass precision [ppm]
       // Max intensity m/z 0     Retention time  Retention length        Retention length (FWHM) Min scan number
@@ -165,16 +203,27 @@ public class LcMsMsFeatures
       // Proteins        Score   Intensity       Intensities     Isotope pattern MS/MS Count     MSMS Scan Numbers       MSMS Isotope Indices
       Double mz = features.getDouble("m/z"), rt = features.getDouble("Retention time");
       // add the features
-      addFeature(rt, mz, COL_MZ,       mz);
-      addFeature(rt, mz, COL_RT,       rt);
-      addFeature(rt, mz, COL_Z,        features.getInt("Charge"));
-      addFeature(rt, mz, COL_MASS,     features.getDouble("Mass"));
-      addFeature(rt, mz, COL_AI_APEX,  features.getDouble("Intensity"));
-      addFeature(rt, mz, COL_RT_BOUND, Range.closed(
+      Features F = new Features();
+
+      F.add(COL_MZ, mz).add(COL_RT, rt);
+      F.add(COL_Z,        features.getInt("Charge"));
+      F.add(COL_MASS,     features.getDouble("Mass"));
+      F.add(COL_AI_APEX,  features.getDouble("Intensity"));
+      F.add(COL_RT_BOUND, Range.closed(
           mScan_RT.get(features.getInt("Min scan number"), features.get("Raw file")),
           mScan_RT.get(features.getInt("Max scan number"), features.get("Raw file"))));
-      addFeature(rt, mz, COL_SCAN_BOUND, Range.closed(features.getInt("Min scan number"), features.getInt("Max scan number")));
-//      addFeature(rt, mz, COL_PROPERTY, new HashMap<>(features.getMappedRow()));
+      F.add(COL_SCAN_BOUND, Range.closed(features.getInt("Min scan number"), features.getInt("Max scan number")));
+      F.add(COL_RUN,      features.get("Raw file"));
+
+      if (Strs.isSet(features.get("Sequence")))
+      {
+        F.add(COL_SEQ,  features.get("Sequence"));
+        F.add(COL_PEPTIDE, features.get("Modified sequence"));
+        F.add(COL_PROT, features.get("Proteins"));
+        if (Strs.isSet(features.get("Modifications"))) F.add(COL_MOD,  features.get("Modifications"));
+      }
+
+      mIons.put(rt, mz, F);
 
       if (++counts%10000==0) System.out.print(".");
       if (counts%1000000==0) System.out.println();
@@ -196,9 +245,13 @@ public class LcMsMsFeatures
   }
   public void readDinosauer(TabFile features) throws IOException
   {
+    if (features==null) return;
+
     System.out.println("Reading the features from "+features.getFileName()); int counts=0;
     while (features.hasNext())
     {
+//      if (!okRun(features.get("Raw file"))) continue;
+
       // mz      mostAbundantMz  charge  rtStart rtApex  rtEnd   fwhm    nIsotopes       nScans  averagineCorr   mass    massCalib       intensityApex   intensitySum
       //Map<String, String> row  = features.nextRow();
 
@@ -238,9 +291,6 @@ public class LcMsMsFeatures
         Range<Double> rts  = (Range<Double>) pk.get(COL_RT_BOUND);
         Double mass        = pk.getDouble(COL_MASS);
         Double mass_unique = Tools.unique(mPeptides.keySet(), mass);
-
-//        if (Math.abs(1251.636-mass)<0.01 && Math.abs(77-pk.getDouble(COL_RT))<2)
-//          System.out.print("");
 
         Map<Double, Collection<Features>> slice = mass_feature.asMap().subMap(mz.getMin(mass), mz.getMax(mass));
 
@@ -421,5 +471,52 @@ public class LcMsMsFeatures
     }
 
     return df.init(false);
+  }
+
+  public TreeBasedTable<Double, Double, Features> indexing()
+  {
+    TreeBasedTable<Double, Double, Features>  RtAiIons = TreeBasedTable.create();
+    for (Features F : mIons.values())
+      if (F.get(COL_SEQ)!=null) RtAiIons.put(F.getDouble(COL_RT), F.getDouble(COL_AI_APEX), F);
+
+    return RtAiIons;
+  }
+  public SortedMap<Double, Features> peering(TreeBasedTable<Double, Double, Features>  RtAiIons, Features F,
+                                              double dRT, SortedMap<Double, Features> AiIons)
+  {
+    if (AiIons==null) AiIons = new TreeMap<>(Ordering.natural().reversed()); else AiIons.clear();
+    // gather the peers
+    SortedMap<Double, Map<Double, Features>> slice = RtAiIons.rowMap().subMap(F.getDouble(COL_RT)-dRT, F.getDouble(COL_RT)+dRT);
+    if (slice!=null)
+      for (Map<Double, Features> s : slice.values())
+        if (!s.containsValue(F)) AiIons.putAll(s);
+
+    return AiIons;
+  }
+
+  @Override
+  public void write(DataOutput ds) throws IOException
+  {
+//    IOs.writeIntStrDouble(   ds, mScan_RT);
+//    MsIO.writeIntStrFeatures(ds, mScan_MS2);
+//    IOs.writeLongMap(ds, mDistinctPeptides);
+//    IOs.writeDoubleDoubleBin(ds, mIons);
+//    IOs.writeDoubleDoubleBin(ds, mMsMs); // mz,rt, feature
+//    IOs.writeDoubleMultimap(ds, mPeptides);
+//
+//    private Table<ProteinID, String, Map<String, Float>> mProteinInfo;
+//    private Table<PeptideFeature, String, Float>      mPeptideExptAI;;
+//    private Multimap<String, String>                  mExptRun;
+//
+//    // assemble the protein and peptide matches
+//    private Map<String, ProteinID> mProteinIDs;
+//    private Table<PeptideMatch, String, Features> mPeptideRunFeatures;
+//    private Table<String, String, Features> mSampleProperties;
+  }
+
+  @Override
+  public void read(DataInput ds) throws IOException
+  {
+
   }
 }

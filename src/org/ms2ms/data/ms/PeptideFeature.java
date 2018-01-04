@@ -9,10 +9,14 @@ import org.expasy.mzjava.proteomics.ms.ident.ModificationMatch;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideProteinMatch;
 import org.ms2ms.algo.Isobarics;
+import org.ms2ms.data.Binary;
 import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -26,7 +30,7 @@ import java.util.Map;
  * Author: wyu
  * Date:   3/26/15
  */
-public class PeptideFeature extends PeptideMatch
+public class PeptideFeature extends PeptideMatch implements Binary
 {
   public static final String SCORE = "Score";
 
@@ -127,5 +131,22 @@ public class PeptideFeature extends PeptideMatch
 
     // set the basis
     return peptide.setAbundance(Isobarics.BASIS, base);
+  }
+
+  @Override
+  public void write(DataOutput ds) throws IOException
+  {
+//    private ProteinID mProteinID;
+//    private Collection<PeptideMatch> mMatches;
+//    private Map<String, Double> mExptAbundance = new HashMap<>();;
+//    private int mCharge;
+//    private String mTitle;
+//    private Double mRT, mMZ;
+  }
+
+  @Override
+  public void read(DataInput ds) throws IOException
+  {
+
   }
 }

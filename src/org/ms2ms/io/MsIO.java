@@ -19,6 +19,8 @@ import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideProteinMatch;
 import org.expasy.mzjava.proteomics.ms.ident.SpectrumIdentifier;
 import org.ms2ms.algo.Peaks;
+import org.ms2ms.data.Features;
+import org.ms2ms.data.collect.MultiTreeTable;
 import org.ms2ms.data.ms.MsSpectrum;
 import org.ms2ms.math.Stats;
 import org.ms2ms.r.Dataframe;
@@ -37,6 +39,19 @@ import java.util.*;
  */
 public class MsIO extends IOs
 {
+  public static void writeIntStrFeatures(DataOutput ds, MultiTreeTable<Integer, String, Features> data) throws IOException
+  {
+    write(ds, Tools.isSet(data) ? data.keySet().size() : 0);
+    if (Tools.isSet(data))
+      for (Integer row : data.keySet())
+        for (String col : data.row(row).keySet())
+        {
+          write(ds, row);
+          write(ds, col);
+          write(ds, data.get(row, col));
+        }
+  }
+
   public static MsSpectrum readSpectrumIdentifier(RandomAccessFile w, long offset)
   {
     try
