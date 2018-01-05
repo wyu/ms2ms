@@ -867,7 +867,9 @@ public class Peaks {
         peaks.add(xy.getMz(), xy.getIntensity(), pa.get(xy.getCharge()));
 
     // dispose the intermediate objects
-    Tools.dispose(pts, news); Tools.dispose(pa);
+    pts =(Collection )Tools.dispose(pts);
+    news=(Collection )Tools.dispose(news);
+    pa=(Multimap )Tools.dispose(pa);
 
     // keeping just the peaks with positive intensities
     return peaks.copy(new PurgingPeakProcessor());

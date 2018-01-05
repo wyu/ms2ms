@@ -172,7 +172,8 @@ public class ScoreModel implements Binary
     }
     combo.generate(25);
     Collections.sort(combo.getData(), Ordering.natural().reverse());
-    Tools.dispose(Nc, Cc);
+    Nc=(List )Tools.dispose(Nc);
+    Cc=(List )Tools.dispose(Cc);
 
     return combo;
 //    // prepare for the e-val calculation

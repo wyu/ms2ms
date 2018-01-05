@@ -1075,7 +1075,8 @@ public class Spectra
     // go down the intensity ladder
     TreeMultimap<Double, Integer> clusters = cluster(mh_rt_ms, ai_ms, tol, rt_sec);
 
-    Tools.dispose(ai_ms); Tools.dispose(mh_rt_ms);
+    ai_ms   =(TreeMap )Tools.dispose(ai_ms);
+    mh_rt_ms=(TreeBasedTable )Tools.dispose(mh_rt_ms);
     return clusters;
   }
   public static TreeMultimap<Double, Integer> cluster(TreeBasedTable<Double, Double, MsnSpectrum> mh_rt_ms,

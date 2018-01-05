@@ -91,7 +91,7 @@ public class Isotopics
       isotopes.add(new Peak(pk.getMz()+offset, ai*pk.getIntensity(), pk.getChargeList()));
 
     IsoEnvelope iso = new IsoEnvelope(isotopes, charge);
-    Tools.dispose(isotopes);
+    isotopes=(List )Tools.dispose(isotopes);
     return iso;
   }
 

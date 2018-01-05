@@ -308,7 +308,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
   @Override
   public void dispose()
   {
-    Tools.dispose(mFragment);
+    mFragment=(FragmentEntry )Tools.dispose(mFragment);
     mTrack=null;
   }
 

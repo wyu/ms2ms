@@ -207,14 +207,15 @@ public class PSMs
             for (String nmod : nmods)
               m.addModificationMatch(backbone.length()-1, Double.valueOf(nmod));
           }
-          Tools.dispose(nmods);
+          nmods=(List )Tools.dispose(nmods);
         }
         catch (Exception e)
         {
           e.printStackTrace();
         }
       }
-      Tools.dispose(items); Tools.dispose(backbone);
+      items=(List )Tools.dispose(items);
+      backbone=Tools.dispose(backbone);
 
 //      // deposit the new match for later calls
 //      mods_match.put(p, m);

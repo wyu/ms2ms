@@ -689,7 +689,8 @@ public class PsmReaders
     }
     System.out.println();
     // make sure we clear the temp objects
-    file.close(); file=null; Tools.dispose(run_scan_id);
+    file.close(); file=null;
+    run_scan_id=Tools.dispose(run_scan_id);
 
     return PSMs.trimByRank(LCMSMS.rank(id_match, "Score", true, false), lowest_rank);
   }
@@ -770,7 +771,8 @@ public class PsmReaders
     }
     System.out.println();
     // make sure we clear the temp objects
-    file.close(); file=null; Tools.dispose(run_scan_id);
+    file.close(); file=null;
+    run_scan_id=Tools.dispose(run_scan_id);
 
     //return id_match;
     return PSMs.trimByRank(LCMSMS.rank(id_match, "MSGFScore", true, false), lowest_rank);
@@ -828,7 +830,8 @@ public class PsmReaders
     }
     System.out.println(" (" + id_match.keySet().size()+"/"+id_match.size()+")");
     // make sure we clear the temp objects
-    file.close(); file=null; Tools.dispose(run_scan_id);
+    file.close(); file=null;
+    run_scan_id=Tools.dispose(run_scan_id);
 
     return id_match;
   }
@@ -921,7 +924,8 @@ public class PsmReaders
     }
     System.out.println();
     // make sure we clear the temp objects
-    file.close(); Tools.dispose(run_scan_id);
+    file.close();
+    run_scan_id=Tools.dispose(run_scan_id);
 
     return id_match;
 //    return PSMs.trimByRank(LCMSMS.rank(id_match, Engine.MYRIMATCH.getCanonicalScore(), true, false), lowest_rank);
@@ -1007,7 +1011,8 @@ public class PsmReaders
     }
     System.out.println();
     // make sure we clear the temp objects
-    file.close(); Tools.dispose(run_scan_id);
+    file.close();
+    run_scan_id=Tools.dispose(run_scan_id);
 
     LCMSMS.rank(id_match, Engine.XTANDEM.getCanonicalScore(), true, false);
 

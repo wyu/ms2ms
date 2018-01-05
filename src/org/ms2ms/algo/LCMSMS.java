@@ -234,7 +234,7 @@ public class LCMSMS
               break;
             }
       }
-      Tools.dispose(matches);
+      matches=(List )Tools.dispose(matches);
     }
     if (!descending)
       for (PeptideMatch m : id_match.values()) m.getScoreMap().remove(score+"_rev");
