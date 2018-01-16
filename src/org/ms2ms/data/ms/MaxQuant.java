@@ -43,6 +43,13 @@ public class MaxQuant extends LcMsMsDataset
   public static String[] sRmdScan     = {"Collision energy","Summations","Identified","MS/MS IDs","Sequence","Length","Mass analyzer","Parent intensity fraction","Fraction of total spectrum","Base peak fraction","Precursor full scan number","Precursor intensity","Precursor apex fraction","Precursor apex offset","Precursor apex offset time","Proteins","Score","Intens Comp Factor","CTCD Comp","RawOvFtT","AGC Fill","Modified sequence","PEP","Score","Delta score","Protein group IDs","Scan event number","Scan index"};
   public static String[] sProteinInfo = {"Peptides","Razor + unique peptides","Unique peptides","Identification type","Sequence coverage","Intensity","iBAQ","LFQ intensity","MS/MS count"};
 
+  // The type of the feature (In case of label-free data there is no difference between 'MULTI' and 'ISO').
+  //    'MSMS'         – for an MS/MS spectrum without an MS1 isotope pattern assigned.
+  //    'ISO-MSMS'     – MS1 isotope cluster identified by MS/MS.
+  //    'MULTI-MSMS'   – MS1 labeling cluster identified by MS/MS.
+  //    'MULTI-SECPEP' – MS1 labeling cluster identified by MS/MS as second peptide.
+  //    'MULTI-MATCH'  – MS1 labeling cluster identified by matching between runs.
+
   private Dataframe mMsMs;
 
   public MaxQuant() { super(); }

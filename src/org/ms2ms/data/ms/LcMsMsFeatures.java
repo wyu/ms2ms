@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.regex.Pattern;
 
-/** starting with LCMS features from Dinosauer, combine with the MS2 scans from Maxquant, look for the untilization, etc
+/** starting with LCMS features from Dinosauer, combine with the MS2 scans from Maxquant, look for the utilization, etc
  *
  * Created by Wen Yu on 4/7/17.
  */
