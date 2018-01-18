@@ -487,65 +487,65 @@ public class Spectra
 
     return out;
   }
-  public static boolean deisotope(PeakList peaks, Tolerance tol, int maxcharge, double zzstart)
-  {
-    PeakList out = peaks.copy(new PurgingPeakProcessor()); out.clear();
-
-    Set<Integer> searched = new HashSet<>(peaks.size()); double isos=0, isobad=0;
-    for (int i=0; i<peaks.size(); i++)
-    {
-      if (searched.contains(i)) continue;
-
-      int charge=1; IsoEnvelope best=null;
-      if (peaks.getMz(i)>zzstart)
-        for (int z=2; z<=maxcharge; z++)
-        {
-          // predicted isotope envelop above 10% ri.
-          IsoEnvelope ev = Isotopes.calcIsotopesByMz(peaks.getMz(i), z, 10d, peaks.getIntensity(i));
-          // for the charge state to be real, we must detect the same numbers of the isotopes as the charge state
-          boolean ok=true;
-          for (int k=1; k<z; k++)
-          {
-            if (find(peaks, ev.getPredicted(k).getMz(), tol, i, ev.getPredicted(k).getIntensity(), 50d)<=0) { ok=false; break; }
-          }
-          // the charge envelop if good. Let's copy the peaks
-          if (ok)
-          {
-            charge=z; best=ev; break;
-          }
-        }
-
-      // transfer the peak(s)
-      if (best==null) best = new IsoEnvelope(peaks.getMz(i), 1, 10d, peaks.getIntensity(i));
-      int order=0;
-      for (Peak iso : best.getPredicted())
-      {
-        int found=find(peaks, iso.getMz(), tol, i, iso.getIntensity(), 25d);
-        if (found>=i) best.addIsotope(new Peak(peaks.getMz(found), peaks.getIntensity(found), charge));
-        if (found>=i && !searched.contains(found))
-        {
-          out.add(peaks.getMz(found)*charge - (charge-1)*1.007825d, peaks.getIntensity(found),
-                  new IsotopePeakAnnotation(iso.getCharge(), order++, peaks.getIntensity(found)));
-          searched.add(found);
-        }
-        else break;
-      }
-      // check the accuracy of the isotope distribution
-      if (order>1 && best.getPredicted(0).getMz()>peaks.getPrecursor().getMz())
-      {
-        isos++;
-        double dp = Similarity.dp(best.getPredicted().subList(0,order), best.getIsotopes().subList(0,order));
-//        System.out.print(Tools.d2s(dp, 3)+",");
-        Isotopes.dp_prediction.add(Math.log10(dp)*10);
-        if (dp<0.95) isobad++;
-      }
-    }
-
-//    System.out.println();
-    peaks.clear(); peaks.addPeaks(Peaks.consolidate(out, tol, 0));
-    // indicating rejection due to skewed isotope envelop
-    return (isobad/isos>=0.5);
-  }
+//  public static boolean deisotope(PeakList peaks, Tolerance tol, int maxcharge, double zzstart)
+//  {
+//    PeakList out = peaks.copy(new PurgingPeakProcessor()); out.clear();
+//
+//    Set<Integer> searched = new HashSet<>(peaks.size()); double isos=0, isobad=0;
+//    for (int i=0; i<peaks.size(); i++)
+//    {
+//      if (searched.contains(i)) continue;
+//
+//      int charge=1; IsoEnvelope best=null;
+//      if (peaks.getMz(i)>zzstart)
+//        for (int z=2; z<=maxcharge; z++)
+//        {
+//          // predicted isotope envelop above 10% ri.
+//          IsoEnvelope ev = Isotopes.calcIsotopesByMz(peaks.getMz(i), z, 10d, peaks.getIntensity(i));
+//          // for the charge state to be real, we must detect the same numbers of the isotopes as the charge state
+//          boolean ok=true;
+//          for (int k=1; k<z; k++)
+//          {
+//            if (find(peaks, ev.getPredicted(k).getMz(), tol, i, ev.getPredicted(k).getIntensity(), 50d)<=0) { ok=false; break; }
+//          }
+//          // the charge envelop if good. Let's copy the peaks
+//          if (ok)
+//          {
+//            charge=z; best=ev; break;
+//          }
+//        }
+//
+//      // transfer the peak(s)
+//      if (best==null) best = new IsoEnvelope(peaks.getMz(i), 1, 10d, peaks.getIntensity(i));
+//      int order=0;
+//      for (Peak iso : best.getPredicted())
+//      {
+//        int found=find(peaks, iso.getMz(), tol, i, iso.getIntensity(), 25d);
+//        if (found>=i) best.addIsotope(new Peak(peaks.getMz(found), peaks.getIntensity(found), charge));
+//        if (found>=i && !searched.contains(found))
+//        {
+//          out.add(peaks.getMz(found)*charge - (charge-1)*1.007825d, peaks.getIntensity(found),
+//                  new IsotopePeakAnnotation(iso.getCharge(), order++, peaks.getIntensity(found)));
+//          searched.add(found);
+//        }
+//        else break;
+//      }
+//      // check the accuracy of the isotope distribution
+//      if (order>1 && best.getPredicted(0).getMz()>peaks.getPrecursor().getMz())
+//      {
+//        isos++;
+//        double dp = Similarity.dp(best.getPredicted().subList(0,order), best.getIsotopes().subList(0,order));
+////        System.out.print(Tools.d2s(dp, 3)+",");
+//        Isotopes.dp_prediction.add(Math.log10(dp)*10);
+//        if (dp<0.95) isobad++;
+//      }
+//    }
+//
+////    System.out.println();
+//    peaks.clear(); peaks.addPeaks(Peaks.consolidate(out, tol, 0));
+//    // indicating rejection due to skewed isotope envelop
+//    return (isobad/isos>=0.5);
+//  }
 
   public static PeakList toSNR(PeakList peaks)
   {
@@ -890,30 +890,30 @@ public class Spectra
 
     return stats;
   }
-  public static MsnSpectrum prepare(MsnSpectrum ms, Tolerance precision, boolean self_calibration, double peak_transform, boolean verbose)
-  {
-//    PeakList deisotoped = Spectra.deisotope(ms, precision, 3, 350d);
-    boolean skewed_iso = Spectra.deisotope(ms, precision, 3, 350d);
-
-//    PeakList deisotoped = Spectra.toRegionalRanks(ms.copy(new PurgingPeakProcessor()), 7);
-//    PeakList deisotoped = Spectra.toRegionalPercentile(ms.copy(new PurgingPeakProcessor()), 7);
-    PeakList deisotoped = Spectra.toRegionalNorm(ms.copy(new PurgingPeakProcessor()), 7, peak_transform); // with sqrt transform
-    // perform self-calibration using small fragments that are likely to show up in most of the TMT-labelled spectra
-    if (self_calibration)
-      deisotoped = Spectra.calibrate(deisotoped, self_calibrate_offset(deisotoped, new OffsetPpmTolerance(15d), 175.11949,230.170757d,376.27627));
-
-    if (verbose)
-    {
-      System.out.println("#peaks: " + deisotoped.size());
-      for (int i=0; i<deisotoped.size(); i++)
-        System.out.println(i+"\t"+ Strs.toStrings(deisotoped.getAnnotations(i))+"\t\t"+
-            Tools.d2s(deisotoped.getMz(i),8)+"\t"+Tools.d2s(deisotoped.getIntensity(i), 2));
-    }
-
-    ms.clear(); ms.addPeaks(deisotoped); if (skewed_iso) ms.setMsLevel(-1);
-
-    return ms;
-  }
+//  public static MsnSpectrum prepare(MsnSpectrum ms, Tolerance precision, boolean self_calibration, double peak_transform, boolean verbose)
+//  {
+////    PeakList deisotoped = Spectra.deisotope(ms, precision, 3, 350d);
+//    boolean skewed_iso = Spectra.deisotope(ms, precision, 3, 350d);
+//
+////    PeakList deisotoped = Spectra.toRegionalRanks(ms.copy(new PurgingPeakProcessor()), 7);
+////    PeakList deisotoped = Spectra.toRegionalPercentile(ms.copy(new PurgingPeakProcessor()), 7);
+//    PeakList deisotoped = Spectra.toRegionalNorm(ms.copy(new PurgingPeakProcessor()), 7, peak_transform); // with sqrt transform
+//    // perform self-calibration using small fragments that are likely to show up in most of the TMT-labelled spectra
+//    if (self_calibration)
+//      deisotoped = Spectra.calibrate(deisotoped, self_calibrate_offset(deisotoped, new OffsetPpmTolerance(15d), 175.11949,230.170757d,376.27627));
+//
+//    if (verbose)
+//    {
+//      System.out.println("#peaks: " + deisotoped.size());
+//      for (int i=0; i<deisotoped.size(); i++)
+//        System.out.println(i+"\t"+ Strs.toStrings(deisotoped.getAnnotations(i))+"\t\t"+
+//            Tools.d2s(deisotoped.getMz(i),8)+"\t"+Tools.d2s(deisotoped.getIntensity(i), 2));
+//    }
+//
+//    ms.clear(); ms.addPeaks(deisotoped); if (skewed_iso) ms.setMsLevel(-1);
+//
+//    return ms;
+//  }
   public static MsnSpectrum purgeC13(MsnSpectrum ms)
   {
     if (ms!=null && ms.size()>0)

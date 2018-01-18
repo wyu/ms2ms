@@ -1,7 +1,6 @@
 package org.ms2ms.algo;
 
 import com.google.common.collect.*;
-import org.expasy.mzjava.core.mol.Mass;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.DoublePeakList;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
@@ -16,7 +15,6 @@ import org.ms2ms.data.collect.NavigableMultimap;
 import org.ms2ms.data.collect.TreeListMultimap;
 import org.ms2ms.data.ms.FragmentEntry;
 import org.ms2ms.data.ms.IsoEnvelope;
-import org.ms2ms.data.ms.OffsetPpmTolerance;
 import org.ms2ms.data.ms.PeakMatch;
 import org.ms2ms.math.Points;
 import org.ms2ms.math.Stats;
@@ -917,30 +915,30 @@ public class Peaks {
     return false;
   }
 
-  // any c13 isotope in the annotations?
-  public static boolean hasCharge(Collection<PeakAnnotation> pa) {
-    if (Tools.isSet(pa))
-      for (PeakAnnotation p : pa)
-        if (p.getCharge() > 0) return true;
-
-    return false;
-  }
-
-  public static boolean isc12(Collection<IsotopePeakAnnotation> annotations) {
-    if (Tools.isSet(annotations))
-      for (IsotopePeakAnnotation iso : annotations) if (iso.getIsotopeOrder() == 0) return true;
-
-    return false;
-  }
-
-  public static <T extends Peak> double[] asMz(List<T> peaks) {
-    if (!Tools.isSet(peaks)) return null;
-    double[] mz = new double[peaks.size()];
-
-    for (int i = 0; i < peaks.size(); i++) mz[i] = peaks.get(i).getMz();
-
-    return mz;
-  }
+//  // any c13 isotope in the annotations?
+//  public static boolean hasCharge(Collection<PeakAnnotation> pa) {
+//    if (Tools.isSet(pa))
+//      for (PeakAnnotation p : pa)
+//        if (p.getCharge() > 0) return true;
+//
+//    return false;
+//  }
+//
+//  public static boolean isc12(Collection<IsotopePeakAnnotation> annotations) {
+//    if (Tools.isSet(annotations))
+//      for (IsotopePeakAnnotation iso : annotations) if (iso.getIsotopeOrder() == 0) return true;
+//
+//    return false;
+//  }
+//
+//  public static <T extends Peak> double[] asMz(List<T> peaks) {
+//    if (!Tools.isSet(peaks)) return null;
+//    double[] mz = new double[peaks.size()];
+//
+//    for (int i = 0; i < peaks.size(); i++) mz[i] = peaks.get(i).getMz();
+//
+//    return mz;
+//  }
 
   public static <T extends Peak> List<T> log10(List<T> peaks) {
     if (!Tools.isSet(peaks)) return peaks;
@@ -1041,63 +1039,63 @@ public class Peaks {
     }
     return null;
   }
-  public static ConcurrentSkipListMap<Double, Peak> toPrecursorsSkipListMap(String comment)
-  {
-    String[] strs = Strs.split(comment, ';');
-    if (Tools.isSet(strs)) {
-      ConcurrentSkipListMap<Double, Peak> precursors = new ConcurrentSkipListMap<>();
-      for (int i = 0; i < strs.length; i++) {
-        String[] items = Strs.split(strs[i], '/');
-        if (items != null && items.length > 2) {
-          Peak pk = new Peak(Stats.toDouble(items[0]), Stats.toDouble(items[1]), Stats.toInt(items[2]));
-          precursors.put(pk.getMz(), pk);
-        }
-      }
-      return precursors;
-    }
-    return null;
-  }
+//  public static ConcurrentSkipListMap<Double, Peak> toPrecursorsSkipListMap(String comment)
+//  {
+//    String[] strs = Strs.split(comment, ';');
+//    if (Tools.isSet(strs)) {
+//      ConcurrentSkipListMap<Double, Peak> precursors = new ConcurrentSkipListMap<>();
+//      for (int i = 0; i < strs.length; i++) {
+//        String[] items = Strs.split(strs[i], '/');
+//        if (items != null && items.length > 2) {
+//          Peak pk = new Peak(Stats.toDouble(items[0]), Stats.toDouble(items[1]), Stats.toInt(items[2]));
+//          precursors.put(pk.getMz(), pk);
+//        }
+//      }
+//      return precursors;
+//    }
+//    return null;
+//  }
 
-  // is the putative MH supported by the precursors detected in the isolation window?
-  public static AnnotatedPeak verifyCalcMH(int max_z, AnnotatedPeak calc, Tolerance tol, SortedMap<Double, Peak>... isolated_precursors)
-  {
-    // n opinion without additional information
-    if (!Tools.isSet(isolated_precursors)) return calc;
-
-    // now look for the best charge state as supported by the observed precursors
-    int best = 0, isotopes = 0;
-    calc.setIntensity(0d);
-    calc.setVerifiedCharge(0);
-    calc.setOriginalMz(0d);
-    for (double z = max_z; z >= 1d; z--) {
-      double mz = Peaks.MH2Mz(calc.getMz(), (int) z), ai = 0d, c12 = 0d;
-      isotopes = 0;
-      for (int c13 = 0; c13 <= z; c13++) {
-        Map<Double, Peak> c = null;
-        for (SortedMap<Double, Peak> precursors : isolated_precursors)
-        {
-          c = precursors.subMap(tol.getMin(mz + c13 * 1.003355d / z), tol.getMax(mz + c13 * 1.003355d / z));
-          if (Tools.isSet(c)) break;
-        }
-        if (!Tools.isSet(c)) {
-          isotopes = c13 - 1;
-          break;
-        }
-        // accumulate the intensities
-        ai += AbsIntensitySum(c.values());
-        isotopes = c13;
-        if (c12 == 0) c12 = Peaks.centroid(c.values());
-      }
-      if (isotopes > best || (isotopes == best && isotopes > 0 && ai > calc.getIntensity())) {
-        best = isotopes;
-        calc.setIntensity(ai);
-        calc.setOriginalMz(c12).setProperty("isotopes", best).setVerifiedCharge((int) z);
-      }
-    }
-
-    // no need to look for the true c12 since we starts with the calculated MH
-    return calc;
-  }
+//  // is the putative MH supported by the precursors detected in the isolation window?
+//  public static AnnotatedPeak verifyCalcMH(int max_z, AnnotatedPeak calc, Tolerance tol, SortedMap<Double, Peak>... isolated_precursors)
+//  {
+//    // n opinion without additional information
+//    if (!Tools.isSet(isolated_precursors)) return calc;
+//
+//    // now look for the best charge state as supported by the observed precursors
+//    int best = 0, isotopes = 0;
+//    calc.setIntensity(0d);
+//    calc.setVerifiedCharge(0);
+//    calc.setOriginalMz(0d);
+//    for (double z = max_z; z >= 1d; z--) {
+//      double mz = Peaks.MH2Mz(calc.getMz(), (int) z), ai = 0d, c12 = 0d;
+//      isotopes = 0;
+//      for (int c13 = 0; c13 <= z; c13++) {
+//        Map<Double, Peak> c = null;
+//        for (SortedMap<Double, Peak> precursors : isolated_precursors)
+//        {
+//          c = precursors.subMap(tol.getMin(mz + c13 * 1.003355d / z), tol.getMax(mz + c13 * 1.003355d / z));
+//          if (Tools.isSet(c)) break;
+//        }
+//        if (!Tools.isSet(c)) {
+//          isotopes = c13 - 1;
+//          break;
+//        }
+//        // accumulate the intensities
+//        ai += AbsIntensitySum(c.values());
+//        isotopes = c13;
+//        if (c12 == 0) c12 = Peaks.centroid(c.values());
+//      }
+//      if (isotopes > best || (isotopes == best && isotopes > 0 && ai > calc.getIntensity())) {
+//        best = isotopes;
+//        calc.setIntensity(ai);
+//        calc.setOriginalMz(c12).setProperty("isotopes", best).setVerifiedCharge((int) z);
+//      }
+//    }
+//
+//    // no need to look for the true c12 since we starts with the calculated MH
+//    return calc;
+//  }
   public static AnnotatedPeak verifyCalcMH(int min_z, int max_z, AnnotatedPeak calc, Tolerance tol, ImmutableNavigableMap<Peak>... isolated_precursors)
   {
     // n opinion without additional information
@@ -1205,45 +1203,45 @@ public class Peaks {
 
     return ai>0?(new Peak(mz, ai, 0)):null;
   }
-  // doo we have good evidence for such charge state in our precursors
-  synchronized public static boolean hasIsotopeEnvelop(
-      Table<Integer, Integer, IsoEnvelope> sIsoEnveloped, int charge, double minDP, Tolerance tol,
-      ImmutableNavigableMap<Peak>... isolated_precursors)
-  {
-    // n opinion without additional information
-    if (!Tools.isSet(isolated_precursors)) return false;
-
-    // now look for the best charge state as supported by the observed precursors
-    for (ImmutableNavigableMap<Peak> precursors : isolated_precursors)
-      if (precursors!=null && precursors.size()>0)
-        for (Peak p : precursors.getVals())
-        {
-          double dp = scoreIsotope(sIsoEnveloped, p.getMz(), charge, tol, isolated_precursors);
-          if (dp>minDP) return true;
-        }
-
-    return false;
-  }
-  // giving the m/z and charge, check the evidence
-  public static double scoreIsotope(Table<Integer, Integer, IsoEnvelope> sIsoEnveloped, double mz, int charge, Tolerance tol, ImmutableNavigableMap<Peak>... isolated_precursors)
-  {
-    IsoEnvelope ev = Isotopes.estIsotopesByMz(mz, charge, 10d, 100d, sIsoEnveloped); int order=0;
-    for (Peak iso : ev.getPredicted())
-    {
-      double ai=0d; // gather the ions from all precursors
-      for (ImmutableNavigableMap<Peak> precursors : isolated_precursors)
-        if (precursors!=null)
-        {
-          ai+=Peaks.query4ai(precursors, tol.getMin(iso.getMz()), tol.getMax(iso.getMz()));
-//          int[] found = precursors.query(tol.getMin(iso.getMz()), tol.getMax(iso.getMz()));
-//          if (Tools.isSet(found))
-//            for (Peak p : precursors.fetchVals(found)) ai+=p.getIntensity();
-        }
-
-      if (ai>0) { ev.addIsotope(new Peak(iso.getMz(), ai)); order++; } else break;
-    }
-    return order>=charge?Similarity.dp(ev.getPredicted().subList(0,order), ev.getIsotopes().subList(0,order)):0d;
-  }
+//  // doo we have good evidence for such charge state in our precursors
+//  synchronized public static boolean hasIsotopeEnvelop(
+//      Table<Integer, Integer, IsoEnvelope> sIsoEnveloped, int charge, double minDP, Tolerance tol,
+//      ImmutableNavigableMap<Peak>... isolated_precursors)
+//  {
+//    // n opinion without additional information
+//    if (!Tools.isSet(isolated_precursors)) return false;
+//
+//    // now look for the best charge state as supported by the observed precursors
+//    for (ImmutableNavigableMap<Peak> precursors : isolated_precursors)
+//      if (precursors!=null && precursors.size()>0)
+//        for (Peak p : precursors.getVals())
+//        {
+//          double dp = scoreIsotope(sIsoEnveloped, p.getMz(), charge, tol, isolated_precursors);
+//          if (dp>minDP) return true;
+//        }
+//
+//    return false;
+//  }
+//  // giving the m/z and charge, check the evidence
+//  public static double scoreIsotope(Table<Integer, Integer, IsoEnvelope> sIsoEnveloped, double mz, int charge, Tolerance tol, ImmutableNavigableMap<Peak>... isolated_precursors)
+//  {
+//    IsoEnvelope ev = Isotopes.estIsotopesByMz(mz, charge, 10d, 100d, sIsoEnveloped); int order=0;
+//    for (Peak iso : ev.getPredicted())
+//    {
+//      double ai=0d; // gather the ions from all precursors
+//      for (ImmutableNavigableMap<Peak> precursors : isolated_precursors)
+//        if (precursors!=null)
+//        {
+//          ai+=Peaks.query4ai(precursors, tol.getMin(iso.getMz()), tol.getMax(iso.getMz()));
+////          int[] found = precursors.query(tol.getMin(iso.getMz()), tol.getMax(iso.getMz()));
+////          if (Tools.isSet(found))
+////            for (Peak p : precursors.fetchVals(found)) ai+=p.getIntensity();
+//        }
+//
+//      if (ai>0) { ev.addIsotope(new Peak(iso.getMz(), ai)); order++; } else break;
+//    }
+//    return order>=charge?Similarity.dp(ev.getPredicted().subList(0,order), ev.getIsotopes().subList(0,order)):0d;
+//  }
   @Deprecated
   public static AnnotatedPeak verifyCalcMH(int max_z, AnnotatedPeak calc, Tolerance tol, ConcurrentSkipListMap<Double, Peak>... isolated_precursors)
   {

@@ -28,74 +28,76 @@ public class IsoEnvelope
   private List<Peak> mIsotopes = new ArrayList<Peak>(), mPredicted = new ArrayList<Peak>();
 
   public IsoEnvelope()        { super(); }
-  public IsoEnvelope(Peak s)
-  {
-    init(mz, s.getIntensity(), s.getCharge());
-  }
+//  public IsoEnvelope(Peak s)
+//  {
+//    init(mz, s.getIntensity(), s.getCharge());
+//  }
   public IsoEnvelope(List<Peak> s, int z)
   {
     init(s.get(0).getMz(),1,z);
+    // use the list directly since we are disposing it anywhere. WYU 20180118
+//    mPredicted=s;
     mPredicted.addAll(s);
   }
   public IsoEnvelope(double c12, double ai, int z) { init(c12, ai, z); }
-  public IsoEnvelope(double c12, int z, double minri, double ai)
-  {
-    init(c12, ai, z);
-
-    double               limit = 0;
-    List<Peak>           tmp = new ArrayList<>();
-    Map<Integer, Long> formula = Isotopes.newFormulaMapByAveragine(c12 * charge);
-
-    mPredicted = new ArrayList<>();
-
-    // initialize the result
-    mPredicted.add(new Peak(0.0, 1.0));
-
-    Isotopes.calculate(tmp, mPredicted, formula, limit, charge);
-
-    // move the predictions to the c12
-    double offset = c12 - mPredicted.get(0).getMz(), min_ai = mPredicted.get(0).getIntensity()*minri*0.01;
-    // scale the ai to the 1st c12
-    ai /= mPredicted.get(0).getIntensity();
-
-    Iterator<Peak> itr = mPredicted.iterator();
-    while (itr.hasNext())
-    {
-      Peak pk = itr.next();
-      pk.setMzAndCharge(pk.getMz()+offset, pk.getChargeList());
-      pk.setIntensity(pk.getIntensity()*ai);
-      if (pk.getIntensity() < min_ai) itr.remove();
-    }
-  }
-  public IsoEnvelope(double c12, int z, double minri, double ai, Isotopics iso)
-  {
-    init(c12, ai, z);
-
-    double               limit = 0;
-    List<Peak>             tmp = new ArrayList<>();
-    Map<Integer, Long> formula = iso.newFormulaMapByAveragine(c12 * charge);
-
-    mPredicted = new ArrayList<>();
-
-    // initialize the result
-    mPredicted.add(new Peak(0.0, 1.0));
-
-    iso.calculate(tmp, mPredicted, formula, limit, charge);
-
-    // move the predictions to the c12
-    double offset = c12 - mPredicted.get(0).getMz(), min_ai = mPredicted.get(0).getIntensity()*minri*0.01;
-    // scale the ai to the 1st c12
-    ai /= mPredicted.get(0).getIntensity();
-
-    Iterator<Peak> itr = mPredicted.iterator();
-    while (itr.hasNext())
-    {
-      Peak pk = itr.next();
-      pk.setMzAndCharge(pk.getMz()+offset, pk.getChargeList());
-      pk.setIntensity(pk.getIntensity()*ai);
-      if (pk.getIntensity() < min_ai) itr.remove();
-    }
-  }
+//  public IsoEnvelope(double c12, int z, double minri, double ai)
+//  {
+//    init(c12, ai, z);
+//
+//    double               limit = 0;
+//    List<Peak>           tmp = new ArrayList<>();
+//    Map<Integer, Long> formula = Isotopes.newFormulaMapByAveragine(c12 * charge);
+//
+//    mPredicted = new ArrayList<>();
+//
+//    // initialize the result
+//    mPredicted.add(new Peak(0.0, 1.0));
+//
+//    Isotopes.calculate(tmp, mPredicted, formula, limit, charge);
+//
+//    // move the predictions to the c12
+//    double offset = c12 - mPredicted.get(0).getMz(), min_ai = mPredicted.get(0).getIntensity()*minri*0.01;
+//    // scale the ai to the 1st c12
+//    ai /= mPredicted.get(0).getIntensity();
+//
+//    Iterator<Peak> itr = mPredicted.iterator();
+//    while (itr.hasNext())
+//    {
+//      Peak pk = itr.next();
+//      pk.setMzAndCharge(pk.getMz()+offset, pk.getChargeList());
+//      pk.setIntensity(pk.getIntensity()*ai);
+//      if (pk.getIntensity() < min_ai) itr.remove();
+//    }
+//  }
+//  public IsoEnvelope(double c12, int z, double minri, double ai, Isotopics iso)
+//  {
+//    init(c12, ai, z);
+//
+//    double               limit = 0;
+//    List<Peak>             tmp = new ArrayList<>();
+//    Map<Integer, Long> formula = iso.newFormulaMapByAveragine(c12 * charge);
+//
+//    mPredicted = new ArrayList<>();
+//
+//    // initialize the result
+//    mPredicted.add(new Peak(0.0, 1.0));
+//
+//    iso.calculate(tmp, mPredicted, formula, limit, charge);
+//
+//    // move the predictions to the c12
+//    double offset = c12 - mPredicted.get(0).getMz(), min_ai = mPredicted.get(0).getIntensity()*minri*0.01;
+//    // scale the ai to the 1st c12
+//    ai /= mPredicted.get(0).getIntensity();
+//
+//    Iterator<Peak> itr = mPredicted.iterator();
+//    while (itr.hasNext())
+//    {
+//      Peak pk = itr.next();
+//      pk.setMzAndCharge(pk.getMz()+offset, pk.getChargeList());
+//      pk.setIntensity(pk.getIntensity()*ai);
+//      if (pk.getIntensity() < min_ai) itr.remove();
+//    }
+//  }
   public IsoEnvelope init(double m, double ai, int z)
   {
     mz=m; intensity=ai; charge=z;
