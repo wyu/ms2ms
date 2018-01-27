@@ -8,6 +8,7 @@ import org.expasy.mzjava.proteomics.ms.ident.SpectrumIdentifier;
 import org.junit.Test;
 import org.ms2ms.algo.PSMs;
 import org.ms2ms.data.ms.Engine;
+import org.ms2ms.io.MsIO;
 import org.ms2ms.io.MsfReader;
 import org.ms2ms.io.PsmReaders;
 import org.ms2ms.io.PsmWriters;
@@ -60,5 +61,8 @@ public class IOsTest extends TestAbstract
   public void recursiveListing()
   {
     IOs.listFiles("/tmp", new WildcardFileFilter("*.tmp"));
+
+    List<String> files = MsIO.listFiles("/Users/kfvf960/Apps/pipeline/Chorus/data/*Scan*.txt");
+    System.out.println(files.size());
   }
 }

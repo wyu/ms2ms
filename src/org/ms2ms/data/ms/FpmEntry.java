@@ -22,7 +22,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
   private boolean mHas1st=false, mExpectedY1=false;
   private int                 mMotifs=0, m1stPass=0, mWeaks=0, mC13=0;
   private double              mGapScore=0, mIntensities=0d, mGapScore0=0;
-  private Double              mMatchScore =null;
+//  private Double              mMatchScore =null;
   private FragmentEntry       mFragment   =null;
   private ImmutableList<PeakMatch> mTrack =null;
 
@@ -52,7 +52,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
   public double              getGapScore()  { return mGapScore; }
   public double              getIntensity() { return mIntensities; }
   public int                 getMotifs()    { return mMotifs; }
-  public Double             getZScore() { return mMatchScore; }
+//  public Double             getZScore() { return mMatchScore; }
   public FragmentEntry       getFragment()  { return mFragment; }
   public ImmutableList<PeakMatch> getTrack()     { return mTrack; }
   public PeakMatch       at(int s)      { return mTrack.get(s); }
@@ -318,7 +318,8 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
     IOs.write(ds, mHas1st); IOs.write(ds, mExpectedY1);
     IOs.write(ds, mMotifs); IOs.write(ds, m1stPass); IOs.write(ds, mWeaks); IOs.write(ds, mC13);
     IOs.write(ds, mGapScore); IOs.write(ds, mIntensities); IOs.write(ds, mGapScore0);
-    IOs.write(ds, mMatchScore);
+//    IOs.write(ds, mMatchScore);
+    IOs.write(ds, 0D);
     IOs.write(ds, mFragment);
     IOs.write(ds, mTrack);
   }
@@ -335,7 +336,8 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
     mGapScore   =IOs.read(ds, mGapScore);
     mIntensities=IOs.read(ds, mIntensities);
     mGapScore0  =IOs.read(ds, mGapScore0);
-    mMatchScore =IOs.read(ds, mMatchScore);
+//    mMatchScore =IOs.read(ds, mMatchScore);
+    IOs.read(ds, 0D); // only a placeholder for compatibility
     mFragment   =IOs.read(ds, mFragment);
 
     mTrack=IOs.readImmutableList(ds, PeakMatch.class);

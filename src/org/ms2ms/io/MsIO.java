@@ -3,6 +3,7 @@ package org.ms2ms.io;
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.expasy.mzjava.core.io.ms.spectrum.MgfReader;
 import org.expasy.mzjava.core.io.ms.spectrum.MgfWriter;
 import org.expasy.mzjava.core.mol.NumericMass;
@@ -744,5 +745,11 @@ public class MsIO extends IOs
       e.printStackTrace();
     }
     return scan_matches;
+  }
+  // expand the file with wildcard to individual file names with full path
+  public static List<String> listFiles(String root)
+  {
+    File template = new File(root);
+    return listFiles(template.getParent(), new WildcardFileFilter(template.getName()));
   }
 }

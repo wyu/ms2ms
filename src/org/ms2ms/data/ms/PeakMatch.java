@@ -67,10 +67,10 @@ public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Di
     this.setValues(mz, intensity, z);
   }
 
-  public static PeakMatch noIntensity(double mz, int z)
-  {
-    return new PeakMatch(mz, 0.0D, z);
-  }
+//  public static PeakMatch noIntensity(double mz, int z)
+//  {
+//    return new PeakMatch(mz, 0.0D, z);
+//  }
 
   public PeakMatch(double mz, double ai, int z, double snr)
   {
