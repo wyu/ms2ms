@@ -127,7 +127,7 @@ abstract public class App
   abstract public    String  getOutFile();
 
   public String getWorkingRoot() { return (Strs.isSet(mWorkingRoot) ? mWorkingRoot:System.getProperty("user.dir"))+"/"; }
-  public String getLogFile()     { return getOutFile()+".log"; }
+  public String getLogFile()     { return getOutFile().replaceAll("\\*","_")+".log"; }
 
   protected void close() throws IOException
   {

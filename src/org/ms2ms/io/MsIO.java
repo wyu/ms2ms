@@ -19,7 +19,6 @@ import org.expasy.mzjava.proteomics.ms.ident.ModificationMatch;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideProteinMatch;
 import org.expasy.mzjava.proteomics.ms.ident.SpectrumIdentifier;
-import org.ms2ms.algo.Peaks;
 import org.ms2ms.data.Features;
 import org.ms2ms.data.collect.MultiTreeTable;
 import org.ms2ms.data.ms.MsSpectrum;
@@ -750,6 +749,6 @@ public class MsIO extends IOs
   public static List<String> listFiles(String root)
   {
     File template = new File(root);
-    return listFiles(template.getParent(), new WildcardFileFilter(template.getName()));
+    return listFiles(template.getParent(), new WildcardFileFilter(template.getName()), 1);
   }
 }
