@@ -25,7 +25,7 @@ import java.util.*;
 /** A simplified, riskier version Peak
  * Created by yuw on 3/26/17.
  */
-public class PeakMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>, Disposable, Binary
+public class PeakMatch extends PeakFragmentMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>
 {
   private double mz=0.0d, intensity=0.0d, mass=0.0d, mSNR=0d, mFreq=0d, mOrigMz=0d, mCalcMz=0d, mScore=0d;
   private Float mz_low=0f, mz_high=0f;
