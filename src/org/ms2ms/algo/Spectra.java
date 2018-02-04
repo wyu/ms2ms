@@ -33,6 +33,8 @@ import java.util.*;
  */
 public class Spectra
 {
+  public enum PrepProcessor { LOCAL_NORM, LOCAL_SNR, NONE }
+
   public static boolean before(RetentionTimeList rt, double limit)
   {
     if (rt==null) return false;
@@ -302,6 +304,7 @@ public class Spectra
   }
 
   // Adjust the base peak to avoid so-called "towering peak" issue.
+  // rel_cut is the hightest rel% we'd tolerate
   public static boolean capBasePeak(PeakList data, double rel_cut, int n_peaks)
   {
     if (data==null) return false;
@@ -430,13 +433,11 @@ public class Spectra
 
     MsnSpectrum out = lead.copy(new PurgingPeakProcessor());
 
-//    lead.getPrecursor().setIntensity(lead.getTotalIonCurrent());
     PpmTolerance tol2 = tol.scale(2); Collection<Peak> pcs = new ArrayList<>(); pcs.add(lead.getPrecursor());
     for (MsnSpectrum A : As)
     {
       if (A==lead) continue;
 
-//      A.getPrecursor().setIntensity(A.getTotalIonCurrent());
       pcs.add(A.getPrecursor());
 
       double delta = deviation(tol2, pivots, A), mz=0, err=0;
@@ -465,25 +466,15 @@ public class Spectra
     }
     // deposit the merged peaks
     out.clear(); int n=As.size()>1?Math.max(2, Math.round(As.size()*fr)):1;
-//    System.out.println("||m/z||ai||count||");
     for (Double mz : pivots.keySet())
     {
       PeakMatch pm = pivots.get(mz);
       if (pm.getCounts()>=n)
       {
-//        System.out.println("|"+Tools.d2s(pm.getSNR()/pm.getIntensity(), 4)+"|"+Tools.d2s(pm.getIntensity(),0)+"|"+pm.getCounts()+"|");
         out.add(pm.getSNR()/pm.getIntensity(), pm.getIntensity(), new LibPeakAnnotation((int) pm.getCounts(), 0d, 0d));
       }
     }
     out.setPrecursor(new Peak(Peaks.centroid(pcs), Peaks.AbsIntensitySum(pcs), lead.getPrecursor().getCharge()));
-//    try
-//    {
-//      out.setPrecursor(new Peak(Peaks.centroid(pcs), Peaks.AbsIntensitySum(pcs), lead.getPrecursor().getCharge()));
-//    }
-//    catch (NullPointerException ne)
-//    {
-//      ne.printStackTrace();
-//    }
 
     return out;
   }
@@ -737,6 +728,16 @@ public class Spectra
 
     for (int i=0; i<ms.size(); i++)
       peaks.put(ms.getMz(i), new Peak(ms.getMz(i), ms.getIntensity(i)));
+
+    return peaks;
+  }
+  public static List<Peak> toListOfPeaks(PeakList ms)
+  {
+    // walking thro the peaks and recording the matching peaks
+    List<Peak> peaks = new ArrayList<>();
+
+    for (int i=0; i<ms.size(); i++)
+      peaks.add(new Peak(ms.getMz(i), ms.getIntensity(i)));
 
     return peaks;
   }
@@ -1086,14 +1087,6 @@ public class Spectra
     // go down the intensity ladder
     TreeMultimap<Double, Integer> clusters = TreeMultimap.create();
 
-//    if (rt_sec<=0)
-//    {
-//      for (MsnSpectrum ms : ai_ms.values())
-//        clusters.put(ms.getPrecursor().getMz()*ms.getScanNumbers().getFirst().getValue(), ms.getScanNumbers().getFirst().getValue());
-//
-//      return clusters;
-//    }
-//
     for (Double ai : ai_ms.keySet())
     {
       MsnSpectrum M = ai_ms.get(ai);

@@ -696,6 +696,63 @@ public class Peaks {
 
     return outcomes;
   }
+  public static int overlap_counts(List<? extends Peak> A, List<? extends Peak> B, double delta, boolean matchHighest)
+  {
+    // false if one of the spectra is empty
+    if (A == null || A.isEmpty() || B == null || B.isEmpty()) return 0;
+
+    int ia = 0, ib = 0, start_b, overlaps=0;
+    double best_Y = 0, best_error = 1E23, abs_err;
+
+    while (ia < A.size()) {
+      // ignore any invalidated point
+      if (!isValid(A.get(ia))) {
+        ++ia;
+        continue;
+      }
+      // reset the goalposts
+      best_Y = 0;
+      best_error = 1E23;
+      start_b = -1;
+      // recycle to avoid access violation
+      if (ib >= B.size()) ib = 0;
+      while (ib < B.size()) {
+        // skip the minor points that's labled
+        if (!isValid(B.get(ib))) {
+          ++ib;
+          continue;
+        }
+        if (B.get(ib).getMz() > A.get(ia).getMz() + delta + 0.1) break;
+        if (!equivalent(A.get(ia), B.get(ib), (float) delta)) {
+          ++ib;
+          continue;
+        }
+        if (start_b == -1) start_b = ib;
+        // find the highest peak in the matching window
+        if (matchHighest && (B.get(ib).getIntensity() > best_Y)) {
+          best_Y = B.get(ib).getIntensity();
+          overlaps++;
+        }
+        // WYU 10-13-2000, option for matching the closest
+        else {
+          abs_err = Math.abs(B.get(ib).getMz() - A.get(ia).getMz());
+          if (!matchHighest && (abs_err < best_error)) {
+            best_Y = B.get(ib).getIntensity();
+            best_error = abs_err;
+            overlaps++;
+          }
+        }
+        ++ib;
+      }
+
+      // increment the outer loop
+      ++ia;
+      // move the b iterator back a little
+      if (start_b > 0) { ib = start_b - 1; start_b = -1; } else ib = 0;
+    }
+
+    return overlaps;
+  }
 
   public static boolean equivalent(Peak A, Peak B, float tol) {
     return A != null && B != null && Math.abs(A.getMz() - B.getMz()) <= tol;

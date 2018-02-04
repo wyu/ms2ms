@@ -138,6 +138,11 @@ public class MsIO extends IOs
     }
     return ms;
   }
+  public static MsnSpectrum readSpectrumIdentifier(BufferedRandomAccessFile w, MsnSpectrum ms, long offset) throws IOException
+  {
+    w.seek(offset);
+    return readSpectrumIdentifier(w, ms);
+  }
   public static MsnSpectrum readSpectrumIdentifier(DataInput w, MsnSpectrum ms) throws IOException
   {
     if (ms!=null)
