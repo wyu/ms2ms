@@ -938,15 +938,16 @@ public class Peaks {
   {
     if (!Tools.isSet(points)) return null;
 
-    double sumXY = 0, sumY = 0;
+    double sumXY=0, sumY=0, sumX=0,N=0;
     for (Peak xy : points) {
       if ((x0 == null || xy.getMz() >= x0) &&
           (x1 == null || xy.getMz() <= x1)) {
         sumXY += xy.getMz() * xy.getIntensity();
         sumY += xy.getIntensity();
+        sumX += xy.getMz(); N++;
       }
     }
-    return sumY != 0 ? sumXY / sumY : null;
+    return sumY != 0 ? sumXY / sumY : (N!=0?sumX/N:null);
   }
   public static <T extends Peak> Double centroid(T[] points, Double x0, Double x1) {
     if (!Tools.isSet(points)) return null;

@@ -474,7 +474,15 @@ public class Spectra
         out.add(pm.getSNR()/pm.getIntensity(), pm.getIntensity(), new LibPeakAnnotation((int) pm.getCounts(), 0d, 0d));
       }
     }
-    out.setPrecursor(new Peak(Peaks.centroid(pcs), Peaks.AbsIntensitySum(pcs), lead.getPrecursor().getCharge()));
+//    if (out!=null && lead!=null && lead.getPrecursor()!=null && Tools.isSet(pcs))
+    try
+    {
+      out.setPrecursor(new Peak(Peaks.centroid(pcs), Peaks.AbsIntensitySum(pcs), lead.getPrecursor().getCharge()));
+    }
+    catch (Exception e)
+    {
+      System.out.println();
+    }
 
     return out;
   }

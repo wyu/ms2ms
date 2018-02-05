@@ -6,8 +6,8 @@ import org.ms2ms.utils.Strs;
 public class Ms2Pointer implements Comparable<Ms2Pointer>
 {
   public String     run;
-  public int        scan;
-  public float      mz, rt;
+  public int        scan, z, hcode;
+  public float      mz, rt, prob, dp;
   public Ms2Cluster cluster;
 
   public long       pointer; // to the reading position in a binary file
@@ -17,12 +17,15 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>
     super();
     run=run; scan=scan;
   }
-  public Ms2Pointer(String run, MsnSpectrum ms)
+  public Ms2Pointer(String r, MsnSpectrum ms)
   {
-    run=run;
+    run =r;
     scan=ms.getScanNumbers().getFirst().getValue();
     mz  = (float )ms.getPrecursor().getMz();
-    rt  = (float )ms.getRetentionTimes().getFirst().getTime();
+    z   = ms.getPrecursor().getCharge();
+    rt  = (float )ms.getRetentionTimes().getFirst().getTime()/60f;
+
+    hcode=run.hashCode()+scan+Float.hashCode(mz);
   }
 
   @Override
@@ -39,7 +42,7 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>
   @Override
   public int hashCode()
   {
-    return run.hashCode()+scan;
+    return hcode;
   }
   @Override
   public boolean equals(Object s)

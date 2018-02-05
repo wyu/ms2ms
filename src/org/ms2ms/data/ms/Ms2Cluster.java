@@ -11,27 +11,51 @@ import org.ms2ms.utils.Tools;
 
 import java.util.*;
 
-public class Ms2Cluster
+public class Ms2Cluster implements Comparable<Ms2Cluster>
 {
+  private int mByMz=0, mByMzRT=0, mByMzRtFrag=0;
+
   private MsnSpectrum mMaster; // a composite spectrum to represent the cluster
 
   private Ms2Pointer mHead;
   private Collection<Ms2Pointer> mMembers, mCandidates = new TreeSet<>(); // actual or possible members of the cluster
 
+
   public Ms2Cluster() { super(); }
   public Ms2Cluster(Ms2Pointer s) { super(); mHead=s; }
 
-  public Ms2Pointer getHead() { return mHead; }
-  public Ms2Cluster setHead(Ms2Pointer s) { mHead=s; return this; }
+  public Ms2Pointer getHead()                   { return mHead; }
   public Collection<Ms2Pointer> getCandidates() { return mCandidates; }
-  public Ms2Cluster addMember(Ms2Pointer s) { if (s!=null) mCandidates.add(s); return this; }
+  public int getCandidateSize()                 { return mCandidates!=null?mCandidates.size():0; }; // the head is already a part of the candidates and members
+  public int size()                             { return mMembers!=null?mMembers.size():0; }; // the head is already a part of the candidates and members
+  public int getNbyMz()                         { return mByMz; }
+  public int getNbyMzRT()                       { return mByMzRT; }
+  public int getNbyMzRtFrag()                   { return mByMzRtFrag; }
 
+  public Ms2Cluster setHead(Ms2Pointer s) { mHead      =s; return this; }
+  public Ms2Cluster setNbyMz(      int s) { mByMz      =s; return this; }
+  public Ms2Cluster setNbyMzRt(    int s) { mByMzRT    =s; return this; }
+  public Ms2Cluster setNbyMzRtFrag(int s) { mByMzRtFrag=s; return this; }
+
+  public Ms2Cluster addCandidate(Ms2Pointer s) { if (s!=null) mCandidates.add(s); return this; }
+  public Ms2Cluster addMember(   Ms2Pointer s) { if (s!=null) mMembers.add(s); return this; }
+
+  public int getCandidateRemain() { return (mCandidates!=null?mCandidates.size():0)-(mMembers!=null?mMembers.size():0); }
   public boolean contains(Ms2Pointer p)
   {
     if (Tools.equals(p, mHead) || Tools.contains(mCandidates, p)) return true;
     return false;
   }
-
+  public Ms2Cluster resetMembers()
+  {
+    if (mMembers!=null) mMembers.clear(); else mMembers = new TreeSet<>();
+    return this;
+  }
+  public Ms2Cluster resetCandidates()
+  {
+    if (mCandidates!=null) mCandidates.clear(); else mCandidates = new TreeSet<>();
+    return this;
+  }
   /// start the method section  ///
 
   // from the HEAD to the candidates at high cutoff
@@ -44,19 +68,25 @@ public class Ms2Cluster
     MsnSpectrum HEAD = (mMaster!=null?mMaster:spectra.get(mHead));
 
     // the collections
-    mMembers = new ArrayList<>();
+    if (mMembers!=null) mMembers.clear(); else mMembers = new ArrayList<>();
     Collection<MsnSpectrum> members = new ArrayList<>();
     // setup the master first
     List<Peak> head = Spectra.toListOfPeaks(HEAD);
     for (Ms2Pointer member : mCandidates)
     {
       MsnSpectrum scan = spectra.get(member);
-      if (scan!=null && Similarity.dp(head, Spectra.toListOfPeaks(scan), tol, true, true)>=min_dp)
+      if (scan!=null)
       {
-        mMembers.add(member); members.add(spectra.get(member));
+        member.cluster=this;
+        member.dp=(float )Similarity.dp(head, Spectra.toListOfPeaks(scan), tol, true, true);
+        if (member.dp>=min_dp) mMembers.add(member); members.add(spectra.get(member));
       }
     }
-    mMaster = Spectra.accumulate(HEAD, tol, 0.5f, members);
+    if (members.size()>1)
+    {
+      mMaster = Spectra.accumulate(HEAD, tol, 0.5f, members);
+      mHead.cluster=this;
+    }
 
     // remove the local objects
     head = (List )Tools.dispose(head);
@@ -111,5 +141,19 @@ public class Ms2Cluster
 
     return this;
   }
+  @Override
+  public int hashCode()
+  {
+    int hc = mHead!=null?mHead.hashCode():0;
+    if (Tools.isSet(mCandidates))
+      for (Ms2Pointer p : mCandidates) hc+=p.hashCode();
 
+    return hc;
+  }
+
+  @Override
+  public int compareTo(Ms2Cluster o)
+  {
+    return Integer.compare(hashCode(), o.hashCode());
+  }
 }

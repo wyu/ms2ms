@@ -1,9 +1,11 @@
 package org.ms2ms.apps;
 
 import java.io.FileWriter;
+import java.io.PrintStream;
 
 public class Terminal
 {
+  protected PrintStream mConsole = new PrintStream(System.out, true);
   protected String mLogFile = null, mJobID="";
 
   public Terminal setLogfile(String s) { mLogFile=s; return this; }
@@ -21,7 +23,7 @@ public class Terminal
   {
     if ("NIL".equals(mLogFile))
     {
-      if (verbose) System.out.print(s);
+      if (verbose) mConsole.print(s);
       return;
     }
 
@@ -32,10 +34,10 @@ public class Terminal
       {
         w = new FileWriter(mLogFile, true);
         w.write(s);
-        if (verbose) System.out.print(s);
+        if (verbose) mConsole.print(s);
       }
       finally { if (w!=null) w.close(); }
     }
-    catch (Exception e) { System.out.print(s); }
+    catch (Exception e) { mConsole.print(s); }
   }
 }
