@@ -6,7 +6,7 @@ import org.ms2ms.utils.Strs;
 public class Ms2Pointer implements Comparable<Ms2Pointer>
 {
   public String     run;
-  public int        scan, z, hcode;
+  public int        scan, z, hcode, npks, npks_upper;
   public float      mz, rt, prob, dp;
   public Ms2Cluster cluster;
 
