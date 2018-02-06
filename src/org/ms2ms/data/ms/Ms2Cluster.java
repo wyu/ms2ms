@@ -14,14 +14,16 @@ import java.util.*;
 public class Ms2Cluster implements Comparable<Ms2Cluster>
 {
   private int mByMz=0, mByMzRT=0, mByMzRtFrag=0;
+  private String mName;
 
   private MsnSpectrum mMaster; // a composite spectrum to represent the cluster
 
   private Ms2Pointer mHead;
-  private Collection<Ms2Pointer> mMembers, mCandidates = new TreeSet<>(); // actual or possible members of the cluster
+  private Collection<Ms2Pointer> mMembers = new TreeSet<>(), mCandidates = new TreeSet<>(); // actual or possible members of the cluster
 
 
   public Ms2Cluster() { super(); }
+  public Ms2Cluster(String s) { super(); mName=s; }
   public Ms2Cluster(Ms2Pointer s) { super(); mHead=s; }
 
   public Ms2Pointer getHead()                   { return mHead; }
@@ -31,11 +33,13 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>
   public int getNbyMz()                         { return mByMz; }
   public int getNbyMzRT()                       { return mByMzRT; }
   public int getNbyMzRtFrag()                   { return mByMzRtFrag; }
+  public String getName() { return mName; }
 
   public Ms2Cluster setHead(Ms2Pointer s) { mHead      =s; return this; }
   public Ms2Cluster setNbyMz(      int s) { mByMz      =s; return this; }
   public Ms2Cluster setNbyMzRt(    int s) { mByMzRT    =s; return this; }
   public Ms2Cluster setNbyMzRtFrag(int s) { mByMzRtFrag=s; return this; }
+  public Ms2Cluster setName(    String s) { mName      =s; return this; }
 
   public Ms2Cluster addCandidate(Ms2Pointer s) { if (s!=null) mCandidates.add(s); return this; }
   public Ms2Cluster addMember(   Ms2Pointer s) { if (s!=null) mMembers.add(s); return this; }
@@ -59,7 +63,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>
   /// start the method section  ///
 
   // from the HEAD to the candidates at high cutoff
-  public Ms2Cluster cluster(Map<Ms2Pointer, MsnSpectrum> spectra, OffsetPpmTolerance tol, double min_dp)
+  public Ms2Cluster cluster(Map<Ms2Pointer, MsnSpectrum> spectra, Float lowmass, OffsetPpmTolerance tol, double min_dp)
   {
     // quit if the master or input are not present!
     if (mHead==null || !Tools.isSet(spectra)) return null;
@@ -71,14 +75,14 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>
     if (mMembers!=null) mMembers.clear(); else mMembers = new ArrayList<>();
     Collection<MsnSpectrum> members = new ArrayList<>();
     // setup the master first
-    List<Peak> head = Spectra.toListOfPeaks(HEAD);
+    List<Peak> head = Spectra.toListOfPeaks(HEAD, lowmass);
     for (Ms2Pointer member : mCandidates)
     {
       MsnSpectrum scan = spectra.get(member);
       if (scan!=null)
       {
         member.cluster=this;
-        member.dp=(float )Similarity.dp(head, Spectra.toListOfPeaks(scan), tol, true, true);
+        member.dp=(float )Similarity.dp(head, Spectra.toListOfPeaks(scan,lowmass), tol, true, true);
         if (member.dp>=min_dp) mMembers.add(member); members.add(spectra.get(member));
       }
     }
@@ -145,8 +149,15 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>
   public int hashCode()
   {
     int hc = mHead!=null?mHead.hashCode():0;
+    if (mName!=null) hc+=mName.hashCode();
+
+    hc += mByMz+mByMzRT+mByMzRtFrag;
+
     if (Tools.isSet(mCandidates))
       for (Ms2Pointer p : mCandidates) hc+=p.hashCode();
+
+    if (Tools.isSet(mMembers))
+      for (Ms2Pointer p : mMembers) hc+=p.hashCode();
 
     return hc;
   }

@@ -739,13 +739,14 @@ public class Spectra
 
     return peaks;
   }
-  public static List<Peak> toListOfPeaks(PeakList ms)
+  public static List<Peak> toListOfPeaks(PeakList ms) { return toListOfPeaks(ms,null); }
+  public static List<Peak> toListOfPeaks(PeakList ms, Float min_mz)
   {
     // walking thro the peaks and recording the matching peaks
     List<Peak> peaks = new ArrayList<>();
 
     for (int i=0; i<ms.size(); i++)
-      peaks.add(new Peak(ms.getMz(i), ms.getIntensity(i)));
+      if (min_mz==null||ms.getMz(i)>=min_mz) peaks.add(new Peak(ms.getMz(i), ms.getIntensity(i)));
 
     return peaks;
   }

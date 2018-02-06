@@ -222,6 +222,8 @@ public class Similarity
    */
   public static <T extends Peak> List<Peak> index(List<T> A, int n_regions, int n_tops, double min_separation, double min_ai)
   {
+    if (A==null || A.size()<3) return null;
+
     Collections.sort(A, new Peaks.MzAscendComparator());
 
     // initiating a new List

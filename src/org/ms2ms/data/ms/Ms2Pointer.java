@@ -12,10 +12,10 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>
 
   public long       pointer; // to the reading position in a binary file
 
-  public Ms2Pointer(String run, int scan)
+  public Ms2Pointer(String r, int s)
   {
     super();
-    run=run; scan=scan;
+    run=r; scan=s;
   }
   public Ms2Pointer(String r, MsnSpectrum ms)
   {
