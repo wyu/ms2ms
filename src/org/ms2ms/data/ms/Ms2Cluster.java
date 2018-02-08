@@ -6,14 +6,18 @@ import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.ms2ms.algo.Peaks;
 import org.ms2ms.algo.Similarity;
 import org.ms2ms.algo.Spectra;
+import org.ms2ms.io.BufferedRandomAccessFile;
+import org.ms2ms.io.MsIO;
 import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Tools;
 
+import java.io.IOException;
 import java.util.*;
 
 public class Ms2Cluster implements Comparable<Ms2Cluster>
 {
-  private int mByMz=0, mByMzRT=0, mByMzRtFrag=0;
+  private float mMz, mRT;
+  private int mByMz=0, mByMzRT=0, mByMzRtFrag=0, mCharge=0;
   private String mName;
 
   private MsnSpectrum mMaster; // a composite spectrum to represent the cluster
@@ -26,20 +30,28 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>
   public Ms2Cluster(String s) { super(); mName=s; }
   public Ms2Cluster(Ms2Pointer s) { super(); mHead=s; }
 
-  public Ms2Pointer getHead()                   { return mHead; }
   public Collection<Ms2Pointer> getCandidates() { return mCandidates; }
-  public int getCandidateSize()                 { return mCandidates!=null?mCandidates.size():0; }; // the head is already a part of the candidates and members
-  public int size()                             { return mMembers!=null?mMembers.size():0; }; // the head is already a part of the candidates and members
-  public int getNbyMz()                         { return mByMz; }
-  public int getNbyMzRT()                       { return mByMzRT; }
-  public int getNbyMzRtFrag()                   { return mByMzRtFrag; }
-  public String getName() { return mName; }
+  public Collection<Ms2Pointer> getMembers()    { return mMembers; }
+  public MsnSpectrum            getMaster()     { return mMaster; }
+  public Ms2Pointer             getHead()       { return mHead; }
+
+  public int    getCandidateSize() { return mCandidates!=null?mCandidates.size():0; }; // the head is already a part of the candidates and members
+  public int    size()           { return mMembers!=null?mMembers.size():0; }; // the head is already a part of the candidates and members
+  public int    getNbyMz()       { return mByMz; }
+  public int    getNbyMzRT()     { return mByMzRT; }
+  public int    getCharge()      { return mCharge; }
+  public float  getMz()          { return mMz; }
+  public float  getRT()          { return mRT; }
+  public int    getNbyMzRtFrag() { return mByMzRtFrag; }
+  public String getName()        { return mName; }
 
   public Ms2Cluster setHead(Ms2Pointer s) { mHead      =s; return this; }
   public Ms2Cluster setNbyMz(      int s) { mByMz      =s; return this; }
   public Ms2Cluster setNbyMzRt(    int s) { mByMzRT    =s; return this; }
   public Ms2Cluster setNbyMzRtFrag(int s) { mByMzRtFrag=s; return this; }
   public Ms2Cluster setName(    String s) { mName      =s; return this; }
+  public Ms2Cluster setMz(float s) { mMz=s; return this; }
+  public Ms2Cluster setRT(float s) { mRT=s; return this; }
 
   public Ms2Cluster addCandidate(Ms2Pointer s) { if (s!=null) mCandidates.add(s); return this; }
   public Ms2Cluster addMember(   Ms2Pointer s) { if (s!=null) mMembers.add(s); return this; }
@@ -49,6 +61,11 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>
   {
     if (Tools.equals(p, mHead) || Tools.contains(mCandidates, p)) return true;
     return false;
+  }
+  public Ms2Cluster setMaster(BufferedRandomAccessFile bin) throws IOException
+  {
+    if (size()<=1) mMaster = MsIO.readSpectrumIdentifier(bin, new MsnSpectrum(), getHead().pointer);
+    return this;
   }
   public Ms2Cluster resetMembers()
   {
@@ -81,14 +98,19 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>
       MsnSpectrum scan = spectra.get(member);
       if (scan!=null)
       {
-        member.cluster=this;
-        member.dp=(float )Similarity.dp(head, Spectra.toListOfPeaks(scan,lowmass), tol, true, true);
-        if (member.dp>=min_dp) mMembers.add(member); members.add(spectra.get(member));
+        // calc the forward and backward DPs and choose the smallest
+        member.dp=(float )Similarity.bidirectional_dp(head, Spectra.toListOfPeaks(scan,lowmass), tol, true, true, true);
+        if (member.dp>=min_dp)
+        {
+          mMembers.add(member);
+          members.add(spectra.get(member));
+        }
       }
     }
     if (members.size()>1)
     {
       mMaster = Spectra.accumulate(HEAD, tol, 0.5f, members);
+      mMz     = (float )mMaster.getPrecursor().getMz();
       mHead.cluster=this;
     }
 
@@ -96,6 +118,16 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>
     head = (List )Tools.dispose(head);
     members = Tools.dispose(members);
 
+    return this;
+  }
+  public Ms2Cluster calcMz()
+  {
+    if (Tools.isSet(mMembers))
+    {
+      Collection<Double> ms = new ArrayList<>(); double z=0;
+      for (Ms2Pointer p : mMembers) { ms.add((double )p.mz); z+=p.z; }
+      mMz = (float )Stats.mean(ms); mCharge=(int )Math.round(z);
+    }
     return this;
   }
   // trim away the members in the cluster by the matching probability to the 'center'.

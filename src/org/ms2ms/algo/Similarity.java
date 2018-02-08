@@ -22,6 +22,11 @@ import java.util.*;
  */
 public class Similarity
 {
+  public static double bidirectional_dp(List<? extends Peak> A, List<? extends Peak> B, Tolerance tol, boolean highest, boolean sqrted, boolean lowest)
+  {
+    double fdp = dp(A,B, tol,highest,sqrted),bdp = dp(A,B, tol,highest,sqrted);
+    return lowest?Math.min(fdp,bdp):(fdp+bdp)/2d;
+  }
   /**
       * Check for the positive evidence of duplicated spectrum using dot-product
       * algorithm as outlined by
