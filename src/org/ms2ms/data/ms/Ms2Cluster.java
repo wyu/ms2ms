@@ -16,9 +16,12 @@ import java.util.*;
 
 public class Ms2Cluster implements Comparable<Ms2Cluster>
 {
+  public enum NodeType { REF, MSMS, NONE };
+
+  private NodeType mType = NodeType.MSMS;
   private float mMz, mRT;
   private int mByMz=0, mByMzRT=0, mByMzRtFrag=0, mCharge=0;
-  private String mName;
+  private String mName, mID;
 
   private MsnSpectrum mMaster; // a composite spectrum to represent the cluster
 
@@ -28,6 +31,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>
 
   public Ms2Cluster() { super(); }
   public Ms2Cluster(String s) { super(); mName=s; }
+  public Ms2Cluster(String n, String id, NodeType t) { super(); mName=n; mID=id; mType=t; }
   public Ms2Cluster(Ms2Pointer s) { super(); mHead=s; }
 
   public Collection<Ms2Pointer> getCandidates() { return mCandidates; }
@@ -44,12 +48,15 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>
   public float  getRT()          { return mRT; }
   public int    getNbyMzRtFrag() { return mByMzRtFrag; }
   public String getName()        { return mName; }
+  public String getID()        { return mID; }
 
+  public Ms2Cluster setType(NodeType   s) { mType      =s; return this; }
   public Ms2Cluster setHead(Ms2Pointer s) { mHead      =s; return this; }
   public Ms2Cluster setNbyMz(      int s) { mByMz      =s; return this; }
   public Ms2Cluster setNbyMzRt(    int s) { mByMzRT    =s; return this; }
   public Ms2Cluster setNbyMzRtFrag(int s) { mByMzRtFrag=s; return this; }
   public Ms2Cluster setName(    String s) { mName      =s; return this; }
+  public Ms2Cluster setID(      String s) { mID        =s; return this; }
   public Ms2Cluster setMz(float s) { mMz=s; return this; }
   public Ms2Cluster setRT(float s) { mRT=s; return this; }
 
@@ -193,7 +200,11 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>
 
     return hc;
   }
-
+  @Override
+  public String toString()
+  {
+    return getName()+", +"+mCharge;
+  }
   @Override
   public int compareTo(Ms2Cluster o)
   {
