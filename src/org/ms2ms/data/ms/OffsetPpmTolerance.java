@@ -2,12 +2,18 @@ package org.ms2ms.data.ms;
 
 import com.google.common.collect.Range;
 import org.expasy.mzjava.core.ms.PpmTolerance;
+import org.ms2ms.data.Binary;
+import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Tools;
+
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 
 /**
  * Created by yuw on 8/6/16.
  */
-public class OffsetPpmTolerance extends PpmTolerance
+public class OffsetPpmTolerance extends PpmTolerance implements Binary
 {
   private double mScale=1d, mOffset=0d, mTol=0d, mTransitionMass=0, mOffsetSlope=0, mTolSlope=0, mZval=0;
   private boolean mIsIncremental=false;
@@ -89,5 +95,31 @@ public class OffsetPpmTolerance extends PpmTolerance
     String oft = (mOffsetSlope!=0 ? (Tools.d2s(-mOffset,2)+"-"+Tools.d2s(mOffsetSlope,7)+"*m or " + Tools.d2s(getOffset(mTransitionMass-1D),2) + " above m/z") : "") + Tools.d2s(mTransitionMass, 2);
 
     return "ppm = "+ppm+ ", offset = "+oft+ (mIsIncremental?", Incremental":"");
+  }
+
+  @Override
+  public void write(DataOutput ds) throws IOException
+  {
+    IOs.write(ds, mScale);
+    IOs.write(ds, mOffset);
+    IOs.write(ds, mTol);
+    IOs.write(ds, mTransitionMass);
+    IOs.write(ds, mOffsetSlope);
+    IOs.write(ds, mTolSlope);
+    IOs.write(ds, mZval);
+    IOs.write(ds, mIsIncremental);
+  }
+
+  @Override
+  public void read(DataInput ds) throws IOException
+  {
+    mScale         =IOs.read(ds,0d);
+    mOffset        =IOs.read(ds,0d);
+    mTol           =IOs.read(ds,0d);;
+    mTransitionMass=IOs.read(ds,0d);;
+    mOffsetSlope   =IOs.read(ds,0d);;
+    mTolSlope      =IOs.read(ds,0d);;
+    mZval          =IOs.read(ds,0d);;
+    mIsIncremental =IOs.read(ds,true);;
   }
 }

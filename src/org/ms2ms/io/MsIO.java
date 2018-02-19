@@ -101,9 +101,9 @@ public class MsIO extends IOs
   // BufferedWriter
   public static void write(DataOutput w, PeakList ms) throws IOException
   {
-    w.writeDouble(ms.getPrecursor().getMz());
-    w.writeDouble(ms.getPrecursor().getIntensity());
-    w.writeInt(ms.getPrecursor().getCharge());
+    w.writeDouble(ms.getPrecursor()!=null?ms.getPrecursor().getMz():0d);
+    w.writeDouble(ms.getPrecursor()!=null?ms.getPrecursor().getIntensity():0d);
+    w.writeInt(   ms.getPrecursor()!=null?ms.getPrecursor().getCharge():0);
 
     w.writeInt(   ms.size());
     if (ms.size()>0)

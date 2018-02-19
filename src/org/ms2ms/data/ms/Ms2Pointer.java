@@ -2,9 +2,16 @@ package org.ms2ms.data.ms;
 
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.ms2ms.algo.Peaks;
+import org.ms2ms.data.Binary;
+import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
+import org.ms2ms.utils.Tools;
 
-public class Ms2Pointer implements Comparable<Ms2Pointer>
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+
+public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary
 {
   public String     run;
   public int        scan, z, hcode, npks, npks_upper;
@@ -13,6 +20,7 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>
 
   public long       pointer; // to the reading position in a binary file
 
+  public Ms2Pointer() { super(); }
   public Ms2Pointer(String r, int s)
   {
     super();
@@ -68,5 +76,46 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>
     cloned.pointer=pointer; // to the reading position in a binary file
 
     return cloned;
+  }
+
+  @Override
+  public void write(DataOutput ds) throws IOException
+  {
+    IOs.write(ds, run);
+    IOs.write(ds, scan);
+    IOs.write(ds, z);
+    IOs.write(ds, hcode);
+    IOs.write(ds, npks);
+    IOs.write(ds, npks_upper);
+    IOs.write(ds, mz);
+    IOs.write(ds, rt);
+    IOs.write(ds, prob);
+    IOs.write(ds, dp);
+    IOs.write(ds, mz_off);
+    IOs.write(ds, pointer);
+  }
+
+  @Override
+  public void read(DataInput ds) throws IOException
+  {
+    run       =IOs.read(ds, run);
+    scan      =IOs.read(ds, 0);
+    z         =IOs.read(ds, 0);
+    hcode     =IOs.read(ds, 0);
+    npks      =IOs.read(ds, 0);
+    npks_upper=IOs.read(ds, 0);
+    mz        =IOs.read(ds, 0f);
+    rt        =IOs.read(ds, 0f);
+    prob      =IOs.read(ds, 0f);
+    dp        =IOs.read(ds, 0f);
+    mz_off    =IOs.read(ds, 0f);
+    pointer   =IOs.read(ds, 0l);
+
+    // cluster not persisted;
+  }
+  @Override
+  public String toString()
+  {
+    return run+"#"+scan+", z"+z+", m/z"+ Tools.d2s(mz, 4)+", "+Tools.d2s(rt, 2)+"min, dp="+Tools.d2s(dp,2)+", npks1="+npks_upper;
   }
 }

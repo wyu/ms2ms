@@ -6,22 +6,26 @@ import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.ms2ms.algo.Peaks;
 import org.ms2ms.algo.Similarity;
 import org.ms2ms.algo.Spectra;
+import org.ms2ms.data.Binary;
 import org.ms2ms.io.BufferedRandomAccessFile;
 import org.ms2ms.io.MsIO;
 import org.ms2ms.math.Stats;
+import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Tools;
 
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
 import java.util.*;
 
-public class Ms2Cluster implements Comparable<Ms2Cluster>
+public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary
 {
   public enum NodeType { REF, MSMS, NONE };
 
   private NodeType mType = NodeType.MSMS;
   private float mMz, mRT;
   private int mByMz=0, mByMzRT=0, mByMzRtFrag=0, mCharge=0;
-  private String mName, mID;
+  private String mName="", mID="";
 
   private MsnSpectrum mMaster; // a composite spectrum to represent the cluster
 
@@ -203,11 +207,55 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>
   @Override
   public String toString()
   {
-    return getName()+", +"+mCharge;
+    return mType+"::"+getName()+"#"+size()+"$"+getCandidateSize();
   }
   @Override
   public int compareTo(Ms2Cluster o)
   {
     return Integer.compare(hashCode(), o.hashCode());
+  }
+
+  @Override
+  public void write(DataOutput ds) throws IOException
+  {
+    IOs.write(ds, mType.name());
+    IOs.write(ds, mMz);
+    IOs.write(ds, mRT);
+    IOs.write(ds, mByMz);
+    IOs.write(ds, mByMzRT);
+    IOs.write(ds, mByMzRtFrag);
+    IOs.write(ds, mCharge);
+    IOs.write(ds, mName);
+    IOs.write(ds, mID);
+    IOs.write(ds, mHead);
+
+    IOs.write(ds, mMembers);
+    IOs.write(ds, mCandidates);
+
+    // write the size of the peaks
+    IOs.write(ds, mMaster!=null?mMaster.size():0);
+    if (mMaster!=null) MsIO.write(ds, mMaster);
+  }
+
+  @Override
+  public void read(DataInput ds) throws IOException
+  {
+    mType       = NodeType.valueOf(IOs.read(ds, ""));
+    mMz         = IOs.read(ds, 0f);
+    mRT         = IOs.read(ds, 0f);
+    mByMz       = IOs.read(ds, 0);
+    mByMzRT     = IOs.read(ds, 0);
+    mByMzRtFrag = IOs.read(ds, 0);
+    mCharge     = IOs.read(ds, 0);
+
+    mName       = IOs.read(ds, "");
+    mID         = IOs.read(ds, "");
+    mHead       = IOs.read(ds, new Ms2Pointer());
+
+    mMembers    = IOs.readList(ds, Ms2Pointer.class);
+    mCandidates = IOs.readList(ds, Ms2Pointer.class);
+
+    int npks = IOs.read(ds, 0);
+    if (npks>0) mMaster = MsIO.readSpectrumIdentifier(ds, new MsnSpectrum());
   }
 }
