@@ -11,6 +11,7 @@ import org.ms2ms.io.BufferedRandomAccessFile;
 import org.ms2ms.io.MsIO;
 import org.ms2ms.math.Stats;
 import org.ms2ms.utils.IOs;
+import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
 import java.io.DataInput;
@@ -207,7 +208,8 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary
   @Override
   public String toString()
   {
-    return mType+"::"+getName()+"#"+size()+"$"+getCandidateSize();
+    return mType+(Strs.isSet(getName())?"::"+getName():"")+(size()!=0?"#"+size():"")+(getCandidateSize()!=0?"$"+
+        getCandidateSize():"")+(mHead!=null?mHead.toString():(getMembers()!=null?Tools.front(getMembers()).toString():""));
   }
   @Override
   public int compareTo(Ms2Cluster o)
