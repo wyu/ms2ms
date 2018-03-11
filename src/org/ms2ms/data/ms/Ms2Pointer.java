@@ -116,6 +116,7 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary
   @Override
   public String toString()
   {
-    return run+"#"+scan+", z"+z+", m/z"+ Tools.d2s(mz, 4)+", "+Tools.d2s(rt, 2)+"min, dp="+Tools.d2s(dp,2)+", npks1="+npks_upper;
+    return run+"#"+scan+", z"+z+", m/z"+ Tools.d2s(mz, 4)+", "+Tools.d2s(rt, 2)+"min"+
+        (dp>0?", dp="+Tools.d2s(dp,2):"")+(npks_upper>0?", npks1="+npks_upper:"");
   }
 }

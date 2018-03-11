@@ -24,9 +24,9 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary
   public enum NodeType { REF, MSMS, NONE };
 
   private NodeType mType = NodeType.MSMS;
-  private float mMz, mRT;
+  private float mMz, mRT, mImpurity=-1;
   private int mByMz=0, mByMzRT=0, mByMzRtFrag=0, mCharge=0;
-  private String mName="", mID="";
+  private String mName="", mID="", mMajority=null;
 
   private MsnSpectrum mMaster; // a composite spectrum to represent the cluster
 
@@ -44,6 +44,8 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary
   public MsnSpectrum            getMaster()     { return mMaster; }
   public Ms2Pointer             getHead()       { return mHead; }
 
+  public boolean isType(NodeType t) { return mType.equals(t); }
+
   public int    getCandidateSize() { return mCandidates!=null?mCandidates.size():0; }; // the head is already a part of the candidates and members
   public int    size()           { return mMembers!=null?mMembers.size():0; }; // the head is already a part of the candidates and members
   public int    getNbyMz()       { return mByMz; }
@@ -51,9 +53,11 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary
   public int    getCharge()      { return mCharge; }
   public float  getMz()          { return mMz; }
   public float  getRT()          { return mRT; }
+  public float  getImpurity()    { return mImpurity; }
   public int    getNbyMzRtFrag() { return mByMzRtFrag; }
   public String getName()        { return mName; }
-  public String getID()        { return mID; }
+  public String getID()          { return mID; }
+  public String getMajority()    { return mMajority; }
 
   public Ms2Cluster setType(NodeType   s) { mType      =s; return this; }
   public Ms2Cluster setHead(Ms2Pointer s) { mHead      =s; return this; }
@@ -62,8 +66,10 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary
   public Ms2Cluster setNbyMzRtFrag(int s) { mByMzRtFrag=s; return this; }
   public Ms2Cluster setName(    String s) { mName      =s; return this; }
   public Ms2Cluster setID(      String s) { mID        =s; return this; }
-  public Ms2Cluster setMz(float s) { mMz=s; return this; }
-  public Ms2Cluster setRT(float s) { mRT=s; return this; }
+  public Ms2Cluster setMajorityID(String s) { mMajority  =s; return this; }
+  public Ms2Cluster setMz(       float s) { mMz        =s; return this; }
+  public Ms2Cluster setRT(       float s) { mRT        =s; return this; }
+  public Ms2Cluster setImpurity( float s) { mImpurity  =s; return this; }
 
   public Ms2Cluster addCandidate(Ms2Pointer s) { if (s!=null) mCandidates.add(s); return this; }
   public Ms2Cluster addMember(   Ms2Pointer s) { if (s!=null) mMembers.add(s); return this; }
@@ -92,26 +98,36 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary
   /// start the method section  ///
 
   // from the HEAD to the candidates at high cutoff
-  public Ms2Cluster cluster(Map<Ms2Pointer, MsnSpectrum> spectra, Float lowmass, OffsetPpmTolerance tol, double min_dp)
+  public Ms2Cluster cluster(Map<Ms2Pointer, MsnSpectrum> spectra, Float lowmass, OffsetPpmTolerance tol, double min_dp, int miss_index)
   {
     // quit if the master or input are not present!
     if (mHead==null || !Tools.isSet(spectra)) return null;
 
     // setting the seed spectrum
     MsnSpectrum HEAD = (mMaster!=null?mMaster:spectra.get(mHead));
+    // get the index of the HEAD spectrum
+    List<Peak> index = Similarity.index(Spectra.toListOfPeaks(HEAD, lowmass), 7, 1, 5, 0);
 
     // the collections
     if (mMembers!=null) mMembers.clear(); else mMembers = new ArrayList<>();
     Collection<MsnSpectrum> members = new ArrayList<>();
     // setup the master first
     List<Peak> head = Spectra.toListOfPeaks(HEAD, lowmass);
+    double delta = tol.calcError(500);
     for (Ms2Pointer member : mCandidates)
     {
       MsnSpectrum scan = spectra.get(member);
       if (scan!=null)
       {
         // calc the forward and backward DPs and choose the smallest
-        member.dp=(float )Similarity.bidirectional_dp(head, Spectra.toListOfPeaks(scan,lowmass), tol, true, true, true);
+        List<Peak> pks = Spectra.toListOfPeaks(scan,lowmass);
+        // make sure a min number of the index peaks are found
+        if (index.size()-Peaks.overlap_counts(pks, index, delta, true)>miss_index) continue;
+
+        member.dp=(float )Similarity.bidirectional_dp(head, pks, tol, true, true, true);
+        // now the matching probability
+        member.prob = (float )Similarity.similarity_hg(head, pks, delta);
+
         if (member.dp>=min_dp)
         {
           mMembers.add(member);
@@ -259,5 +275,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary
 
     int npks = IOs.read(ds, 0);
     if (npks>0) mMaster = MsIO.readSpectrumIdentifier(ds, new MsnSpectrum());
+
+    if (!Strs.isSet(mID)) mID = toString();
   }
 }

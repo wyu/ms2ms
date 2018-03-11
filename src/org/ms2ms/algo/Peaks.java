@@ -437,7 +437,7 @@ public class Peaks {
     // going through the points
     for (int i = 0; i < size_a; i++) {
       // setup the local window in X
-      slice = Tools.window(slice, A.get(i).getMz(), span, xmin, xmax);
+      slice = Tools.window(A.get(i).getMz(), span, xmin, xmax);
       // strip the front if necessary
       while (locals.size() > 0 &&
           locals.get(0).getMz() < slice.lowerEndpoint()) {

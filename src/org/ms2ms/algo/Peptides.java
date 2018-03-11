@@ -185,6 +185,15 @@ public class Peptides
 
     return y;
   }
+  public static double calcValidatedMH(char[] sequence, int left, int right, Map<Character, Float> AAs)
+  {
+//    double y=AAs.get('$')+2* 1.00783;
+    double y=AAs.get('$')+AAs.get('^')+2*1.007825;
+    for (int c=right; c>=left; c--)
+      if (AAs.get(sequence[c])!=null) y+=AAs.get(sequence[c]);
+
+    return y;
+  }
   public static double calcMH(double mz, int z) { return (mz*z-(z-1)*H); }
   public static double calcMH(Peak p) { return calcMH(p.getMz(), p.getCharge()); }
   public static int numTryptic(String peptide)
@@ -356,7 +365,7 @@ public class Peptides
   }
   public static String stripNumMods(String s)
   {
-    if (s!=null) return s.replaceAll("[0-9]", "").replaceAll("\\(", "").replaceAll("\\)","").replaceAll("\\.","").replaceAll("\\-","").replaceAll("\\s","");
+    if (s!=null) return s.replaceAll("[0-9]", "").replaceAll("\\(", "").replaceAll("\\)","").replaceAll("\\.","").replaceAll("\\-","").replaceAll("\\+","").replaceAll("\\s","");
     return s;
   }
   public static float[] toAAs(Map<Character, Float> aas)

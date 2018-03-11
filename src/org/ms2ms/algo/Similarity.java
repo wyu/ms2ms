@@ -306,8 +306,9 @@ public class Similarity
     Range<Double> mz_range = Range.closed(Math.min(Tools.front(A).getMz(), Tools.front(B).getMz()),
                                           Math.max(Tools.back( A).getMz(), Tools.back( B).getMz()));
     Map<Peak, Peak> outcomes = Peaks.overlap(A, B, delta, true, false, null);
-    return -1 * MsStats.hypergeometricPval1(outcomes.size(), A.size(), B.size(),
-        (long) ((mz_range.upperEndpoint() - mz_range.lowerEndpoint()) / delta));
+    long bins = (long) ((mz_range.upperEndpoint() - mz_range.lowerEndpoint()) / delta);
+//    return -10 * MsStats.hypergeometricPval1(outcomes.size(), A.size(), B.size(), bins);
+    return -1 * MsStats.hypergeom(outcomes.size(), A.size(), B.size(), bins);
   }
   public static boolean condition(PeakList msms, double pct_cutoff, int min_peaks)
   {

@@ -17,7 +17,6 @@ import org.ms2ms.algo.LCMSMS;
 import org.ms2ms.algo.Peaks;
 import org.ms2ms.algo.PurgingPeakProcessor;
 import org.ms2ms.algo.Spectra;
-import org.ms2ms.data.collect.ImmutableNavigableMap;
 import org.ms2ms.data.ms.MsSpectrum;
 import org.ms2ms.math.Stats;
 import org.ms2ms.r.Dataframe;
@@ -263,7 +262,7 @@ public class MsReaders
     Logger.getLogger(MzxmlReader.class.getName()).setLevel(Level.SEVERE);
     return reader.hasNext()?reader.next():null;
   }
-  public static MsnSpectrum from(Spectrum ms)
+  public static MsnSpectrum from(Spectrum ms, boolean skip_ions)
   {
     if (ms==null) return null;
 
@@ -308,12 +307,12 @@ public class MsReaders
       String  compressionType=MsIO.hasAccession(bin.getCvParam(), "MS:1000574")?"zlib":"none";
       try
       {
-        if (MsIO.hasAccession(bin.getCvParam(), "MS:1000514"))
+        if      (!skip_ions && MsIO.hasAccession(bin.getCvParam(), "MS:1000514"))
         {
           // decode the m/z string
           mzs = bin.getBinaryDataAsNumberArray();
         }
-        else if (MsIO.hasAccession(bin.getCvParam(), "MS:1000515"))
+        else if (!skip_ions && MsIO.hasAccession(bin.getCvParam(), "MS:1000515"))
         {
           // decode the m/z string
           ais = bin.getBinaryDataAsNumberArray();
@@ -514,7 +513,7 @@ public class MsReaders
     Dataframe xref = new Dataframe("MS2-MS3 xref: " + mzml_root);
     while (spectrumIterator.hasNext())
     {
-      MsnSpectrum ms = MsReaders.from(spectrumIterator.next());
+      MsnSpectrum ms = MsReaders.from(spectrumIterator.next(), false);
       if (++counts % 1000 == 0) System.out.print(".");
       if      (ms.getMsLevel()==2)
       {
@@ -584,7 +583,7 @@ public class MsReaders
     ms2.close(); ms3.close();
 
     FileWriter xw = new FileWriter(mzml_root+".xref");
-    xref.init(true).write(xw, "\t");
+    xref.init(true).write(xw, "\t", true, "NA");
     xw.close();
 
     return xref;
@@ -621,7 +620,7 @@ public class MsReaders
     MgfWriter MGF = new MgfWriter(new File(mgf), PeakList.Precision.DOUBLE);
     while (spectrumIterator.hasNext())
     {
-      MsnSpectrum ms = MsReaders.from(spectrumIterator.next());
+      MsnSpectrum ms = MsReaders.from(spectrumIterator.next(), false);
       if (++counts % 1000 == 0) System.out.print(".");
       if      (ms.getMsLevel()==1 && ms1==null) ms1=ms;
       else if (ms.getMsLevel()==1 && ms1!=null)
@@ -678,7 +677,7 @@ public class MsReaders
 
     while (spectrumIterator.hasNext())
     {
-      MsnSpectrum ms = MsReaders.from(spectrumIterator.next());
+      MsnSpectrum ms = MsReaders.from(spectrumIterator.next(), false);
       if (++counts % 1000 == 0) System.out.print(".");
       if (ms.getMsLevel()==1)
         scan_fseek.put(ms.getScanNumbers().getFirst().getValue(), MsIO.write(bin, MsSpectrum.adopt(ms)));

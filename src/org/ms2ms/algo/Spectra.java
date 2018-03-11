@@ -124,7 +124,7 @@ public class Spectra
 
     List<Double> ais = new ArrayList<>(index.size());
     for (int i=0; i<index.size(); i++)
-      ais.add(spec.getIntensity(i));
+      ais.add(Math.abs(spec.getIntensity(i)));
 
     return ais;
   }
@@ -153,7 +153,7 @@ public class Spectra
     for (int i = 0; i < size_a; i++)
     {
       // setup the local window in X
-      slice = Tools.window(slice, A.getMz(i), span, xmin, xmax);
+      slice = Tools.window(A.getMz(i), span, xmin, xmax);
       // strip the front if necessary
       while (locals.size() > 0 &&
           A.getMz(locals.get(0)) < slice.lowerEndpoint())
@@ -174,7 +174,7 @@ public class Spectra
         else
         {
           for (int k = 0; k < tops.size(); k++)
-            if (A.getIntensity(j) < A.getIntensity(tops.get(k)))
+            if (Math.abs(A.getIntensity(j)) < Math.abs(A.getIntensity(tops.get(k))))
             {
               tops.add(k, j); added = true;
               break;
@@ -195,17 +195,18 @@ public class Spectra
         // clear out the prior peaks that couldn't made the cut
         if (Tools.isSet(locals_prev))
         {
-          for (Integer t : locals_prev) if (A.getIntensity(t)>base) validate(A, t);
+          for (Integer t : locals_prev) if (Math.abs(A.getIntensity(t))>base) validate(A, t);
           locals_prev.clear();
         }
       }
       else
       {
-        //for (XYPoint t : locals) t.validate();
+//        // make everything in this local window 'good'
+//        for (Integer t : locals) validate(A,t);
       }
       if (base!=null && Tools.isSet(locals))
       {
-        for (Integer t : locals) if (A.getIntensity(t)>base) validate(A, t);
+        for (Integer t : locals) if (Math.abs(A.getIntensity(t))>base) validate(A, t);
       }
       else
       {
@@ -227,8 +228,8 @@ public class Spectra
       for (int i = 0; i < size_a; i++)
       {
         if (isValid(A,i)) continue;
-        if (A.getIntensity(i)<min_base) min_base = A.getIntensity(i);
-        baseline.add(new Peak(A.getMz(i), A.getIntensity(i)));
+        if (Math.abs(A.getIntensity(i))<min_base) min_base = A.getIntensity(i);
+        baseline.add(new Peak(A.getMz(i), Math.abs(A.getIntensity(i))));
       }
       Peaks.smoothBySG5(baseline);
 
@@ -246,16 +247,12 @@ public class Spectra
           if (ion != null)
           {
             bound=null;
-//            bound.setLower(null);
-//            bound.setUpper(null);
             for (int k = starter; k < baseline.size() - 1; k++)
             {
               if (A.getMz(ion)>=baseline.get(k).getMz() && A.getMz(ion)<baseline.get(k+1).getMz())
               {
                 starter = k;
-                bound = Range.closed((Peak )baseline.get(k),(Peak )baseline.get(k+1));
-//                bound.setLower((T )baseline.get(k));
-//                bound.setUpper((T )baseline.get(k+1));
+                bound = Range.closed(baseline.get(k),baseline.get(k+1));
                 break;
               }
             }
@@ -1071,7 +1068,7 @@ public class Spectra
     TreeBasedTable<Double, Double, MsnSpectrum> mh_rt_ms = TreeBasedTable.create();
     while (spectrumIterator.hasNext())
     {
-      MsnSpectrum ms = MsReaders.from(spectrumIterator.next());
+      MsnSpectrum ms = MsReaders.from(spectrumIterator.next(), false);
       if (ms.getMsLevel()==2)
       {
         if (++counts % 1000 == 0) System.out.print(".");

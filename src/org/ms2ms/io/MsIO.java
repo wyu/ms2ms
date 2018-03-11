@@ -756,4 +756,24 @@ public class MsIO extends IOs
     File template = new File(root);
     return listFiles(template.getParent(), new WildcardFileFilter(template.getName()), 1);
   }
+  public static void writeTsv(Writer w, MsnSpectrum ms) throws IOException
+  {
+    w.write("mz\tai\n");
+    for (int i=0; i<ms.size(); i++)
+      w.write(ms.getMz(i)+"\t"+ms.getIntensity(i)+"\n");
+  }
+  public static void writeTsv(String out, MsnSpectrum ms)
+  {
+    FileWriter w = null;
+    try
+    {
+      w = new FileWriter(out);
+      writeTsv(w, ms);
+      w.close();
+    }
+    catch (IOException e)
+    {
+      e.printStackTrace();
+    }
+  }
 }
