@@ -122,7 +122,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary
         // calc the forward and backward DPs and choose the smallest
         List<Peak> pks = Spectra.toListOfPeaks(scan,lowmass);
         // make sure a min number of the index peaks are found
-        if (index.size()-Peaks.overlap_counts(pks, index, delta, true)>miss_index) continue;
+//        if (index.size()-Peaks.overlap_counts(pks, index, delta, true)>miss_index) continue;
 
         member.dp=(float )Similarity.bidirectional_dp(head, pks, tol, true, true, true);
         // now the matching probability

@@ -128,7 +128,7 @@ public class Spectra
 
     return ais;
   }
-  public static PeakList denoise_local(PeakList A, double span, Integer cream_of_top, double sigma, boolean set_bias)
+  public static PeakList denoise_local(PeakList A, double span, Integer cream_of_top, double sigma, boolean set_bias, boolean set_density)
   {
     if (A==null || span == 0 || cream_of_top == null) return A;
 
@@ -148,6 +148,7 @@ public class Spectra
     LinkedList<Integer> locals      = new LinkedList<>();
     LinkedList<Integer> tops        = new LinkedList<>();
     Collection<Integer> locals_prev = new HashSet<>();
+    Map<Integer, Double> density    = new TreeMap<>();
 
     // going through the points
     for (int i = 0; i < size_a; i++)
@@ -183,6 +184,8 @@ public class Spectra
         if (!added) tops.add(j);
       }
 
+      density.put(i, (double )locals.size()/(slice.upperEndpoint()-slice.lowerEndpoint()));
+
       // tag any points in top-xx as valid
       if (locals.size() > cream_of_top)
       {
@@ -201,8 +204,8 @@ public class Spectra
       }
       else
       {
-//        // make everything in this local window 'good'
-//        for (Integer t : locals) validate(A,t);
+        // make everything in this local window 'good'
+        for (Integer t : locals) validate(A,t);
       }
       if (base!=null && Tools.isSet(locals))
       {
@@ -264,6 +267,14 @@ public class Spectra
         }
       }
     }
+    if (set_density)
+      for (int i = 0; i < size_a; i++)
+        A.setIntensityAt(A.getIntensity(i)/density.get(i), i);
+
+    locals      = (LinkedList )Tools.dispose(locals);
+    tops        = (LinkedList )Tools.dispose(tops);
+    locals_prev = Tools.dispose(locals_prev);
+    density     = Tools.dispose(density);
 
     return A;
   }

@@ -160,6 +160,13 @@ public class Peptides
 
       return ImmutableMap.copyOf(map);
     }
+    else if ("reduced".equalsIgnoreCase(fixed))
+    {
+      TreeMap<Character, Float> map = new TreeMap<>(AAsBuilder.build());
+      map.put('C', 103.00919f);
+
+      return ImmutableMap.copyOf(map);
+    }
     return ImmutableMap.copyOf(new TreeMap<>(AAsBuilder.build()));
   }
   // calculate the MH value of the peptide defined by the positions (left, right, inclusive) onto the 'sequence'
@@ -176,6 +183,10 @@ public class Peptides
     }
 
     return y;
+  }
+  public static double calcMH(char[] sequence, Map<Character, Float> AAs)
+  {
+    return calcMH(sequence, 0, sequence!=null?sequence.length-1:0, AAs);
   }
   public static double calcMH(char[] sequence, int left, int right, Map<Character, Float> AAs)
   {

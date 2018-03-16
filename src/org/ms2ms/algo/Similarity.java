@@ -1,13 +1,9 @@
 package org.ms2ms.algo;
 
 import com.google.common.collect.Range;
-import com.google.common.collect.Table;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
-import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
-import org.ms2ms.data.ms.Ms2Cluster;
-import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Tools;
 
 import java.util.*;
@@ -315,7 +311,7 @@ public class Similarity
     if (msms==null || msms.size()==0) return false;
 
     // always assume the peak list is already sorted by m/z
-    msms = Spectra.denoise_local(msms, 25d, 15, 1.67d, true);
+    msms = Spectra.denoise_local(msms, 25d, 15, 1.67d, true, false);
 
     // notch the precursor ions and
     Spectra.notch(msms, Range.closed(msms.getPrecursor().getMz()-5.0d, msms.getPrecursor().getMz()+5.0d));
