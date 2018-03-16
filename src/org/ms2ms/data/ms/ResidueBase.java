@@ -33,7 +33,7 @@ public class ResidueBase implements Cloneable
   private Map<Character, Float> mAADic;
   private Map<String, Float> mDenovoModAAs;
 
-  private float[] mAAs=null;
+  private float[] mAAs;
 //  private Range<Double> mModBound = Range.closed(-300d, 250d); // move it down to -300 to allow for K+TMT loss
 
   private NumericalModVault mModVault;
@@ -92,6 +92,7 @@ public class ResidueBase implements Cloneable
   private void init(String fixed)
   {
     mAADic = Peptides.newAAsMass(fixed);
+    mAAs   = Peptides.toAAs(mAADic);
 
     mAACt = Maps.newHashMap();
     mAACt.put(175.1190d, 'R');
@@ -150,6 +151,7 @@ public class ResidueBase implements Cloneable
   private void initTMT()
   {
     mAADic = Peptides.newAAsMass("tmt10");
+    mAAs   = Peptides.toAAs(mAADic);
 
     mAACt = Maps.newHashMap();
     mAACt.put(175.1190d, 'R');
@@ -249,10 +251,17 @@ public class ResidueBase implements Cloneable
   public ResidueBase clone()
   {
     ResidueBase cloned = new ResidueBase(); // do we need to clone the indices?
-    cloned.mAADic=mAADic;
+    if (mAADic!=null) cloned.mAADic = new HashMap<>(mAADic);
+    cloned.mAAs = Tools.cloneFloatArray(mAAs);
     cloned.mTrivialMods= Tools.cloneDoubleArray(mTrivialMods);
     cloned.mVarAAMods4Exact.copyOf(mVarAAMods4Exact);
     cloned.mModVault=mModVault;
+    cloned.sVarMods=sVarMods;
+    cloned.sExactMods=sExactMods;
+    cloned.sModCharge=sModCharge;
+    cloned.sFacileMods=sFacileMods;
+    cloned.mNTmods=mNTmods;
+    cloned.mCTmods=mCTmods;
 
 //    if (mModBound    !=null) cloned.mModBound     = Range.closed(mModBound.lowerEndpoint(), mModBound.upperEndpoint());
     if (mDenovoModAAs!=null) cloned.mDenovoModAAs = new HashMap<>(mDenovoModAAs);
