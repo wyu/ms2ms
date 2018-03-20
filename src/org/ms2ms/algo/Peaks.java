@@ -1470,6 +1470,17 @@ public class Peaks {
 
     return mzs;
   }
+  public static double[] MH2Mzs(int zlower, int zupper, double... mhs)
+  {
+    if (zupper<zlower || !Tools.isSet(mhs)) return mhs;
+
+    double mzs[] = new double[(zupper-zlower+1)*mhs.length]; int i=0;
+    for (double mh : mhs)
+      for (int z=zlower; z<=zupper; z++)
+        mzs[i++] = MnH2MnH(mh, 1, z);
+
+    return mzs;
+  }
   public static AnnotatedPeak setProperties(AnnotatedPeak pk, TabFile f, String... keys) throws IOException
   {
     if (f!=null && Tools.isSet(keys))

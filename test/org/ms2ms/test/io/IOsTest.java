@@ -2,18 +2,24 @@ package org.ms2ms.test.io;
 
 import com.google.common.collect.Multimap;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
+import org.expasy.mzjava.proteomics.io.mol.FastaProteinReader;
+import org.expasy.mzjava.proteomics.mol.Protein;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.expasy.mzjava.proteomics.ms.ident.SpectrumIdentifier;
 import org.junit.Test;
 import org.ms2ms.algo.PSMs;
 import org.ms2ms.data.ms.Engine;
+import org.ms2ms.io.CustomFastaProteinReader;
 import org.ms2ms.io.MsIO;
 import org.ms2ms.io.PsmReaders;
 import org.ms2ms.io.PsmWriters;
 import org.ms2ms.test.TestAbstract;
 import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
+import org.ms2ms.utils.Tools;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.util.List;
 
 /**
@@ -33,6 +39,37 @@ public class IOsTest extends TestAbstract
 //    String msfile = "/Users/yuw/Documents/Data/PIIQ/151124_DBH_Mosser_TMT1_MS2_All_V1.msf";
 //    MsfReader.getDataFromThermoMSFFile("test", "", pia);
 //  }
+
+  @Test
+  public void asUniprotFASTA() throws Exception
+  {
+    String                db = "/Users/kfvf960/Apps/pipeline/Chorus/sequences/", tag="rnaseq", species="Homo sapiens";
+    FastaProteinReader fasta = new CustomFastaProteinReader(new File(db+"merged.pep.fasta"));
+    FileWriter             w = new FileWriter(db+"HeLa_pep_UP.fasta");
+    while (fasta.hasNext())
+    {
+//      >MT.A2M.ENST00000318602.missense.749A/S
+//      LVHVEEPHTETVRKYFPETWIWDLVVVNSSGVAEVGVTVPDTITEWKAGAFCLSEDAGL
+      Protein p = fasta.next();
+
+//      >sp|A0A075B6I1|LV460_HUMAN Immunoglobulin lambda variable 4-60 OS=Homo sapiens GN=IGLV4-60 PE=3 SV=1
+//      MAWTPLLLLFPLLLHCTGSLSQPVLTQSSSASASLGSSVKLTCTLSSGHSSYIIAWHQQQ
+//      PGKAPRYLMKLEGSGSYNKGSGVPDRFSGSSSGADRYLTISNLQFEDEADYYCETWDSNT
+//      >tr|A0A075B6I3|A0A075B6I3_HUMAN Immunoglobulin lambda variable 11-55 (non-functional) OS=Homo sapiens GN=IGLV11-55 PE=4 SV=2
+//      MALTPLLLLLLSHCTGSLSRPVLTQPPSLSASPGATARLPCTLSSDLSVGGKNMFWYQQK
+//      LGSSPRLFLYHYSDSDKQLGPGVPSRVSGSKETSSNTAFLLISGLQPEDEADYYCQVYES
+//      SANHSETDEEVGQKPRF
+
+      String[] tokens = Strs.split(p.getAccessionId(), '.', true);
+      w.write(">"+tag+"|"+p.getAccessionId()+" "+p.getAccessionId()+" OS="+species+" GN="+tokens[1]+"\n");
+      for (int i=0; i<p.size(); i+=60)
+      {
+        w.write(p.toSymbolString().substring(i, Math.min(i+60, p.size()))+"\n");
+        if (i+60>p.size()) break;
+      }
+    }
+    fasta.close(); w.close();
+  }
   @Test
   public void mzID2Novor() throws Exception
   {
