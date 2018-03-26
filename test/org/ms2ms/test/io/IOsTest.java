@@ -1,5 +1,6 @@
 package org.ms2ms.test.io;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.expasy.mzjava.proteomics.io.mol.FastaProteinReader;
@@ -16,6 +17,7 @@ import org.ms2ms.io.PsmWriters;
 import org.ms2ms.test.TestAbstract;
 import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
+import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
 
 import java.io.File;
@@ -41,6 +43,32 @@ public class IOsTest extends TestAbstract
 //  }
 
   @Test
+  public void idmapping() throws Exception
+  {
+    // http://www.ensembl.info/2009/01/21/how-to-get-all-the-orthologous-genes-between-two-species/
+    Multimap<String, String> gene_cho = HashMultimap.create();
+
+    String root = "/Users/kfvf960/Apps/pipeline/KB/idmapping/";
+    TabFile cho2mouse = new TabFile(root+"CHO_Mouse_Rat_Ortho_20180207.txt", TabFile.tabb);
+    while (cho2mouse.hasNext())
+    {
+      // Gene stable ID	Transcript stable ID	Gene name	Golden Hamster gene stable ID	Golden Hamster gene name	Mouse gene stable ID	Mouse gene name	Mouse protein or transcript stable ID	Golden Hamster protein or transcript stable ID	Rat gene name	Rat gene stable ID	Rat protein or transcript stable ID
+      // ENSCGRG00001000006	ENSCGRT00001000006	NADH1	ENSMAUG00000000006	ND1	ENSMUSG00000064341	mt-Nd1	ENSMUSP00000080991	ENSMAUP00000000001	Mt-nd1	ENSRNOG00000030644	ENSRNOP00000049172
+
+      if (Strs.isSet(cho2mouse.get("Gene name")) && Strs.isSet(cho2mouse.get("Golden Hamster gene name")))
+      {
+        gene_cho.put(cho2mouse.get("Gene name"), cho2mouse.get("Golden Hamster gene name"));
+      }
+    }
+    cho2mouse.close();
+    FileWriter w = new FileWriter(root+"CHO_Mouse_Rat_20180207.txt");
+    w.write("CHOK1\tHuman\n");
+    for (String gene : gene_cho.keySet())
+      for (String cho : gene_cho.get(gene))
+        w.write(cho+"\t"+gene+"\n");
+    w.close();
+  }
+  @Test
   public void asUniprotFASTA() throws Exception
   {
     String                db = "/Users/kfvf960/Apps/pipeline/Chorus/sequences/", tag="rnaseq", species="Homo sapiens";
@@ -61,7 +89,20 @@ public class IOsTest extends TestAbstract
 //      SANHSETDEEVGQKPRF
 
       String[] tokens = Strs.split(p.getAccessionId(), '.', true);
-      w.write(">"+tag+"|"+p.getAccessionId()+" "+p.getAccessionId()+" OS="+species+" GN="+tokens[1]+"\n");
+      String ac = p.getAccessionId(), name = p.getAccessionId(), misc =" OS="+species+" GN="+tokens[1];
+      // - Warning - accession [MT.ABCC1.ENST00000346370.FS.1422-1426GGACTGCACCGT/G] is longer than 50 characters
+
+      if (ac.length()>49)
+      {
+        ac = "";
+        for (int k=tokens.length-1; k>=0; k--)
+        {
+          if (ac.length()+tokens[k].length()>48) break;
+          ac = Strs.extend(tokens[k],ac, ".");
+        }
+      }
+
+      w.write(">"+tag+"|"+ac+" "+name+misc+"\n");
       for (int i=0; i<p.size(); i+=60)
       {
         w.write(p.toSymbolString().substring(i, Math.min(i+60, p.size()))+"\n");
