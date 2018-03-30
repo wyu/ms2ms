@@ -718,6 +718,16 @@ public class Spectra
 
     return abund;
   }
+  public static double intensity(SortedMap<Double, Peak> peaks, double mz, Tolerance tol)
+  {
+    double abund=0d;
+    SortedMap<Double, Peak> slice = peaks.subMap(tol.getMin(mz), tol.getMax(mz));
+    if (Tools.isSet(slice))
+      for (Peak p : slice.values())
+        abund+=p.getIntensity();
+
+    return abund;
+  }
   public static int precursorByComplements(PeakList ms, Tolerance tol)
   {
     Histogram     precursor = new Histogram("");
