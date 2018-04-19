@@ -24,6 +24,7 @@ import org.ms2ms.data.collect.MultiTreeTable;
 import org.ms2ms.data.ms.MsSpectrum;
 import org.ms2ms.math.Stats;
 import org.ms2ms.r.Dataframe;
+import org.ms2ms.utils.BufferedRandomAccessFile;
 import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;

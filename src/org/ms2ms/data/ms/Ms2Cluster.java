@@ -7,7 +7,7 @@ import org.ms2ms.algo.Peaks;
 import org.ms2ms.algo.Similarity;
 import org.ms2ms.algo.Spectra;
 import org.ms2ms.data.Binary;
-import org.ms2ms.io.BufferedRandomAccessFile;
+import org.ms2ms.utils.BufferedRandomAccessFile;
 import org.ms2ms.io.MsIO;
 import org.ms2ms.math.Stats;
 import org.ms2ms.utils.IOs;

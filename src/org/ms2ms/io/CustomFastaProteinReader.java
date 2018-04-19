@@ -61,4 +61,13 @@ public class CustomFastaProteinReader extends FastaProteinReader
 
     return (parcels);
   }
+
+  public static EnumMap<SeqInfo, String> merge(EnumMap<SeqInfo, String> A, EnumMap<SeqInfo, String> B)
+  {
+    if (A==null) return B;
+    if (B==null) return A;
+
+    A.putAll(B);
+    return A;
+  }
 }
