@@ -341,6 +341,5 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
     mFragment   =IOs.read(ds, mFragment);
 
     mTrack=IOs.readImmutableList(ds, PeakMatch.class);
-
   }
 }
