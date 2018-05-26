@@ -72,22 +72,21 @@ public class PeakMatch extends PeakFragmentMatch implements Copyable<PeakMatch>,
 //    return new PeakMatch(mz, 0.0D, z);
 //  }
 
-  public PeakMatch(double mz, double ai, int z, double snr)
-  {
-//    this.polarity=Polarity.UNKNOWN;
-    this.setValues(mz, ai, z);
-    setSNR(snr);
-  }
+//  public PeakMatch(double mz, double ai, int z, double snr)
+//  {
+//    this.setValues(mz, ai, z);
+//    setSNR(snr);
+//  }
   public PeakMatch(double mz, double ai, int z, double snr, double freq)
   {
     this.setValues(mz, ai, z);
     setSNR(snr).setFrequency(freq);
   }
-  public PeakMatch(double mz, double ai, int z, float snr, IonType type)
-  {
-    this.setValues(mz, ai, z);
-    setSNR(snr); ionType = type;
-  }
+//  public PeakMatch(double mz, double ai, int z, float snr, IonType type)
+//  {
+//    this.setValues(mz, ai, z);
+//    setSNR(snr); ionType = type;
+//  }
   public PeakMatch(PeakMatch peak)
   {
     this.mz=peak.mz;

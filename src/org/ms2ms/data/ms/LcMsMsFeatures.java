@@ -94,7 +94,7 @@ public class LcMsMsFeatures implements Binary
 
       readDinosauer(lcms);
     }
-    catch (IOException ie) { }
+    catch (IOException ie) { ie.printStackTrace(); }
   }
 
   private void initRunFilters(String... runs)

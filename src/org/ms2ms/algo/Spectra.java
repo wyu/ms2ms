@@ -808,36 +808,6 @@ public class Spectra
     }
     return peaks;
   }
-
-  // spectra quality calls if the precursor was taken from high-c13 peaks
-//  public static boolean isC13Skew(PeakList ms, double ppm, double ratio, double pct)
-//  {
-//    // when an high-c13 peak was isolated as precursor, we will see more c13 peaks even from low-mass fragment
-//    // require de-isotoping call first to ID likely c13 peaks
-//    boolean isC13=false, wasC12=true;
-//    for (int i=0; i<ms.size(); i++)
-//    {
-//      if (ms.getAnnotations())
-//      isC13 = Peaks.hasC13(ms.getAnnotations(i));
-//
-//      if (isC13 && wasC12) goods++;
-//
-//      if (ms.getMz(i)>ms.getPrecursor().getMz()+2)
-//      {
-//        above_precursor++;
-//        if (isC13 && wasC12) above_precursor_good++;
-//      }
-//      wasC12=(!isC13);
-//
-//      if (reporter_range!=null && reporter_range.contains(ms.getMz(i)))
-//      {
-//        reporters++;
-//        if (ms.getIntensity(i)<reporter_low) reporter_low=ms.getIntensity(i);
-//      }
-//      if (ms.getIntensity(i)<global_low) global_low=ms.getIntensity(i);
-//    }
-//    return false;
-//  }
   // spectra quality calls if there are >times pairs of peaks <split away while having AI-ratio<ratio
   public static boolean hasPeakSplitting(PeakList ms, double ppm, double ratio, double pct)
   {
@@ -856,7 +826,6 @@ public class Spectra
           occurances++;
       }
       if (goods>0 && 200*occurances/goods>pct) return true;
-//      System.out.println("   " + occurances + "/" + (int) (ms.size() * 0.5) + "/" + (Tools.d2s(200 * occurances/ms.size(), 1)));
     }
     return false;
   }
@@ -918,30 +887,6 @@ public class Spectra
 
     return stats;
   }
-//  public static MsnSpectrum prepare(MsnSpectrum ms, Tolerance precision, boolean self_calibration, double peak_transform, boolean verbose)
-//  {
-////    PeakList deisotoped = Spectra.deisotope(ms, precision, 3, 350d);
-//    boolean skewed_iso = Spectra.deisotope(ms, precision, 3, 350d);
-//
-////    PeakList deisotoped = Spectra.toRegionalRanks(ms.copy(new PurgingPeakProcessor()), 7);
-////    PeakList deisotoped = Spectra.toRegionalPercentile(ms.copy(new PurgingPeakProcessor()), 7);
-//    PeakList deisotoped = Spectra.toRegionalNorm(ms.copy(new PurgingPeakProcessor()), 7, peak_transform); // with sqrt transform
-//    // perform self-calibration using small fragments that are likely to show up in most of the TMT-labelled spectra
-//    if (self_calibration)
-//      deisotoped = Spectra.calibrate(deisotoped, self_calibrate_offset(deisotoped, new OffsetPpmTolerance(15d), 175.11949,230.170757d,376.27627));
-//
-//    if (verbose)
-//    {
-//      System.out.println("#peaks: " + deisotoped.size());
-//      for (int i=0; i<deisotoped.size(); i++)
-//        System.out.println(i+"\t"+ Strs.toStrings(deisotoped.getAnnotations(i))+"\t\t"+
-//            Tools.d2s(deisotoped.getMz(i),8)+"\t"+Tools.d2s(deisotoped.getIntensity(i), 2));
-//    }
-//
-//    ms.clear(); ms.addPeaks(deisotoped); if (skewed_iso) ms.setMsLevel(-1);
-//
-//    return ms;
-//  }
   public static MsnSpectrum purgeC13(MsnSpectrum ms)
   {
     if (ms!=null && ms.size()>0)

@@ -1,6 +1,5 @@
 package org.ms2ms.data.ms;
 
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
@@ -240,7 +239,7 @@ public class ScoreModel implements Binary
     for (eType t : mDecoys.keySet())
     {
       buf.append(t.toString()+"\n");
-      buf = mDecoys.get(t).wikiHistogram(buf);
+      buf = mDecoys.get(t).wikiHistogram(buf, true);
     }
 
     return buf;
