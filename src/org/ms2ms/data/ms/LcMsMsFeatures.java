@@ -7,6 +7,7 @@ import org.ms2ms.data.Features;
 import org.ms2ms.data.collect.MultiTreeTable;
 import org.ms2ms.math.Stats;
 import org.ms2ms.r.Dataframe;
+import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
@@ -14,6 +15,8 @@ import org.ms2ms.utils.Tools;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -87,7 +90,7 @@ public class LcMsMsFeatures implements Binary
 
       readMaxquantMS1(     new TabFile(mq+"/msScans.txt", "\t"));
       readMaxquantMsMs(    new TabFile(mq+"/msmsScans.txt", "\t"));
-      readMaxquantFeatures(new TabFile(mq+"/allPeptides.txt", "\t"));
+      if (IOs.exists(mq+"/allPeptides.txt")) readMaxquantFeatures(new TabFile(mq+"/allPeptides.txt", "\t"));
       readMaxquantEvidence(new TabFile(mq+"/evidence.txt", "\t"));
 
       Peptides2Ions();
@@ -142,26 +145,6 @@ public class LcMsMsFeatures implements Binary
 
       Features F = addMaxquantPSM(addMaxquantCore(new Features(), features), features);
 
-//      Double mz = features.getDouble("m/z"), rt = features.getDouble("Retention time");
-//      // add the features
-//      Features F = new Features();
-//      F.add(COL_MZ,       mz);
-//      F.add(COL_RT,       rt);
-//      F.add(COL_SCAN,     features.getInt("Scan number"));
-//      F.add(COL_Z,        features.getInt("Charge"));
-//      F.add(COL_MASS,     features.getDouble("Mass"));
-//      F.add(COL_AI_APEX,  features.getDouble("Precursor intensity"));
-//      F.add(COL_RUN,      features.get("Raw file"));
-
-//      if (features.getInt("MS/MS IDs")>0)
-//      {
-//        F.add(COL_PSMID, features.getInt("MS/MS IDs"));
-//        F.add(COL_SEQ, features.get("Sequence"));
-//        F.add(COL_PROT, features.get("Proteins"));
-//        if (!"Unmodified".equals(features.get("Modifications"))) F.add(COL_MOD, features.get("Modifications"));
-//      }
-
-//      mMsMs.put(mz,rt, F);
       mMsMs.put(    F.getDouble(COL_MZ),   F.getDouble(COL_RT), F);
       mScan_MS2.put(F.getInt(   COL_SCAN), F.getStr(  COL_RUN), F);
 
@@ -271,7 +254,7 @@ public class LcMsMsFeatures implements Binary
   public void readMaxquantFeatures(TabFile features) throws IOException
   {
     // initiate the collections
-    if (mIons    ==null) mIons     = TreeBasedTable.create();
+    if (mIons==null) mIons = TreeBasedTable.create();
 
     System.out.println("Reading the features from "+features.getFileName()); int counts=0;
     while (features.hasNext())
@@ -286,31 +269,6 @@ public class LcMsMsFeatures implements Binary
       Features F = addMaxquantPSM(addMaxquantCore(new Features(), features), features);
       F.add(COL_PSMID, Long.parseLong(F.getStr(COL_PSMID)));
       F.add(COL_AI_APEX,  features.getDouble("Intensity"));
-
-//      Double mz = features.getDouble("m/z"), rt = features.getDouble("Retention time");
-//      // add the features
-//      Features F = new Features();
-//
-//      F.add(COL_MZ, mz).add(COL_RT, rt);
-//      F.add(COL_Z,        features.getInt("Charge"));
-//      F.add(COL_MASS,     features.getDouble("Mass"));
-//      F.add(COL_PPM,     features.getDouble("Mass precision [ppm]"));
-//      F.add(COL_AI_APEX,  features.getDouble("Intensity"));
-//      F.add(COL_RT_BOUND, Range.closed(
-//          mScan_RT.get(features.getInt("Min scan number"), features.get("Raw file")),
-//          mScan_RT.get(features.getInt("Max scan number"), features.get("Raw file"))));
-//      F.add(COL_SCAN_BOUND, Range.closed(features.getInt("Min scan number"), features.getInt("Max scan number")));
-//      F.add(COL_RUN,      features.get("Raw file"));
-//      F.add(COL_PSMID,    features.getInt("MS/MS IDs"));
-//      F.add(COL_SCORE,    features.getInt("Score"));
-//
-//      if (Strs.isSet(features.get("Sequence")))
-//      {
-//        F.add(COL_SEQ,  features.get("Sequence"));
-//        F.add(COL_PEPTIDE, features.get("Modified sequence"));
-//        F.add(COL_PROT, features.get("Proteins"));
-//        if (Strs.isSet(features.get("Modifications"))) F.add(COL_MOD,  features.get("Modifications"));
-//      }
 
       mIons.put(F.getDouble(COL_RT), F.getDouble(COL_MZ), F);
 
@@ -339,8 +297,6 @@ public class LcMsMsFeatures implements Binary
     System.out.println("Reading the features from "+features.getFileName()); int counts=0;
     while (features.hasNext())
     {
-//      if (!okRun(features.get("Raw file"))) continue;
-
       // mz      mostAbundantMz  charge  rtStart rtApex  rtEnd   fwhm    nIsotopes       nScans  averagineCorr   mass    massCalib       intensityApex   intensitySum
       //Map<String, String> row  = features.nextRow();
 
@@ -472,20 +428,20 @@ public class LcMsMsFeatures implements Binary
 
     return this;
   }
-  // remember m/z first
-  private LcMsMsFeatures addMsMs(Double rt, Double mz, String key, Object val)
-  {
-    if (mMsMs==null) mMsMs = TreeBasedTable.create();
-    // add the feature if not present
-    Features F = mMsMs.get(mz, rt);
-    if (F==null)
-    {
-      F = new Features(); mMsMs.put(mz, rt, F);
-    }
-    F.add(key, val);
-
-    return this;
-  }
+//  // remember m/z first
+//  private LcMsMsFeatures addMsMs(Double rt, Double mz, String key, Object val)
+//  {
+//    if (mMsMs==null) mMsMs = TreeBasedTable.create();
+//    // add the feature if not present
+//    Features F = mMsMs.get(mz, rt);
+//    if (F==null)
+//    {
+//      F = new Features(); mMsMs.put(mz, rt, F);
+//    }
+//    F.add(key, val);
+//
+//    return this;
+//  }
 
   public TreeMultimap<Double, Features> getFeaturesByIntensity()
   {

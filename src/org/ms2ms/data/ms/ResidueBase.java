@@ -34,7 +34,6 @@ public class ResidueBase implements Cloneable
   private Map<String, Float> mDenovoModAAs;
 
   private float[] mAAs;
-//  private Range<Double> mModBound = Range.closed(-300d, 250d); // move it down to -300 to allow for K+TMT loss
 
   private NumericalModVault mModVault;
 
@@ -206,8 +205,6 @@ public class ResidueBase implements Cloneable
     sExactMods.put("^", "C", -17.026549d);
     sExactMods.put("*", "K", Peptides.TMT10*-1d); // unmodified K by TMT6/10
 
-//    mModVault = new NumericalModVault();
-
     mDenovoModAAs = Peptides.modAAsMass("TMT6plex:K/^","Oxidation:M");
     mDenovoModAAs.remove("^"); mDenovoModAAs.remove("$"); mDenovoModAAs.remove("^^TMT6plex"); mDenovoModAAs.remove("K");
 
@@ -230,12 +227,9 @@ public class ResidueBase implements Cloneable
     buf = Tools.printParam(buf, "NTmods", Strs.toString(mNTmods, ","), "");
     buf = Tools.printParam(buf, "CTmods", Strs.toString(mCTmods, ","), "");
 
-//    buf = Tools.printParam(buf, "ModBound", mModBound.toString(), "");
-
     buf = Tools.printParam(buf, "VarAAMods", mVarAAMods4Exact, "");
     buf = Tools.printParam(buf, "sVarMods", sVarMods, "");
 
-//    private NumericalModVault mModVault;
     buf.append("ExactMods\n");
     for (String row : sExactMods.keySet())
     {
@@ -263,7 +257,6 @@ public class ResidueBase implements Cloneable
     cloned.mNTmods=mNTmods;
     cloned.mCTmods=mCTmods;
 
-//    if (mModBound    !=null) cloned.mModBound     = Range.closed(mModBound.lowerEndpoint(), mModBound.upperEndpoint());
     if (mDenovoModAAs!=null) cloned.mDenovoModAAs = new HashMap<>(mDenovoModAAs);
     if (mAACt!=null) cloned.mAACt = new TreeMap<>(mAACt);
 

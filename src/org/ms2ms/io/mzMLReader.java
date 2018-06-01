@@ -37,6 +37,7 @@ public class mzMLReader extends mzReader
     if (Tools.isSet(searches))
       for (String s : searches)
       {
+//        data = mzMLReader.inferPrecursorsFromMS2(data, s).init(true);
         data = readScanInfo(data, s).init(true);
         data = mzMLReader.readPeptideFeatures(data, ppm, dRT, s).init(true);
       }
@@ -143,6 +144,30 @@ public class mzMLReader extends mzReader
         }
       }
 
+    return out;
+  }
+  public static Dataframe inferPrecursorsFromMS2(Dataframe out, String filename) throws IOException
+  {
+    System.out.println("Reading "+filename+"...");
+
+    File file = new File(filename); String run = file.getName().substring(0,file.getName().indexOf('.'));
+    MzMLUnmarshaller mzml = new MzMLUnmarshaller(file, false, null);
+
+    // looping through the scans
+    MzMLObjectIterator<uk.ac.ebi.jmzml.model.mzml.Spectrum> spectrumIterator = mzml.unmarshalCollectionFromXpath("/run/spectrumList/spectrum", uk.ac.ebi.jmzml.model.mzml.Spectrum.class);
+
+    if (out==null) out = new Dataframe(filename);
+    while (spectrumIterator.hasNext())
+    {
+      MsnSpectrum ms = MsReaders.from(spectrumIterator.next(), false);
+      if (ms.getMsLevel()==2)
+      {
+        Spectra.precursorByComplements(ms, null);
+
+      }
+      String row = filename+"#"+ms.getScanNumbers().getFirst().getValue();
+      out.put(row, "Scan",       ms.getScanNumbers().getFirst().getValue());
+    }
     return out;
   }
 }

@@ -739,7 +739,7 @@ public class Spectra
       for (int j=0; j< ms.size(); j++)
         if (i!=j)
         {
-          double m = ms.getMz(i)+ms.getMz(j) + 1.007825d;
+          double m = ms.getMz(i)+ms.getMz(j) - 1.007825d;
           if (isolation.contains(m)) precursor.add(m);
         }
 
@@ -747,6 +747,31 @@ public class Spectra
 
     return 0;
   }
+//  // to reproduce the QCorr algorithm from Yates's lab
+//  public static int QCorr(PeakList ms, Tolerance tol, Range<Double> isolation, double step)
+//  {
+//    List<Peak> forward = toListOfPeaks(ms), reversed = Lists.reverse(forward);
+//    for (double p = isolation.lowerEndpoint(); p<=isolation.upperEndpoint(); p+=step)
+//    {
+//
+//    }
+//    Histogram     precursor = new Histogram("");
+//    double               mh = Peaks.toMH(ms.getPrecursor());
+//    Range<Double> isolation = Range.closed(mh-1.5, mh+2.5);
+//
+////    List<Double> masses = new ArrayList<>();
+//    for (int i=0; i<ms.size(); i++)
+//      for (int j=0; j< ms.size(); j++)
+//        if (i!=j)
+//        {
+//          double m = ms.getMz(i)+ms.getMz(j) + 1.007825d;
+//          if (isolation.contains(m)) precursor.add(m);
+//        }
+//
+//    precursor.generate(50);
+//
+//    return 0;
+//  }
   public static SortedMap<Double, Peak> toPeaks(PeakList ms)
   {
     // walking thro the peaks and recording the matching peaks
