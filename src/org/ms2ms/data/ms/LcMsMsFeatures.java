@@ -1,10 +1,13 @@
 package org.ms2ms.data.ms;
 
 import com.google.common.collect.*;
+import org.apache.commons.math3.fitting.WeightedObservedPoint;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
+import org.ms2ms.algo.PeptideLC;
 import org.ms2ms.data.Binary;
 import org.ms2ms.data.Features;
 import org.ms2ms.data.collect.MultiTreeTable;
+import org.ms2ms.math.Fitted;
 import org.ms2ms.math.Stats;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.IOs;
@@ -602,6 +605,89 @@ public class LcMsMsFeatures implements Binary
 
     Double avg = Stats.mean(nums); nums=Tools.dispose(nums);
     return avg;
+  }
+  public Multimap<String, Double> toPeptideRt()
+  {
+    if (!Tools.isSet(getIons())) return null;
+
+    Multimap<String, Double> peptide_rt = HashMultimap.create();
+    for (Features F : getIons().values())
+    {
+      if (F.get(LcMsMsFeatures.COL_PEPTIDE)!=null)
+        peptide_rt.put(F.getStr(LcMsMsFeatures.COL_SEQ), F.getDouble(LcMsMsFeatures.COL_RT));
+    }
+    return peptide_rt;
+  }
+  public Multimap<String, Double> toResidualNET(Multimap<String, Double> H)
+  {
+    Multimap<String, Double> peptides = toPeptideRt();
+
+    // first test oRf LsRT port
+    Map<String, Double> predicted = PeptideLC.SSRCalc3(peptides.keySet());
+
+    // no more than 15, up to the size-2
+    List<WeightedObservedPoint> Rs = new ArrayList<>();
+    for (String peptide : predicted.keySet())
+      for (Double rt : peptides.get(peptide))
+        Rs.add(new WeightedObservedPoint(1, rt, predicted.get(peptide)));
+
+    // quadratic fit is not suitable because of the possibility of curving back up at higher score. Even though the fit is often better.
+    Fitted fit = new Fitted().fit(1, Rs);
+
+    // convert the observed RT to predicted H
+    Multimap<String, Double> devi = HashMultimap.create();
+    for (String peptide : predicted.keySet())
+      for (Double rt : peptides.get(peptide))
+      {
+        double Hi = fit.polynomial(rt);
+        if (H!=null) H.put(peptide, Hi);
+        devi.put(peptide,Hi-predicted.get(peptide));
+      }
+
+    return devi;
+  }
+
+  // convert the RT to the residual NET (normalized elution time) values
+  public MultiTreeTable<String, String, Measurable> toResidualNETByRun()
+  {
+    if (!Tools.isSet(getIons())) return null;
+
+    MultiTreeTable<String,String, Measurable> run_peptide_rt = MultiTreeTable.create();
+
+    for (Features F : getIons().values())
+    {
+      if (F.get(LcMsMsFeatures.COL_PEPTIDE)!=null)
+        run_peptide_rt.put(F.getStr(COL_RUN), F.getStr(COL_SEQ), Measurable.newRt(F.getDouble(COL_RT)));
+    }
+
+    // perform the NET conversion and residual for each run
+    for (String run : run_peptide_rt.keySet())
+    {
+      // first test of LsRT port
+      Map<String, Double> predicted = PeptideLC.SSRCalc3(run_peptide_rt.row(run).keySet());
+
+      // no more than 15, up to the size-2
+      List<WeightedObservedPoint> Rs = new ArrayList<>();
+      for (String peptide : predicted.keySet())
+        for (Measurable rt : run_peptide_rt.row(run).get(peptide))
+          Rs.add(new WeightedObservedPoint(1, rt.value, predicted.get(peptide)));
+
+      // quadratic fit is not suitable because of the possibility of curving back up at higher score. Even though the fit is often better.
+      Fitted fit = new Fitted().fit(1, Rs);
+
+      // convert the observed RT to predicted H
+      for (String peptide : predicted.keySet())
+        for (Measurable rt : run_peptide_rt.row(run).get(peptide))
+        {
+          double Hi = fit.polynomial(rt.value);
+          // transform the raw RT to NET first
+          rt.transform(Hi, Measurable.eType.CALC, Measurable.eUnit.NET);
+          // again to the residual
+          rt.transform(Hi-predicted.get(peptide), Measurable.eType.RESIDUAL, Measurable.eUnit.NET);
+        }
+    }
+
+    return run_peptide_rt;
   }
   @Override
   public void write(DataOutput ds) throws IOException

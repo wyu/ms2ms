@@ -5,12 +5,12 @@ import org.expasy.mzjava.stats.Histogram;
 import org.ms2ms.algo.MsStats;
 import org.ms2ms.utils.Tools;
 
-/**
- * User: hliu
+/** Sage: Empirical Bayes?
+ *
  * Date: 8/9/14
  * Time: 8:59 AM
  */
-public class BayesGuru
+public class Sage
 {
     private String        mTitle;
     private int           mBins = 50;
@@ -18,8 +18,8 @@ public class BayesGuru
     private Histogram     mPositives, mNegatives;
     private double[]      mTransitXs, mTransitYs;
 
-    public BayesGuru() { super(); }
-    public BayesGuru(String title, Range<Double> bound, int bins)
+    public Sage() { super(); }
+    public Sage(String title, Range<Double> bound, int bins)
     {
       super();
       mTitle=title; mBins=bins; mBound=bound;
