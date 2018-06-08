@@ -127,6 +127,7 @@ public class ScoreModel implements Binary
 
     return this;
   }
+  // simulate for the null distribution
   public Histogram bootstrapping(int samples, double jitter, double extension, double trypicity, Boolean decoy, eType C, eType N)
   {
     List<Double> Nc=new ArrayList<>(), Cc=new ArrayList<>();
@@ -165,8 +166,6 @@ public class ScoreModel implements Binary
       double nt = Nc.get(RND.nextInt(Nc.size())), ct = Cc.get(RND.nextInt(Cc.size())),
             enz = sTrypicity[RND.nextInt(sTrypicity.length)]*trypicity;
 
-//      if (nt<extension/10) nt += RND.nextDouble()*extension;
-//      if (ct<extension/10) ct += RND.nextDouble()*extension;
       combo.add(nt+ct+RND.nextDouble()*jitter+enz);
     }
     combo.generate(25);
@@ -175,8 +174,6 @@ public class ScoreModel implements Binary
     Cc=(List )Tools.dispose(Cc);
 
     return combo;
-//    // prepare for the e-val calculation
-//    return combo.fitEval((int )(samples*0.05d));
   }
   public ScoreModel addExactDecoy(double s) { return add(s, eType.exact); }
   public ScoreModel addOpenDecoy( double s) { return add(s, eType.open); }

@@ -1,51 +1,48 @@
 package org.ms2ms.test;
 
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
-import org.apache.commons.math3.fitting.WeightedObservedPoint;
 import org.junit.Test;
 import org.ms2ms.algo.PeptideLC;
 import org.ms2ms.data.Features;
 import org.ms2ms.data.ms.LcMsMsFeatures;
 import org.ms2ms.data.ms.OffsetPpmTolerance;
-import org.ms2ms.math.Fitted;
-import org.ms2ms.utils.Tools;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import org.ms2ms.utils.Strs;
 
 public class RtPredictTest extends TestAbstract
 {
+//  String[] mods = Strs.toStringArray("Oxidation (M)","Unmodified","Deamidation (NQ)");
+  String[] mods = Strs.toStringArray("Unmodified");
+
   @Test
   public void LsRPbyDevi()
   {
-    Multimap<String, Double> devis = example1D().toResidualNET(null);
-    PeptideLC.screenSVR(PeptideLC.SVRprobs(devis, 1f, false),
-        Range.closed(-8d,8d), Range.closed(-8d,8d), Range.closed(-3d,-1d));
+    Multimap<String, Double> devis = example2D().toResidualNET(null);
+    PeptideLC.screenSVR(PeptideLC.SVRprobs(devis, 1f, false),1, 5,
+        Range.closed(4d,6d), Range.closed(-5d,-3d), Range.closed(-5d,-3d));
   }
   @Test
   public void FitDeviByLsRP()
   {
     Multimap<String, Double> devis = example1D().toResidualNET(null);
-    PeptideLC.fitSVR(PeptideLC.SVRprobs(devis, 0.8f, false),6,-5,-3);
+    PeptideLC.fitSVR(PeptideLC.SVRprobs(devis, 0.8f, false),5,-4,-3);
   }
   @Test
   public void SSRcalc()
   {
     // first test of LsRT port
-    Multimap<String, Double> peptides = example1D().toPeptideRt();
-    PeptideLC.SSRCalc3(peptides.keySet());
+    Multimap<String, Double> peptides = example1D().toPeptideRt(10d, mods);
+    PeptideLC.SSRCalc(peptides.keySet());
   }
   @Test
   public void LsRPv1()
   {
     // first test of LsRT port
-    Multimap<String, Double> peptides = example1D().toPeptideRt();
+    Multimap<String, Double> peptides = example1D().toPeptideRt(10d, mods);
 
-    PeptideLC.screenSVR(PeptideLC.SVRprobs(peptides, 1f, true),
-        Range.closed(-8d,8d), Range.closed(-8d,8d), Range.closed(-3d,-1d));
+//    PeptideLC.screenSVR(PeptideLC.SVRprobs(peptides, 1f, true),
+//        1, Range.closed(2d,8d), Range.closed(-8d,-2d), Range.closed(-3d,-1d));
+    PeptideLC.fitSVR(PeptideLC.SVRprobs(peptides, 0.8f, true),8, -6, -1);
   }
   @Test
   public void LCwidth()
@@ -63,6 +60,12 @@ public class RtPredictTest extends TestAbstract
       }
     }
   }
+  private LcMsMsFeatures example2D()
+  {
+    return new LcMsMsFeatures(
+        "/Users/kfvf960/OneDrive - AZCollaboration/contrib/data/Plasma.Mann/txt.20171226",
+        new OffsetPpmTolerance(15), "20150227_QEp1_LC7_GaPi_SA_PlasmaDepleted_.*","20141029_QEp1_LC7_NiKu_SA_Plasma_male1_.*");
+  }
   private LcMsMsFeatures example1D()
   {
     return new LcMsMsFeatures(
@@ -73,7 +76,7 @@ public class RtPredictTest extends TestAbstract
 //  private Multimap<String, Double> deviFromSSRcalc(Multimap<String, Double> peptides, Multimap<String, Double> H)
 //  {
 //    // first test oRf LsRT port
-//    Map<String, Double> predicted = PeptideLC.SSRCalc3(peptides.keySet());
+//    Map<String, Double> predicted = PeptideLC.SSRCalc(peptides.keySet());
 //
 //    // no more than 15, up to the size-2
 //    List<WeightedObservedPoint> Rs = new ArrayList<>();

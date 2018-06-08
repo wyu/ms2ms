@@ -1,9 +1,13 @@
 package org.ms2ms.splib;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import org.expasy.mzjava.stats.Histogram;
 import org.ms2ms.algo.MsStats;
 import org.ms2ms.utils.Tools;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /** Sage: Empirical Bayes?
  *
@@ -61,13 +65,13 @@ public class Sage
       if (mPositives == null || mNegatives == null)
         throw new RuntimeException("The positive and/or negative population not specified");
 
-      mTransitXs=new double[mBins*2]; mTransitYs=new double[mBins*2];
+      List<Double> tX = new ArrayList<>(), tY = new ArrayList<>();
 
       // normalize the frequency to the total area of 1
       mPositives.normalize(new Histogram.Normalization(Histogram.Normalization.NormType.BINS_CUMUL, 1d));
       mNegatives.normalize(new Histogram.Normalization(Histogram.Normalization.NormType.BINS_CUMUL, 1d));
 
-      double xstep = (mBound.upperEndpoint()-mBound.lowerEndpoint()) / (mBins*2d); int i=0;
+      double xstep = (mBound.upperEndpoint()-mBound.lowerEndpoint()) / (mBins*2d);
       for (double x=mBound.lowerEndpoint(); x <= mBound.upperEndpoint(); x += xstep)
       {
         double pd_pos = mPositives.getAbsoluteBinFreq(mPositives.getBinIndex(x)),
@@ -80,9 +84,30 @@ public class Sage
 
         if (!Double.isNaN(p))
         {
-          mTransitXs[i]=x; mTransitYs[i]=p;
+          tX.add(x); tY.add(p);
         }
-        i++;
       }
+      mTransitXs = Tools.toDoubleArray(tX); mTransitYs = Tools.toDoubleArray(tY);
+    }
+    public StringBuffer df()
+    {
+      StringBuffer buf = new StringBuffer();
+
+      toTransition(1d,1d);
+      // dump the pos and neg
+      for (int i=0; i<getPositives().size(); i++)
+        buf.append(i+"\t"+(i*getPositives().getBinWidth()+mBound.lowerEndpoint())+"\t"+getPositives().getRelativeBinFreq(i)+"\tPositive\n");
+      for (int i=0; i<getNegatives().size(); i++)
+        buf.append(i+"\t"+(i*getNegatives().getBinWidth()+mBound.lowerEndpoint())+"\t"+getNegatives().getRelativeBinFreq(i)+"\tNegative\n");
+
+      // lookup the transition
+      double step = (mBound.upperEndpoint()-mBound.lowerEndpoint())/100d;
+      for (int i=0; i<100; i++)
+      {
+        double rt = mBound.lowerEndpoint() + i*step;
+        buf.append(i+"\t"+rt+"\t"+lookup(rt, 1d,1d)+"\tTransition\n");
+      }
+
+      return buf;
     }
 }

@@ -16,7 +16,8 @@ public class MsStats extends Stats
 {
   public static Histogram newHistogram(String title, int bins, Range<Double> bound)
   {
-    HistogramImpl hist=new HistogramImpl(bins, bound!=null?bound.lowerEndpoint():0d, bound!=null?bound.upperEndpoint():1d);
+    HistogramImpl hist = (bound!=null?new HistogramImpl(bins,
+        (bound.upperEndpoint()-bound.lowerEndpoint())/(double )bins, bound.lowerEndpoint()): new HistogramImpl());
     hist.setName(title);
 
     return hist;

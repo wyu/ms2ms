@@ -23,7 +23,7 @@ public class PeptideLC
 //    were figured out via 3-fold internal cross-validation, with C ∈ {2i | i∈ {−8,−7,…,8}}, γ ∈ {2i |i∈ {−8,−7,…,8}},
 //    ε ∈ {10i |i∈ {−3,−2,−1}}.
   }
-  public static Map<String, Double> SSRCalc3(Collection<String> peptides)
+  public static Map<String, Double> SSRCalc(Collection<String> peptides)
   {
     if (!Tools.isSet(peptides)) return null;
 
@@ -31,6 +31,7 @@ public class PeptideLC
     for (String peptide : peptides)
     {
       predicted.put(peptide, Peptides.getHydrophobicity3(peptide));
+//      predicted.put(peptide, Peptides.getHydrophobicity(peptide.toCharArray(), peptide.length()));
     }
 
     return predicted;
@@ -103,11 +104,8 @@ public class PeptideLC
       if (nodes==null) continue;
 
       Collection<Double> rts = by_peptide?Arrays.asList(Stats.mean(peptide_rt.get(peptide))):peptide_rt.get(peptide);
-      for (Double rt : rts)
-      {
-        if (RND.nextDouble()<split) { x.add(nodes);  y.add(rt); }
-        else                       { x1.add(nodes); y1.add(rt); }
-      }
+      if (RND.nextDouble()<split) { for (Double rt : rts) { x.add( nodes);  y.add(rt); } }
+      else                        { for (Double rt : rts) { x1.add(nodes); y1.add(rt); } }
     }
     if (!Tools.isSet(x) || !Tools.isSet(y) || x.size()!=y.size()) return null;
 
@@ -145,10 +143,10 @@ public class PeptideLC
   }
 
   // split the peptides into train and test according to the ratio
-  public static void screenSVR(svm_problem[] probs, Range<Double> C, Range<Double> G, Range<Double> E)
+  public static void screenSVR(svm_problem[] probs, double step, int fold, Range<Double> C, Range<Double> G, Range<Double> E)
   {
     svm_parameter param = newSVRparam(1,1,0.1);
-    screenSVRparam(probs[0], param, 3, C,G,E);
+    screenSVRparam(probs[0], param, fold, step, C,G,E);
 //      xvalidateSVR(prob, param, 3);
   }
 
@@ -156,20 +154,29 @@ public class PeptideLC
   {
     System.out.println("Prob. model for test data: target value = predicted value + z,\nz: Laplace distribution e^(-|z|/sigma)/(2sigma),sigma="+svm.svm_get_svr_probability(model)+"\n");
 
+    double total_error = 0, sumv = 0, sumy = 0, sumvv = 0, sumyy = 0, sumvy = 0;
     for (int i=0; i<prob.l; i++)
     {
-      double v = svm.svm_predict(model,prob.x[i]);
+      double v = svm.svm_predict(model,prob.x[i]), y=prob.y[i];
       System.out.println(Tools.d2s(prob.y[i], 2)+"\t"+Tools.d2s(v, 2));
+      total_error += (v-y)*(v-y);
+      sumv += v;
+      sumy += y;
+      sumvv += v*v;
+      sumyy += y*y;
+      sumvy += v*y;
     }
+    System.out.println("r2="+ ((prob.l*sumvy-sumv*sumy)*(prob.l*sumvy-sumv*sumy))/
+        ((prob.l*sumvv-sumv*sumv)*(prob.l*sumyy-sumy*sumy)) + ", errors = "+total_error/prob.l);
   }
   private static void screenSVRparam(svm_problem prob, svm_parameter param, int nr_fold,
-                                     Range<Double> C, Range<Double> G, Range<Double> E)
+                                     double step, Range<Double> C, Range<Double> G, Range<Double> E)
   {
     // with C ∈ {2i | i∈ {−8,−7,…,8}}, γ ∈ {2i |i∈ {−8,−7,…,8}}, ε ∈ {10i |i∈ {−3,−2,−1}}.
     double[] best=null; StringBuffer buf = new StringBuffer();
-    for (double c0=C.lowerEndpoint(); c0<=C.upperEndpoint(); c0++)
-      for (double g0=G.lowerEndpoint(); g0<=G.upperEndpoint(); g0++)
-        for (double e0=E.lowerEndpoint(); e0<=E.upperEndpoint(); e0++)
+    for (double     c0=C.lowerEndpoint(); c0<=C.upperEndpoint(); c0+=step)
+      for (double   g0=G.lowerEndpoint(); g0<=G.upperEndpoint(); g0+=step)
+        for (double e0=E.lowerEndpoint(); e0<=E.upperEndpoint(); e0+=step)
         {
           param.C = Math.pow(2d, c0);
           param.gamma = Math.pow(2d, g0);

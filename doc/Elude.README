@@ -1,0 +1,87 @@
+$ elude -h > /tmp/elude.txt
+Elude version 3.02.0, Build Date Feb  2 2018 15:54:33
+Distributed under MIT License
+Written by Lukas Kall (lukas.kall@scilifelab.se) and Luminita Moruz (lumi.moruz@gmail.com)
+Usage:
+   elude [options]
+
+
+Usage:
+   elude [-t "train data file" ] [-l "retention model"]
+Where input file is the file including the test data; output file
+the output will be written (ensure to have read and write access on the file).
+
+Options:
+ -h
+ --help                        Display this message
+ -v <level>
+ --verbose <level>             Set verbosity of output: 0 = no processing info,
+                               5 = all, default is 2.
+ -t <filename>
+ --train <filename>            Specifies the file including the training data.
+ -e <filename>
+ --evaluate <filename>         Specifies the file including the test data.
+ -s <filename>
+ --save-model <filename>       Specifies the file in which the model will be
+                               saved.
+ -l <filename>
+ --load-model <filename>       Specifies a file including a SVR model to be
+                               loaded.
+ -o <filename>
+ --out <filename>              File to save the ions.
+ -a
+ --auto                        The SVR model is selected automatically from the
+                               library.
+ -b <filename>
+ --lib-path <filename>         Specifies the path to the library.
+ -d
+ --append                      Append current model to library.
+ -j
+ --no_linear_adjust            The model will NOT be linearly adjusted.
+ -c <value>
+ --lts-coverage <value>        Specifies the fraction of data used in
+                               calibrating a model via LTS. This option is not
+                               valid when the -j option is used.
+ -u
+ --unique                      Remove all redundant peptides from the test set
+ -k
+ --common                      Remove the peptides from the train that are also
+                               in the test set
+ -y
+ --no-in-source                Specifies that in source fragments should be
+                               removed from the test set.This option can be used
+                               only when the test set includes retention time.
+ -i <filename>
+ --save-in-source <filename>   The file where the detected in source fragments
+                               are stored
+ -z <value>
+ --enzyme <value>              The enzyme used for digestion. Possible values
+                               {NO_ENZYME,TRYPSIN,CHYMOTRYPSIN,ELASTASE}.By
+                               default: TRYPSIN
+ -x
+ --remove-non-enzymatic        All non enzymatic peptides will be removed from
+                               both train and test.The option is available only
+                               when the sequence is given as A.XXX.B
+ -r <filename>
+ --retention-index <filename>  File to save the trained retention index.
+ -f
+ --context-format              The peptides are given in the format A.XXX.B,
+                               where XXX is thepeptide sequence and A and B are
+                               the previous and next amino acidin the protein
+                               sequence. If the peptide is at the beginning
+                               (end)of the protein, then A(B) will be -.
+ -g
+ --test-rt                     The test file includes rt. In this case the in
+                               source-fragments inthe test data can be detected
+                               and various performance measures forthe test data
+                               will be displayed.
+ -p
+ --ignore-ptms                 If there are ptms in the test set that were not
+                               present when training the model, they will be
+                               ignored and the index value of the unmodified
+                               amino acid is used
+ -n
+ --index-only                  Calculate only the hydrophobicity index
+ -w
+ --supress-print               Supress the final printing of the predictions
+

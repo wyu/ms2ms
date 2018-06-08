@@ -443,6 +443,36 @@ public class Peptides
     else
       return h - .3 * (h - 38);
   }
+  // a version for peptide String
+  public static double getHydrophobicity(char[] bytes, int n)
+  {
+    double kl = 1;
+
+    if (n < 10)
+      kl = 1 - 0.027 * (10 - n);
+    else
+    if (n > 20)
+//                kl = 1 - 0.014 * (n - 20);      // As published in paper
+      kl = 1 / (1 + 0.015 * (n -20));   // Revision from paper's author
+
+    double h = 0;
+
+    for (int i=0; i<n; i++)
+    {
+      char c = bytes[i];
+      h += rc[c - 'A'];
+      if (i < 3)
+        h += nt[i] * rcnt[c - 'A'];
+    }
+
+    h *= kl;
+
+    if (h < 38)
+      return h;
+    else
+      return h - .3 * (h - 38);
+  }
+
   // Call version 3.0 hydrophobicity algorithm by Krokhin, et al
   public static double getHydrophobicity3(String peptide)
   {

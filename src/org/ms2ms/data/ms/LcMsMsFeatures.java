@@ -1,11 +1,13 @@
 package org.ms2ms.data.ms;
 
 import com.google.common.collect.*;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.math3.fitting.WeightedObservedPoint;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.ms2ms.algo.PeptideLC;
 import org.ms2ms.data.Binary;
 import org.ms2ms.data.Features;
+import org.ms2ms.data.NameValue;
 import org.ms2ms.data.collect.MultiTreeTable;
 import org.ms2ms.math.Fitted;
 import org.ms2ms.math.Stats;
@@ -18,8 +20,6 @@ import org.ms2ms.utils.Tools;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -606,24 +606,50 @@ public class LcMsMsFeatures implements Binary
     Double avg = Stats.mean(nums); nums=Tools.dispose(nums);
     return avg;
   }
-  public Multimap<String, Double> toPeptideRt()
+  // collapse the PSMs to single representation per peptide (with mod)
+  public Multimap<String, Double> toPeptideRt(double contrast, String... mods)
   {
     if (!Tools.isSet(getIons())) return null;
 
-    Multimap<String, Double> peptide_rt = HashMultimap.create();
+    // sort out the invalid features first
+    MultiTreeTable<String, Integer, Features> peptides = MultiTreeTable.create();
     for (Features F : getIons().values())
+      if (F.get(COL_PEPTIDE)!=null)
+        if (IsExpectedMaxQuantMods(F.getStr(COL_MOD), mods))
+          peptides.put(F.getStr(COL_PEPTIDE), F.getInt(COL_Z), F);
+
+    // use only one peptide/charge per feature
+    Collection<Features> DQ = new ArrayList<>();
+    for (String peptide : peptides.keySet())
+      for (Integer z : peptides.row(peptide).keySet())
+      {
+        if (peptides.get(peptide, z).size()<=1) continue;
+        Features f1=null, f2=null, f0=null;
+        for (Features F : peptides.get(peptide, z))
+        {
+          if      (f1==null || f1.getDouble(COL_AI_APEX)<F.getDouble(COL_AI_APEX)) f1=F;
+          else if (f2==null || f2.getDouble(COL_AI_APEX)<F.getDouble(COL_AI_APEX)) f2=F;
+        }
+        // check if we need to disqualify the charge state
+        if (f1!=null && f2!=null && f1.getDouble(COL_AI_APEX)/f2.getDouble(COL_AI_APEX)>=contrast) f0=f1;
+        for (Features F : peptides.get(peptide, z))
+          if (f0==null || F!=f0) DQ.add(F);
+      }
+
+    Multimap<String, Double> peptide_rt = HashMultimap.create();
+    for (Features F : peptides.values())
     {
-      if (F.get(LcMsMsFeatures.COL_PEPTIDE)!=null)
+      if (F.get(LcMsMsFeatures.COL_PEPTIDE)!=null && !DQ.contains(F))
         peptide_rt.put(F.getStr(LcMsMsFeatures.COL_SEQ), F.getDouble(LcMsMsFeatures.COL_RT));
     }
     return peptide_rt;
   }
   public Multimap<String, Double> toResidualNET(Multimap<String, Double> H)
   {
-    Multimap<String, Double> peptides = toPeptideRt();
+    Multimap<String, Double> peptides = toPeptideRt(10d, "Unmodified");
 
     // first test oRf LsRT port
-    Map<String, Double> predicted = PeptideLC.SSRCalc3(peptides.keySet());
+    Map<String, Double> predicted = PeptideLC.SSRCalc(peptides.keySet());
 
     // no more than 15, up to the size-2
     List<WeightedObservedPoint> Rs = new ArrayList<>();
@@ -664,7 +690,7 @@ public class LcMsMsFeatures implements Binary
     for (String run : run_peptide_rt.keySet())
     {
       // first test of LsRT port
-      Map<String, Double> predicted = PeptideLC.SSRCalc3(run_peptide_rt.row(run).keySet());
+      Map<String, Double> predicted = PeptideLC.SSRCalc(run_peptide_rt.row(run).keySet());
 
       // no more than 15, up to the size-2
       List<WeightedObservedPoint> Rs = new ArrayList<>();
@@ -688,6 +714,20 @@ public class LcMsMsFeatures implements Binary
     }
 
     return run_peptide_rt;
+  }
+  public static boolean IsExpectedMaxQuantMods(String mod, String... permitted)
+  {
+    if (!Strs.isSet(mod)) return true;
+
+    // Oxidation (M),2 Deamidation (NQ)
+    String[] mm = Strs.split(mod, ',');
+    for (String m : mm)
+    {
+      NameValue nv = NameValue.create(m, " ");
+      if (!Strs.isA(NumberUtils.isNumber(nv.name)?nv.val:m, permitted))
+        return false;
+    }
+    return true;
   }
   @Override
   public void write(DataOutput ds) throws IOException
