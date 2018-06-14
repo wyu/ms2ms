@@ -1,12 +1,12 @@
 package org.ms2ms.splib;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import org.expasy.mzjava.stats.Histogram;
 import org.ms2ms.algo.MsStats;
 import org.ms2ms.utils.Tools;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /** Sage: Empirical Bayes?
@@ -53,14 +53,14 @@ public class Sage
       if (mPositives == null || mNegatives == null)
         throw new RuntimeException("The positive and/or negative population not specified");
 
-      if (mTransitYs==null || mTransitXs==null) toTransition(p_pos, p_neg);
+      if (mTransitYs==null || mTransitXs==null) toTransition(p_pos, p_neg, false);
 
       if      (x>=Tools.back( mTransitXs)) return Tools.back( mTransitYs);
       else if (x<=Tools.front(mTransitXs)) return Tools.front(mTransitYs);
 
       return MsStats.interpolate(mTransitXs, mTransitYs, 0.5d, x)[0]; // ignore zero?
     }
-    private void toTransition(double p_pos, double p_neg)
+    private void toTransition(double p_pos, double p_neg, boolean keep_zero)
     {
       if (mPositives == null || mNegatives == null)
         throw new RuntimeException("The positive and/or negative population not specified");
@@ -71,7 +71,7 @@ public class Sage
       mPositives.normalize(new Histogram.Normalization(Histogram.Normalization.NormType.BINS_CUMUL, 1d));
       mNegatives.normalize(new Histogram.Normalization(Histogram.Normalization.NormType.BINS_CUMUL, 1d));
 
-      double xstep = (mBound.upperEndpoint()-mBound.lowerEndpoint()) / (mBins*2d);
+      double xstep = (mBound.upperEndpoint()-mBound.lowerEndpoint()) / (mBins*2d), lowest=Double.MAX_VALUE;
       for (double x=mBound.lowerEndpoint(); x <= mBound.upperEndpoint(); x += xstep)
       {
         double pd_pos = mPositives.getAbsoluteBinFreq(mPositives.getBinIndex(x)),
@@ -85,15 +85,20 @@ public class Sage
         if (!Double.isNaN(p))
         {
           tX.add(x); tY.add(p);
+          if (p!=0 && p<lowest) lowest=p;
         }
       }
+      if (!keep_zero)
+        for (int i=0; i<tY.size(); i++)
+          if (tY.get(i)==0) tY.set(i, lowest*0.1);
+
       mTransitXs = Tools.toDoubleArray(tX); mTransitYs = Tools.toDoubleArray(tY);
     }
     public StringBuffer df()
     {
       StringBuffer buf = new StringBuffer();
 
-      toTransition(1d,1d);
+      toTransition(1d,1d, false);
       // dump the pos and neg
       for (int i=0; i<getPositives().size(); i++)
         buf.append(i+"\t"+(i*getPositives().getBinWidth()+mBound.lowerEndpoint())+"\t"+getPositives().getRelativeBinFreq(i)+"\tPositive\n");
