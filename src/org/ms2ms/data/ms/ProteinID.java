@@ -3,6 +3,7 @@ package org.ms2ms.data.ms;
 import com.google.common.collect.*;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.ms2ms.data.Binary;
+import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
 import java.io.DataInput;
@@ -86,7 +87,7 @@ public class ProteinID implements Comparable<ProteinID>, Binary
   @Override
   public String toString()
   {
-    return +mID+"|"+mAccession+"|"+mGene+" "+mName+", "+(mSeqMatch!=null?mSeqMatch.size():0);
+    return Strs.toString(mID)+"|"+Strs.toString(mAccession)+"|"+Strs.toString(mGene)+" "+Strs.toString(mName)+", "+(mSeqMatch!=null?mSeqMatch.size():0);
   }
 
   @Override
