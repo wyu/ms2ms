@@ -1,6 +1,7 @@
 package org.ms2ms.data.ms;
 
 import com.google.common.collect.*;
+import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.ms2ms.data.Binary;
 import org.ms2ms.utils.Strs;
@@ -10,12 +11,19 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Comparator;
 
 /**
  * Created by yuw on 2/24/16.
  */
 public class ProteinID implements Comparable<ProteinID>, Binary
 {
+  public static class DistinctPeptideDesendComparator implements Comparator<ProteinID> {
+    public int compare(ProteinID o1, ProteinID o2) {
+      return o1 != null && o2 != null ? Double.compare(o2.getSeqMatch().keySet().size(), o1.getSeqMatch().keySet().size()) : 0;
+    }
+  }
+
   private Long                           mID;
   private Double                         mBestQVal;
   private String                         mSequence, mAccession, mGene, mName;

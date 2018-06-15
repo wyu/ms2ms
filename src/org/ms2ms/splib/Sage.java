@@ -17,7 +17,8 @@ import java.util.List;
 public class Sage
 {
     private String        mTitle;
-    private int           mBins = 50;
+    private int           mBins = 50, mPosCounts=0, mNegCounts=0;
+    private double        mPosPrior=0.5d, mNegPrior=0.5d;
     private Range<Double> mBound;
     private Histogram     mPositives, mNegatives;
     private double[]      mTransitXs, mTransitYs;
@@ -37,17 +38,31 @@ public class Sage
     public double[]    getTransitXs()  { return mTransitXs; }
     public double[]    getTransitYs()  { return mTransitYs; }
 
+    public Sage setPriors(double p_pos, double p_neg) { mPosPrior=p_pos; mNegPrior=p_neg; return this; }
+
     public void addPositive(double data)
     {
       if (mPositives == null) mPositives= MsStats.newHistogram("Positives", mBins, mBound);
-      mPositives.addData(data);
+      mPositives.addData(data); mPosCounts++;
     }
     public void addNegative(double data)
     {
       if (mNegatives == null) mNegatives= MsStats.newHistogram("Negatives", mBins, mBound);
-      mNegatives.addData(data);
+      mNegatives.addData(data); mNegCounts++;
     }
 
+  public double lookup(double x)
+  {
+    if (mPositives == null || mNegatives == null)
+      throw new RuntimeException("The positive and/or negative population not specified");
+
+    if (mTransitYs==null || mTransitXs==null) toTransition(false);
+
+    if      (x>=Tools.back( mTransitXs)) return Tools.back( mTransitYs);
+    else if (x<=Tools.front(mTransitXs)) return Tools.front(mTransitYs);
+
+    return MsStats.interpolate(mTransitXs, mTransitYs, 0.5d, x)[0]; // ignore zero?
+  }
     public double lookup(double x, double p_pos, double p_neg)
     {
       if (mPositives == null || mNegatives == null)
@@ -60,22 +75,32 @@ public class Sage
 
       return MsStats.interpolate(mTransitXs, mTransitYs, 0.5d, x)[0]; // ignore zero?
     }
-    private void toTransition(double p_pos, double p_neg, boolean keep_zero)
-    {
+  private void toTransition(boolean keep_zero)
+  {
+    // calculate the priors from the positive and negative lists
+//    mPosPrior = ((double )mPosCounts/(mPosCounts+mNegCounts));
+//    mNegPrior = ((double )mNegCounts/(mPosCounts+mNegCounts));
+    toTransition(mPosPrior, mNegPrior, keep_zero);
+  }
+  private void toTransition(double p_pos, double p_neg, boolean keep_zero)
+  {
       if (mPositives == null || mNegatives == null)
         throw new RuntimeException("The positive and/or negative population not specified");
 
+      mPosPrior=p_pos; mNegPrior=p_neg;
+
       List<Double> tX = new ArrayList<>(), tY = new ArrayList<>();
 
-      // normalize the frequency to the total area of 1
-      mPositives.normalize(new Histogram.Normalization(Histogram.Normalization.NormType.BINS_CUMUL, 1d));
-      mNegatives.normalize(new Histogram.Normalization(Histogram.Normalization.NormType.BINS_CUMUL, 1d));
-
-      double xstep = (mBound.upperEndpoint()-mBound.lowerEndpoint()) / (mBins*2d), lowest=Double.MAX_VALUE;
+//      // normalize the frequency to the total area of 1
+//      mPositives.normalize(new Histogram.Normalization(Histogram.Normalization.NormType.BINS_CUMUL, 1d));
+//      mNegatives.normalize(new Histogram.Normalization(Histogram.Normalization.NormType.BINS_CUMUL, 1d));
+//
+      double xstep = (mBound.upperEndpoint()-mBound.lowerEndpoint()) / (mBins*2d), lowest=Double.MAX_VALUE,
+          base_pos = mPosCounts/(mBins*2d), base_neg = mNegCounts/(mBins*2d);
       for (double x=mBound.lowerEndpoint(); x <= mBound.upperEndpoint(); x += xstep)
       {
-        double pd_pos = mPositives.getAbsoluteBinFreq(mPositives.getBinIndex(x)),
-               pd_neg = mNegatives.getAbsoluteBinFreq(mNegatives.getBinIndex(x));
+        double pd_pos = mPositives.getAbsoluteBinFreq(mPositives.getBinIndex(x)) / base_pos,
+               pd_neg = mNegatives.getAbsoluteBinFreq(mNegatives.getBinIndex(x)) / base_neg;
 
         pd_pos = pd_pos < 0 ? 0 : pd_pos;
         pd_neg = pd_neg < 0 ? 0 : pd_neg;
@@ -98,7 +123,7 @@ public class Sage
     {
       StringBuffer buf = new StringBuffer();
 
-      toTransition(1d,1d, false);
+      toTransition(false);
       // dump the pos and neg
       for (int i=0; i<getPositives().size(); i++)
         buf.append(i+"\t"+(i*getPositives().getBinWidth()+mBound.lowerEndpoint())+"\t"+getPositives().getRelativeBinFreq(i)+"\tPositive\n");
@@ -110,7 +135,7 @@ public class Sage
       for (int i=0; i<100; i++)
       {
         double rt = mBound.lowerEndpoint() + i*step;
-        buf.append(i+"\t"+rt+"\t"+lookup(rt, 1d,1d)+"\tTransition\n");
+        buf.append(i+"\t"+rt+"\t"+lookup(rt)+"\tTransition\n");
       }
 
       return buf;
