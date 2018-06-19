@@ -123,7 +123,7 @@ public class Sage
     {
       StringBuffer buf = new StringBuffer();
 
-      toTransition(false);
+      if (mTransitYs==null || mTransitXs==null) toTransition(false);
       // dump the pos and neg
       for (int i=0; i<getPositives().size(); i++)
         buf.append(i+"\t"+(i*getPositives().getBinWidth()+mBound.lowerEndpoint())+"\t"+getPositives().getRelativeBinFreq(i)+"\tPositive\n");

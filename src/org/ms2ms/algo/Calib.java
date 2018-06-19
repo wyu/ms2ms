@@ -8,4 +8,5 @@ public interface Calib
   Calib addPositive(PSM T, Double rt, Double ai);
   Calib addNegative(PSM T, Double rt);
 
+  Calib df(String root);
 }
