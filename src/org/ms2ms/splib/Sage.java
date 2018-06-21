@@ -14,42 +14,36 @@ import java.util.List;
  * Date: 8/9/14
  * Time: 8:59 AM
  */
-public class Sage
+public class Sage extends AbstractSage
 {
-    private String        mTitle;
-    private int           mBins = 50, mPosCounts=0, mNegCounts=0;
-    private double        mPosPrior=0.5d, mNegPrior=0.5d;
-    private Range<Double> mBound;
-    private Histogram     mPositives, mNegatives;
-    private double[]      mTransitXs, mTransitYs;
+  private Range<Double> mBound;
+  private Histogram     mPositives, mNegatives;
+  private double[]      mTransitXs, mTransitYs;
 
-    public Sage() { super(); }
-    public Sage(String title, Range<Double> bound, int bins)
-    {
-      super();
-      mTitle=title; mBins=bins; mBound=bound;
-      mPositives= MsStats.newHistogram("Positives", mBins, mBound);
-      mNegatives= MsStats.newHistogram("Negatives", mBins, mBound);
-    }
+  public Sage() { super(); }
+  public Sage(String title, Range<Double> bound, int bins)
+  {
+    super();
+    mTitle=title; mBins=bins; mBound=bound;
+    mPositives= MsStats.newHistogram("Positives", mBins, mBound);
+    mNegatives= MsStats.newHistogram("Negatives", mBins, mBound);
+  }
 
-    public String      getTitle()      { return mTitle; }
-    public Histogram   getPositives()  { return mPositives; }
-    public Histogram   getNegatives()  { return mNegatives; }
-    public double[]    getTransitXs()  { return mTransitXs; }
-    public double[]    getTransitYs()  { return mTransitYs; }
+  public Histogram   getPositives()  { return mPositives; }
+  public Histogram   getNegatives()  { return mNegatives; }
+  public double[]    getTransitXs()  { return mTransitXs; }
+  public double[]    getTransitYs()  { return mTransitYs; }
 
-    public Sage setPriors(double p_pos, double p_neg) { mPosPrior=p_pos; mNegPrior=p_neg; return this; }
-
-    public void addPositive(double data)
-    {
-      if (mPositives == null) mPositives= MsStats.newHistogram("Positives", mBins, mBound);
-      mPositives.addData(data); mPosCounts++;
-    }
-    public void addNegative(double data)
-    {
-      if (mNegatives == null) mNegatives= MsStats.newHistogram("Negatives", mBins, mBound);
-      mNegatives.addData(data); mNegCounts++;
-    }
+  public void addPositive(double data)
+  {
+    if (mPositives == null) mPositives= MsStats.newHistogram("Positives", mBins, mBound);
+    mPositives.addData(data); mPosCounts++;
+  }
+  public void addNegative(double data)
+  {
+    if (mNegatives == null) mNegatives= MsStats.newHistogram("Negatives", mBins, mBound);
+    mNegatives.addData(data); mNegCounts++;
+  }
 
   public double lookup(double x)
   {
