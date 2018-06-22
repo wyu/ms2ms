@@ -6,7 +6,7 @@ public interface Calib
 {
   Calib addCalibrant(String tag, PSM T, Double rt, Double ai);
   Calib addPositive(PSM T, Double rt, Double ai);
-  Calib addNegative(PSM T, Double rt);
+  Calib addNegative(PSM T, Double rt, Double ai);
 
   Calib df(String root);
 }

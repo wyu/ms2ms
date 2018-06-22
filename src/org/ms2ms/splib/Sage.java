@@ -57,18 +57,18 @@ public class Sage extends AbstractSage
 
     return MsStats.interpolate(mTransitXs, mTransitYs, 0.5d, x)[0]; // ignore zero?
   }
-    public double lookup(double x, double p_pos, double p_neg)
-    {
-      if (mPositives == null || mNegatives == null)
-        throw new RuntimeException("The positive and/or negative population not specified");
+  public double lookup(double x, double p_pos, double p_neg)
+  {
+    if (mPositives == null || mNegatives == null)
+      throw new RuntimeException("The positive and/or negative population not specified");
 
-      if (mTransitYs==null || mTransitXs==null) toTransition(p_pos, p_neg, false);
+    if (mTransitYs==null || mTransitXs==null) toTransition(p_pos, p_neg, false);
 
-      if      (x>=Tools.back( mTransitXs)) return Tools.back( mTransitYs);
-      else if (x<=Tools.front(mTransitXs)) return Tools.front(mTransitYs);
+    if      (x>=Tools.back( mTransitXs)) return Tools.back( mTransitYs);
+    else if (x<=Tools.front(mTransitXs)) return Tools.front(mTransitYs);
 
-      return MsStats.interpolate(mTransitXs, mTransitYs, 0.5d, x)[0]; // ignore zero?
-    }
+    return MsStats.interpolate(mTransitXs, mTransitYs, 0.5d, x)[0]; // ignore zero?
+  }
   private void toTransition(boolean keep_zero)
   {
     // calculate the priors from the positive and negative lists
