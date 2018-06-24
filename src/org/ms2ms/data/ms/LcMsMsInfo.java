@@ -23,7 +23,8 @@ public class LcMsMsInfo
         scans.cell(run_scan_row.get(run,scan), col):_def;
   }
   public Double getRT(String run, Integer scan, Double _def) { return (Double )get(run,scan,"RT",_def); }
-  public Double getAi(String run, Integer scan, Double _def) { return (Double )get(run,scan,"Intensity",_def); }
+  // Intensity is the nominal value from the MS2 header
+  public Double getAi(String run, Integer scan, Double _def) { return (Double )get(run,scan,"XIC.area",_def); }
   public int    size() { return scans!=null?scans.size():0; }
 
   private LcMsMsInfo prepare()
