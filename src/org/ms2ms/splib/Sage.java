@@ -1,6 +1,9 @@
 package org.ms2ms.splib;
 
 import com.google.common.collect.Range;
+import org.apache.commons.math3.analysis.UnivariateFunction;
+import org.apache.commons.math3.analysis.interpolation.AkimaSplineInterpolator;
+import org.apache.commons.math3.analysis.interpolation.PiecewiseBicubicSplineInterpolator;
 import org.expasy.mzjava.stats.Histogram;
 import org.ms2ms.algo.MsStats;
 import org.ms2ms.utils.Tools;
@@ -18,7 +21,9 @@ public class Sage extends AbstractSage
 {
   private Range<Double> mBound;
   private Histogram     mPositives, mNegatives;
-  private double[]      mTransitXs, mTransitYs;
+
+  private UnivariateFunction mTransition;
+//  private double[]      mTransitXs, mTransitYs;
 
   public Sage() { super(); }
   public Sage(String title, Range<Double> bound, int bins)
@@ -31,8 +36,8 @@ public class Sage extends AbstractSage
 
   public Histogram   getPositives()  { return mPositives; }
   public Histogram   getNegatives()  { return mNegatives; }
-  public double[]    getTransitXs()  { return mTransitXs; }
-  public double[]    getTransitYs()  { return mTransitYs; }
+//  public double[]    getTransitXs()  { return mTransitXs; }
+//  public double[]    getTransitYs()  { return mTransitYs; }
 
   public void addPositive(double data)
   {
@@ -50,24 +55,30 @@ public class Sage extends AbstractSage
     if (mPositives == null || mNegatives == null)
       throw new RuntimeException("The positive and/or negative population not specified");
 
-    if (mTransitYs==null || mTransitXs==null) toTransition(false);
+    if (mTransition==null) toTransition(false);
 
-    if      (x>=Tools.back( mTransitXs)) return Tools.back( mTransitYs);
-    else if (x<=Tools.front(mTransitXs)) return Tools.front(mTransitYs);
-
-    return MsStats.interpolate(mTransitXs, mTransitYs, 0.5d, x)[0]; // ignore zero?
+    return mTransition.value(x);
+//    if (mTransitYs==null || mTransitXs==null) toTransition(false);
+//
+//    if      (x>=Tools.back( mTransitXs)) return Tools.back( mTransitYs);
+//    else if (x<=Tools.front(mTransitXs)) return Tools.front(mTransitYs);
+//
+//    return MsStats.interpolate(mTransitXs, mTransitYs, 0.5d, x)[0]; // ignore zero?
   }
   public double lookup(double x, double p_pos, double p_neg)
   {
     if (mPositives == null || mNegatives == null)
       throw new RuntimeException("The positive and/or negative population not specified");
 
-    if (mTransitYs==null || mTransitXs==null) toTransition(p_pos, p_neg, false);
+    if (mTransition==null) toTransition(p_pos, p_neg, false);
 
-    if      (x>=Tools.back( mTransitXs)) return Tools.back( mTransitYs);
-    else if (x<=Tools.front(mTransitXs)) return Tools.front(mTransitYs);
-
-    return MsStats.interpolate(mTransitXs, mTransitYs, 0.5d, x)[0]; // ignore zero?
+    return mTransition.value(x);
+//    if (mTransitYs==null || mTransitXs==null) toTransition(p_pos, p_neg, false);
+//
+//    if      (x>=Tools.back( mTransitXs)) return Tools.back( mTransitYs);
+//    else if (x<=Tools.front(mTransitXs)) return Tools.front(mTransitYs);
+//
+//    return MsStats.interpolate(mTransitXs, mTransitYs, 0.5d, x)[0]; // ignore zero?
   }
   private void toTransition(boolean keep_zero)
   {
@@ -111,13 +122,15 @@ public class Sage extends AbstractSage
         for (int i=0; i<tY.size(); i++)
           if (tY.get(i)==0) tY.set(i, lowest*0.1);
 
-      mTransitXs = Tools.toDoubleArray(tX); mTransitYs = Tools.toDoubleArray(tY);
+    mTransition = new AkimaSplineInterpolator().interpolate(Tools.toDoubleArray(tX), Tools.toDoubleArray(tY));
+//    mTransitXs = Tools.toDoubleArray(tX); mTransitYs = Tools.toDoubleArray(tY);
     }
     public StringBuffer df()
     {
       StringBuffer buf = new StringBuffer();
 
-      if (mTransitYs==null || mTransitXs==null) toTransition(false);
+      if (mTransition==null) toTransition(false);
+//      if (mTransitYs==null || mTransitXs==null) toTransition(false);
       // dump the pos and neg
       for (int i=0; i<getPositives().size(); i++)
         buf.append(i+"\t"+(i*getPositives().getBinWidth()+mBound.lowerEndpoint())+"\t"+getPositives().getRelativeBinFreq(i)+"\tPositive\n");
