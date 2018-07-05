@@ -2,7 +2,10 @@ package org.ms2ms.data.ms;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
+import org.apache.commons.lang.math.NumberUtils;
+import org.ms2ms.math.Stats;
 import org.ms2ms.r.Dataframe;
+import org.ms2ms.utils.Tools;
 
 public class LcMsMsInfo
 {
@@ -19,9 +22,15 @@ public class LcMsMsInfo
   private boolean hasRow(String run, Integer scan) { return run_scan_row!=null && run_scan_row.contains(run,scan); }
   private Object     get(String run, Integer scan, String col, Object _def)
   {
+    if (run==null)
+    {
+      return (scan!=null && Tools.isSet(run_scan_row.column(scan))) ?
+          scans.cell(Tools.front(run_scan_row.column(scan).values()), col) : _def;
+    }
     return hasRow(run,scan) && scans.cell(run_scan_row.get(run,scan), col)!=null ?
         scans.cell(run_scan_row.get(run,scan), col):_def;
   }
+  public Double getMz(String run, Integer scan, Double _def) { return (Double )get(run,scan,"XIC.mz",_def); }
   public Double getRT(String run, Integer scan, Double _def) { return (Double )get(run,scan,"RT",_def); }
   // Intensity is the nominal value from the MS2 header
   public Double getAi(String run, Integer scan, Double _def) { return (Double )get(run,scan,"XIC.area",_def); }

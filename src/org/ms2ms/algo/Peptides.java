@@ -476,8 +476,8 @@ public class Peptides
   // Call version 3.0 hydrophobicity algorithm by Krokhin, et al
   public static double getHydrophobicity3(String peptide)
   {
-    if (!Strs.isSet(peptide))
-      System.out.println();
+//    if (!Strs.isSet(peptide))
+//      System.out.println();
     return Hydrophobicity3.TSUM3(peptide);
   }
 }

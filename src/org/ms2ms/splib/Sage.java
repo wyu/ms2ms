@@ -3,13 +3,12 @@ package org.ms2ms.splib;
 import com.google.common.collect.Range;
 import org.apache.commons.math3.analysis.UnivariateFunction;
 import org.apache.commons.math3.analysis.interpolation.AkimaSplineInterpolator;
-import org.apache.commons.math3.analysis.interpolation.PiecewiseBicubicSplineInterpolator;
+import org.apache.commons.math3.exception.OutOfRangeException;
 import org.expasy.mzjava.stats.Histogram;
 import org.ms2ms.algo.MsStats;
 import org.ms2ms.utils.Tools;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /** Sage: Empirical Bayes?
@@ -55,9 +54,16 @@ public class Sage extends AbstractSage
     if (mPositives == null || mNegatives == null)
       throw new RuntimeException("The positive and/or negative population not specified");
 
-    if (mTransition==null) toTransition(false);
+    if (mTransition==null) toTransition(false, null);
 
-    return mTransition.value(x);
+    try
+    {
+      return mTransition.value(x);
+    }
+    catch (OutOfRangeException oe)
+    {
+      return Double.NaN;
+    }
 //    if (mTransitYs==null || mTransitXs==null) toTransition(false);
 //
 //    if      (x>=Tools.back( mTransitXs)) return Tools.back( mTransitYs);
@@ -67,12 +73,13 @@ public class Sage extends AbstractSage
   }
   public double lookup(double x, double p_pos, double p_neg)
   {
-    if (mPositives == null || mNegatives == null)
-      throw new RuntimeException("The positive and/or negative population not specified");
-
-    if (mTransition==null) toTransition(p_pos, p_neg, false);
-
-    return mTransition.value(x);
+    return lookup(x);
+//    if (mPositives == null || mNegatives == null)
+//      throw new RuntimeException("The positive and/or negative population not specified");
+//
+//    if (mTransition==null) toTransition(p_pos, p_neg, false);
+//
+//    return mTransition.value(x);
 //    if (mTransitYs==null || mTransitXs==null) toTransition(p_pos, p_neg, false);
 //
 //    if      (x>=Tools.back( mTransitXs)) return Tools.back( mTransitYs);
@@ -80,14 +87,14 @@ public class Sage extends AbstractSage
 //
 //    return MsStats.interpolate(mTransitXs, mTransitYs, 0.5d, x)[0]; // ignore zero?
   }
-  private void toTransition(boolean keep_zero)
+  private StringBuffer toTransition(boolean keep_zero, StringBuffer buf)
   {
     // calculate the priors from the positive and negative lists
 //    mPosPrior = ((double )mPosCounts/(mPosCounts+mNegCounts));
 //    mNegPrior = ((double )mNegCounts/(mPosCounts+mNegCounts));
-    toTransition(mPosPrior, mNegPrior, keep_zero);
+    return toTransition(mPosPrior, mNegPrior, keep_zero, buf);
   }
-  private void toTransition(double p_pos, double p_neg, boolean keep_zero)
+  private StringBuffer toTransition(double p_pos, double p_neg, boolean keep_zero, StringBuffer buf)
   {
       if (mPositives == null || mNegatives == null)
         throw new RuntimeException("The positive and/or negative population not specified");
@@ -101,16 +108,21 @@ public class Sage extends AbstractSage
 //      mNegatives.normalize(new Histogram.Normalization(Histogram.Normalization.NormType.BINS_CUMUL, 1d));
 //
       double xstep = (mBound.upperEndpoint()-mBound.lowerEndpoint()) / (mBins*2d), lowest=Double.MAX_VALUE,
-          base_pos = mPosCounts/(mBins*2d), base_neg = mNegCounts/(mBins*2d);
+          base_pos = mPosCounts/(mBins*2d), base_neg = mNegCounts/(mBins*2d); int ii=0;
       for (double x=mBound.lowerEndpoint(); x <= mBound.upperEndpoint(); x += xstep)
       {
         double pd_pos = mPositives.getAbsoluteBinFreq(mPositives.getBinIndex(x)) / base_pos,
                pd_neg = mNegatives.getAbsoluteBinFreq(mNegatives.getBinIndex(x)) / base_neg;
 
+        if (buf!=null) buf.append(ii+"\t"+x+"\t"+Tools.d2s(pd_pos,3)+"\tPos\t"+base_pos+"\n");
+        if (buf!=null) buf.append(ii+"\t"+x+"\t"+Tools.d2s(pd_neg,3)+"\tNeg\t"+base_neg+"\n");
+
         pd_pos = pd_pos < 0 ? 0 : pd_pos;
         pd_neg = pd_neg < 0 ? 0 : pd_neg;
 
         double p = (pd_pos == 0 && pd_neg == 0) ? 0d : pd_pos * p_pos / (pd_pos * p_pos + pd_neg * p_neg);
+
+        if (buf!=null) buf.append(ii+"\t"+x+"\t"+p+"\tTransition\t"+lowest+"\n");
 
         if (!Double.isNaN(p))
         {
@@ -122,28 +134,30 @@ public class Sage extends AbstractSage
         for (int i=0; i<tY.size(); i++)
           if (tY.get(i)==0) tY.set(i, lowest*0.1);
 
-    mTransition = new AkimaSplineInterpolator().interpolate(Tools.toDoubleArray(tX), Tools.toDoubleArray(tY));
+      mTransition = new AkimaSplineInterpolator().interpolate(Tools.toDoubleArray(tX), Tools.toDoubleArray(tY));
 //    mTransitXs = Tools.toDoubleArray(tX); mTransitYs = Tools.toDoubleArray(tY);
+
+    return buf;
     }
     public StringBuffer df()
     {
       StringBuffer buf = new StringBuffer();
 
-      if (mTransition==null) toTransition(false);
+      buf = toTransition(false, buf);
 //      if (mTransitYs==null || mTransitXs==null) toTransition(false);
       // dump the pos and neg
-      for (int i=0; i<getPositives().size(); i++)
-        buf.append(i+"\t"+(i*getPositives().getBinWidth()+mBound.lowerEndpoint())+"\t"+getPositives().getRelativeBinFreq(i)+"\tPositive\n");
-      for (int i=0; i<getNegatives().size(); i++)
-        buf.append(i+"\t"+(i*getNegatives().getBinWidth()+mBound.lowerEndpoint())+"\t"+getNegatives().getRelativeBinFreq(i)+"\tNegative\n");
-
-      // lookup the transition
-      double step = (mBound.upperEndpoint()-mBound.lowerEndpoint())/100d;
-      for (int i=0; i<100; i++)
-      {
-        double rt = mBound.lowerEndpoint() + i*step;
-        buf.append(i+"\t"+rt+"\t"+lookup(rt)+"\tTransition\n");
-      }
+//      for (int i=0; i<getPositives().size(); i++)
+//        buf.append(i+"\t"+(i*getPositives().getBinWidth()+mBound.lowerEndpoint())+"\t"+getPositives().getRelativeBinFreq(i)+"\tPositive\n");
+//      for (int i=0; i<getNegatives().size(); i++)
+//        buf.append(i+"\t"+(i*getNegatives().getBinWidth()+mBound.lowerEndpoint())+"\t"+getNegatives().getRelativeBinFreq(i)+"\tNegative\n");
+//
+//      // lookup the transition
+//      double step = (mBound.upperEndpoint()-mBound.lowerEndpoint())/100d;
+//      for (int i=0; i<100; i++)
+//      {
+//        double rt = mBound.lowerEndpoint() + i*step;
+//        buf.append(i+"\t"+rt+"\t"+lookup(rt)+"\tTransition\n");
+//      }
 
       return buf;
     }

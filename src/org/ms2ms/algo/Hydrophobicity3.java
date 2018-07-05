@@ -18,9 +18,14 @@ package org.ms2ms.algo;
  * https://github.com/dhmay/msInspect
  */
 
+import org.ms2ms.data.NameValue;
+import org.ms2ms.utils.TabFile;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -49,45 +54,81 @@ public class Hydrophobicity3
   private static class AAParams {
     char AA;                     //amino acid residue owning these parameters
     //Retention Factors
-    double RC;
-    double RC1;
-    double RC2;
-    double RCN;
-    double RCN2;
+    public double RC, RC1, RC2, RCN, RCN2;
     //Short peptide retention factors
-    double RCS;
-    double RC1S;
-    double RC2S;
-    double RCNS;
-    double RCN2S;
+    public double RCS, RC1S, RC2S, RCNS, RCN2S;
 
-    double UndKRH;               //Factors for aa's near undigested KRH
-    double AMASS;                //aa masses in Daltons
+    public double UndKRH;               //Factors for aa's near undigested KRH
+    public double AMASS;                //aa masses in Daltons
     //isoelectric factors
-    double CT;
-    double NT;
-    double PK;
+    public double CT, NT, PK;
     //helicity2 bascore & connector multiplier
-    double H2BASCORE;
-    double H2CMULT;
+    public double H2BASCORE, H2CMULT;
+
+    public AAParams(char aa) {
+      AA = aa;
+    }
 
     AAParams(
         char aa,
         double rc, double rc1, double rc2, double rcn, double rcn2,
-        double rcs,double rc1s,double rc2s,double rcns,double rcn2s,
-        double undkrh,double amass,
-        double ct,double nt, double pk,
+        double rcs, double rc1s, double rc2s, double rcns, double rcn2s,
+        double undkrh, double amass,
+        double ct, double nt, double pk,
         double h2bascore, double h2cmult
     ) {
-      AA=aa;
-      RC=rc; RC1=rc1; RC2=rc2; RCN=rcn; RCN2=rcn2;
-      RCS=rcs; RC1S=rc1s; RC2S=rc2s; RCNS=rcns; RCN2S=rcn2s;
-      UndKRH=undkrh; AMASS=amass;
-      CT=ct; NT=nt; PK=pk;
-      H2BASCORE=h2bascore; H2CMULT=h2cmult;
+      AA = aa; RC = rc; RC1 = rc1; RC2 = rc2; RCN = rcn; RCN2 = rcn2; RCS = rcs; RC1S = rc1s; RC2S = rc2s;
+      RCNS = rcns; RCN2S = rcn2s; UndKRH = undkrh; AMASS = amass; CT = ct; NT = nt;
+      PK = pk;
+      H2BASCORE = h2bascore;
+      H2CMULT = h2cmult;
+    }
+
+    public AAParams set(String tag, double val) {
+      switch (tag) {
+        case "RC":
+          RC = val;
+          break;
+        case "RC1":
+          RC1 = val;
+          break;
+        case "RC2":
+          RC2 = val;
+          break;
+        case "RCN":
+          RCN = val;
+          break;
+        case "RCN2":
+          RCN2 = val;
+          break;
+        case "RCS":
+          RCS = val;
+          break;
+        case "RC1S":
+          RC1S = val;
+          break;
+        case "RC2S":
+          RC2S = val;
+          break;
+        case "RCNS":
+          RCNS = val;
+          break;
+        case "RCN2S":
+          RCN2S = val;
+          break;
+        case "UndKRH":
+          UndKRH = val;
+          break;
+        case "coefToNTerm":
+          NT = val;
+          break; // ?
+        case "chargeToCTerm":
+          CT = val;
+          break; // ?
+      }
+      return this;
     }
   }
-
   private static final AAParams NULLPARAM = new AAParams('\0',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
 
   private static final class NullHashMap extends HashMap<Character,AAParams> {
@@ -516,31 +557,152 @@ public class Hydrophobicity3
   private static final int ALGORITHM_VERSION = 3;
 
   // Length Scaling length limits and scaling factors
-  private static final int LPLim = 20;            // long peptide lower length limit
-  private static final int SPLim = 8;             // short peptide upper length limit
-  private static final double LPSFac = 0.0270;    // long peptide scaling factor
-  private static final double SPSFac = -0.055;    // short peptide scaling factor
+  private static double LPLim = 20;            // long peptide lower length limit
+  private static double SPLim = 8;             // short peptide upper length limit
+  private static double LPSFac = 0.0270;    // long peptide scaling factor
+  private static double SPSFac = -0.055;    // short peptide scaling factor
 
   // UnDigested (missed cuts) scaling Factors
-  private static final double	 UDF21=0.0, UDF22=0.0;    // rightmost
-  private static final double  UDF31=1.0, UDF32=0.0;    // inside string
+  private static double	 UDF21=0.0, UDF22=0.0;    // rightmost
+  private static double  UDF31=1.0, UDF32=0.0;    // inside string
 
-  // total correction values, 20..30 / 30..40 / 40..50 /50..500
+  // for Eludator only
+  private static double UDF11=0, UDF12=0, UDF13=0, UDF23=0, UDF33=0;
+
+    // total correction values, 20..30 / 30..40 / 40..50 /50..500
   private static final double SUMSCALE1=0.27, SUMSCALE2=0.33, SUMSCALE3=0.38, SUMSCALE4=0.447;
 
   // clusterness scaling: i.e. weight to give cluster correction.
   private static final double KSCALE=0.4;
 
   // isoelectric scaling factors
-  private static final double	Z01=-0.03,    Z02=0.60,    NDELTAWT = 0.8;   // negative delta values
-  private static final double	Z03= 0.00,    Z04=0.00,    PDELTAWT = 1.0;   // positive delta values
+  private static double	Z01=-0.03,    Z02=0.60,    NDELTAWT = 0.8;   // negative delta values
+  private static double	Z03= 0.00,    Z04=0.00,    PDELTAWT = 1.0;   // positive delta values
 
   // proline chain scores
-  private static final double PPSCORE=1.2,	PPPSCORE=3.5,	PPPPSCORE=5.0;
+  private static double PPSCORE=1.2,	PPPSCORE=3.5,	PPPPSCORE=5.0;
 
   // helix scaling factors
   private static final double	HELIX1SCALE=1.6,	HELIX2SCALE=0.255;
 
+  public static void initEludatorModel(String fname) throws IOException
+  {
+    Map<Character, AAParams> aa_params = new HashMap<>();
+
+    TabFile model = new TabFile(fname, TabFile.tabb, "Tag","Val");
+    while (model.hasNext())
+    {
+      // AAPARAMS['A'].RC	1.41352784759619
+      NameValue nv = NameValue.create(model.get("Tag"), ".");
+      if      (nv.name.indexOf("AAPARAMS")==0)
+      {
+        Character aa = nv.name.charAt(10);
+        AAParams A = aa_params.get(aa);
+        if (A==null) { A = new AAParams(aa); aa_params.put(aa, A); }
+        // deposit the value
+        A.set(nv.name.substring(13), nv.getNumber());
+      }
+      else if (nv.name.indexOf("nearestneigbough2")==0)
+      {
+//        nearestneigbough2, coefNN	-2.62456900491445
+//        nearestneigbough2, coefNxN	-2.22129636431603
+//        nearestneigbough2, coefNxxN	1.02471803117098
+//        nearestneigbough2, coefNxxxN	1.0586922297194
+//        nearestneigbough2, coefNxxxxN	-0.00822827957219292
+//        nearestneigbough2, coefNx5xN	-0.150313693772222
+//        nearestneigbough2, coefNx6xN	0.203263822696075
+//        nearestneigbough2, coefNx7xN	0.0333190023684804
+//        nearestneigbough2, coefNx8xN	-0.184107523661248
+//        nearestneigbough2, coefNNrev	1.60728139737162
+//        nearestneigbough2, coefNxNrev	1.70743763167291
+//        nearestneigbough2, coefNxxNrev	0.245004012453643
+//        nearestneigbough2, coefNxxxNrev	0.257807442907552
+//        nearestneigbough2, coefNxxxxNrev	-0.329881774989758
+//        nearestneigbough2, coefNx5xNrev	-0.232470955685186
+//        nearestneigbough2, coefNx6xNrev	0.288260358602687
+//        nearestneigbough2, coefNx7xNrev	-0.0135483899080079
+//        nearestneigbough2, coefNx8xNrev	-0.437179888519724
+//        nearestneigbough2, coefNN_12	-3.86456072832939
+//        nearestneigbough2, powerNN[0]	-0.148417320970329
+//        nearestneigbough2, powerNN[1]	-0.00884985949676363
+//        nearestneigbough2, powerNN[2]	0.404544409460533
+//        nearestneigbough2, powerNN[3]	0.243848614697026
+//        nearestneigbough2, powerNN[4]	-0.101116463368889
+      }
+      else if (nv.name.indexOf("coefSmallness")==0)
+      {
+//        coefSmallness_t0_1	-0.135710088845254
+//        coefSmallness_t0_2	0.65934302002499
+//        coefSmallness_a1	1.10701074190936
+//        coefSmallness_a2	1.61539676233767
+//        coefSmallness_b	0.16882794981336
+
+      }
+      else if (nv.name.indexOf("newiso")==0)
+      {
+//        newiso_MassCoef	5.38386867518338
+//        newiso_ShiftCoef	4.09006429092892
+
+        // isoelectric scaling factors
+        if      (nv.name.indexOf("Z01")>0) Z01=nv.getNumber();
+        else if (nv.name.indexOf("Z02")>0) Z02=nv.getNumber();
+        else if (nv.name.indexOf("Z03")>0) Z03=nv.getNumber();
+        else if (nv.name.indexOf("Z04")>0) Z04=nv.getNumber();
+//        private static final double	Z01=-0.03,    Z02=0.60,    NDELTAWT = 0.8;   // negative delta values
+//        private static final double	Z03= 0.00,    Z04=0.00,    PDELTAWT = 1.0;   // positive delta values
+      }
+      else if (nv.name.indexOf("proline")>0)
+      {
+        // proline chain scores
+        if      (nv.name.indexOf("PPSCORE"  )>0) PPSCORE  =nv.getNumber();
+        else if (nv.name.indexOf("PPPSCORE" )>0) PPPSCORE =nv.getNumber();
+        else if (nv.name.indexOf("PPPPSCORE")>0) PPPPSCORE=nv.getNumber();
+      }
+      else if (nv.name.indexOf("undigested")>0)
+      {
+        // UnDigested (missed cuts) scaling Factors
+        if      (nv.name.indexOf("UDF21")>0) UDF21 =nv.getNumber();
+        else if (nv.name.indexOf("UDF22")>0) UDF22 =nv.getNumber();
+        else if (nv.name.indexOf("UDF31")>0) UDF31 =nv.getNumber();
+        else if (nv.name.indexOf("UDF32")>0) UDF32 =nv.getNumber();
+        else if (nv.name.indexOf("UDF22")>0) UDF22 =nv.getNumber();
+        // for Eludator only
+        else if (nv.name.indexOf("UDF11")>0) UDF11 =nv.getNumber();
+        else if (nv.name.indexOf("UDF12")>0) UDF12 =nv.getNumber();
+        else if (nv.name.indexOf("UDF13")>0) UDF13 =nv.getNumber();
+        else if (nv.name.indexOf("UDF23")>0) UDF23 =nv.getNumber();
+        else if (nv.name.indexOf("UDF33")>0) UDF33 =nv.getNumber();
+      }
+      else if (nv.name.indexOf("length_scale")>0)
+      {
+//        length_scale, spLimCoef	1.76285545671353
+//        length_scale, lpLimCoef	1.724119046211
+        if      (nv.name.indexOf("LPLim")>0) LPLim =nv.getNumber();
+        else if (nv.name.indexOf("SPLim")>0) SPLim =nv.getNumber();
+        else if (nv.name.indexOf("LPSFac")>0) LPSFac =nv.getNumber();
+        else if (nv.name.indexOf("SPSFac")>0) SPSFac =nv.getNumber();
+      }
+      else if (nv.name.indexOf("sumscale_")==0)
+      {
+//        sumscale_CoefA	-26.0572091542589
+//        sumscale_CoefB	25.9643972529149
+//        sumscale_CoefT0	0.6458719883876
+//        helectricXX	0.551274289024216
+//        helectricZX	0.444651668756981
+//        helectricXZ	0.13306020754769
+//        helectricZZ	-0.116612055048693
+//        helectricXU	-0.485997397647567
+//        helectricUX	0.0135319772034075
+//        helectricZU	-0.147267845011244
+//        helectricUZ	-0.0452938260722494
+
+//        if      (nv.name.indexOf("CoefA")>0) UDF21 =nv.getNumber();
+//        else if (nv.name.indexOf("CoefB")>0) UDF22 =nv.getNumber();
+//        private static final double SUMSCALE1=0.27, SUMSCALE2=0.33, SUMSCALE3=0.38, SUMSCALE4=0.447;
+
+      }
+    }
+  }
   public static double TSUM3(String sq3) {
     double tsum3 = 0.0;
     int i;
@@ -605,6 +767,62 @@ public class Hydrophobicity3
     tsum3 += helectric(sq3);
     //_log.debug("helectric = "+tsum3);
     return tsum3;
+  }
+
+  public static double Eludator(String sq)
+  {
+    double rt = 0.0;
+    int i, sze=sq.length();
+
+    // Core summation
+    if(sze < 4) return rt;           // peptide is too short ot have any retention
+    // the G factor?
+    if(sze < 10) {                      // short peptides use short peptide retention weights
+      rt =
+          AAPARAMS.get(sq.charAt(0)).RC1S +        // Sum weights for 1st
+          AAPARAMS.get(sq.charAt(1)).RC2S +        // second,
+          AAPARAMS.get(sq.charAt(sze-1)).RCNS +    // ultimate
+          AAPARAMS.get(sq.charAt(sze-2)).RCN2S;    // and penultimate aa
+
+      for(i=2; i<sze-2; i++) {                       // add weights for aa's in the middle
+        rt += AAPARAMS.get(sq.charAt(i)).RCS;
+      }
+    } else {                            // longer peptides use regular retention weights
+      rt =
+          AAPARAMS.get(sq.charAt(0)).RC1 +         // Sum weights for 1st
+          AAPARAMS.get(sq.charAt(1)).RC2 +         // second,
+          AAPARAMS.get(sq.charAt(sze-1)).RCN +     // ultimate
+          AAPARAMS.get(sq.charAt(sze-2)).RCN2;     // and penultimate aa
+
+      for(i=2; i<sze-2; i++) {                      // add weights for aa's in the middle
+        rt += AAPARAMS.get(sq.charAt(i)).RC;
+      }
+    }
+    // 1- smallness - adjust based on tsum score of peptides shorter than 20 aa's.
+    rt += smallness(sze,rt);
+    // 2- undigested parts
+    rt -= undigested(sq);
+    // 3- clusterness # NB:weighting of v1 is now done in subrtn.
+    rt -= clusterness(sq);
+    // 4- proline fix
+    rt -= proline(sq);
+    // 5- length scaling correction
+    rt *= length_scale(sze);
+
+    // 6- total sum correction
+    if (rt >= 20 && rt < 30 ) rt-=((rt-18) * SUMSCALE1);
+    if (rt >= 30 && rt < 40)  rt-=((rt-18) * SUMSCALE2);
+    if (rt >= 40 && rt < 50)  rt-=((rt-18) * SUMSCALE3);
+    if (rt >= 50 )            rt-=((rt-18) * SUMSCALE4);
+
+    // 7- isoelectric change
+    rt += newiso(sq,rt);
+    // 8- helicity corrections  #NB: HELIX#SCALE-ing is now done in subrtn.
+    rt += helicity1(sq);
+    rt += helicity2(sq);
+    rt += helectric(sq);
+
+    return rt;
   }
 
   private static double smallness(int sqlen, double tsum){
@@ -725,7 +943,8 @@ public class Hydrophobicity3
 
   // ============================================================
 // scaling based on length - v 1,2,3 algorithms {
-  private static double length_scale(int sqlen){
+  private static double length_scale(int sqlen)
+  {
     double LS = 1.0;
     if(sqlen < SPLim) {
       LS = 1.0 + SPSFac * (SPLim - sqlen);
