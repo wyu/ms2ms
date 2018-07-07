@@ -12,6 +12,8 @@ import org.ms2ms.utils.Tools;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamReader;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.Collection;
 import java.util.SortedMap;
 
@@ -105,13 +107,20 @@ public class mzReader
     }
 
   }
-  protected static Dataframe detectXIC(
-      Dataframe out, String row,
-      MultiTreeTable<Double, Double, Peak> rt_mz_ms1,
-      MultiTreeTable<Double, Double, Peak>   rt_mz_mz1)
+  public void writeXIC(Writer w, MultiTreeTable<Double, Double, Peak> rt_mz_ms1) throws IOException
   {
-    Collection<Peak> XIC = rt_mz_ms1.get(out.getDouble(row, "RT"), out.getDouble(row, "mz")),
-        XIC_mz = rt_mz_mz1.get(out.getDouble(row, "RT"), out.getDouble(row, "mz"));
+    if (Tools.isSet(rt_mz_ms1))
+      for (Double rt : rt_mz_ms1.getData().keySet())
+        for (Double mz2 : rt_mz_ms1.row(rt).keySet())
+          for (Peak p : rt_mz_ms1.get(rt, mz2))
+            w.write(rt+"\t"+mz2+"\t"+p.getMz()+"\t"+p.getIntensity()+"\n");
+  }
+  protected static Dataframe detectXIC(
+      Dataframe out, String row, String mz_col, String RT_col,
+      MultiTreeTable<Double, Double, Peak> rt_mz_ms1, MultiTreeTable<Double, Double, Peak> rt_mz_mz1)
+  {
+    Collection<Peak> XIC = rt_mz_ms1.get(out.getDouble(row, RT_col), out.getDouble(row, mz_col)),
+                  XIC_mz = rt_mz_mz1.get(out.getDouble(row, RT_col), out.getDouble(row, mz_col));
     if (Tools.isSet(XIC) && XIC.size()>2)
     {
       double rt_c = Peaks.centroid(XIC);
@@ -124,7 +133,7 @@ public class mzReader
       for (Peak p : XIC)
       {
         if      (p!=null && p0!=null && p.getMz()<rt_c && !found) { out.put(row, "XIC.left",   p.getMz()); found=true; }
-        else if (p==null && p0!=null && p.getMz()>rt_c) { out.put(row, "XIC.right", p0.getMz()); found=false; }
+        else if (p==null && p0!=null && p.getMz()>rt_c)           { out.put(row, "XIC.right", p0.getMz()); found=false; }
         p0=p;
       }
       if (p0!=null && p0.getMz()>rt_c && found) out.put(row, "XIC.right", p0.getMz());

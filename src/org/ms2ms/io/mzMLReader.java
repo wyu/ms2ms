@@ -1,9 +1,7 @@
 package org.ms2ms.io;
 
-import com.google.common.collect.TreeMultimap;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
-import org.ms2ms.algo.Peaks;
 import org.ms2ms.algo.Spectra;
 import org.ms2ms.data.collect.MultiTreeTable;
 import org.ms2ms.r.Dataframe;
@@ -14,8 +12,6 @@ import uk.ac.ebi.jmzml.xml.io.MzMLUnmarshaller;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.SortedMap;
 
 /**
  * Deprecated! Use jmzml reader instead
@@ -125,7 +121,7 @@ public class mzMLReader extends mzReader
     for (String row : out.rows())
       if (out.cell(row,"RunFile").equals(filename) && out.getInteger(row, "MsLevel")>1)
       {
-        out = detectXIC(out, row, rt_mz_ms1, rt_mz_mz1);
+        out = detectXIC(out, row, "mz", "RT", rt_mz_ms1, rt_mz_mz1);
 //        Collection<Peak> XIC = rt_mz_ms1.get(out.getDouble(row, "RT"), out.getDouble(row, "mz")),
 //                      XIC_mz = rt_mz_mz1.get(out.getDouble(row, "RT"), out.getDouble(row, "mz"));
 //        if (Tools.isSet(XIC) && XIC.size()>2)

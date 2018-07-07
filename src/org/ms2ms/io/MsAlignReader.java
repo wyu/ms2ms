@@ -1,28 +1,17 @@
 package org.ms2ms.io;
 
-import com.google.common.collect.TreeMultimap;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
-import org.expasy.mzjava.core.ms.peaklist.PeakAnnotation;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeDiscrete;
 import org.expasy.mzjava.core.ms.spectrum.TimeUnit;
-import org.ms2ms.algo.Peaks;
-import org.ms2ms.algo.Spectra;
 import org.ms2ms.data.NameValue;
 import org.ms2ms.data.collect.MultiTreeTable;
 import org.ms2ms.data.ms.LcMsMsInfo;
 import org.ms2ms.mzjava.IsotopePeakAnnotation;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.Strs;
-import org.ms2ms.utils.Tools;
-import psidev.psi.mi.xml.model.Unit;
-import uk.ac.ebi.jmzml.model.mzml.Spectrum;
-import uk.ac.ebi.jmzml.xml.io.MzMLObjectIterator;
-import uk.ac.ebi.jmzml.xml.io.MzMLUnmarshaller;
 
 import java.io.*;
-import java.util.Collection;
-import java.util.SortedMap;
 import java.util.SortedSet;
 
 public class MsAlignReader extends mzReader
@@ -58,29 +47,41 @@ public class MsAlignReader extends mzReader
   }
   public MsnSpectrum update(MsnSpectrum ms, LcMsMsInfo scans)
   {
+    if (ms.getScanNumbers()==null || ms.getScanNumbers().size()==0)
+      System.out.println();
     Integer scan = ms.getScanNumbers().getFirst().getValue();
-    ms.addRetentionTime(new RetentionTimeDiscrete(scans.getRT(null, scan, 0d), TimeUnit.MINUTE));
+    Double    rt = scans.getRT(null, scan);
+    ms.addRetentionTime(new RetentionTimeDiscrete(rt*60d, TimeUnit.SECOND));
 
     ms.getPrecursor().setIntensity(scans.getAi(null, scan, 0d));
     return ms;
   }
   public Dataframe readPeptideFeatures(Dataframe out, LcMsMsInfo scans, double ppm, double dRT) throws IOException
   {
-    MultiTreeTable<Double, Double, String> rt_mz_row = indexPeptidesFrPSM(out, "mh","RT");
+    MultiTreeTable<Double, Double, String> rt_mz_row = indexPeptidesFrPSM(out, "MH","RT");
     MultiTreeTable<Double, Double, Peak>   rt_mz_ms1 = MultiTreeTable.create(), rt_mz_mz1 = MultiTreeTable.create();
 
     // looping through the scans
+    int rows=0;
     while (getReader().ready())
     {
       MsnSpectrum ms = readSpectrum(getReader());
 
-      if (ms.getMsLevel()==1)
+      if (ms!=null && ms.size()>0 && update(ms, scans).getMsLevel()==1)
         XIC(ms, ppm, dRT, rt_mz_row, rt_mz_ms1, rt_mz_mz1);
+
+      if (++rows%100==0) System.out.print(".");
     }
+    System.out.println("$");
+
+    // dump the traces for inspection
+    FileWriter w = new FileWriter("/tmp/XICs.txt");
+    w.write("rt0\tmz\trt\tai\n");
+    writeXIC(w, rt_mz_ms1); w.close();
+
     // calculate the LC peak centroids
     for (String row : out.rows())
-      if (out.getInteger(row, "MsLevel")>1)
-        out = detectXIC(out, row, rt_mz_ms1, rt_mz_mz1);
+        out = detectXIC(out, row, "mz", "RT", rt_mz_ms1, rt_mz_mz1);
 
     return out;
   }
@@ -104,13 +105,13 @@ public class MsAlignReader extends mzReader
         else if ("ACTIVATION".equals(nv.name)) ms.setFragMethod(nv.val);
         else if ("PRECURSOR_MZ".equals(nv.name)) mz=nv.getNumber();
         else if ("PRECURSOR_CHARGE".equals(nv.name)) z=nv.getInt();
-        else
-        {
-          String[] items = Strs.split(line, '\t');
-          if (items.length>2)
-            ms.add(Double.parseDouble(items[0]), Double.parseDouble(items[1]),
-                new IsotopePeakAnnotation(Integer.parseInt(items[2]),0,0d));
-        }
+      }
+      else
+      {
+        String[] items = Strs.split(line, '\t');
+        if (items.length>2)
+          ms.add(Double.parseDouble(items[0]), Double.parseDouble(items[1]),
+              new IsotopePeakAnnotation(Integer.parseInt(items[2]),0,0d));
       }
     }
     if (mz!=null && z!=null)
