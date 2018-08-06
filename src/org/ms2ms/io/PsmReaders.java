@@ -87,7 +87,7 @@ public class PsmReaders
   {
     super();
     mEngine=engine; mLowestRank=tops;
-    mSorter = new PSMs.DesendScorePeptideMatch(engine.getCanonicalScore());
+    if (engine!=null) mSorter = new PSMs.DesendScorePeptideMatch(engine.getCanonicalScore());
   }
 
   public Map<SpectrumIdentifier, List<PeptideMatch>> getResultMap() { return searchResultMap; }

@@ -56,6 +56,34 @@ public class MsAlignReader extends mzReader
     ms.getPrecursor().setIntensity(scans.getAi(null, scan, 0d));
     return ms;
   }
+  public void writeXICs(Writer w, LcMsMsInfo scans, double min_mz) throws IOException
+  {
+    // prepare the header
+    w.write("Scan\tRT\tmz\tAI\tCharge\n");
+
+    // looping through the scans
+    int rows=0;
+    while (getReader().ready())
+    {
+      MsnSpectrum ms = readSpectrum(getReader());
+
+      if (ms!=null && ms.size()>0 && update(ms, scans).getMsLevel()==1)
+        for (int i=0; i<ms.size(); i++)
+          if (ms.getMz(i)>=min_mz)
+          {
+            rows++;
+            w.write(ms.getScanNumbers().getFirst().getValue()+"\t");
+            w.write(ms.getRetentionTimes().getFirst().getTime()+"\t");
+            w.write(ms.getMz(i)+"\t");
+            w.write(ms.getIntensity(i)+"\t");
+            w.write((ms.getFirstAnnotation(i).isPresent()?ms.getFirstAnnotation(i).get().getCharge():0)+"\n");
+          }
+
+      if (++rows%100==0) System.out.print(".");
+    }
+    System.out.println("$");
+  }
+
   public Dataframe readPeptideFeatures(Dataframe out, LcMsMsInfo scans, double ppm, double dRT) throws IOException
   {
     MultiTreeTable<Double, Double, String> rt_mz_row = indexPeptidesFrPSM(out, "MH","RT");
