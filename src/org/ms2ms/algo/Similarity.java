@@ -4,6 +4,7 @@ import com.google.common.collect.Range;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
+import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Tools;
 
 import java.util.*;
@@ -299,12 +300,14 @@ public class Similarity
   }
   public static double similarity_hg(List<? extends Peak> A, List<? extends Peak> B, double delta)
   {
+    if (!Tools.isSet(A) || !Tools.isSet(B)) return -1d;
+
     Range<Double> mz_range = Range.closed(Math.min(Tools.front(A).getMz(), Tools.front(B).getMz()),
                                           Math.max(Tools.back( A).getMz(), Tools.back( B).getMz()));
     Map<Peak, Peak> outcomes = Peaks.overlap(A, B, delta, true, false, null);
     long bins = (long) ((mz_range.upperEndpoint() - mz_range.lowerEndpoint()) / delta);
 //    return -10 * MsStats.hypergeometricPval1(outcomes.size(), A.size(), B.size(), bins);
-    return -1 * MsStats.hypergeom(outcomes.size(), A.size(), B.size(), bins);
+    return -1 * MsStats.hypergeom(Math.min(outcomes.size(), Math.min(A.size(), B.size())), A.size(), B.size(), bins);
   }
   public static boolean condition(PeakList msms, double pct_cutoff, int min_peaks)
   {

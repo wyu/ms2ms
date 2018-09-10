@@ -123,7 +123,7 @@ public class MsIO extends IOs
     int counts = ms.getRetentionTimes()!=null&&ms.getRetentionTimes().size()>0?ms.getRetentionTimes().size():0;
     w.writeInt(counts);
     if (counts>0)
-      for (RetentionTime rt : ms.getRetentionTimes()) w.writeDouble(rt.getTime());
+      for (int i=0; i<counts; i++) w.writeDouble(ms.getRetentionTimes().get(i).getTime());
   }
 
   public static PeakList readSpectrumIdentifier(DataInput w, PeakList ms) throws IOException
@@ -155,7 +155,14 @@ public class MsIO extends IOs
       if (ms.getRetentionTimes()!=null) ms.getRetentionTimes().clear();
       if (counts>0)
         for (int i=0; i<counts; i++)
-          ms.addRetentionTime(new RetentionTimeDiscrete(w.readDouble(), TimeUnit.SECOND));
+          try
+          {
+            ms.addRetentionTime(new RetentionTimeDiscrete(w.readDouble(), TimeUnit.SECOND));
+          }
+          catch (Exception e)
+          {
+            e.printStackTrace();
+          }
     }
     return ms;
   }

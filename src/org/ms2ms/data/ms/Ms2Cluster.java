@@ -4,6 +4,7 @@ import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.ms2ms.algo.Peaks;
+import org.ms2ms.algo.PurgingPeakProcessor;
 import org.ms2ms.algo.Similarity;
 import org.ms2ms.algo.Spectra;
 import org.ms2ms.data.Binary;
@@ -80,6 +81,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary
     if (Tools.equals(p, mHead) || Tools.contains(mCandidates, p)) return true;
     return false;
   }
+  public Ms2Cluster setMaster(MsnSpectrum s) { mMaster=s; return this; }
   public Ms2Cluster setMaster(BufferedRandomAccessFile bin) throws IOException
   {
     if (size()<=1) mMaster = MsIO.readSpectrumIdentifier(bin, new MsnSpectrum(), getHead().pointer);
@@ -104,25 +106,38 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary
     if (mHead==null || !Tools.isSet(spectra)) return null;
 
     // setting the seed spectrum
-    MsnSpectrum HEAD = (mMaster!=null?mMaster:spectra.get(mHead));
+    if (getMaster()==null && spectra.get(getHead())!=null)
+      setMaster(spectra.get(getHead()).copy(new PurgingPeakProcessor()));
+
+//    MsnSpectrum HEAD = (mMaster!=null?mMaster:spectra.get(mHead));
+    // setup the master first
+    List<Peak> head = Spectra.toListOfPeaks(getMaster(), lowmass);
     // get the index of the HEAD spectrum
-    List<Peak> index = Similarity.index(Spectra.toListOfPeaks(HEAD, lowmass), 7, 1, 5, 0);
+    List<Peak> index = Similarity.index(head, 7, 1, 5, 0);
 
     // the collections
     if (mMembers!=null) mMembers.clear(); else mMembers = new ArrayList<>();
+    // new members from this round
     Collection<MsnSpectrum> members = new ArrayList<>();
-    // setup the master first
-    List<Peak> head = Spectra.toListOfPeaks(HEAD, lowmass);
+    // the error tolerance
     double delta = tol.calcError(500);
     for (Ms2Pointer member : mCandidates)
     {
       MsnSpectrum scan = spectra.get(member);
+      // need to exclude the head itself
+      if (member.hcode==getHead().hcode)
+      {
+        member.dp=-1; // being the self
+        member.cluster=this;
+        mMembers.add(member);
+        continue;
+      }
       if (scan!=null)
       {
         // calc the forward and backward DPs and choose the smallest
         List<Peak> pks = Spectra.toListOfPeaks(scan,lowmass);
         // make sure a min number of the index peaks are found
-//        if (index.size()-Peaks.overlap_counts(pks, index, delta, true)>miss_index) continue;
+        if (miss_index>=0 && index.size()-Peaks.overlap_counts(pks, index, delta, true)>miss_index) continue;
 
         member.dp=(float )Similarity.bidirectional_dp(head, pks, tol, true, true, true);
         // now the matching probability
@@ -130,20 +145,19 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary
 
         if (member.dp>=min_dp)
         {
+          member.cluster=this;
           mMembers.add(member);
           members.add(spectra.get(member));
         }
       }
     }
-    if (members.size()>1)
-    {
-      mMaster = Spectra.accumulate(HEAD, tol, 0.5f, members);
-      mMz     = (float )mMaster.getPrecursor().getMz();
-      mHead.cluster=this;
-    }
+    mMaster = Spectra.accumulate(getMaster(), tol, 0.5f, members);
+    mMz     = (float )mMaster.getPrecursor().getMz();
+    mHead.cluster=this;
 
     // remove the local objects
-    head = (List )Tools.dispose(head);
+    head    = (List )Tools.dispose(head);
+    index   = (List )Tools.dispose(index);
     members = Tools.dispose(members);
 
     return this;
@@ -204,6 +218,16 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary
     }
 
     return this;
+  }
+  public void updateAnnotations(Map<String, Ms2Cluster> runscan_pepcls)
+  {
+    if (Tools.isSet(getCandidates()) && Tools.isSet(runscan_pepcls))
+      for (Ms2Pointer p : getCandidates())
+      {
+        String runscan = p.run+"#"+p.scan;
+        if (runscan_pepcls.get(runscan)!=null)
+          p.name = runscan_pepcls.get(runscan).getName();
+      }
   }
   @Override
   public int hashCode()

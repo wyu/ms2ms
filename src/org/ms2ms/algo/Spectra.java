@@ -439,8 +439,8 @@ public class Spectra
     // initiate the peaks
     for (PeakMatch pm : pivots.values()) pm.setSNR(pm.getMz()*pm.getIntensity());
 
-    MsnSpectrum out = lead.copy(new PurgingPeakProcessor());
-
+//    MsnSpectrum out = lead.copy(new PurgingPeakProcessor());
+//
     PpmTolerance tol2 = tol.scale(2); Collection<Peak> pcs = new ArrayList<>(); pcs.add(lead.getPrecursor());
     for (MsnSpectrum A : As)
     {
@@ -473,26 +473,26 @@ public class Spectra
       }
     }
     // deposit the merged peaks
-    out.clear(); int n=As.size()>1?Math.max(2, Math.round(As.size()*fr)):1;
+    lead.clear(); int n=As.size()>1?Math.max(2, Math.round(As.size()*fr)):1;
     for (Double mz : pivots.keySet())
     {
       PeakMatch pm = pivots.get(mz);
       if (pm.getCounts()>=n)
       {
-        out.add(pm.getSNR()/pm.getIntensity(), pm.getIntensity(), new LibPeakAnnotation((int) pm.getCounts(), 0d, 0d));
+        lead.add(pm.getSNR()/pm.getIntensity(), pm.getIntensity(), new LibPeakAnnotation((int) pm.getCounts(), 0d, 0d));
       }
     }
 //    if (out!=null && lead!=null && lead.getPrecursor()!=null && Tools.isSet(pcs))
     try
     {
-      out.setPrecursor(new Peak(Peaks.centroid(pcs), Peaks.AbsIntensitySum(pcs), lead.getPrecursor().getCharge()));
+      lead.setPrecursor(new Peak(Peaks.centroid(pcs), Peaks.AbsIntensitySum(pcs), lead.getPrecursor().getCharge()));
     }
     catch (Exception e)
     {
       System.out.println();
     }
 
-    return out;
+    return lead;
   }
 //  public static boolean deisotope(PeakList peaks, Tolerance tol, int maxcharge, double zzstart)
 //  {
