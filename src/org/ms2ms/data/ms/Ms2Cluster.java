@@ -3,6 +3,7 @@ package org.ms2ms.data.ms;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
+import org.ms2ms.Disposable;
 import org.ms2ms.algo.Peaks;
 import org.ms2ms.algo.PurgingPeakProcessor;
 import org.ms2ms.algo.Similarity;
@@ -20,8 +21,17 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.*;
 
-public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary
+public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable
 {
+  @Override
+  public void dispose()
+  {
+    mMaster     = null;
+    mHead       = null;
+    mMembers    = Tools.dispose(mMembers);
+    mCandidates = Tools.dispose(mCandidates);
+  }
+
   public enum NodeType { REF, MSMS, NONE };
 
   private NodeType mType = NodeType.MSMS;
@@ -33,7 +43,6 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary
 
   private Ms2Pointer mHead;
   private Collection<Ms2Pointer> mMembers = new TreeSet<>(), mCandidates = new TreeSet<>(); // actual or possible members of the cluster
-
 
   public Ms2Cluster() { super(); }
   public Ms2Cluster(String s) { super(); mName=s; }
@@ -105,6 +114,8 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary
     // quit if the master or input are not present!
     if (mHead==null || !Tools.isSet(spectra)) return null;
 
+    mHead.cluster=this;
+
     // setting the seed spectrum
     if (getMaster()==null && spectra.get(getHead())!=null)
       setMaster(spectra.get(getHead()).copy(new PurgingPeakProcessor()));
@@ -153,7 +164,9 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary
     }
     mMaster = Spectra.accumulate(getMaster(), tol, 0.5f, members);
     mMz     = (float )mMaster.getPrecursor().getMz();
-    mHead.cluster=this;
+    mRT     = (float )getMaster().getRetentionTimes().getFirst().getTime()/60f;
+    mCharge = getMaster().getPrecursor().getCharge();
+    mID     = Tools.d2s(getMz(),3)+"|"+getCharge()+"|"+Tools.d2s(getRT(),1);
 
     // remove the local objects
     head    = (List )Tools.dispose(head);

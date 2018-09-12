@@ -29,7 +29,7 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary
   public Ms2Pointer(String r, MsnSpectrum ms)
   {
     run =r;
-    scan=ms.getScanNumbers().getFirst().getValue();
+    scan=ms.getScanNumbers().size()>0?ms.getScanNumbers().getFirst().getValue():-1;
     mz  = (float )ms.getPrecursor().getMz(); mz_off=0f;
     z   = ms.getPrecursor().getCharge();
     rt  = (float )ms.getRetentionTimes().getFirst().getTime()/60f;
@@ -42,7 +42,7 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary
   @Override
   public int compareTo(Ms2Pointer o)
   {
-    int c = run.compareTo(o.run);
+    int c = (run!=null && o.run!=null) ? run.compareTo(o.run):0;
     if (c==0) c=Integer.compare(scan, o.scan);
     if (c==0) c=  Float.compare(mz,o.mz);
     if (c==0) c=  Float.compare(rt,o.rt);
@@ -116,7 +116,7 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary
   @Override
   public String toString()
   {
-    return (Strs.isSet(name)?(name+"::"):"")+run+"#"+scan+"|z"+z+"|m/z"+ Tools.d2s(mz, 4)+"|min"+Tools.d2s(rt, 2)+
+    return (Strs.isSet(name)?(name+"::"):"")+run+(scan>0?"#"+scan:"")+"|z"+z+"|m/z"+ Tools.d2s(mz, 4)+"|min"+Tools.d2s(rt, 2)+
         (dp>0?"|dp"+Tools.d2s(dp,2):"")+(npks_upper>0?"|npks"+npks_upper:"");
   }
 }
