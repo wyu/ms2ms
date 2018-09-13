@@ -126,7 +126,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
     // setup the master first
     List<Peak> head = Spectra.toListOfPeaks(getMaster(), lowmass);
     // get the index of the HEAD spectrum
-    List<Peak> index = Similarity.index(head, 7, 1, 5, 0);
+    List<Peak> index = Similarity.index(head, 7, 0, 1, 5, 0);
 
     // the collections
     if (mMembers!=null) mMembers.clear(); else mMembers = new ArrayList<>();
@@ -195,7 +195,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
     if (mMaster==null || !Tools.isSet(spectra)) return null;
 
     // grab the index from our master first
-    List<Peak> master = Similarity.index(Spectra.toListOfPeaks(mMaster), regions, 1, 5, 0);
+    List<Peak> master = Similarity.index(Spectra.toListOfPeaks(mMaster), regions, 0, 1, 5, 0);
     long bins = (long )(Math.log(2)/Math.log(1d+5E-6)), npks = master.size();
 
     Iterator<Ms2Pointer> itr = mCandidates.iterator();
@@ -204,7 +204,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
       MsnSpectrum scan = spectra.get(itr.next());
       if (scan!=null)
       {
-        List<Peak> member = Similarity.index(Spectra.toListOfPeaks(scan), regions, 1, 5, 0);
+        List<Peak> member = Similarity.index(Spectra.toListOfPeaks(scan), regions, 0, 1, 5, 0);
         int overlap = Peaks.overlap_counts(master, member, 0.01, true);
 
         double prob = Stats.hypergeom(overlap, npks, member.size(), bins);

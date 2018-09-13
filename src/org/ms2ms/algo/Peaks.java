@@ -1509,4 +1509,16 @@ public class Peaks {
 
     return ai;
   }
+  public static SortedMap<Double, Peak> toPeaks(Collection<Peak> ms)
+  {
+    if (!Tools.isSet(ms)) return null;
+
+    // walking thro the peaks and recording the matching peaks
+    SortedMap<Double,Peak> peaks = new TreeMap<>();
+    for (Peak p : ms)
+      peaks.put(p.getMz(), p);
+
+    return peaks;
+  }
+
 }

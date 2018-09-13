@@ -4,7 +4,6 @@ import com.google.common.collect.Range;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
-import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Tools;
 
 import java.util.*;
@@ -217,12 +216,13 @@ public class Similarity
    * @param              A = Profile
    * @param      n_regions = # of sub-regions into which the profie would be divided.
    *                         The base point from each sub-region is selected as the index point.
+   * @param min_regions
    * @param         n_tops = # of the most intense points that's not already selected from
    *                         the sub-region, to be added to the indices.
    * @param min_separation = min separation between the index points in dalton
    * @return The index points as a List
    */
-  public static <T extends Peak> List<Peak> index(List<T> A, int n_regions, int n_tops, double min_separation, double min_ai)
+  public static <T extends Peak> List<Peak> index(List<T> A, int n_regions, int min_regions, int n_tops, double min_separation, double min_ai)
   {
     if (A==null || A.size()<3) return null;
 
@@ -240,6 +240,8 @@ public class Similarity
     // default to 3 as min# of tops
     if      (n_tops    <= 0) n_tops    = 3;
     // not enough points to make a meaningful indices
+    if (A.size() < n_regions * 2 + n_tops && min_regions>0) n_regions=min_regions;
+    // try again
     if (A.size() < n_regions * 2 + n_tops) return indices;
     // inspect the regions
     int left = 0; double step = range / n_regions;
