@@ -11,7 +11,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary
+public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary, Ion
 {
   public String     run, name;
   public int        scan, z, hcode, npks, npks_upper;
@@ -37,7 +37,9 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary
     hcode=run.hashCode()+scan+Float.hashCode(mz);
   }
   public Ms2Pointer setMzOffset(float s) { mz_off=s; return this; }
-  public float getMH() { return Peaks.toMH(mz,z); }
+  public float getMH()     { return Peaks.toMH(mz,z); }
+  public float getMz()     { return mz; }
+  public int   getCharge() { return z; }
 
   @Override
   public int compareTo(Ms2Pointer o)

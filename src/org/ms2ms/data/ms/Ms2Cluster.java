@@ -21,7 +21,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.*;
 
-public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable
+public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, Ion
 {
   @Override
   public void dispose()
@@ -62,12 +62,14 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable
   public int    getNbyMzRT()     { return mByMzRT; }
   public int    getCharge()      { return mCharge; }
   public float  getMz()          { return mMz; }
+  public float  getMH()          { return Peaks.toMH(getMz(),getCharge()); }
   public float  getRT()          { return mRT; }
   public float  getImpurity()    { return mImpurity; }
   public int    getNbyMzRtFrag() { return mByMzRtFrag; }
   public String getName()        { return mName; }
   public String getID()          { return mID; }
   public String getMajority()    { return mMajority; }
+  public NodeType getType()      { return mType; }
 
   public Ms2Cluster setType(NodeType   s) { mType      =s; return this; }
   public Ms2Cluster setHead(Ms2Pointer s) { mHead      =s; return this; }
@@ -166,7 +168,8 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable
     mMz     = (float )mMaster.getPrecursor().getMz();
     mRT     = (float )getMaster().getRetentionTimes().getFirst().getTime()/60f;
     mCharge = getMaster().getPrecursor().getCharge();
-    mID     = Tools.d2s(getMz(),3)+"|"+getCharge()+"|"+Tools.d2s(getRT(),1);
+//    mID     = Tools.d2s(getMz(),3)+"|"+getCharge()+"|"+Tools.d2s(getRT(),1);
+    mID     = toString();
 
     // remove the local objects
     head    = (List )Tools.dispose(head);
@@ -261,8 +264,11 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable
   @Override
   public String toString()
   {
-    return mType+(Strs.isSet(getName())?"::"+getName():"")+(size()!=0?"#"+size():"")+(getCandidateSize()!=0?"$"+
-        getCandidateSize():"")+(mHead!=null?mHead.toString():(getMembers()!=null?Tools.front(getMembers()).toString():""));
+    return (getMaster()!=null?(Tools.d2s(Peaks.toMH(getMaster().getPrecursor()), 4)+"|"+
+                               getMaster().getPrecursor().getCharge()+"|"+
+                               Tools.d2s(getMaster().getRetentionTimes().getFirst().getTime()/60d, 2)):"")+
+        (getMembers()!=null?getMembers().size():0) +
+        (Strs.isSet(getName())?"::"+getName():"") + "|"+hashCode();
   }
   @Override
   public int compareTo(Ms2Cluster o)
