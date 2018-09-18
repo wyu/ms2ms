@@ -284,6 +284,15 @@ public class Spectra
       for (int i=0; i<A.size(); i++)
         if (bound.contains(A.getMz(i))) invalidate(A,i);
   }
+  public static double sum(PeakList A, Range<Double> bound)
+  {
+    double sum=0d;
+    if (A!=null && Tools.isSet(bound))
+      for (int i=0; i<A.size(); i++)
+        if (bound.contains(A.getMz(i))) sum+=A.getIntensity(i);
+
+    return sum;
+  }
   public static void unnotch(PeakList A, Range<Double> bound)
   {
     if (A!=null && Tools.isSet(bound))

@@ -1,5 +1,6 @@
 package org.ms2ms.io;
 
+import com.google.common.collect.Range;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.ms2ms.algo.Spectra;
@@ -26,7 +27,7 @@ public class mzMLReader extends mzReader
     NUMBER    = "num";
     RT        = "retentionTime";
   }
-  public static Dataframe readScanInfo(Dataframe data, double ppm, double dRT, String root, String pattern) throws IOException
+  public static Dataframe readScanInfo(Dataframe data, double ppm, double dRT, String root, String pattern, double... channels) throws IOException
   {
     String[] searches = IOs.listFiles(root, pattern);
 
@@ -34,15 +35,15 @@ public class mzMLReader extends mzReader
       for (String s : searches)
       {
 //        data = mzMLReader.inferPrecursorsFromMS2(data, s).init(true);
-        data = readScanInfo(data, s).init(true);
+        data = readScanInfo(data, ppm, s, true, channels).init(true);
         data = mzMLReader.readPeptideFeatures(data, ppm, dRT, s).init(true);
       }
 
     return data;
   }
-  public static Dataframe readScanInfo(Dataframe out, String filename) throws IOException
+  public static Dataframe readScanInfo(Dataframe out, double ppm, String filename, boolean loadIons, double... channels) throws IOException
   {
-    System.out.println("Reading "+filename+"...");
+    System.out.println("Reading scans from "+filename+"...");
 
     File file = new File(filename); String run = file.getName().substring(0,file.getName().indexOf('.'));
     MzMLUnmarshaller mzml = new MzMLUnmarshaller(file, false, null);
@@ -53,7 +54,7 @@ public class mzMLReader extends mzReader
     if (out==null) out = new Dataframe(filename);
     while (spectrumIterator.hasNext())
     {
-      MsnSpectrum ms = MsReaders.from(spectrumIterator.next(), true);
+      MsnSpectrum ms = MsReaders.from(spectrumIterator.next(), !loadIons);
       String row = filename+"#"+ms.getScanNumbers().getFirst().getValue();
       out.put(row, "Scan",       ms.getScanNumbers().getFirst().getValue());
       out.put(row, "MsLevel",    ms.getMsLevel());
@@ -66,12 +67,24 @@ public class mzMLReader extends mzReader
       out.put(row, "TIC", ms.getTotalIonCurrent());
       out.put(row, "RunFile", filename);
       out.put(row, "Run", run);
+      if (ms.getScanNumbers().getFirst().getValue()==7135)
+        System.out.println();
+      if (ms!=null && ms.size()>0 && Tools.isSet(channels))
+        for (double channel : channels)
+        {
+          double delta = channel*1E-6*ppm, sum=Spectra.sum(ms, Range.closed(channel-delta,channel+delta));
+          if (sum>0)
+            out.put(row, "X"+Tools.d2s(channel,4), sum);
+        }
+
+      // remove the spectrum from the memory
+      ms.clear(); ms=null;
     }
     return out;
   }
   public static Dataframe readPeptideFeatures(Dataframe out, double ppm, double dRT, String filename) throws IOException
   {
-    System.out.println("Reading "+filename+"...");
+    System.out.println("Reading peptide features from "+filename+"...");
 
     MultiTreeTable<Double, Double, String> rt_mz_row = MultiTreeTable.create();
     MultiTreeTable<Double, Double, Peak>   rt_mz_ms1 = MultiTreeTable.create(), rt_mz_mz1 = MultiTreeTable.create();
