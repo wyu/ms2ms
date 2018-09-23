@@ -73,6 +73,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
 
   public Ms2Cluster setType(NodeType   s) { mType      =s; return this; }
   public Ms2Cluster setHead(Ms2Pointer s) { mHead      =s; return this; }
+  public Ms2Cluster setCharge(     int s) { mCharge    =s; return this; }
   public Ms2Cluster setNbyMz(      int s) { mByMz      =s; return this; }
   public Ms2Cluster setNbyMzRt(    int s) { mByMzRT    =s; return this; }
   public Ms2Cluster setNbyMzRtFrag(int s) { mByMzRtFrag=s; return this; }
@@ -140,7 +141,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
       // need to exclude the head itself
       if (member.hcode==getHead().hcode)
       {
-        member.dp=-1; // being the self
+        member.dp=1; // being the self
         member.cluster=this;
         mMembers.add(member);
         continue;
@@ -184,7 +185,8 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
     {
       Collection<Double> ms = new ArrayList<>(); double z=0;
       for (Ms2Pointer p : mMembers) { ms.add((double )p.mz); z+=p.z; }
-      mMz = (float )Stats.mean(ms); mCharge=(int )Math.round(z);
+      mMz = (float )Stats.mean(ms);
+      mCharge=(int )Math.round((double )z/(double )getMembers().size());
     }
     return this;
   }
@@ -237,6 +239,8 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
   }
   public void updateAnnotations(Map<String, Ms2Cluster> runscan_pepcls)
   {
+    if (size()>15)
+      System.out.println();
     if (Tools.isSet(getCandidates()) && Tools.isSet(runscan_pepcls))
       for (Ms2Pointer p : getCandidates())
       {
@@ -282,12 +286,14 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
     IOs.write(ds, mType.name());
     IOs.write(ds, mMz);
     IOs.write(ds, mRT);
+    IOs.write(ds, mImpurity);
     IOs.write(ds, mByMz);
     IOs.write(ds, mByMzRT);
     IOs.write(ds, mByMzRtFrag);
     IOs.write(ds, mCharge);
     IOs.write(ds, mName);
     IOs.write(ds, mID);
+    IOs.write(ds, mMajority);
     IOs.write(ds, mHead);
 
     IOs.write(ds, mMembers);
@@ -304,6 +310,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
     mType       = NodeType.valueOf(IOs.read(ds, ""));
     mMz         = IOs.read(ds, 0f);
     mRT         = IOs.read(ds, 0f);
+    mImpurity   = IOs.read(ds, 0f);
     mByMz       = IOs.read(ds, 0);
     mByMzRT     = IOs.read(ds, 0);
     mByMzRtFrag = IOs.read(ds, 0);
@@ -311,6 +318,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
 
     mName       = IOs.read(ds, "");
     mID         = IOs.read(ds, "");
+    mMajority   = IOs.read(ds, "");
     mHead       = IOs.read(ds, new Ms2Pointer());
 
     mMembers    = IOs.readList(ds, Ms2Pointer.class);

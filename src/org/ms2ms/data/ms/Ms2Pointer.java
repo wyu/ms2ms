@@ -84,6 +84,7 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary, Ion
   public void write(DataOutput ds) throws IOException
   {
     IOs.write(ds, run);
+    IOs.write(ds, name);
     IOs.write(ds, scan);
     IOs.write(ds, z);
     IOs.write(ds, hcode);
@@ -101,6 +102,7 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary, Ion
   public void read(DataInput ds) throws IOException
   {
     run       =IOs.read(ds, run);
+    name      =IOs.read(ds, name);
     scan      =IOs.read(ds, 0);
     z         =IOs.read(ds, 0);
     hcode     =IOs.read(ds, 0);
