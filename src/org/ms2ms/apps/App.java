@@ -25,7 +25,7 @@ abstract public class App
   protected static BiMap<String, String> sParamKeys;
 
   protected Property                 mParameters;
-  protected String                   mOutfileRoot, mWorkingRoot;
+  protected String                   mOutfileRoot, mWorkingRoot, mMode;
   protected boolean                  mVerbose;
   protected List<String>             mUsages;
   protected Config                   mConfig = ConfigFactory.load();
@@ -81,6 +81,10 @@ abstract public class App
       {
         setVerbose(true); // Turn verbose mode on
       }
+      else if (args[i].equals("-x") || args[i].equals("-mode"))
+      {
+        mMode = args[i+1];
+      }
       else if (args[i].equals("-v") || args[i].equals("-verbose"))
       {
         setVerbose(true); // Turn verbose mode on
@@ -106,7 +110,7 @@ abstract public class App
       System.out.println(inMsg);
     }
   }
-
+  public Boolean isMode(String s) { return Strs.equals(s, mMode); }
   public void setVerbose(boolean inValue)
   {
     mVerbose = inValue;
@@ -171,12 +175,15 @@ abstract public class App
 
     return buf.toString();
   }
-  protected String   param(String s)            { return mParameters!=null?mParameters.getProperty(s):null; }
-  protected Double   param(String s, Double d)  { return mParameters!=null?mParameters.getProperty(s,d):null; }
-  protected Float    param(String s, Float d)   { return mParameters!=null?mParameters.getProperty(s,d):null; }
-  protected Integer  param(String s, Integer d) { return mParameters!=null?mParameters.getProperty(s,d):null; }
-  protected Boolean  param(String s, boolean d) { return mParameters!=null?(mParameters.getProperty(s)=="Y"):d; }
-  protected Property param()                    { return mParameters; }
+  public String   param( String s)            { return mParameters!=null?mParameters.getProperty(s):null; }
+  public Double   param( String s, Double d)  { return mParameters!=null?mParameters.getProperty(s,d):null; }
+  public Float    param( String s, Float d)   { return mParameters!=null?mParameters.getProperty(s,d):null; }
+  public Integer  param( String s, Integer d) { return mParameters!=null?mParameters.getProperty(s,d):null; }
+  public Boolean  param( String s, boolean d) { return mParameters!=null?(mParameters.getProperty(s)=="Y"):d; }
+  public String[] params(String s, char t)    { return mParameters!=null?mParameters.getProperties(s,t):null; }
+  public float[]  params(String s, char t, Float d)   { return mParameters!=null?mParameters.getFloats(s,t):null; }
+
+  public Property param()                    { return mParameters; }
 
   protected void addParamKey(String... names)
   {
