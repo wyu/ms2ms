@@ -130,7 +130,7 @@ public class Spectra
   }
   public static PeakList denoise_local(PeakList A, double span, Integer cream_of_top, double sigma, boolean set_bias, boolean set_density)
   {
-    if (A==null || span == 0 || cream_of_top == null) return A;
+    if (A==null || A.size()==0 || span == 0 || cream_of_top == null) return A;
 
     // the range of the locals in Z
     int          size_a = A.size();

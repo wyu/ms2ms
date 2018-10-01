@@ -1,6 +1,7 @@
 package org.ms2ms.apps;
 
 import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Range;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -22,6 +23,11 @@ import java.util.zip.GZIPInputStream;
  */
 abstract public class App
 {
+  public static final String KEY_THREAD   = "thread";
+  public static final String KEY_WORKING  = "w";
+  public static final String KEY_OUT      = "o";
+  public static final String MODE_EXEC    = "exec";
+
   protected static BiMap<String, String> sParamKeys;
 
   protected Property                 mParameters;
@@ -33,6 +39,15 @@ abstract public class App
   // PRIVATE FIELDS
   //***-*********-*********-*********-*********-*********-*********-*********-
   protected String mAppName = "unTitled", mVersion, mBuild;
+
+  static
+  {
+    sParamKeys = HashBiMap.create();
+
+    sParamKeys.put(KEY_OUT,      "Output file");
+    sParamKeys.put(KEY_THREAD,   "Number of concurrent threads");
+    sParamKeys.put(KEY_WORKING,  "Working folder");
+  }
 
   //--------------------------------------------------------------------------
   public int tryRun(String args[]) throws Exception
@@ -127,9 +142,26 @@ abstract public class App
         System.out.println("    " + u);
   }
   abstract protected boolean doRun() throws Exception;
-  abstract protected void    addProperty(String... vals);
-  abstract public    String  getOutFile();
+//  abstract protected void    addProperty(String... vals);
+  protected void addProperty(String... vals)
+  {
+    if (vals==null || vals.length<2) return;
 
+    if (mParameters==null) mParameters = new Property();
+
+    // check to make sure that name is recognized
+    for (String key : sParamKeys.keySet())
+      if (Strs.equalsIgnoreCase(vals[0], key) || Strs.equalsIgnoreCase(vals[0], sParamKeys.get(key)))
+      {
+        mParameters.setProperty(key, vals[1]);
+      }
+  }
+
+  //  abstract public    String  getOutFile();
+  public String getOutFile()
+  {
+    return Strs.isSet(mOutfileRoot)?mOutfileRoot:getWorkingRoot();
+  }
   public String getWorkingRoot() { return (Strs.isSet(mWorkingRoot) ? mWorkingRoot:System.getProperty("user.dir"))+"/"; }
   public String getLogFile()     { return getOutFile().replaceAll("\\*","_")+".log"; }
 

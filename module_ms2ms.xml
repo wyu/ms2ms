@@ -6,10 +6,10 @@
   <property name="module.jdk.bin.ms2ms" value="${project.jdk.bin}"/>
   <property name="module.jdk.classpath.ms2ms" value="${project.jdk.classpath}"/>
   
-  <property name="compiler.args.ms2ms" value="-encoding UTF-8 -source 8 ${compiler.args}"/>
+  <property name="compiler.args.ms2ms" value="-encoding UTF-8 -source 1.8 -target 1.8 ${compiler.args}"/>
   
-  <property name="ms2ms.output.dir" value="${module.ms2ms.basedir}/../../../../Apps/pipeline/Chorus/out/production/ms2ms"/>
-  <property name="ms2ms.testoutput.dir" value="${module.ms2ms.basedir}/../../../../Apps/pipeline/Chorus/out/test/ms2ms"/>
+  <property name="ms2ms.output.dir" value="${module.ms2ms.basedir}/../../../../IdeaProjects/Choir/out/production/ms2ms"/>
+  <property name="ms2ms.testoutput.dir" value="${module.ms2ms.basedir}/../../../../IdeaProjects/Choir/out/test/ms2ms"/>
   
   <path id="ms2ms.module.bootclasspath">
     <!-- Paths to be included in compilation bootclasspath -->
@@ -68,15 +68,15 @@
   
   <target name="compile.module.ms2ms" depends="compile.module.ms2ms.production,compile.module.ms2ms.tests" description="Compile module ms2ms"/>
   
-  <target name="compile.module.ms2ms.production" depends="register.custom.compilers,compile.module.javardata" description="Compile module ms2ms; production classes">
+  <target name="compile.module.ms2ms.production" depends="compile.module.javardata" description="Compile module ms2ms; production classes">
     <mkdir dir="${ms2ms.output.dir}"/>
-    <javac2 destdir="${ms2ms.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.ms2ms}/javac">
+    <javac destdir="${ms2ms.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.ms2ms}/javac">
       <compilerarg line="${compiler.args.ms2ms}"/>
       <bootclasspath refid="ms2ms.module.bootclasspath"/>
       <classpath refid="ms2ms.module.production.classpath"/>
       <src refid="ms2ms.module.sourcepath"/>
       <patternset refid="excluded.from.compilation.ms2ms"/>
-    </javac2>
+    </javac>
     
     <copy todir="${ms2ms.output.dir}">
       <fileset dir="${module.ms2ms.basedir}/src">
@@ -86,15 +86,15 @@
     </copy>
   </target>
   
-  <target name="compile.module.ms2ms.tests" depends="register.custom.compilers,compile.module.ms2ms.production" description="compile module ms2ms; test classes" unless="skip.tests">
+  <target name="compile.module.ms2ms.tests" depends="compile.module.ms2ms.production" description="compile module ms2ms; test classes" unless="skip.tests">
     <mkdir dir="${ms2ms.testoutput.dir}"/>
-    <javac2 destdir="${ms2ms.testoutput.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.ms2ms}/javac">
+    <javac destdir="${ms2ms.testoutput.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.ms2ms}/javac">
       <compilerarg line="${compiler.args.ms2ms}"/>
       <bootclasspath refid="ms2ms.module.bootclasspath"/>
       <classpath refid="ms2ms.module.classpath"/>
       <src refid="ms2ms.module.test.sourcepath"/>
       <patternset refid="excluded.from.compilation.ms2ms"/>
-    </javac2>
+    </javac>
     
     <copy todir="${ms2ms.testoutput.dir}">
       <fileset dir="${module.ms2ms.basedir}/test">
