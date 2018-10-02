@@ -20,9 +20,10 @@ import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
 
-import java.io.File;
-import java.io.FileWriter;
+import java.io.*;
 import java.util.List;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * ** Copyright 2014-2015 ms2ms.org
@@ -42,6 +43,36 @@ public class IOsTest extends TestAbstract
 //    MsfReader.getDataFromThermoMSFFile("test", "", pia);
 //  }
 
+  @Test
+  public void lineByline() throws Exception
+  {
+    String root = "/Users/kfvf960/Apps/pipeline/Chorus/sequences/Uniprot/";
+    // go thro the file line by line to correct syntactical miskate
+    BufferedReader R = IOs.newBufferedReader(root+"uniprot_sprot.xml.gz", "UTF-8");
+
+    OutputStream fileStream = new GZIPOutputStream(new FileOutputStream(root+"uniprot_sprot_fixed.xml.gz"));
+    BufferedWriter W = new BufferedWriter(new OutputStreamWriter(fileStream, "UTF-8"));
+
+    System.out.println("Fixing the lines...");
+    long rows=0;
+    while (R.ready())
+    {
+      String line = R.readLine();
+      //</entry><entry dataset="Swiss-Prot" created="2009-06-16" modified="2017-09-27" version="18" xmlns="http://uniprot.org/uniprot">
+      if (line.indexOf("</entry><entry")==0)
+        line = line.replaceAll("</entry><entry","</entry>\n<entry");
+      else if (line.indexOf("</entry></uniprot>")==0)
+        line = line.replaceAll("</entry></uniprot>","</entry>\n</uniprot>");
+
+      W.write(line+"\n");
+
+      if (++rows % 100000==0) System.out.print(".");
+      if (rows % 10000000==0) System.out.println(rows);
+    }
+    R.close();
+    W.close();
+    fileStream.close();
+  }
   @Test
   public void idmapping() throws Exception
   {
