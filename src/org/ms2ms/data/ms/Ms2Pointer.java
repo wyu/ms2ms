@@ -120,7 +120,7 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary, Ion
   @Override
   public String toString()
   {
-    return (Strs.isSet(name)?(name+"::"):"")+run+(scan>0?"#"+scan:"")+"|z"+z+"|m/z"+ Tools.d2s(mz, 4)+"|min"+Tools.d2s(rt, 2)+
+    return (cluster!=null?"$$":"")+(Strs.isSet(name)?(name+"::"):"")+run+(scan>0?"#"+scan:"")+"|z"+z+"|m/z"+ Tools.d2s(mz, 4)+"|min"+Tools.d2s(rt, 2)+
         (dp>0?"|dp"+Tools.d2s(dp,2):"")+(npks_upper>0?"|npks"+npks_upper:"");
   }
 }

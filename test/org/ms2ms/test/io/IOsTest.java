@@ -48,9 +48,9 @@ public class IOsTest extends TestAbstract
   {
     String root = "/Users/kfvf960/Apps/pipeline/Chorus/sequences/Uniprot/";
     // go thro the file line by line to correct syntactical miskate
-    BufferedReader R = IOs.newBufferedReader(root+"uniprot_sprot.xml.gz", "UTF-8");
+    BufferedReader R = IOs.newBufferedReader(root+"uniprot_trembl.xml.gz", "UTF-8");
 
-    OutputStream fileStream = new GZIPOutputStream(new FileOutputStream(root+"uniprot_sprot_fixed.xml.gz"));
+    OutputStream fileStream = new GZIPOutputStream(new FileOutputStream(root+"uniprot_trembl_fixed.xml.gz"));
     BufferedWriter W = new BufferedWriter(new OutputStreamWriter(fileStream, "UTF-8"));
 
     System.out.println("Fixing the lines...");

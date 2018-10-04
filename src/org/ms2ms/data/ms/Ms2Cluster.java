@@ -36,7 +36,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
 
   private NodeType mType = NodeType.MSMS;
   private float mMz, mRT, mImpurity=-1;
-  private int mByMz=0, mByMzRT=0, mByMzRtFrag=0, mCharge=0;
+  private int mByMz=0, mByMzRT=0, mByMzRtFrag=0, mCharge=0, mNamed=0;
   private String mName="", mID="", mMajority=null;
 
   private MsnSpectrum mMaster; // a composite spectrum to represent the cluster
@@ -87,6 +87,15 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
   public Ms2Cluster addCandidate(Ms2Pointer s) { if (s!=null) mCandidates.add(s); return this; }
   public Ms2Cluster addMember(   Ms2Pointer s) { if (s!=null) mMembers.add(s); return this; }
 
+  public int getNamed()
+  {
+    mNamed=0;
+    if (Tools.isSet(getCandidates()))
+      for (Ms2Pointer p : getCandidates())
+        if (Strs.isSet(p.name)) mNamed++;
+
+    return mNamed;
+  }
   public int getCandidateRemain() { return (mCandidates!=null?mCandidates.size():0)-(mMembers!=null?mMembers.size():0); }
   public boolean contains(Ms2Pointer p)
   {
