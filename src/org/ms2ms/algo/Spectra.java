@@ -802,6 +802,16 @@ public class Spectra
 
     return peaks;
   }
+  public static List<Peak> toLMPeaks(PeakList ms, Float min_mz)
+  {
+    // walking thro the peaks and recording the matching peaks
+    List<Peak> peaks = new ArrayList<>();
+
+    for (int i=0; i<ms.size(); i++)
+      if (min_mz==null||ms.getMz(i)<=min_mz) peaks.add(new Peak(ms.getMz(i), ms.getIntensity(i)));
+
+    return peaks;
+  }
 
   public static SortedMap<Double, AnnotatedPeak> toPeaksWithExclusion(PeakList ms, Range<Double>... exclusion)
   {
