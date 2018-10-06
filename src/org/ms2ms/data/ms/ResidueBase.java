@@ -172,6 +172,12 @@ public class ResidueBase implements Cloneable
     // HSTY, TMT over-labeling, http://pubs.acs.org/doi/full/10.1021/acs.jproteome.5b00072?src=recsys
     mVarAAMods4Exact= builder.build();
 
+    sFacileMods=Maps.newTreeMap();
+    //sVarMods.put( "*", -0.984016d); // C-terminal, any
+    sFacileMods.put(162.052824d, 75f); // Hexose
+    sFacileMods.put(192.063388d,  0f); // Heptose
+    sFacileMods.put(79.966331d,  75f); // Phospho
+
     // move the static vars here
     sVarMods= HashMultimap.create();
     //sVarMods.put( "*", -0.984016d); // C-terminal, any
@@ -245,20 +251,23 @@ public class ResidueBase implements Cloneable
   public ResidueBase clone()
   {
     ResidueBase cloned = new ResidueBase(); // do we need to clone the indices?
+
     if (mAADic!=null) cloned.mAADic = new HashMap<>(mAADic);
-    cloned.mAAs = Tools.cloneFloatArray(mAAs);
-    cloned.mTrivialMods= Tools.cloneDoubleArray(mTrivialMods);
-    cloned.mVarAAMods4Exact.copyOf(mVarAAMods4Exact);
-    cloned.mModVault=mModVault;
-    cloned.sVarMods=sVarMods;
-    cloned.sExactMods=sExactMods;
-    cloned.sModCharge=sModCharge;
-    cloned.sFacileMods=sFacileMods;
-    cloned.mNTmods=mNTmods;
-    cloned.mCTmods=mCTmods;
+
+    cloned.mAAs         = Tools.cloneFloatArray(mAAs);
+    cloned.mTrivialMods = Tools.cloneDoubleArray(mTrivialMods);
+    cloned.mVarAAMods4Exact = ImmutableSetMultimap.copyOf(mVarAAMods4Exact);
+    cloned.mModVault    = (mModVault  !=null?mModVault.clone():null);
+    cloned.sVarMods     = (sVarMods   !=null?TreeMultimap.create(sVarMods):null);
+    cloned.sExactMods   = (sExactMods !=null?sExactMods.clone():null);
+    cloned.sModCharge   = (sModCharge !=null?new TreeMap<>(sModCharge):null);
+    cloned.sFacileMods  = (sFacileMods!=null?new TreeMap<>(sFacileMods):null);
+    cloned.mNTmods      = (mNTmods    !=null?new ArrayList<>(mNTmods):null);
+    cloned.mCTmods      = (mCTmods    !=null?new ArrayList<>(mCTmods):null);
+    cloned.sAACt        = (sAACt      !=null? new TreeMap<>(sAACt):null);
 
     if (mDenovoModAAs!=null) cloned.mDenovoModAAs = new HashMap<>(mDenovoModAAs);
-    if (mAACt!=null) cloned.mAACt = new TreeMap<>(mAACt);
+    if (mAACt!=null)         cloned.mAACt         = new TreeMap<>(mAACt);
 
     return cloned;
   }

@@ -12,7 +12,7 @@ import java.util.*;
  *
  * Created by yuw on 5/26/17.
  */
-public class NumericalModVault
+public class NumericalModVault implements Cloneable
 {
   private String mVaultFile="/Users/yuw/Apps/pipeline/Chorus/data/KnownModMasses.csv";
   private SortedMap<Double, Double>[] sAAMods=null, mKnown;
@@ -96,5 +96,19 @@ public class NumericalModVault
       }
 
     return score;
+  }
+
+  @Override
+  public NumericalModVault clone()
+  {
+    NumericalModVault cloned = new NumericalModVault(); // do we need to clone the indices?
+
+    cloned.mVaultFile= new String(mVaultFile);
+    cloned.sAAMods   =Tools.cloneMapArray(sAAMods);
+    cloned.mKnown    =Tools.cloneMapArray(mKnown);
+
+    cloned.mDeltaProb = mDeltaProb!=null?new TreeMap<>(mDeltaProb):null;
+
+    return cloned;
   }
 }
