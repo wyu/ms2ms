@@ -211,7 +211,7 @@ abstract public class App
   public Double   param( String s, Double d)  { return mParameters!=null?mParameters.getProperty(s,d):null; }
   public Float    param( String s, Float d)   { return mParameters!=null?mParameters.getProperty(s,d):null; }
   public Integer  param( String s, Integer d) { return mParameters!=null?mParameters.getProperty(s,d):null; }
-  public Boolean  param( String s, boolean d) { return mParameters!=null?(mParameters.getProperty(s)=="Y"):d; }
+  public Boolean  param( String s, boolean d) { return mParameters!=null?Strs.isA(mParameters.getProperty(s),"Y","T"):d; }
   public String[] params(String s, char t)    { return mParameters!=null?mParameters.getProperties(s,t):null; }
   public float[]  params(String s, char t, Float d)   { return mParameters!=null?mParameters.getFloats(s,t):null; }
 

@@ -44,7 +44,7 @@ public class Peptides
           .put('T', 101.04768f).put('I', 113.08406f).put('L', 113.08406f).put('N', 114.04293f).put('D', 115.02694f)
           .put('Q', 128.05858f).put('E', 129.04259f).put('M', 131.04049f).put('H', 137.05891f).put('F', 147.06841f)
           .put('R', 156.10111f).put('C', 160.03065f).put('Y', 163.06333f).put('W', 186.07931f).put('K', 128.09496f)
-          .put('U', 150.95363f).put('^', 0f).put('$', 17.00273f); // N/C-terminal mod
+          .put('U', 150.95363f).put('J', 113.08406f).put('^', 0f).put('$', 17.00273f); // N/C-terminal mod
 
   static final double[] rc = new double[]
       {
