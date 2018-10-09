@@ -27,6 +27,7 @@ abstract public class App
   public static final String KEY_WORKING  = "w";
   public static final String KEY_OUT      = "o";
   public static final String MODE_EXEC    = "exec";
+  public static final String CFG_FILE     = "cfg.file";
 
   protected static BiMap<String, String> sParamKeys;
 
@@ -47,6 +48,8 @@ abstract public class App
     sParamKeys.put(KEY_OUT,      "Output file");
     sParamKeys.put(KEY_THREAD,   "Number of concurrent threads");
     sParamKeys.put(KEY_WORKING,  "Working folder");
+    sParamKeys.put(MODE_EXEC,    "Execution mode");
+    sParamKeys.put(CFG_FILE,     "Full path of the cfg file");
   }
 
   //--------------------------------------------------------------------------
@@ -82,6 +85,8 @@ abstract public class App
 
   protected void processCommandLine(String args[])
   {
+    System.out.println(getAppTitle());
+
     for (int i = 0; i < args.length; i++)
     {
       if (args[i].length() == 0 || args[i].charAt(0) != '-') continue;
@@ -130,7 +135,10 @@ abstract public class App
   {
     mVerbose = inValue;
   }
-
+  public String getAppTitle()
+  {
+    return mAppName + "\nBuild Date: " + mBuild + "\n";
+  }
   protected void usage()
   {
     System.out.println("");
@@ -207,13 +215,14 @@ abstract public class App
 
     return buf.toString();
   }
-  public String   param( String s)            { return mParameters!=null?mParameters.getProperty(s):null; }
-  public Double   param( String s, Double d)  { return mParameters!=null?mParameters.getProperty(s,d):null; }
-  public Float    param( String s, Float d)   { return mParameters!=null?mParameters.getProperty(s,d):null; }
-  public Integer  param( String s, Integer d) { return mParameters!=null?mParameters.getProperty(s,d):null; }
-  public Boolean  param( String s, boolean d) { return mParameters!=null?Strs.isA(mParameters.getProperty(s),"Y","T"):d; }
-  public String[] params(String s, char t)    { return mParameters!=null?mParameters.getProperties(s,t):null; }
-  public float[]  params(String s, char t, Float d)   { return mParameters!=null?mParameters.getFloats(s,t):null; }
+  public String    param( String s)            { return mParameters!=null?mParameters.getProperty(s):null; }
+  public Double    param( String s, Double d)  { return mParameters!=null?mParameters.getProperty(s,d):null; }
+  public Float     param( String s, Float d)   { return mParameters!=null?mParameters.getProperty(s,d):null; }
+  public Integer   param( String s, Integer d) { return mParameters!=null?mParameters.getProperty(s,d):null; }
+  public Boolean   param( String s, boolean d) { return mParameters!=null?Strs.isA(mParameters.getProperty(s),"Y","T"):d; }
+  public String[]  params(String s, char t)    { return mParameters!=null?mParameters.getProperties(s,t):null; }
+  public float[]   params(String s, char t, Float d)   { return mParameters!=null?mParameters.getFloats(s,t):null; }
+  public Integer[] params(String s, char t, Integer d) { return mParameters!=null?mParameters.getIntegers(s,t):null; }
 
   public Property param()                    { return mParameters; }
 
@@ -239,6 +248,7 @@ abstract public class App
           if (line.indexOf(":")>0) addParamKey(Strs.split(line, ':', true));
           else                     addProperty(Strs.split(line, '=', true));
         }
+        addProperty("cfg.file",getWorkingRoot()+cfgname);
       }
       finally {
         if (cfg!=null) cfg.close();

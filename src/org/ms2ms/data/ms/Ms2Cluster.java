@@ -55,7 +55,15 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
   public Ms2Pointer             getHead()       { return mHead; }
 
   public boolean isType(NodeType t) { return mType.equals(t); }
+  public boolean contains(String run, Integer scans)
+  {
+    if (Tools.isSet(getCandidates()))
+      for (Ms2Pointer p : getCandidates())
+        if (p.run.equals(run) &&
+          Tools.isA(p.scan,scans)) return true;
 
+    return false;
+  }
   public int    getCandidateSize() { return mCandidates!=null?mCandidates.size():0; }; // the head is already a part of the candidates and members
   public int    size()           { return mMembers!=null?mMembers.size():0; }; // the head is already a part of the candidates and members
   public int    getNbyMz()       { return mByMz; }
