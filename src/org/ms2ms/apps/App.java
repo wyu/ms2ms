@@ -26,7 +26,7 @@ abstract public class App
   public static final String KEY_THREAD   = "thread";
   public static final String KEY_WORKING  = "w";
   public static final String KEY_OUT      = "o";
-  public static final String MODE_EXEC    = "exec";
+//  public static final String MODE_EXEC    = "x";
   public static final String CFG_FILE     = "cfg.file";
 
   protected static BiMap<String, String> sParamKeys;
@@ -48,7 +48,7 @@ abstract public class App
     sParamKeys.put(KEY_OUT,      "Output file");
     sParamKeys.put(KEY_THREAD,   "Number of concurrent threads");
     sParamKeys.put(KEY_WORKING,  "Working folder");
-    sParamKeys.put(MODE_EXEC,    "Execution mode");
+//    sParamKeys.put(MODE_EXEC,    "Execution mode");
     sParamKeys.put(CFG_FILE,     "Full path of the cfg file");
   }
 
@@ -131,6 +131,7 @@ abstract public class App
     }
   }
   public Boolean isMode(String s) { return Strs.equals(s, mMode); }
+  public Boolean isModeNULL() { return mMode==null; }
   public void setVerbose(boolean inValue)
   {
     mVerbose = inValue;
