@@ -3,6 +3,7 @@ package org.ms2ms.data.ms;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodManager;
 import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodMod;
+import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
 
@@ -14,7 +15,7 @@ import java.util.*;
  */
 public class NumericalModVault implements Cloneable
 {
-  private String mVaultFile="/Users/yuw/Apps/pipeline/Chorus/data/KnownModMasses.csv";
+  private String mVaultFile;
   private SortedMap<Double, Double>[] sAAMods=null, mKnown;
   private SortedMap<Double, Double> mDeltaProb;
 
@@ -29,13 +30,16 @@ public class NumericalModVault implements Cloneable
     try
     {
       mDeltaProb = new TreeMap<>();
-      TabFile vault = new TabFile(mVaultFile, TabFile.comma);
-      while (vault.hasNext())
+      if (Strs.isSet(mVaultFile))
       {
-        mKnown = putAAMod(mKnown, vault.get("Sites"), vault.getDouble("DeltaM"), Math.log10(vault.getDouble("Freq.mil.msms")));
-        mDeltaProb.put(vault.getDouble("DeltaM"), Math.log10(vault.getDouble("Freq.mil.msms")));
+        TabFile vault = new TabFile(mVaultFile, TabFile.comma);
+        while (vault.hasNext())
+        {
+          mKnown = putAAMod(mKnown, vault.get("Sites"), vault.getDouble("DeltaM"), Math.log10(vault.getDouble("Freq.mil.msms")));
+          mDeltaProb.put(vault.getDouble("DeltaM"), Math.log10(vault.getDouble("Freq.mil.msms")));
+        }
+        if (mDeltaProb!=null) known=mDeltaProb.size();
       }
-      if (mDeltaProb!=null) known=mDeltaProb.size();
     }
     catch (Exception e) { e.printStackTrace(); }
 
@@ -60,7 +64,8 @@ public class NumericalModVault implements Cloneable
       for (Double d : mDeltaProb.keySet())
         sAAMods = putAAMod(sAAMods, "*", d, mDeltaProb.get(d));
 
-    if (mDeltaProb!=null) System.out.println(mDeltaProb.size() + " modifications loaded, including "+known+" from "+mVaultFile);
+    if (mDeltaProb!=null && Strs.isSet(mVaultFile))
+      System.out.println(mDeltaProb.size() + " modifications loaded, including "+known+" from "+mVaultFile);
   }
   private SortedMap<Double, Double>[] putAAMod(SortedMap<Double, Double>[] AAMods, String aa, double mod, double prob)
   {
