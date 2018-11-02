@@ -1,12 +1,20 @@
 package org.ms2ms.mzjava;
 
+import com.google.common.collect.Multimap;
 import org.expasy.mzjava.proteomics.io.ms.ident.MaxQuantPsmReader;
 import org.expasy.mzjava.proteomics.mol.modification.ModificationResolver;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.expasy.mzjava.proteomics.ms.ident.SpectrumIdentifier;
+import org.ms2ms.data.ms.MaxQuant;
+import org.ms2ms.data.ms.PSM;
 import org.ms2ms.math.Stats;
+import org.ms2ms.r.Dataframe;
+import org.ms2ms.r.Var;
+import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
+import org.ms2ms.utils.TabFile;
 
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 

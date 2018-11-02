@@ -43,6 +43,21 @@ public class MaxQuant extends LcMsMsDataset
   public static String[] sRmdScan     = {"Collision energy","Summations","Identified","MS/MS IDs","Sequence","Length","Mass analyzer","Parent intensity fraction","Fraction of total spectrum","Base peak fraction","Precursor full scan number","Precursor intensity","Precursor apex fraction","Precursor apex offset","Precursor apex offset time","Proteins","Score","Intens Comp Factor","CTCD Comp","RawOvFtT","AGC Fill","Modified sequence","PEP","Score","Delta score","Protein group IDs","Scan event number","Scan index"};
   public static String[] sProteinInfo = {"Peptides","Razor + unique peptides","Unique peptides","Identification type","Sequence coverage","Intensity","iBAQ","LFQ intensity","MS/MS count"};
 
+  public static Map<String, String> headers;
+
+  static
+  {
+    // Sequence	Length	Modifications	Modified sequence	Deamidation (NQ) Probabilities	Oxidation (M) Probabilities	Deamidation (NQ) Score Diffs	Oxidation (M) Score Diffs	Acetyl (Protein N-term)	Deamidation (NQ)	Oxidation (M)	Missed cleavages	Proteins	Leading proteins	Leading razor protein	Gene names	Protein names	Type	Raw file	MS/MS m/z	Charge	m/z	Mass	Resolution	Uncalibrated - Calibrated m/z [ppm]	Uncalibrated - Calibrated m/z [Da]	Mass error [ppm]	Mass error [Da]	Uncalibrated mass error [ppm]	Uncalibrated mass error [Da]	Max intensity m/z 0	Retention time	Retention length	Calibrated retention time	Calibrated retention time start	Calibrated retention time finish	Retention time calibration	Match time difference	Match m/z difference	Match q-value	Match score	Number of data points	Number of scans	Number of isotopic peaks	PIF	Fraction of total spectrum	Base peak fraction	PEP	MS/MS count	MS/MS scan number	Score	Delta score	Combinatorics	Intensity	Reverse	Potential contaminant	id	Protein group IDs	Peptide ID	Mod. peptide ID	MS/MS IDs	Best MS/MS	AIF MS/MS IDs	Deamidation (NQ) site IDs	Oxidation (M) site IDs
+    headers = new HashMap<>();
+    headers.put("Sequence", "Sequence");
+    headers.put("RT",       "Retention time");
+    headers.put("mz",       "m/z");
+    headers.put("z",        "Charge");
+    headers.put("Mods",     "Modifications");
+    headers.put("Gene",     "Gene names");
+    headers.put("Accession","Leading razor protein");
+    headers.put("Protein",  "Protein names");
+  }
   // The type of the feature (In case of label-free data there is no difference between 'MULTI' and 'ISO').
   //    'MSMS'         – for an MS/MS spectrum without an MS1 isotope pattern assigned.
   //    'ISO-MSMS'     – MS1 isotope cluster identified by MS/MS.

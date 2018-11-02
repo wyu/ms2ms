@@ -14,6 +14,7 @@ import org.expasy.mzjava.proteomics.ms.spectrum.PepFragAnnotation;
 import org.expasy.mzjava.proteomics.ms.spectrum.PeptideSpectrum;
 import org.ms2ms.data.ms.Engine;
 import org.ms2ms.data.ms.MetaPeptideMatch;
+import org.ms2ms.data.ms.PSM;
 import org.ms2ms.math.Stats;
 import org.ms2ms.mzjava.NumModMatchResolver;
 import org.ms2ms.r.Dataframe;
