@@ -172,7 +172,7 @@ abstract public class App
     return Strs.isSet(mOutfileRoot)?mOutfileRoot:getWorkingRoot();
   }
   public String getWorkingRoot() { return (Strs.isSet(mWorkingRoot) ? mWorkingRoot:System.getProperty("user.dir"))+"/"; }
-  public String getLogFile()     { return getOutFile().replaceAll("\\*","_")+".log"; }
+  public String getLogFile()     { return getOutFile()!=null?getOutFile().replaceAll("\\*","_")+".log":"temp.log"; }
 
   protected void close() throws IOException
   {

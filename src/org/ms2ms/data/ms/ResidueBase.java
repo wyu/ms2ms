@@ -61,7 +61,16 @@ public class ResidueBase implements Cloneable
     return CIM;
   }
   public Map<Character, Float> getAADic()          { return mAADic; }
-  public Map<String, Float>    getDenovoModAAs()   { return mDenovoModAAs; }
+  public Map<String, Float>    getDenovoModAAs()
+  {
+    if (mDenovoModAAs!=null && mDenovoModAAs.containsKey("I"))
+    {
+      // no need to keep multiple AA of the same mass
+      mDenovoModAAs.remove("L");
+      mDenovoModAAs.remove("J");
+    }
+    return mDenovoModAAs;
+  }
   public float[]               getAAs()            { return mAAs; }
   public double[]              getTrivialMods()    { return mTrivialMods; }
 //  public Range<Double>         getModBound()       { return mModBound; }

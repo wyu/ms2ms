@@ -1,18 +1,19 @@
 package org.ms2ms.algo;
 
 import com.google.common.collect.*;
+import com.hfg.bio.seq.Protein;
+import com.hfg.bio.seq.alignment.PairwiseSeqAligner;
+import com.hfg.bio.seq.alignment.PairwiseSeqAlignment;
 import org.expasy.mzjava.core.mol.SymbolSequence;
 import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
-import org.expasy.mzjava.proteomics.io.mol.FastaProteinReader;
 import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodManager;
 import org.expasy.mzjava.proteomics.mol.modification.unimod.UnimodMod;
 import org.expasy.mzjava.proteomics.ms.fragment.PeptideFragmentAnnotator;
 import org.expasy.mzjava.proteomics.ms.fragment.PeptideFragmenter;
-import org.ms2ms.io.CustomFastaProteinReader;
 import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
@@ -481,5 +482,28 @@ public class Peptides
 //    if (!Strs.isSet(peptide))
 //      System.out.println();
     return Hydrophobicity3.TSUM3(peptide);
+  }
+  public static Double bestAlignment(
+      PairwiseSeqAligner psa, Protein p1, Protein p2)
+  {
+    Double best=null;
+    try
+    {
+      // looking for the lowest permutation
+      List<PairwiseSeqAlignment> alignments = psa.align(p1, p2);
+      if (Tools.isSet(alignments))
+        for (PairwiseSeqAlignment pa : alignments)
+        {
+          double pm = (p2.length()-pa.getNumIdentities())*Math.log(18);
+          if (best==null || pm<best) best=pm;
+        }
+      else if (p1.getSequence().indexOf(p2.getSequence())>=0)
+      {
+        best = (p1.length()-p2.length())*Math.log(18);
+      }
+    }
+    catch(Exception e) {}
+
+    return best;
   }
 }

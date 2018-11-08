@@ -31,6 +31,8 @@ public class mzMLReader extends mzReader
   {
     String[] searches = IOs.listFiles(root, pattern);
 
+    System.out.println("mzML files: "+ searches.length);
+
     if (Tools.isSet(searches))
       for (String s : searches)
       {
