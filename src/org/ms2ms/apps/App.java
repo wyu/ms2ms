@@ -223,6 +223,7 @@ abstract public class App
   public Boolean   param( String s, boolean d) { return mParameters!=null?Strs.isA(mParameters.getProperty(s),"Y","T"):d; }
   public String[]  params(String s, char t)    { return mParameters!=null?mParameters.getProperties(s,t):null; }
   public float[]   params(String s, char t, Float d)   { return mParameters!=null?mParameters.getFloats(s,t):null; }
+  public double[]  params(String s, char t, Double d)  { return mParameters!=null?mParameters.getDoubles(s,t):null; }
   public Integer[] params(String s, char t, Integer d) { return mParameters!=null?mParameters.getIntegers(s,t):null; }
 
   public Property param()                    { return mParameters; }

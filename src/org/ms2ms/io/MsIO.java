@@ -33,6 +33,7 @@ import uk.ac.ebi.jmzml.model.mzml.*;
 
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
+import java.net.URI;
 import java.util.*;
 
 /** Responsible for writing out the MS objects in binary format. Not to be confused with import duty
@@ -118,6 +119,66 @@ public class MsIO extends IOs
       }
     }
   }
+  public static void write(DataOutput w, UUID s) throws IOException
+  {
+    write(w, s!=null?1:0);
+    if (s!=null) write(w, s.toString());
+  }
+  public static UUID readUUID(DataInput w) throws IOException
+  {
+    int n = read(w, 0);
+    return (n==1?UUID.fromString(read(w,"")):null);
+  }
+  public static void write(DataOutput w, URI s) throws IOException
+  {
+    write(w, s!=null?1:0);
+    if (s!=null) write(w, s.toString());
+  }
+  public static URI readURI(DataInput w) throws IOException
+  {
+    int n = read(w, 0);
+    return (n==1?URI.create(read(w,"")):null);
+  }
+  public static void write(DataOutput w, PeakList.Precision s) throws IOException
+  {
+    write(w, s!=null?1:0);
+    if (s!=null) write(w, s.toString());
+  }
+  public static PeakList.Precision readPrecision(DataInput w) throws IOException
+  {
+    int n = read(w, 0);
+    return (n==1? PeakList.Precision.valueOf(read(w,"")):null);
+  }
+
+  public static void writeMsnMS(DataOutput w, MsnSpectrum ms) throws IOException
+  {
+    // peaks and RT only
+    write(w, ms);
+    // write the rest of the info. use a diff call signature to avoid messing up the old codes
+    write(w, ms.getComment());
+    write(w, ms.getScanNumbers().getFirst().getValue());
+    write(w, ms.getMsLevel());
+    write(w, ms.getSpectrumIndex());
+    write(w, ms.getFragMethod());
+    write(w, ms.getId());
+    write(w, ms.getSpectrumSource());
+  }
+  public static MsnSpectrum readMsnMS(DataInput w) throws IOException
+  {
+    // peaks and RT only
+    MsnSpectrum ms = readSpectrumIdentifier(w, new MsnSpectrum());
+
+    // write the rest of the info. use a diff call signature to avoid messing up the old codes
+    ms.setComment(read(w,""));
+    ms.addScanNumber(read(w,0));
+    ms.setMsLevel(read(w,0));
+    ms.setSpectrumIndex(read(w,0));
+    ms.setFragMethod(read(w,""));
+    ms.setId(readUUID(w));
+    ms.setSpectrumSource(readURI(w));
+
+    return ms;
+  }
   public static void write(DataOutput w, MsnSpectrum ms) throws IOException
   {
     write(w, (PeakList) ms);
@@ -136,20 +197,19 @@ public class MsIO extends IOs
       for (String key : data.keySet())
       {
         write(ds, key);
-        write(ds, data.get(key));
+        writeMsnMS(ds, data.get(key));
       }
   }
   public static Map<String, MsnSpectrum> readStrSpectrumMap(DataInput ds) throws IOException
   {
     int n = read(ds, 0);
-
     if (n > 0)
     {
       Map<String, MsnSpectrum> data = new TreeMap<>();
       for (int i = 0; i < n; i++)
       {
         String   K =read(ds, "");
-        data.put(K, readSpectrumIdentifier(ds, new MsnSpectrum()));
+        data.put(K, readMsnMS(ds));
       }
       return data;
     }
