@@ -19,6 +19,7 @@ import org.expasy.mzjava.proteomics.ms.ident.ModificationMatch;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideProteinMatch;
 import org.expasy.mzjava.proteomics.ms.ident.SpectrumIdentifier;
+import org.ms2ms.data.Binary;
 import org.ms2ms.data.Features;
 import org.ms2ms.data.collect.MultiTreeTable;
 import org.ms2ms.data.ms.MsSpectrum;
@@ -31,6 +32,7 @@ import org.ms2ms.utils.Tools;
 import uk.ac.ebi.jmzml.model.mzml.*;
 
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 /** Responsible for writing out the MS objects in binary format. Not to be confused with import duty
@@ -124,6 +126,34 @@ public class MsIO extends IOs
     w.writeInt(counts);
     if (counts>0)
       for (int i=0; i<counts; i++) w.writeDouble(ms.getRetentionTimes().get(i).getTime());
+  }
+  public static void
+  writeStrSpectrumMap(DataOutput ds, Map<String, MsnSpectrum> data) throws IOException
+  {
+    write(ds, Tools.isSet(data) ? data.keySet().size() : 0);
+
+    if (Tools.isSet(data))
+      for (String key : data.keySet())
+      {
+        write(ds, key);
+        write(ds, data.get(key));
+      }
+  }
+  public static Map<String, MsnSpectrum> readStrSpectrumMap(DataInput ds) throws IOException
+  {
+    int n = read(ds, 0);
+
+    if (n > 0)
+    {
+      Map<String, MsnSpectrum> data = new TreeMap<>();
+      for (int i = 0; i < n; i++)
+      {
+        String   K =read(ds, "");
+        data.put(K, readSpectrumIdentifier(ds, new MsnSpectrum()));
+      }
+      return data;
+    }
+    return null;
   }
 
   public static PeakList readSpectrumIdentifier(DataInput w, PeakList ms) throws IOException
