@@ -34,6 +34,9 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary, Ion
     z   = ms.getPrecursor().getCharge();
     rt  = (float )ms.getRetentionTimes().getFirst().getTime()/60f;
 
+    if (Strs.isSet(ms.getComment()))    name = ms.getComment();
+    if (Strs.isSet(ms.getFragMethod())) name = Strs.extend(name, ms.getFragMethod(), "$");
+
     hcode=run.hashCode()+scan+Float.hashCode(mz);
   }
   public Ms2Pointer setMzOffset(float s) { mz_off=s; return this; }
