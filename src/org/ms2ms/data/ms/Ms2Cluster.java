@@ -156,26 +156,20 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
     {
       MsnSpectrum scan = spectra.get(member);
       // need to exclude the head itself
-      if (member.hcode==getHead().hcode)
-      {
-        member.dp=1; // being the self
-        member.cluster=this;
-        mMembers.add(member);
-        continue;
-      }
-      if (scan!=null)
+      if (scan!=null && member.hcode!=getHead().hcode)
       {
         // calc the forward and backward DPs and choose the smallest
         List<Peak> pks = Spectra.toListOfPeaks(scan,lowmass);
         // make sure a min number of the index peaks are found
         if (miss_index>=0 && index.size()-Peaks.overlap_counts(pks, index, delta, true)>miss_index) continue;
 
-        member.dp=(float )Similarity.bidirectional_dp(head, pks, tol, true, true, true);
-        // now the matching probability
-        member.prob = (float )Similarity.similarity_hg(head, pks, delta);
-
-        if (member.dp>=min_dp)
+        float dp = (float )Similarity.bidirectional_dp(head, pks, tol, true, true, true);
+        if (dp>=min_dp)
         {
+          member.dp=dp;
+          // now the matching probability
+          member.prob = (float )Similarity.similarity_hg(head, pks, delta);
+
           member.cluster=this;
           mMembers.add(member);
           members.add(spectra.get(member));
