@@ -140,7 +140,6 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
     if (getMaster()==null && spectra.get(getHead())!=null)
       setMaster(spectra.get(getHead()).copy(new PurgingPeakProcessor()));
 
-//    MsnSpectrum HEAD = (mMaster!=null?mMaster:spectra.get(mHead));
     // setup the master first
     List<Peak> head = Spectra.toListOfPeaks(getMaster(), lowmass);
     // get the index of the HEAD spectrum
@@ -164,6 +163,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
         if (miss_index>=0 && index.size()-Peaks.overlap_counts(pks, index, delta, true)>miss_index) continue;
 
         float dp = (float )Similarity.bidirectional_dp(head, pks, tol, true, true, true);
+
         if (dp>=min_dp)
         {
           member.dp=dp;
@@ -190,6 +190,41 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
 
     return this;
   }
+  // for exact match without mass tolerance
+  public Ms2Cluster cluster(Map<Ms2Pointer, Map<Float,Float>> spectra, double min_dp)
+  {
+    // quit if the master or input are not present!
+    if (mHead==null || !Tools.isSet(spectra)) return null;
+
+    mHead.cluster=this;
+
+    Map<Float,Float> head = spectra.get(getHead());
+
+    // the collections
+    if (mMembers!=null) mMembers.clear(); else mMembers = new ArrayList<>();
+    for (Ms2Pointer member : mCandidates)
+    {
+      Map<Float,Float> scan = spectra.get(member);
+      // need to exclude the head itself
+      if (scan!=null && member.hcode!=getHead().hcode)
+      {
+        float dp = (float )Similarity.bidirectional_dp(head, scan, true,true, min_dp);
+        if (dp>=min_dp)
+        {
+          member.dp=dp;
+          // now the matching probability
+          member.prob = (float )Similarity.similarity_hg(head, scan, 25000);
+
+          member.cluster=this;
+          mMembers.add(member);
+        }
+      }
+    }
+    mID = toString();
+
+    return this;
+  }
+
   public Ms2Cluster calcMz()
   {
     if (Tools.isSet(mMembers))

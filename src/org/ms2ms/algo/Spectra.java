@@ -1176,7 +1176,7 @@ public class Spectra
       if (order>1 && best.getPredicted(0).getMz()>peaks.getPrecursor().getMz())
       {
         isos++;
-        double dp = Similarity.dp(best.getPredicted().subList(0,order), best.getIsotopes().subList(0,order));
+        double dp = Similarity.dp(best.getPredicted().subList(0,order), best.getIsotopes().subList(0,order), false);
 //        System.out.print(Tools.d2s(dp, 3)+",");
         Isotopes.dp_prediction.add(Math.log10(dp)*10);
         if (dp<0.95) isobad++;

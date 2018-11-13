@@ -1,12 +1,15 @@
 package org.ms2ms.algo;
 
 import com.google.common.collect.Range;
+import com.google.common.collect.Sets;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.ms2ms.utils.Tools;
 
 import java.util.*;
+
+import static org.ms2ms.utils.Tools.isSet;
 
 /**
  * ** Copyright 2014-2015 ms2ms.org
@@ -18,6 +21,15 @@ import java.util.*;
  */
 public class Similarity
 {
+  // for the pre-aligned data
+  public static double bidirectional_dp(Map<Float, Float> A, Map<Float, Float> B,  boolean sqrted, boolean lowest, double min_fdp)
+  {
+    double fdp = dp(A,B, sqrted);
+    if (fdp<min_fdp) return 0d;
+
+    double bdp = dp(A,B, sqrted);
+    return lowest?Math.min(fdp,bdp):(fdp+bdp)/2d;
+  }
   public static double bidirectional_dp(List<? extends Peak> A, List<? extends Peak> B, Tolerance tol, boolean highest, boolean sqrted, boolean lowest)
   {
     double fdp = dp(A,B, tol,highest,sqrted),bdp = dp(A,B, tol,highest,sqrted);
@@ -109,9 +121,10 @@ public class Similarity
    *
    * @param A
    * @param B
+   * @param sqrted
    * @return dot-product
    */
-  public static double dp(List<? extends Peak> A, List<? extends Peak> B)
+  public static double dp(List<? extends Peak> A, List<? extends Peak> B, boolean sqrted)
   {
     // false if one of the spectra is empty or with diff dimension
     if (A.isEmpty() || B.isEmpty() || A.size() != B.size()) return 0;
@@ -123,7 +136,25 @@ public class Similarity
        sum_ab +=   A.get(ia).getIntensity() * B.get(ia).getIntensity();
     }
     // calculating the dot-product
-    return sum_ab * sum_ab / (sum_a * sum_b);
+    dp = sum_ab * sum_ab / (sum_a * sum_b);
+    return sqrted?Math.sqrt(dp):dp;
+  }
+  public static double dp(Map<Float, Float> A, Map<Float, Float> B, boolean sqrted)
+  {
+    // false if one of the spectra is empty or with diff dimension
+    if (!isSet(A) || !isSet(B) || A.size() != B.size()) return 0;
+
+    double dp = 0, sum_a = 0, sum_b = 0, sum_ab = 0; Float x,y;
+    for (Float m : A.keySet())
+    {
+      x = A.containsKey(m)?A.get(m):0f; y = B.containsKey(m)?B.get(m):0f;
+      sum_a  +=   x * x;
+      sum_b  +=   y * y;
+      sum_ab +=   x * y;
+    }
+    // calculating the dot-product
+    dp = sum_ab * sum_ab / (sum_a * sum_b);
+    return sqrted?Math.sqrt(dp):dp;
   }
   public static double bonanza(List<? extends Peak> A,
                                List<? extends Peak> B,
@@ -302,7 +333,7 @@ public class Similarity
   }
   public static double similarity_hg(List<? extends Peak> A, List<? extends Peak> B, double delta)
   {
-    if (!Tools.isSet(A) || !Tools.isSet(B)) return -1d;
+    if (!isSet(A) || !isSet(B)) return -1d;
 
     Range<Double> mz_range = Range.closed(Math.min(Tools.front(A).getMz(), Tools.front(B).getMz()),
                                           Math.max(Tools.back( A).getMz(), Tools.back( B).getMz()));
@@ -310,6 +341,11 @@ public class Similarity
     long bins = (long) ((mz_range.upperEndpoint() - mz_range.lowerEndpoint()) / delta);
 //    return -10 * MsStats.hypergeometricPval1(outcomes.size(), A.size(), B.size(), bins);
     return -1 * MsStats.hypergeom(Math.min(outcomes.size(), Math.min(A.size(), B.size())), A.size(), B.size(), bins);
+  }
+  public static double similarity_hg(Map<Float,Float> A, Map<Float,Float> B, long bins)
+  {
+    if (!isSet(A) || !isSet(B)) return -1d;
+    return -1 * MsStats.hypergeom(Math.min(Sets.intersection(A.keySet(), B.keySet()).size(), Math.min(A.size(), B.size())), A.size(), B.size(), bins);
   }
   public static boolean condition(PeakList msms, double pct_cutoff, int min_peaks)
   {

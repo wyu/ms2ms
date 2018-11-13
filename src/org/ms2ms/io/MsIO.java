@@ -229,10 +229,28 @@ public class MsIO extends IOs
     }
     return ms;
   }
+  public static Map<Float,Float> readSpectrumIdentifierAsIonMap(DataInput w, Map<Float,Float> ms) throws IOException
+  {
+    if (ms!=null)
+    {
+      w.readDouble(); w.readDouble(); w.readInt();
+
+      int counts = w.readInt(); ms.clear();
+      if (counts>0)
+        for (int i=0; i<counts; i++)
+          ms.put((float )w.readDouble(), (float )w.readDouble());
+    }
+    return ms;
+  }
   public static MsnSpectrum readSpectrumIdentifier(BufferedRandomAccessFile w, MsnSpectrum ms, long offset) throws IOException
   {
     w.seek(offset);
     return readSpectrumIdentifier(w, ms);
+  }
+  public static Map<Float,Float> readSpectrumIdentifierAsIonMap(BufferedRandomAccessFile w, long offset) throws IOException
+  {
+    w.seek(offset);
+    return readSpectrumIdentifierAsIonMap(w);
   }
   public static MsnSpectrum readSpectrumIdentifier(DataInput w, MsnSpectrum ms) throws IOException
   {
@@ -254,6 +272,24 @@ public class MsIO extends IOs
             e.printStackTrace();
           }
     }
+    return ms;
+  }
+  public static Map<Float,Float> readSpectrumIdentifierAsIonMap(DataInput w) throws IOException
+  {
+    Map<Float,Float> ms = readSpectrumIdentifierAsIonMap(w, new HashMap<Float,Float>());
+
+    int counts = w.readInt();
+    // clear the content of the retention times if necessary
+    if (counts>0)
+      for (int i=0; i<counts; i++)
+        try
+        {
+          w.readDouble();
+        }
+        catch (Exception e)
+        {
+          e.printStackTrace();
+        }
     return ms;
   }
   public static List<MsnSpectrum> readSpectra(String s) { return readSpectra(s, null); }

@@ -2,16 +2,12 @@ package org.ms2ms.data.ms;
 
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
-import org.ms2ms.algo.Isotopes;
-import org.ms2ms.algo.Isotopics;
 import org.ms2ms.algo.Peaks;
 import org.ms2ms.algo.Similarity;
 import org.ms2ms.utils.Tools;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Map;
 
 /**
  * User: wyu
@@ -134,7 +130,7 @@ public class IsoEnvelope
       //if (!found) return false;
       if (!found) { A.add(k); B.add(new Peak(k.getMz(), 0d, 1)); }
     }
-    return Similarity.dp(A, B)>0.9;
+    return Similarity.dp(A, B, false)>0.9;
   }
   public double      getScore()          { return mScore; }
   public double      getChargeScore()    { return mChargeScore; }
