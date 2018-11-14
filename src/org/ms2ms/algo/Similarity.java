@@ -25,7 +25,7 @@ public class Similarity
   public static double bidirectional_dp(Map<Float, Float> A, Map<Float, Float> B,  boolean sqrted, boolean lowest, double min_fdp)
   {
     double fdp = dp(A,B, sqrted);
-    if (fdp<min_fdp) return 0d;
+    if (fdp<min_fdp) return fdp;
 
     double bdp = dp(A,B, sqrted);
     return lowest?Math.min(fdp,bdp):(fdp+bdp)/2d;
@@ -142,7 +142,7 @@ public class Similarity
   public static double dp(Map<Float, Float> A, Map<Float, Float> B, boolean sqrted)
   {
     // false if one of the spectra is empty or with diff dimension
-    if (!isSet(A) || !isSet(B) || A.size() != B.size()) return 0;
+    if (!isSet(A) || !isSet(B)) return 0;
 
     double dp = 0, sum_a = 0, sum_b = 0, sum_ab = 0; Float x,y;
     for (Float m : A.keySet())
@@ -313,6 +313,50 @@ public class Similarity
     // putting the points back to the natural order
     Collections.sort(A,       new Peaks.MzAscendComparator());
     Collections.sort(indices, new Peaks.MzAscendComparator());
+
+    return indices;
+  }
+  public static List<Float> index(SortedMap<Float, Float> A, int n_regions, int min_regions, int n_tops, double min_separation, double min_ai)
+  {
+    if (A==null || A.size()<3) return null;
+
+    // initiating a new List
+    List<Float> indices = new ArrayList<>();
+    // required variables
+    float x1=Collections.min(A.keySet()), x2=Collections.max(A.keySet()), range = x2-x1, last_X = 0;
+
+    // setup the regions by mz width
+    if      (n_regions  < 0) n_regions = (int )Math.round(range / Math.abs(n_regions));
+      // default to 5 as min# of regions
+    else if (n_regions == 0 || n_regions  < 5) n_regions = 5;
+    // default to 3 as min# of tops
+    if      (n_tops    <= 0) n_tops    = 3;
+    // not enough points to make a meaningful indices
+    if (A.size() < n_regions * 2 + n_tops && min_regions>0) n_regions=min_regions;
+    // try again
+    if (A.size() < n_regions * 2 + n_tops) return indices;
+    // inspect the regions
+    int left = 0; float step = range / n_regions;
+    for (float bound  = x1 + step;
+         bound <= x2 + step * 0.1; bound += step)
+    {
+      float top_Y = 0, top_i = -1;
+      Map<Float,Float> slice = A.subMap(bound, bound+step);
+      for (Float k1 : slice.keySet())
+      {
+        // skip the invalidated point, WYU 111607
+        if (slice.get(k1) > top_Y &&
+            Math.abs(k1 - last_X) > min_separation)
+        { top_i = k1; top_Y = slice.get(k1); }
+        ++left;
+      }
+      if (top_i >= 0 && top_Y >= min_ai)
+      {
+        indices.add(top_i); last_X = top_i;
+      }
+    }
+    // putting the points back to the natural order
+    Collections.sort(indices);
 
     return indices;
   }

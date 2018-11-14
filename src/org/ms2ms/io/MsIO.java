@@ -276,7 +276,7 @@ public class MsIO extends IOs
   }
   public static Map<Float,Float> readSpectrumIdentifierAsIonMap(DataInput w) throws IOException
   {
-    Map<Float,Float> ms = readSpectrumIdentifierAsIonMap(w, new HashMap<Float,Float>());
+    Map<Float,Float> ms = readSpectrumIdentifierAsIonMap(w, new TreeMap<>());
 
     int counts = w.readInt();
     // clear the content of the retention times if necessary

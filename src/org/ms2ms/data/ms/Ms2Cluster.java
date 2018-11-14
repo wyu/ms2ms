@@ -44,6 +44,10 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
   private Ms2Pointer mHead;
   private Collection<Ms2Pointer> mMembers = new TreeSet<>(), mCandidates = new TreeSet<>(); // actual or possible members of the cluster
 
+  // no need to save to the archive
+  private SortedMap<Float,Float> mMasterIonMap;
+  private List<Float> mIndexIons;
+
   public Ms2Cluster() { super(); }
   public Ms2Cluster(String s) { super(); mName=s; }
   public Ms2Cluster(String n, String id, NodeType t) { super(); mName=n; mID=id; mType=t; }
@@ -94,6 +98,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
 
   public Ms2Cluster addCandidate(Ms2Pointer s) { if (s!=null) mCandidates.add(s); return this; }
   public Ms2Cluster addMember(   Ms2Pointer s) { if (s!=null) mMembers.add(s); return this; }
+  public Ms2Cluster addMembers(Collection<Ms2Pointer> s) { if (s!=null) mMembers.addAll(s); return this; }
 
   public int getNamed()
   {
@@ -104,6 +109,13 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
 
     return mNamed;
   }
+  public List<Float> indexFromIonMap()
+  {
+    mIndexIons = Similarity.index(mMasterIonMap, 7, 0,1,5,0);
+    return mIndexIons;
+  }
+  public SortedMap<Float,Float> getMasterIonMap() { return mMasterIonMap; }
+  public List<Float> getIndexIons() { return mIndexIons; }
   public int getCandidateRemain() { return (mCandidates!=null?mCandidates.size():0)-(mMembers!=null?mMembers.size():0); }
   public boolean contains(Ms2Pointer p)
   {
@@ -200,6 +212,8 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
 
     Map<Float,Float> head = spectra.get(getHead());
 
+    if (mMasterIonMap==null) mMasterIonMap = new TreeMap<>(head);
+
     // the collections
     if (mMembers!=null) mMembers.clear(); else mMembers = new ArrayList<>();
     for (Ms2Pointer member : mCandidates)
@@ -217,6 +231,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
 
           member.cluster=this;
           mMembers.add(member);
+          mMasterIonMap = (SortedMap )Tools.accumulate(mMasterIonMap, scan);
         }
       }
     }

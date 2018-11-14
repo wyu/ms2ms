@@ -22,7 +22,6 @@ public class Sage extends AbstractSage
   private Histogram     mPositives, mNegatives;
 
   private UnivariateFunction mTransition;
-//  private double[]      mTransitXs, mTransitYs;
 
   public Sage() { super(); }
   public Sage(String title, Range<Double> bound, int bins)
@@ -35,8 +34,6 @@ public class Sage extends AbstractSage
 
   public Histogram   getPositives()  { return mPositives; }
   public Histogram   getNegatives()  { return mNegatives; }
-//  public double[]    getTransitXs()  { return mTransitXs; }
-//  public double[]    getTransitYs()  { return mTransitYs; }
 
   public void addPositive(double data)
   {
@@ -64,34 +61,14 @@ public class Sage extends AbstractSage
     {
       return Double.NaN;
     }
-//    if (mTransitYs==null || mTransitXs==null) toTransition(false);
-//
-//    if      (x>=Tools.back( mTransitXs)) return Tools.back( mTransitYs);
-//    else if (x<=Tools.front(mTransitXs)) return Tools.front(mTransitYs);
-//
-//    return MsStats.interpolate(mTransitXs, mTransitYs, 0.5d, x)[0]; // ignore zero?
   }
   public double lookup(double x, double p_pos, double p_neg)
   {
     return lookup(x);
-//    if (mPositives == null || mNegatives == null)
-//      throw new RuntimeException("The positive and/or negative population not specified");
-//
-//    if (mTransition==null) toTransition(p_pos, p_neg, false);
-//
-//    return mTransition.value(x);
-//    if (mTransitYs==null || mTransitXs==null) toTransition(p_pos, p_neg, false);
-//
-//    if      (x>=Tools.back( mTransitXs)) return Tools.back( mTransitYs);
-//    else if (x<=Tools.front(mTransitXs)) return Tools.front(mTransitYs);
-//
-//    return MsStats.interpolate(mTransitXs, mTransitYs, 0.5d, x)[0]; // ignore zero?
   }
   private StringBuffer toTransition(boolean keep_zero, StringBuffer buf)
   {
     // calculate the priors from the positive and negative lists
-//    mPosPrior = ((double )mPosCounts/(mPosCounts+mNegCounts));
-//    mNegPrior = ((double )mNegCounts/(mPosCounts+mNegCounts));
     return toTransition(mPosPrior, mNegPrior, keep_zero, buf);
   }
   private StringBuffer toTransition(double p_pos, double p_neg, boolean keep_zero, StringBuffer buf)
@@ -144,20 +121,6 @@ public class Sage extends AbstractSage
       StringBuffer buf = new StringBuffer();
 
       buf = toTransition(false, buf);
-//      if (mTransitYs==null || mTransitXs==null) toTransition(false);
-      // dump the pos and neg
-//      for (int i=0; i<getPositives().size(); i++)
-//        buf.append(i+"\t"+(i*getPositives().getBinWidth()+mBound.lowerEndpoint())+"\t"+getPositives().getRelativeBinFreq(i)+"\tPositive\n");
-//      for (int i=0; i<getNegatives().size(); i++)
-//        buf.append(i+"\t"+(i*getNegatives().getBinWidth()+mBound.lowerEndpoint())+"\t"+getNegatives().getRelativeBinFreq(i)+"\tNegative\n");
-//
-//      // lookup the transition
-//      double step = (mBound.upperEndpoint()-mBound.lowerEndpoint())/100d;
-//      for (int i=0; i<100; i++)
-//      {
-//        double rt = mBound.lowerEndpoint() + i*step;
-//        buf.append(i+"\t"+rt+"\t"+lookup(rt)+"\tTransition\n");
-//      }
 
       return buf;
     }
