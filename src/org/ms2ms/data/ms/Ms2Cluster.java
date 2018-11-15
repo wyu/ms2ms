@@ -46,7 +46,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
 
   // no need to save to the archive
   private SortedMap<Float,Float> mMasterIonMap;
-  private List<Float> mIndexIons;
+  private Set<Float> mIndexIons;
 
   public Ms2Cluster() { super(); }
   public Ms2Cluster(String s) { super(); mName=s; }
@@ -109,13 +109,13 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
 
     return mNamed;
   }
-  public List<Float> indexFromIonMap()
+  public Set<Float> indexFromIonMap()
   {
     mIndexIons = Similarity.index(mMasterIonMap, 7, 0,1,5,0);
     return mIndexIons;
   }
   public SortedMap<Float,Float> getMasterIonMap() { return mMasterIonMap; }
-  public List<Float> getIndexIons() { return mIndexIons; }
+  public Set<Float> getIndexIons() { return mIndexIons; }
   public int getCandidateRemain() { return (mCandidates!=null?mCandidates.size():0)-(mMembers!=null?mMembers.size():0); }
   public boolean contains(Ms2Pointer p)
   {

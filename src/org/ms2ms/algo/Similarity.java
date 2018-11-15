@@ -1,7 +1,6 @@
 package org.ms2ms.algo;
 
-import com.google.common.collect.Range;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
@@ -316,12 +315,13 @@ public class Similarity
 
     return indices;
   }
-  public static List<Float> index(SortedMap<Float, Float> A, int n_regions, int min_regions, int n_tops, double min_separation, double min_ai)
+  public static Set<Float> index(SortedMap<Float, Float> A, int n_regions, int min_regions, int n_tops, float min_separation, double min_ai)
   {
     if (A==null || A.size()<3) return null;
 
     // initiating a new List
-    List<Float> indices = new ArrayList<>();
+    SortedSet<Float> indices = new TreeSet<>();
+    Multimap<Float,Float> ai_mz = TreeMultimap.create(Ordering.natural().reverse(), Ordering.natural());
     // required variables
     float x1=Collections.min(A.keySet()), x2=Collections.max(A.keySet()), range = x2-x1, last_X = 0;
 
@@ -340,23 +340,26 @@ public class Similarity
     for (float bound  = x1 + step;
          bound <= x2 + step * 0.1; bound += step)
     {
-      float top_Y = 0, top_i = -1;
       Map<Float,Float> slice = A.subMap(bound, bound+step);
-      for (Float k1 : slice.keySet())
+      if (Tools.isSet(slice))
       {
-        // skip the invalidated point, WYU 111607
-        if (slice.get(k1) > top_Y &&
-            Math.abs(k1 - last_X) > min_separation)
-        { top_i = k1; top_Y = slice.get(k1); }
-        ++left;
-      }
-      if (top_i >= 0 && top_Y >= min_ai)
-      {
-        indices.add(top_i); last_X = top_i;
+        ai_mz.clear(); int found=0;
+        for (Float k1 : slice.keySet()) ai_mz.put(slice.get(k1),k1);
+        for (Float ai : ai_mz.keySet())
+        {
+          for (Float m1 : ai_mz.get(ai))
+            // skip the invalidated point, WYU 111607
+            if (ai > 0 && !Tools.isSet(indices.subSet(m1-min_separation, m1+min_separation)))
+            {
+              indices.add(m1); found++;
+            }
+
+          if (found>=n_tops) break;
+        }
       }
     }
     // putting the points back to the natural order
-    Collections.sort(indices);
+    ai_mz = Tools.dispose(ai_mz);
 
     return indices;
   }
