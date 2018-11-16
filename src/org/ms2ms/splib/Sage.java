@@ -124,4 +124,19 @@ public class Sage extends AbstractSage
 
       return buf;
     }
+  public StringBuffer dump()
+  {
+    StringBuffer buf = new StringBuffer();
+
+    double[] breaks = mPositives.getBreaks(null);
+    buf.append("Bin\tPos\tNeg\n");
+    for (int i=0; i<mPositives.size(); i++)
+    {
+      buf.append(breaks[i]+"\t");
+      buf.append(mPositives.getAbsoluteBinFreq(i)+"\t");
+      buf.append(mNegatives.getAbsoluteBinFreq(i)+"\n");
+    }
+
+    return buf;
+  }
 }
