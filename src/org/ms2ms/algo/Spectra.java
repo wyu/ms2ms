@@ -1211,4 +1211,18 @@ public class Spectra
 
     return A;
   }
+  public static StringBuffer printProcessed(StringBuffer buf, MsnSpectrum ms, Map<Float,Float> clean, Set<Float> index)
+  {
+    if (buf==null) buf = new StringBuffer();
+
+    for (int i=0; i<ms.size(); i++)
+    {
+      Float m = (float )ms.getMz(i);
+      buf.append(i+"\t"+Tools.d2s(m,4)+"\t"+Tools.d2s(ms.getIntensity(i),2)+"\t");
+      buf.append((clean.containsKey(m)?"T":"")+"\t");
+      buf.append((index.contains(m)?"T":"")+"\t"+ms.getComment()+"\n");
+    }
+
+    return buf;
+  }
 }

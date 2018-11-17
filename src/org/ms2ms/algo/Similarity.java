@@ -337,8 +337,7 @@ public class Similarity
     if (A.size() < n_regions * 2 + n_tops) return indices;
     // inspect the regions
     int left = 0; float step = range / n_regions;
-    for (float bound  = x1 + step;
-         bound <= x2 + step * 0.1; bound += step)
+    for (float bound  = x1; bound <= x2 + step * 0.1; bound += step)
     {
       Map<Float,Float> slice = A.subMap(bound, bound+step);
       if (Tools.isSet(slice))
