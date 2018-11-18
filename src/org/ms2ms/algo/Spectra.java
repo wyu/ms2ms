@@ -415,6 +415,8 @@ public class Spectra
   public static PeakList accumulate(Tolerance tol, PeakList... As)
   {
     if (!Tools.isSet(As)) return null;
+    if (As.length>1 && As[0]==null && As[1]!=null)
+      return As[1].copy(new PurgingPeakProcessor());
 
     PeakList out = As[0].copy(new PurgingPeakProcessor());
 

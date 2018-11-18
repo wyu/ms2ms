@@ -1,7 +1,9 @@
 package org.ms2ms.data.ms;
 
+import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
+import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.ms2ms.Disposable;
 import org.ms2ms.algo.Peaks;
@@ -126,6 +128,20 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
   public Ms2Cluster setMaster(BufferedRandomAccessFile bin) throws IOException
   {
     if (size()<=1) mMaster = MsIO.readSpectrumIdentifier(bin, new MsnSpectrum(), getHead().pointer);
+    return this;
+  }
+  public Ms2Cluster prepMaster(BufferedRandomAccessFile bin) throws IOException
+  {
+    if (size()>0)
+    {
+      MsnSpectrum ms = new MsnSpectrum(); // reset the master
+      for (Ms2Pointer p : getMembers())
+        ms.addPeaks(MsIO.readSpectrumIdentifier(bin, new MsnSpectrum(), p.pointer));
+
+      mMaster = ms.copy(new PurgingPeakProcessor());
+      mMaster.clear(); mMaster.addPeaks(Peaks.consolidate(ms, new AbsoluteTolerance(0.1), 0));
+    }
+
     return this;
   }
   public Ms2Cluster resetMembers()

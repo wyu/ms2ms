@@ -171,13 +171,22 @@ abstract public class App
   {
     return Strs.isSet(mOutfileRoot)?mOutfileRoot:getWorkingRoot();
   }
-  public String getWorkingRoot() { return (Strs.isSet(mWorkingRoot) ? mWorkingRoot:System.getProperty("user.dir"))+"/"; }
+  public String getWorkingRoot()
+  {
+    String wd = Strs.isSet(mWorkingRoot)?mWorkingRoot:param(KEY_WORKING);
+    if (!Strs.isSet(wd)) wd = System.getProperty("user.dir");
+    // append the ending '/' if necessary
+    return (Strs.isSet(wd) && !wd.endsWith("/") && !wd.endsWith("\\"))?wd + (wd.indexOf('\\')>=0?"\\":"/"):wd;
+  }
   public String getLogFile()     { return getOutFile()!=null?getOutFile().replaceAll("\\*","_")+".log":"temp.log"; }
 
   protected void close() throws IOException
   {
   }
-
+  protected String expandByWorkingRoot(String s)
+  {
+    return (s!=null && (s.indexOf('/')==0 || s.indexOf('\\')==0))?s:(getWorkingRoot()+s);
+  }
   public String getAppName()         { return mAppName; }
   public void   setAppName(String s) { mAppName = s; }
   protected App addUsage(String tags, String usage)
@@ -236,11 +245,11 @@ abstract public class App
   {
     try
     {
-      System.out.println("Reading the configuration: " + getWorkingRoot()+cfgname);
+      System.out.println("Reading the configuration: " + expandByWorkingRoot(cfgname));
       BufferedReader cfg = null;
       try
       {
-        cfg = new BufferedReader(new InputStreamReader(new FileInputStream(getWorkingRoot()+cfgname)));
+        cfg = new BufferedReader(new InputStreamReader(new FileInputStream(expandByWorkingRoot(cfgname))));
         while (cfg.ready())
         {
           String line = cfg.readLine().trim();
