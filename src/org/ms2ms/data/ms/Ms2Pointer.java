@@ -32,7 +32,7 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary, Ion
     scan=ms.getScanNumbers().size()>0?ms.getScanNumbers().getFirst().getValue():-1;
     mz  = (float )ms.getPrecursor().getMz(); mz_off=0f;
     z   = ms.getPrecursor().getCharge();
-    rt  = (float )ms.getRetentionTimes().getFirst().getTime()/60f;
+    rt  = Tools.isSet(ms.getRetentionTimes())?(float )ms.getRetentionTimes().getFirst().getTime()/60f:0f;
 
     if (Strs.isSet(ms.getComment()))    name = ms.getComment();
     if (Strs.isSet(ms.getFragMethod())) name = Strs.extend(name, ms.getFragMethod(), "$");
