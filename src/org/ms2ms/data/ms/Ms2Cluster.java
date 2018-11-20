@@ -1,5 +1,6 @@
 package org.ms2ms.data.ms;
 
+import com.google.common.collect.*;
 import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
@@ -11,6 +12,7 @@ import org.ms2ms.algo.PurgingPeakProcessor;
 import org.ms2ms.algo.Similarity;
 import org.ms2ms.algo.Spectra;
 import org.ms2ms.data.Binary;
+import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.BufferedRandomAccessFile;
 import org.ms2ms.io.MsIO;
 import org.ms2ms.math.Stats;
@@ -34,12 +36,14 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
     mCandidates = Tools.dispose(mCandidates);
   }
 
-  public enum NodeType { REF, MSMS, NONE };
+  public enum NodeType { REF, MSMS, CELL, NULL, NONE };
 
   private NodeType mType = NodeType.MSMS;
   private float mMz, mRT, mImpurity=-1;
   private int mByMz=0, mByMzRT=0, mByMzRtFrag=0, mCharge=0, mNamed=0;
   private String mName="", mID="", mMajority=null;
+
+  private SortedSetMultimap<Float, String> mPctName;
 
   private MsnSpectrum mMaster; // a composite spectrum to represent the cluster
 
@@ -61,7 +65,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
   public Ms2Pointer             getHead()       { return mHead; }
   public Ms2Pointer             getMasterHead() { return mMasterHead; }
 
-  public boolean isType(NodeType t) { return mType.equals(t); }
+  public boolean isType(NodeType... t) { return Tools.isA(mType, t); }
   public boolean contains(String run, Integer scans)
   {
     if (Tools.isSet(getCandidates()))
@@ -94,7 +98,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
   public Ms2Cluster setNbyMzRtFrag(int s) { mByMzRtFrag=s; return this; }
   public Ms2Cluster setName(    String s) { mName      =s; return this; }
   public Ms2Cluster setID(      String s) { mID        =s; return this; }
-  public Ms2Cluster setMajorityID(String s) { mMajority  =s; return this; }
+  public Ms2Cluster setMajorityID(String s) { mMajority=s; return this; }
   public Ms2Cluster setMz(       float s) { mMz        =s; return this; }
   public Ms2Cluster setRT(       float s) { mRT        =s; return this; }
   public Ms2Cluster setImpurity( float s) { mImpurity  =s; return this; }
@@ -104,6 +108,27 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
   public Ms2Cluster addMember(   Ms2Pointer s) { if (s!=null) mMembers.add(s); return this; }
   public Ms2Cluster addMembers(Collection<Ms2Pointer> s) { if (s!=null) mMembers.addAll(s); return this; }
 
+  public Ms2Cluster updateMajorityByName()
+  {
+    if (Tools.isSet(getMembers()))
+    {
+      Multimap<String, Ms2Pointer> name_mem = HashMultimap.create();
+      for (Ms2Pointer p : getMembers())
+        Tools.put(name_mem, Tools.back(Strs.split(p.name,'$')), p);
+
+      if (mPctName==null) mPctName = TreeMultimap.create(Ordering.natural().reverse(), Ordering.natural()); else mPctName.clear();
+      for (String name : name_mem.keySet())
+        mPctName.put(name_mem.get(name).size()*100f/size(), name);
+
+      mMajority=null; mImpurity = Collections.max(mPctName.keySet());
+      for (Float pct : mPctName.keySet())
+        for (String name : mPctName.get(pct))
+          mMajority = Strs.extend(mMajority, Tools.d2s(pct,1)+"%"+name,";");
+
+      name_mem = Tools.dispose(name_mem);
+    }
+    return this;
+  }
   public int getNamed()
   {
     mNamed=0;
@@ -341,15 +366,60 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
 
     return hc;
   }
+  public Dataframe details(Dataframe df, String rowid)
+  {
+    df.put(rowid, "Majority", mMajority);
+    df.put(rowid, "ID", mID);
+    if (getMaster()!=null)
+    {
+      if (getMaster().getPrecursor()!=null)
+      {
+        df.put(rowid, "PrecMH", Tools.d2s(Peaks.toMH(getMaster().getPrecursor()), 4));
+        df.put(rowid, "PrecZ",  getMaster().getPrecursor().getCharge());
+      }
+      if (Tools.isSet(getMaster().getRetentionTimes()) && getMaster().getRetentionTimes().getFirst()!=null)
+        df.put(rowid, "RT", Tools.d2s(getMaster().getRetentionTimes().getFirst().getTime()/60d, 2));
+    }
+    if (getMembers()   !=null) df.put(rowid, "mN", getMembers().size()+"");
+    if (getCandidates()!=null) df.put(rowid, "cN", getCandidates().size()+"");
+    if (Strs.isSet(getName())) df.put(rowid, "Name", getName());
+
+    if (Tools.isSet(mPctName))
+    {
+      int n=0;
+      for (Float pct : mPctName.keySet())
+        for (String name : mPctName.get(pct))
+        {
+          if (++n>3) break;
+          df.put(rowid, "Pct."+n, Tools.d2s(pct, 1));
+          df.put(rowid, "Tag."+n, name);
+        }
+    }
+    df.put(rowid, "Impurity", Tools.d2s(mImpurity,2));
+    return df;
+  }
   @Override
   public String toString()
   {
-    return (getMaster()!=null && getMaster().getPrecursor()!=null?
-        (Tools.d2s(Peaks.toMH(getMaster().getPrecursor()), 4)+"|"+
-                              getMaster().getPrecursor().getCharge()+"|"+
-                 Tools.d2s(getMaster().getRetentionTimes().getFirst().getTime()/60d, 2)):"")+
-        (getMembers()!=null?getMembers().size():0) +
-        (Strs.isSet(getName())?"::"+getName():"") + "|"+hashCode();
+    String s=mMajority;
+    if (getMaster()!=null)
+    {
+      s+=";";
+      if (getMaster().getPrecursor()!=null)
+        s = Strs.extend(s, (Tools.d2s(Peaks.toMH(getMaster().getPrecursor()), 4)+"|"+ getMaster().getPrecursor().getCharge()+"|"), "");
+      if (Tools.isSet(getMaster().getRetentionTimes()) && getMaster().getRetentionTimes().getFirst()!=null)
+        s = Strs.extend(s, Tools.d2s(getMaster().getRetentionTimes().getFirst().getTime()/60d, 2), "");
+    }
+    s = Strs.extend(s,
+        (getMembers()!=null?getMembers().size():0) + "/"+
+        (getCandidates()!=null?getCandidates().size():0) +
+        (Strs.isSet(getName())?"::"+getName():"") + "|"+hashCode(), "");
+
+    if (!Strs.isSet(mMajority))
+      s = Strs.extend(s,
+        (Strs.isSet(getName())?"::"+getName():"") + "|"+hashCode(), "");
+
+    return s;
   }
   @Override
   public int compareTo(Ms2Cluster o)
