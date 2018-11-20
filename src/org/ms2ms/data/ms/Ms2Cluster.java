@@ -43,7 +43,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
 
   private MsnSpectrum mMaster; // a composite spectrum to represent the cluster
 
-  private Ms2Pointer mHead;
+  private Ms2Pointer mHead, mMasterHead;
   private Collection<Ms2Pointer> mMembers = new TreeSet<>(), mCandidates = new TreeSet<>(); // actual or possible members of the cluster
 
   // no need to save to the archive
@@ -59,6 +59,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
   public Collection<Ms2Pointer> getMembers()    { return mMembers; }
   public MsnSpectrum            getMaster()     { return mMaster; }
   public Ms2Pointer             getHead()       { return mHead; }
+  public Ms2Pointer             getMasterHead() { return mMasterHead; }
 
   public boolean isType(NodeType t) { return mType.equals(t); }
   public boolean contains(String run, Integer scans)
@@ -97,6 +98,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
   public Ms2Cluster setMz(       float s) { mMz        =s; return this; }
   public Ms2Cluster setRT(       float s) { mRT        =s; return this; }
   public Ms2Cluster setImpurity( float s) { mImpurity  =s; return this; }
+  public Ms2Cluster setMasterHead(Ms2Pointer s) { mMasterHead=s; return this; }
 
   public Ms2Cluster addCandidate(Ms2Pointer s) { if (s!=null) mCandidates.add(s); return this; }
   public Ms2Cluster addMember(   Ms2Pointer s) { if (s!=null) mMembers.add(s); return this; }
@@ -134,12 +136,9 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
   {
     if (size()>0)
     {
-      MsnSpectrum ms = new MsnSpectrum(); // reset the master
+      mMaster = new MsnSpectrum(); // reset the master
       for (Ms2Pointer p : getMembers())
-        ms.addPeaks(MsIO.readSpectrumIdentifier(bin, new MsnSpectrum(), p.pointer));
-
-      mMaster = ms.copy(new PurgingPeakProcessor());
-      mMaster.clear(); mMaster.addPeaks(Peaks.consolidate(ms, new AbsoluteTolerance(0.1), 0));
+        mMaster.addPeaks(MsIO.readSpectrumIdentifier(bin, new MsnSpectrum(), p.pointer));
     }
 
     return this;
@@ -345,9 +344,10 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
   @Override
   public String toString()
   {
-    return (getMaster()!=null?(Tools.d2s(Peaks.toMH(getMaster().getPrecursor()), 4)+"|"+
-                               getMaster().getPrecursor().getCharge()+"|"+
-                               Tools.d2s(getMaster().getRetentionTimes().getFirst().getTime()/60d, 2)):"")+
+    return (getMaster()!=null && getMaster().getPrecursor()!=null?
+        (Tools.d2s(Peaks.toMH(getMaster().getPrecursor()), 4)+"|"+
+                              getMaster().getPrecursor().getCharge()+"|"+
+                 Tools.d2s(getMaster().getRetentionTimes().getFirst().getTime()/60d, 2)):"")+
         (getMembers()!=null?getMembers().size():0) +
         (Strs.isSet(getName())?"::"+getName():"") + "|"+hashCode();
   }

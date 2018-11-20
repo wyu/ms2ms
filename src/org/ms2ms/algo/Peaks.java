@@ -7,6 +7,7 @@ import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakAnnotation;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
+import org.expasy.mzjava.core.ms.spectrum.LibPeakAnnotation;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepFragAnnotation;
 import org.expasy.mzjava.proteomics.ms.spectrum.PepLibPeakAnnotation;
 import org.ms2ms.data.Point;
@@ -930,7 +931,31 @@ public class Peaks {
     // keeping just the peaks with positive intensities
     return peaks.copy(new PurgingPeakProcessor());
   }
+  // for the exact match
+  public static PeakList consolidate(PeakList peaks, int min_pks)
+  {
+    if (peaks == null || peaks.size() < 2) return peaks;
 
+    for (int i = 0; i < peaks.size(); i++)
+    {
+      int counts=1;
+      for (int j = i + 1; j < peaks.size(); j++)
+      {
+        if (j < peaks.size() && peaks.getMz(j) <= peaks.getMz(i))
+        {
+          peaks.setIntensityAt(peaks.getIntensity(i)+peaks.getIntensity(j), i);
+          peaks.setIntensityAt(-1d, j);
+          counts++;
+        } else break;
+      }
+      // require a min number of peaks
+      if (counts < min_pks) peaks.setIntensityAt(-1d, i);
+      else peaks.addAnnotation(i, new IsotopePeakAnnotation(0, counts, 0d));
+    }
+
+    // keeping just the peaks with positive intensities
+    return peaks.copy(new PurgingPeakProcessor());
+  }
   public static <T extends Peak> Double centroid(Collection<T> points) {
     return centroid(points, null, null);
   }

@@ -38,6 +38,9 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary, Ion
     if (Strs.isSet(ms.getFragMethod())) name = Strs.extend(name, ms.getFragMethod(), "$");
 
     hcode=run.hashCode()+scan+Float.hashCode(mz);
+    if (ms.size()>0)
+      for (int i=0; i<ms.size(); i++)
+        hcode+=Double.hashCode(ms.getMz(i)) + Double.hashCode(ms.getIntensity(i))+i;
   }
   public Ms2Pointer setMzOffset(float s) { mz_off=s; return this; }
   public float getMH()     { return Peaks.toMH(mz,z); }
@@ -48,9 +51,20 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary, Ion
   public int compareTo(Ms2Pointer o)
   {
     int c = (run!=null && o.run!=null) ? run.compareTo(o.run):0;
-    if (c==0) c=Integer.compare(scan, o.scan);
-    if (c==0) c=  Float.compare(mz,o.mz);
-    if (c==0) c=  Float.compare(rt,o.rt);
+
+    // only check the following if they are valid
+    if (scan>=0 && mz>0 && rt>0)
+    {
+      if (c==0) c=Integer.compare(scan, o.scan);
+      if (c==0) c=  Float.compare(mz,o.mz);
+      if (c==0) c=  Float.compare(rt,o.rt);
+    }
+    else
+    {
+      // arbitary order
+      if (c==0) c=Integer.compare(npks,  o.npks);
+      if (c==0) c=Integer.compare(hcode, o.hcode);
+    }
 
     return c;
   }
@@ -66,8 +80,8 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary, Ion
     if (s==null) return false;
 
     Ms2Pointer o = (Ms2Pointer )s;
-    if (Strs.equals(run, o.run) && scan==o.scan && mz==o.mz) return true;
-    return false;
+    if (Strs.equals(run, o.run) && scan>=0 && mz>0 && scan==o.scan && mz==o.mz) return true;
+    return hcode==o.hcode;
   }
 
   public Ms2Pointer clone()
@@ -123,7 +137,9 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary, Ion
   @Override
   public String toString()
   {
-    return (cluster!=null?"$$":"")+(Strs.isSet(name)?(name+"::"):"")+run+(scan>0?"#"+scan:"")+"|z"+z+"|m/z"+ Tools.d2s(mz, 4)+"|min"+Tools.d2s(rt, 2)+
+    return (cluster!=null?"$$":"")+(Strs.isSet(name)?(name+"::"):"")+run+(scan>0?"#"+scan:"")+
+        (z!=0?"|z"+z:"")+(mz!=0?"|m/z"+ Tools.d2s(mz, 4):"")+
+        (rt>0?"|min"+Tools.d2s(rt, 2):"")+
         (dp>0?"|dp"+Tools.d2s(dp,2):"")+(npks_upper>0?"|npks"+npks_upper:"");
   }
 }
