@@ -3,6 +3,7 @@ package org.ms2ms.data.ms;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.ms2ms.algo.Peaks;
 import org.ms2ms.data.Binary;
+import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
@@ -13,7 +14,7 @@ import java.io.IOException;
 
 public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary, Ion
 {
-  public String     run, name;
+  public String     run, name, id;
   public int        scan, z, hcode, npks, npks_upper;
   public float      mz, rt, prob, dp, mz_off;
   public Ms2Cluster cluster;
@@ -46,6 +47,24 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary, Ion
   public float getMH()     { return Peaks.toMH(mz,z); }
   public float getMz()     { return mz; }
   public int   getCharge() { return z; }
+
+  public Dataframe details(Dataframe df, String rowid)
+  {
+    if (Strs.isSet(run))  df.put(rowid,"Run", run);
+    if (Strs.isSet(name)) df.put(rowid,"Name", name);
+    if (Strs.isSet(id))   df.put(rowid,"ID", id);
+    if (scan          >0) df.put(rowid,"Scan", scan+"");
+    if (z            !=0) df.put(rowid,"z",z+"");
+    if (npks          >0) df.put(rowid,"npks",npks+"");
+    if (mz            >0) df.put(rowid,"mz", Tools.d2s(mz,4));
+    if (rt           !=0) df.put(rowid,"RT",Tools.d2s(rt,2));
+    if (prob          >0) df.put(rowid,"Prob",Tools.d2s(prob,2));
+    if (dp            >0) df.put(rowid,"dp",Tools.d2s(dp,2));
+    if (mz_off       !=0) df.put(rowid,"mz_offset",Tools.d2s(mz_off,4));
+    if (pointer      !=0) df.put(rowid,"Pointer",pointer+"");
+
+    return df;
+  }
 
   @Override
   public int compareTo(Ms2Pointer o)

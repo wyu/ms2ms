@@ -793,13 +793,13 @@ public class Spectra
 
     return peaks;
   }
-  public static SortedMap<Float, Float> toIonMap(PeakList ms)
+  public static SortedMap<Double,Double> toIonMap(PeakList ms)
   {
     // walking thro the peaks and recording the matching peaks
-    SortedMap<Float,Float> peaks = new TreeMap<>();
+    SortedMap<Double,Double> peaks = new TreeMap<>();
 
     for (int i=0; i<ms.size(); i++)
-      peaks.put((float )ms.getMz(i), (float )ms.getIntensity(i));
+      peaks.put(ms.getMz(i), ms.getIntensity(i));
 
     return peaks;
   }

@@ -229,7 +229,7 @@ public class MsIO extends IOs
     }
     return ms;
   }
-  public static Map<Float,Float> readSpectrumIdentifierAsIonMap(DataInput w, Map<Float,Float> ms) throws IOException
+  public static Map<Double,Double> readSpectrumIdentifierAsIonMap(DataInput w, Map<Double,Double> ms) throws IOException
   {
     if (ms!=null)
     {
@@ -238,7 +238,7 @@ public class MsIO extends IOs
       int counts = w.readInt(); ms.clear();
       if (counts>0)
         for (int i=0; i<counts; i++)
-          ms.put((float )w.readDouble(), (float )w.readDouble());
+          ms.put(w.readDouble(), w.readDouble());
     }
     return ms;
   }
@@ -247,7 +247,7 @@ public class MsIO extends IOs
     w.seek(offset);
     return readSpectrumIdentifier(w, ms);
   }
-  public static Map<Float,Float> readSpectrumIdentifierAsIonMap(BufferedRandomAccessFile w, long offset) throws IOException
+  public static Map<Double,Double> readSpectrumIdentifierAsIonMap(BufferedRandomAccessFile w, long offset) throws IOException
   {
     w.seek(offset);
     return readSpectrumIdentifierAsIonMap(w);
@@ -274,9 +274,9 @@ public class MsIO extends IOs
     }
     return ms;
   }
-  public static Map<Float,Float> readSpectrumIdentifierAsIonMap(DataInput w) throws IOException
+  public static Map<Double,Double> readSpectrumIdentifierAsIonMap(DataInput w) throws IOException
   {
-    Map<Float,Float> ms = readSpectrumIdentifierAsIonMap(w, new TreeMap<>());
+    Map<Double,Double> ms = readSpectrumIdentifierAsIonMap(w, new TreeMap<>());
 
     int counts = w.readInt();
     // clear the content of the retention times if necessary

@@ -21,7 +21,7 @@ import static org.ms2ms.utils.Tools.isSet;
 public class Similarity
 {
   // for the pre-aligned data
-  public static double bidirectional_dp(Map<Float, Float> A, Map<Float, Float> B,  boolean sqrted, boolean lowest, double min_fdp)
+  public static double bidirectional_dp(Map<Double,Double> A, Map<Double,Double> B,  boolean sqrted, boolean lowest, double min_fdp)
   {
     double fdp = dp(A,B, sqrted);
     if (fdp<min_fdp) return fdp;
@@ -138,15 +138,15 @@ public class Similarity
     dp = sum_ab * sum_ab / (sum_a * sum_b);
     return sqrted?Math.sqrt(dp):dp;
   }
-  public static double dp(Map<Float, Float> A, Map<Float, Float> B, boolean sqrted)
+  public static double dp(Map<Double,Double> A, Map<Double,Double> B, boolean sqrted)
   {
     // false if one of the spectra is empty or with diff dimension
     if (!isSet(A) || !isSet(B)) return 0;
 
-    double dp = 0, sum_a = 0, sum_b = 0, sum_ab = 0; Float x,y;
-    for (Float m : A.keySet())
+    double dp = 0, sum_a = 0, sum_b = 0, sum_ab = 0; Double x,y;
+    for (Double m : A.keySet())
     {
-      x = A.containsKey(m)?A.get(m):0f; y = B.containsKey(m)?B.get(m):0f;
+      x = A.containsKey(m)?A.get(m):0d; y = B.containsKey(m)?B.get(m):0d;
       sum_a  +=   x * x;
       sum_b  +=   y * y;
       sum_ab +=   x * y;
@@ -315,15 +315,15 @@ public class Similarity
 
     return indices;
   }
-  public static Set<Float> index(SortedMap<Float, Float> A, int n_regions, int min_regions, int n_tops, float min_separation, double min_ai)
+  public static Set<Double> index(SortedMap<Double,Double> A, int n_regions, int min_regions, int n_tops, float min_separation, double min_ai)
   {
     if (A==null || A.size()<3) return null;
 
     // initiating a new List
-    SortedSet<Float> indices = new TreeSet<>();
-    Multimap<Float,Float> ai_mz = TreeMultimap.create(Ordering.natural().reverse(), Ordering.natural());
+    SortedSet<Double> indices = new TreeSet<>();
+    Multimap<Double,Double> ai_mz = TreeMultimap.create(Ordering.natural().reverse(), Ordering.natural());
     // required variables
-    float x1=Collections.min(A.keySet()), x2=Collections.max(A.keySet()), range = x2-x1, last_X = 0;
+    double x1=Collections.min(A.keySet()), x2=Collections.max(A.keySet()), range = x2-x1, last_X = 0;
 
     // setup the regions by mz width
     if      (n_regions  < 0) n_regions = (int )Math.round(range / Math.abs(n_regions));
@@ -336,17 +336,17 @@ public class Similarity
     // try again
     if (A.size() < n_regions * 2 + n_tops) return indices;
     // inspect the regions
-    int left = 0; float step = range / n_regions;
-    for (float bound  = x1; bound <= x2 + step * 0.1; bound += step)
+    int left = 0; double step = range / n_regions;
+    for (double bound  = x1; bound <= x2 + step * 0.1; bound += step)
     {
-      Map<Float,Float> slice = A.subMap(bound, bound+step);
+      Map<Double,Double> slice = A.subMap(bound, bound+step);
       if (Tools.isSet(slice))
       {
         ai_mz.clear(); int found=0;
-        for (Float k1 : slice.keySet()) ai_mz.put(slice.get(k1),k1);
-        for (Float ai : ai_mz.keySet())
+        for (Double k1 : slice.keySet()) ai_mz.put(slice.get(k1),k1);
+        for (Double ai : ai_mz.keySet())
         {
-          for (Float m1 : ai_mz.get(ai))
+          for (Double m1 : ai_mz.get(ai))
             // skip the invalidated point, WYU 111607
             if (ai > 0 && !Tools.isSet(indices.subSet(m1-min_separation, m1+min_separation)))
             {
@@ -388,7 +388,7 @@ public class Similarity
 //    return -10 * MsStats.hypergeometricPval1(outcomes.size(), A.size(), B.size(), bins);
     return -1 * MsStats.hypergeom(Math.min(outcomes.size(), Math.min(A.size(), B.size())), A.size(), B.size(), bins);
   }
-  public static double similarity_hg(Map<Float,Float> A, Map<Float,Float> B, long bins)
+  public static double similarity_hg(Map<Double,Double> A, Map<Double,Double> B, long bins)
   {
     if (!isSet(A) || !isSet(B)) return -1d;
     return -1 * MsStats.hypergeom(Math.min(Sets.intersection(A.keySet(), B.keySet()).size(), Math.min(A.size(), B.size())), A.size(), B.size(), bins);

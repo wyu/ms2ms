@@ -51,8 +51,8 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
   private Collection<Ms2Pointer> mMembers = new TreeSet<>(), mCandidates = new TreeSet<>(); // actual or possible members of the cluster
 
   // no need to save to the archive
-  private SortedMap<Float,Float> mMasterIonMap;
-  private Set<Float> mIndexIons;
+  private SortedMap<Double,Double> mMasterIonMap;
+  private Set<Double> mIndexIons;
 
   public Ms2Cluster() { super(); }
   public Ms2Cluster(String s) { super(); mName=s; }
@@ -105,6 +105,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
   public Ms2Cluster setMasterHead(Ms2Pointer s) { mMasterHead=s; return this; }
 
   public Ms2Cluster addCandidate(Ms2Pointer s) { if (s!=null) mCandidates.add(s); return this; }
+  public Ms2Cluster addCandidates(Collection<Ms2Pointer> s) { if (s!=null) mCandidates.addAll(s); return this; }
   public Ms2Cluster addMember(   Ms2Pointer s) { if (s!=null) mMembers.add(s); return this; }
   public Ms2Cluster addMembers(Collection<Ms2Pointer> s) { if (s!=null) mMembers.addAll(s); return this; }
 
@@ -114,7 +115,21 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
     {
       Multimap<String, Ms2Pointer> name_mem = HashMultimap.create();
       for (Ms2Pointer p : getMembers())
-        Tools.put(name_mem, Tools.back(Strs.split(p.name,'$')), p);
+      {
+        String[] items = Strs.split(p.name,'$');
+        Tools.put(name_mem, items.length<2?"NA":Tools.back(items), p);
+      }
+      // most popular name not NA
+      String best = null;
+      for (String name : name_mem.keySet())
+        if (!"NA".equals(name) &&
+            (best==null || name_mem.get(name).size()>name_mem.get(best).size())) best=name;
+
+      if (best!=null && name_mem.containsKey("NA"))
+      {
+        name_mem.putAll(best, name_mem.get("NA"));
+        name_mem.removeAll("NA");
+      }
 
       if (mPctName==null) mPctName = TreeMultimap.create(Ordering.natural().reverse(), Ordering.natural()); else mPctName.clear();
       for (String name : name_mem.keySet())
@@ -138,13 +153,13 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
 
     return mNamed;
   }
-  public Set<Float> indexFromIonMap()
+  public Set<Double> indexFromIonMap()
   {
     mIndexIons = Similarity.index(mMasterIonMap, 7, 0,1,5,0);
     return mIndexIons;
   }
-  public SortedMap<Float,Float> getMasterIonMap() { return mMasterIonMap; }
-  public Set<Float> getIndexIons() { return mIndexIons; }
+  public SortedMap<Double,Double> getMasterIonMap() { return mMasterIonMap; }
+  public Set<Double> getIndexIons() { return mIndexIons; }
   public int getCandidateRemain() { return (mCandidates!=null?mCandidates.size():0)-(mMembers!=null?mMembers.size():0); }
   public boolean contains(Ms2Pointer p)
   {
@@ -243,14 +258,14 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
     return this;
   }
   // for exact match without mass tolerance
-  public Ms2Cluster cluster(Map<Ms2Pointer, Map<Float,Float>> spectra, double min_dp)
+  public Ms2Cluster cluster(Map<Ms2Pointer, Map<Double,Double>> spectra, double min_dp)
   {
     // quit if the master or input are not present!
     if (mHead==null || !Tools.isSet(spectra)) return null;
 
     mHead.cluster=this;
 
-    Map<Float,Float> head = spectra.get(getHead());
+    Map<Double,Double> head = spectra.get(getHead());
 
     if (mMasterIonMap==null) mMasterIonMap = new TreeMap<>(head);
 
@@ -258,7 +273,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
     if (mMembers!=null) mMembers.clear(); else mMembers = new ArrayList<>();
     for (Ms2Pointer member : mCandidates)
     {
-      Map<Float,Float> scan = spectra.get(member);
+      Map<Double,Double> scan = spectra.get(member);
       // need to exclude the head itself
       if (scan!=null && member.hcode!=getHead().hcode)
       {
@@ -369,13 +384,15 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
   public Dataframe details(Dataframe df, String rowid)
   {
     df.put(rowid, "Majority", mMajority);
-    df.put(rowid, "ID", mID);
+    df.put(rowid, "ClsID", mID);
     if (getMaster()!=null)
     {
       if (getMaster().getPrecursor()!=null)
       {
-        df.put(rowid, "PrecMH", Tools.d2s(Peaks.toMH(getMaster().getPrecursor()), 4));
-        df.put(rowid, "PrecZ",  getMaster().getPrecursor().getCharge());
+        if (getMaster().getPrecursor().getMz()>0)
+          df.put(rowid, "PrecMH", Tools.d2s(Peaks.toMH(getMaster().getPrecursor()), 4));
+        if (getMaster().getPrecursor().getCharge()!=0)
+          df.put(rowid, "PrecZ",  getMaster().getPrecursor().getCharge());
       }
       if (Tools.isSet(getMaster().getRetentionTimes()) && getMaster().getRetentionTimes().getFirst()!=null)
         df.put(rowid, "RT", Tools.d2s(getMaster().getRetentionTimes().getFirst().getTime()/60d, 2));
