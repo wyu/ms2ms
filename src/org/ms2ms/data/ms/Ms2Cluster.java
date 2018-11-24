@@ -36,7 +36,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
     mCandidates = Tools.dispose(mCandidates);
   }
 
-  public enum NodeType { REF, MSMS, CELL, NULL, NONE };
+  public enum NodeType { REF, MSMS, CELL, NULL, SINGLE, NONE };
 
   private NodeType mType = NodeType.MSMS;
   private float mMz, mRT, mImpurity=-1;
@@ -51,7 +51,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
   private Collection<Ms2Pointer> mMembers = new TreeSet<>(), mCandidates = new TreeSet<>(); // actual or possible members of the cluster
 
   // no need to save to the archive
-  private SortedMap<Double,Double> mMasterIonMap;
+//  private SortedMap<Double,Double> mMasterIonMap;
   private Set<Double> mIndexIons;
 
   public Ms2Cluster() { super(); }
@@ -104,8 +104,21 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
   public Ms2Cluster setImpurity( float s) { mImpurity  =s; return this; }
   public Ms2Cluster setMasterHead(Ms2Pointer s) { mMasterHead=s; return this; }
 
-  public Ms2Cluster addCandidate(Ms2Pointer s) { if (s!=null) mCandidates.add(s); return this; }
-  public Ms2Cluster addCandidates(Collection<Ms2Pointer> s) { if (s!=null) mCandidates.addAll(s); return this; }
+  public Ms2Cluster addCandidate(Ms2Pointer s)
+  {
+    if (s!=null)
+    {
+      if (mCandidates==null) mCandidates = new TreeSet<>();
+      mCandidates.add(s);
+    }
+    return this;
+  }
+  public Ms2Cluster addCandidates(Collection<Ms2Pointer> s)
+  {
+    if (s!=null) mCandidates.addAll(s);
+    if (mCandidates==null) mCandidates = new TreeSet<>();
+    return this;
+  }
   public Ms2Cluster addMember(   Ms2Pointer s) { if (s!=null) mMembers.add(s); return this; }
   public Ms2Cluster addMembers(Collection<Ms2Pointer> s) { if (s!=null) mMembers.addAll(s); return this; }
 
@@ -153,12 +166,12 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
 
     return mNamed;
   }
-  public Set<Double> indexFromIonMap()
-  {
-    mIndexIons = Similarity.index(mMasterIonMap, 7, 0,1,5,0);
-    return mIndexIons;
-  }
-  public SortedMap<Double,Double> getMasterIonMap() { return mMasterIonMap; }
+//  public Set<Double> indexFromIonMap()
+//  {
+//    mIndexIons = Similarity.index(mMasterIonMap, 7, 0,1,5,0);
+//    return mIndexIons;
+//  }
+//  public SortedMap<Double,Double> getMasterIonMap() { return mMasterIonMap; }
   public Set<Double> getIndexIons() { return mIndexIons; }
   public int getCandidateRemain() { return (mCandidates!=null?mCandidates.size():0)-(mMembers!=null?mMembers.size():0); }
   public boolean contains(Ms2Pointer p)
@@ -267,8 +280,6 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
 
     Map<Double,Double> head = spectra.get(getHead());
 
-    if (mMasterIonMap==null) mMasterIonMap = new TreeMap<>(head);
-
     // the collections
     if (mMembers!=null) mMembers.clear(); else mMembers = new ArrayList<>();
     for (Ms2Pointer member : mCandidates)
@@ -286,7 +297,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
 
           member.cluster=this;
           mMembers.add(member);
-          mMasterIonMap = (SortedMap )Tools.accumulate(mMasterIonMap, scan);
+//          mMasterIonMap = (SortedMap )Tools.accumulate(mMasterIonMap, scan);
         }
       }
     }
@@ -466,6 +477,8 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
     // write the size of the peaks
     IOs.write(ds, mMaster!=null?mMaster.size():0);
     if (mMaster!=null) MsIO.write(ds, mMaster);
+
+//    IOs.writeDoubles(ds, mIndexIons);
   }
 
   @Override
@@ -491,6 +504,8 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
     int npks = IOs.read(ds, 0);
     if (npks>0) mMaster = MsIO.readSpectrumIdentifier(ds, new MsnSpectrum());
 
-    if (!Strs.isSet(mID)) mID = toString();
+//    mIndexIons  = IOs.readDoubleSet(ds);
+
+//    if (!Strs.isSet(mID)) mID = toString();
   }
 }

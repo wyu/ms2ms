@@ -52,6 +52,7 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary, Ion
   {
     if (Strs.isSet(run))  df.put(rowid,"Run", run);
     if (Strs.isSet(name)) df.put(rowid,"Name", name);
+    if (Strs.isSet(name)) df.put(rowid,"Cell", Strs.split(name,'$')[0]);
     if (Strs.isSet(id))   df.put(rowid,"ID", id);
     if (scan          >0) df.put(rowid,"Scan", scan+"");
     if (z            !=0) df.put(rowid,"z",z+"");
