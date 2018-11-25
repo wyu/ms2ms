@@ -130,6 +130,8 @@ abstract public class App
       System.out.println(inMsg);
     }
   }
+  public String[] getModes(String def) { return Strs.isSet(mMode) ? Strs.split(mMode,',',true): Strs.toStringArray(def); }
+
   public Boolean isMode(String s) { return Strs.equals(s, mMode); }
   public Boolean isModeNULL() { return mMode==null; }
   public void setVerbose(boolean inValue)

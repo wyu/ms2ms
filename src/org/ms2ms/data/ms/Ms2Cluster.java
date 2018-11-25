@@ -261,7 +261,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
     mRT     = (float )getMaster().getRetentionTimes().getFirst().getTime()/60f;
     mCharge = getMaster().getPrecursor().getCharge();
 //    mID     = Tools.d2s(getMz(),3)+"|"+getCharge()+"|"+Tools.d2s(getRT(),1);
-    mID     = toString();
+//    mID     = toString();
 
     // remove the local objects
     head    = (List )Tools.dispose(head);
@@ -301,7 +301,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
         }
       }
     }
-    mID = toString();
+//    mID = toString();
 
     return this;
   }
@@ -394,8 +394,8 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
   }
   public Dataframe details(Dataframe df, String rowid)
   {
-    df.put(rowid, "Majority", mMajority);
-    df.put(rowid, "ClsID", mID);
+    df.put(rowid, "Majority", getMajority());
+    df.put(rowid, "ClsID", getID());
     if (getMaster()!=null)
     {
       if (getMaster().getPrecursor()!=null)
@@ -429,7 +429,8 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
   @Override
   public String toString()
   {
-    String s=mMajority;
+    String s=Strs.extend(null, mID,"");
+    s = Strs.extend(s,mMajority,"#");
     if (getMaster()!=null)
     {
       s+=";";
@@ -467,7 +468,7 @@ public class Ms2Cluster implements Comparable<Ms2Cluster>, Binary, Disposable, I
     IOs.write(ds, mByMzRtFrag);
     IOs.write(ds, mCharge);
     IOs.write(ds, mName);
-    IOs.write(ds, mID);
+    IOs.write(ds, getID());
     IOs.write(ds, mMajority);
     IOs.write(ds, mHead);
 

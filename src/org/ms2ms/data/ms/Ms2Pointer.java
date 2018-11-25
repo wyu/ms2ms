@@ -10,6 +10,7 @@ import org.ms2ms.utils.Tools;
 
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.FileWriter;
 import java.io.IOException;
 
 public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary, Ion
@@ -65,6 +66,22 @@ public class Ms2Pointer implements Comparable<Ms2Pointer>, Binary, Ion
     if (pointer      !=0) df.put(rowid,"Pointer",pointer+"");
 
     return df;
+  }
+  public void details(FileWriter w) throws IOException
+  {
+    w.write((Strs.isSet(run)?run:"")+"\t");
+    w.write((Strs.isSet(name)?name:"")+"\t");
+    w.write((Strs.isSet(name)?Strs.split(name,'$')[0]:"")+"\t");
+    w.write((Strs.isSet(id)?id:"")+"\t");
+    w.write(scan+"\t");
+    w.write(z+"\t");
+    w.write(npks+"\t");
+    w.write(Tools.d2s(mz,4)+"\t");
+    w.write(Tools.d2s(rt,2)+"\t");
+    w.write(Tools.d2s(prob,2)+"\t");
+    w.write(Tools.d2s(dp,2)+"\t");
+    w.write(Tools.d2s(mz_off,4)+"\t");
+    w.write(pointer+"\n");
   }
 
   @Override
