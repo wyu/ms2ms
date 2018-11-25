@@ -208,7 +208,7 @@ abstract public class App
     }
     return var;
   }
-  public String showParams(String... keys)
+  public StringBuffer showParams(String... keys)
   {
     StringBuffer buf = new StringBuffer();
     buf.append("Param\tValue\tDescription\n");
@@ -225,7 +225,7 @@ abstract public class App
           buf.append(key+"\t\t"+param(key) + "\t" + sParamKeys.get(key)+"\n");
     }
 
-    return buf.toString();
+    return buf;
   }
   public String    param( String s)            { return mParameters!=null?mParameters.getProperty(s):null; }
   public Double    param( String s, Double d)  { return mParameters!=null?mParameters.getProperty(s,d):null; }
