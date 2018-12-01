@@ -2,7 +2,6 @@ package org.ms2ms.apps;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.google.common.collect.Range;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import org.ms2ms.graph.Property;
@@ -12,7 +11,6 @@ import org.ms2ms.utils.Tools;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.zip.GZIPInputStream;
 
 /**
  * Created with IntelliJ IDEA.
@@ -185,7 +183,7 @@ abstract public class App
   protected void close() throws IOException
   {
   }
-  protected String expandByWorkingRoot(String s)
+  protected String exRoot(String s)
   {
     return (s!=null && (s.indexOf('/')==0 || s.indexOf('\\')==0))?s:(getWorkingRoot()+s);
   }
@@ -247,11 +245,11 @@ abstract public class App
   {
     try
     {
-      System.out.println("Reading the configuration: " + expandByWorkingRoot(cfgname));
+      System.out.println("Reading the configuration: " + exRoot(cfgname));
       BufferedReader cfg = null;
       try
       {
-        cfg = new BufferedReader(new InputStreamReader(new FileInputStream(expandByWorkingRoot(cfgname))));
+        cfg = new BufferedReader(new InputStreamReader(new FileInputStream(exRoot(cfgname))));
         while (cfg.ready())
         {
           String line = cfg.readLine().trim();

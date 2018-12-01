@@ -58,6 +58,8 @@ public class Peaks {
   public static final String PK_DOM = "dominance";
   public static final String MSMS = "MSMS";
   public static final String REJECTED = "Rejected";
+  public static final String RT_MS2 = "RT at MS2";
+  public static final String AI_MS2 = "AI of the MS2 precursor";
 
   public static Map<String, String> sAbbr;
 
