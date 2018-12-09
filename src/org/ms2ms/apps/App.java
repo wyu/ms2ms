@@ -5,6 +5,7 @@ import com.google.common.collect.HashBiMap;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import org.ms2ms.graph.Property;
+import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
@@ -270,6 +271,10 @@ abstract public class App
       ie.printStackTrace();
     }
     return this;
+  }
+  protected void writeParams()
+  {
+    IOs.save(exRoot(getOutFile())+mMode.replaceAll("\\,","_")+".param", showParams());
   }
   protected void logn()         { log("\n"); }
   protected void logn(String s) { log(s+"\n"); }

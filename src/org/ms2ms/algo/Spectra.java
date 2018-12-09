@@ -21,6 +21,7 @@ import org.ms2ms.utils.Tools;
 import uk.ac.ebi.jmzml.model.mzml.Spectrum;
 import uk.ac.ebi.jmzml.xml.io.MzMLObjectIterator;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
@@ -1226,5 +1227,23 @@ public class Spectra
     }
 
     return buf;
+  }
+  public static void write(FileWriter w, MsnSpectrum ms, String label, String tag) throws IOException
+  {
+    // scan mz  ai  z label tag
+    for (int i=0; i<ms.size(); i++)
+    {
+      w.write(ms.getScanNumbers().getFirst().getValue()+"\t"+
+          Tools.d2s(ms.getMz(i),4)+"\t"+Tools.d2s(ms.getIntensity(i),2)+"\t");
+      int z=1;
+      List<PeakAnnotation> annots = ms.getAnnotations(i);
+      if (Tools.isSet(annots))
+        for (PeakAnnotation pk : annots)
+        {
+          if (pk.getCharge()!=0) z=pk.getCharge();
+        }
+
+      w.write(z+"\t"+label+"\t"+tag+"\n");
+    }
   }
 }
