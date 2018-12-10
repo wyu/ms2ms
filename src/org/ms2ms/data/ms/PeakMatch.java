@@ -27,7 +27,7 @@ import java.util.*;
  */
 public class PeakMatch extends PeakFragmentMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>
 {
-  private double mz=0.0d, intensity=0.0d, mass=0.0d, mSNR=0d, mFreq=0d, mOrigMz=0d, mCalcMz=0d, mScore=0d;
+  private double mz=0.0d, intensity=0.0d, mass=0.0d, mSNR=0d, mFreq=0d, mOrigMz=0d, mCalcMz=0d, mScore=0d, mRawAI=0d;
   private Float mz_low=0f, mz_high=0f;
 //  private Polarity polarity;
 //  private int[] chargeList=new int[0];
@@ -109,8 +109,10 @@ public class PeakMatch extends PeakFragmentMatch implements Copyable<PeakMatch>,
   public Float getMzHigh()    { return this.mz_high; }
   public int getCharge()       { return this.charge; }
   public double getIntensity() { return this.intensity; }
+  public double getRawAI() { return mRawAI; }
 
   public void setMz(double mz) { this.mz=mz; }
+  public PeakMatch setRawAI(double s) { mRawAI=s; return this; }
   public PeakMatch setMzExpectedBound(OffsetPpmTolerance tol)
   {
     double err=tol.calcError(mz), offset=tol.calcOffset(mz);
@@ -264,10 +266,11 @@ public class PeakMatch extends PeakFragmentMatch implements Copyable<PeakMatch>,
     int i=0, left,right;
     while (i<ms.size())
     {
+      double raw_ai = Tools.isSet(ms.getAnnotations(i)) ? ((IsotopePeakAnnotation)Tools.front(ms.getAnnotations(i))).getIntensity():0d;
       // save the c13 with negative intensity, WYU 20170318
       if (Peaks.hasC13(ms.getAnnotations(i)))
       {
-        peaks.put(ms.getMz(i), new PeakMatch(ms.getMz(i), ((IsotopePeakAnnotation)Tools.front(ms.getAnnotations(i))).getIntensity()*-1d));
+        peaks.put(ms.getMz(i), new PeakMatch(ms.getMz(i), raw_ai*-1d).setRawAI(raw_ai));
         i++; continue;
       }
 
@@ -287,7 +290,8 @@ public class PeakMatch extends PeakFragmentMatch implements Copyable<PeakMatch>,
       if      (left <0)           { left =0;          right=Math.min(left+20,ms.size()-1); }
       else if (right>ms.size()-1) { right=ms.size()-1; left=Math.max(right-20, 0); }
 
-      peaks.put(mz, new PeakMatch(ms.getMz(i), ms.getIntensity(i), 0,0, Math.max(1,Peaks.countC12(ms, left, right))/(ms.getMz(right)-ms.getMz(left))));
+      peaks.put(mz, new PeakMatch(ms.getMz(i), ms.getIntensity(i), 0,0,
+          Math.max(1,Peaks.countC12(ms, left, right))/(ms.getMz(right)-ms.getMz(left))).setRawAI(raw_ai));
       // advance the pointer
       i++;
     }
