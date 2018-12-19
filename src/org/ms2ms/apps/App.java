@@ -27,6 +27,7 @@ abstract public class App
   public static final String KEY_OUT      = "o";
 //  public static final String MODE_EXEC    = "x";
   public static final String CFG_FILE     = "cfg.file";
+  public static final String CMD_LINE     = "cmdline";
 
   protected static BiMap<String, String> sParamKeys;
 
@@ -49,6 +50,7 @@ abstract public class App
     sParamKeys.put(KEY_WORKING,  "Working folder");
 //    sParamKeys.put(MODE_EXEC,    "Execution mode");
     sParamKeys.put(CFG_FILE,     "Full path of the cfg file");
+    sParamKeys.put(CMD_LINE,     "The full command line");
   }
 
   //--------------------------------------------------------------------------
@@ -86,6 +88,7 @@ abstract public class App
   {
     System.out.println(getAppTitle());
 
+    mParameters.setProperty(CMD_LINE, Strs.toString(args, " "));
     for (int i = 0; i < args.length; i++)
     {
       if (args[i].length() == 0 || args[i].charAt(0) != '-') continue;
@@ -179,7 +182,7 @@ abstract public class App
     // append the ending '/' if necessary
     return (Strs.isSet(wd) && !wd.endsWith("/") && !wd.endsWith("\\"))?wd + (wd.indexOf('\\')>=0?"\\":"/"):wd;
   }
-  public String getLogFile()     { return getOutFile()!=null?getOutFile().replaceAll("\\*","_")+".log":"temp.log"; }
+  public String getLogFile()     { return getOutFile()!=null?getOutFile().replaceAll("\\*","_")+"/"+mMode+".log":"temp.log"; }
 
   protected void close() throws IOException
   {
@@ -221,7 +224,7 @@ abstract public class App
     {
       for (String key : sParamKeys.keySet())
         if (param(key)!=null && sParamKeys.get(key)!=null)
-          buf.append(key+"\t\t"+param(key) + "\t" + sParamKeys.get(key)+"\n");
+          buf.append(key+"\t"+param(key) + "\t" + sParamKeys.get(key)+"\n");
     }
 
     return buf;
@@ -274,7 +277,7 @@ abstract public class App
   }
   protected void writeParams()
   {
-    IOs.save(exRoot(getOutFile())+mMode.replaceAll("\\,","_")+".param", showParams());
+    IOs.save(exRoot((Strs.isSet(getOutFile())?getOutFile()+"/":""))+mMode.replaceAll("\\,","_")+".param", showParams());
   }
   protected void logn()         { log("\n"); }
   protected void logn(String s) { log(s+"\n"); }
