@@ -2,7 +2,6 @@ package org.ms2ms.test;
 
 import org.junit.Test;
 import org.ms2ms.utils.Strs;
-import org.ms2ms.utils.TabFile;
 
 import java.io.BufferedReader;
 import java.io.FileReader;

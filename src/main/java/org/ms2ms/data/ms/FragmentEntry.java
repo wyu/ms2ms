@@ -3,7 +3,6 @@ package org.ms2ms.data.ms;
 import org.ms2ms.Disposable;
 import org.ms2ms.data.Binary;
 import org.ms2ms.utils.IOs;
-import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
 import java.io.DataInput;

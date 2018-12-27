@@ -1,7 +1,6 @@
 package org.ms2ms.data.ms;
 
 import com.google.common.collect.*;
-import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.ms2ms.data.Binary;
 import org.ms2ms.utils.Strs;

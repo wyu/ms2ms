@@ -1,6 +1,5 @@
 package org.ms2ms.data.ms;
 
-import org.ms2ms.algo.MsStats;
 import org.ms2ms.utils.Tools;
 
 /**

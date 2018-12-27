@@ -5,7 +5,6 @@ import org.expasy.mzjava.core.ms.peaklist.PeakAnnotation;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeDiscrete;
-import org.expasy.mzjava.core.ms.spectrum.ScanNumberDiscrete;
 import org.expasy.mzjava.core.ms.spectrum.TimeUnit;
 import org.ms2ms.Disposable;
 

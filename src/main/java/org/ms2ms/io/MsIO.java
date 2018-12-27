@@ -19,7 +19,6 @@ import org.expasy.mzjava.proteomics.ms.ident.ModificationMatch;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideProteinMatch;
 import org.expasy.mzjava.proteomics.ms.ident.SpectrumIdentifier;
-import org.ms2ms.data.Binary;
 import org.ms2ms.data.Features;
 import org.ms2ms.data.collect.MultiTreeTable;
 import org.ms2ms.data.ms.MsSpectrum;
@@ -32,7 +31,6 @@ import org.ms2ms.utils.Tools;
 import uk.ac.ebi.jmzml.model.mzml.*;
 
 import java.io.*;
-import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.util.*;
 

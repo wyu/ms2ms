@@ -1,26 +1,13 @@
 package org.ms2ms.test.io;
 
 import com.google.common.collect.Multimap;
-import com.google.common.collect.RowSortedTable;
-import com.google.common.collect.Table;
-import com.google.common.collect.TreeBasedTable;
-import org.apache.commons.io.FileSystemUtils;
-import org.expasy.mzjava.core.io.ms.spectrum.MgfWriter;
-import org.expasy.mzjava.core.ms.peaklist.PeakAnnotation;
-import org.expasy.mzjava.core.ms.peaklist.PeakList;
-import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.expasy.mzjava.proteomics.ms.ident.SpectrumIdentifier;
 import org.junit.Test;
-import org.ms2ms.algo.LCMSMS;
-import org.ms2ms.algo.PurgingPeakProcessor;
-import org.ms2ms.algo.Spectra;
 import org.ms2ms.data.ms.Engine;
 import org.ms2ms.io.MsIO;
 import org.ms2ms.io.MsReaders;
 import org.ms2ms.io.MzIDs;
-import org.ms2ms.io.PsmReaders;
-import org.ms2ms.r.Dataframe;
 import org.ms2ms.test.TestAbstract;
 import uk.ac.ebi.jmzidml.MzIdentMLElement;
 import uk.ac.ebi.jmzidml.model.mzidml.*;
@@ -32,8 +19,6 @@ import uk.ac.ebi.jmzml.xml.io.MzMLObjectIterator;
 import uk.ac.ebi.jmzml.xml.io.MzMLUnmarshaller;
 
 import java.io.File;
-import java.io.FileWriter;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;

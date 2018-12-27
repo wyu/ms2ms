@@ -18,11 +18,9 @@ import org.ms2ms.test.TestAbstract;
 import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.TabFile;
-import org.ms2ms.utils.Tools;
 
 import java.io.*;
 import java.util.List;
-import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 /**

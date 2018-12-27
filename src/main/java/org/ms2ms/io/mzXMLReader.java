@@ -1,12 +1,10 @@
 package org.ms2ms.io;
 
 import org.expasy.mzjava.core.io.ms.spectrum.MzxmlReader;
-import org.expasy.mzjava.core.ms.peaklist.PeakAnnotation;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.EnumSet;
 

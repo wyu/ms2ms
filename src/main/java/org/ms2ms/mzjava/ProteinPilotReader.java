@@ -1,7 +1,6 @@
 package org.ms2ms.mzjava;
 
 import com.google.common.collect.Lists;
-import org.expasy.mzjava.core.ms.spectrum.TimeUnit;
 import org.expasy.mzjava.proteomics.io.ms.ident.ProteinPilotPsmReader;
 import org.expasy.mzjava.proteomics.mol.modification.ModificationResolver;
 import org.expasy.mzjava.proteomics.ms.ident.SpectrumIdentifier;

@@ -12,8 +12,6 @@ import org.expasy.mzjava.proteomics.mol.Peptide;
 import org.expasy.mzjava.proteomics.mol.Protein;
 import org.expasy.mzjava.proteomics.mol.digest.Protease;
 import org.expasy.mzjava.proteomics.mol.digest.ProteinDigester;
-import org.expasy.mzjava.proteomics.mol.modification.ModAttachment;
-import org.expasy.mzjava.proteomics.mol.modification.Modification;
 import org.expasy.mzjava.proteomics.ms.fragment.BackbonePeakGenerator;
 import org.expasy.mzjava.proteomics.ms.fragment.PeptideFragmenter;
 import org.expasy.mzjava.proteomics.ms.fragment.PeptideNeutralLossPeakGenerator;

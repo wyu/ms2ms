@@ -1,10 +1,8 @@
 package org.ms2ms.data.ms;
 
 import com.google.common.collect.*;
-import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
-import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.ms2ms.Disposable;
 import org.ms2ms.algo.Peaks;

@@ -2,7 +2,6 @@ package org.ms2ms.apps;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.google.common.collect.Range;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import org.ms2ms.graph.Property;
@@ -12,7 +11,6 @@ import org.ms2ms.utils.Tools;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.zip.GZIPInputStream;
 
 /**
  * Created with IntelliJ IDEA.

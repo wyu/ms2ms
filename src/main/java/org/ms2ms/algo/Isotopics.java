@@ -1,7 +1,6 @@
 package org.ms2ms.algo;
 
 import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Table;
 import com.hfg.bio.Element;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
@@ -9,8 +8,6 @@ import org.ms2ms.data.collect.ImmutableNavigableMap;
 import org.ms2ms.data.ms.IsoEnvelope;
 import org.ms2ms.data.ms.OffsetPpmTolerance;
 import org.ms2ms.data.ms.PeakMatch;
-import org.ms2ms.math.Stats;
-import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.utils.Tools;
 
 import java.io.*;

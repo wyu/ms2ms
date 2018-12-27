@@ -1,7 +1,6 @@
 package org.ms2ms.mzjava;
 
 import org.expasy.mzjava.core.ms.peaklist.Peak;
-import org.expasy.mzjava.core.ms.peaklist.Polarity;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.ms2ms.data.Binary;
 import org.ms2ms.utils.IOs;

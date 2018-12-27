@@ -1,20 +1,13 @@
 package org.ms2ms.data.ms;
 
 import com.google.common.collect.Range;
-import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
-import org.expasy.mzjava.core.ms.peaklist.Polarity;
 import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.expasy.mzjava.utils.Copyable;
-import org.ms2ms.Disposable;
 import org.ms2ms.algo.Peaks;
-import org.ms2ms.data.Binary;
 import org.ms2ms.data.collect.ImmutableNavigableMap;
-import org.ms2ms.math.Stats;
-import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.mzjava.IsotopePeakAnnotation;
 import org.ms2ms.utils.IOs;
-import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
 import java.io.DataInput;
