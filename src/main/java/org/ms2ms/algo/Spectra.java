@@ -21,6 +21,7 @@ import org.ms2ms.utils.Tools;
 import uk.ac.ebi.jmzml.model.mzml.Spectrum;
 import uk.ac.ebi.jmzml.xml.io.MzMLObjectIterator;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
@@ -632,7 +633,6 @@ public class Spectra
     // keep a copy of the intensities
     List<Double> ai = new ArrayList<>();
     for (int i=0; i<peaks.size(); i++) ai.add(Math.pow(peaks.getIntensity(i), power));
-//    for (int i=0; i<peaks.size(); i++) ai.add(Math.log(peaks.getIntensity(i)));
 
     for (int i=0; i<peaks.size(); i++)
     {
@@ -1226,5 +1226,25 @@ public class Spectra
     }
 
     return buf;
+  }
+  public static void write(FileWriter w, MsnSpectrum ms, String label, String tag) throws IOException
+  {
+    // scan mz  ai  z label tag
+    for (int i=0; i<ms.size(); i++)
+    {
+      w.write(ms.getScanNumbers().getFirst().getValue()+"\t"+
+          Tools.d2s(ms.getMz(i),4)+"\t"+Tools.d2s(ms.getIntensity(i),2)+"\t");
+      int z=1, order=0;
+      List<PeakAnnotation> annots = ms.getAnnotations(i);
+      if (Tools.isSet(annots))
+        for (PeakAnnotation pk : annots)
+        {
+          if (pk.getCharge()!=0) z=pk.getCharge();
+          if (pk instanceof IsotopePeakAnnotation)
+            order = ((IsotopePeakAnnotation )pk).getIsotopeOrder();
+        }
+
+      w.write(z+"\t"+(Strs.isSet(label)?label:(order>0?order+"":""))+"\t"+tag+"\n");
+    }
   }
 }

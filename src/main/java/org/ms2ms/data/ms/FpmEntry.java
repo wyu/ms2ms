@@ -49,6 +49,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
 
   public boolean             isDecoy()      { return mFragment!=null && mFragment.getPeptideKey()<0; }
   public boolean             has1st()       { return mHas1st; }
+  public boolean             hasY1()        { return mExpectedY1; }
   public double              getGapScore()  { return mGapScore; }
   public double              getIntensity() { return mIntensities; }
   public int                 getMotifs()    { return mMotifs; }

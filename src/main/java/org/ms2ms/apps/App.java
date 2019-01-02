@@ -5,6 +5,7 @@ import com.google.common.collect.HashBiMap;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import org.ms2ms.graph.Property;
+import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
@@ -26,6 +27,7 @@ abstract public class App
   public static final String KEY_OUT      = "o";
 //  public static final String MODE_EXEC    = "x";
   public static final String CFG_FILE     = "cfg.file";
+  public static final String CMD_LINE     = "cmdline";
 
   protected static BiMap<String, String> sParamKeys;
 
@@ -48,6 +50,7 @@ abstract public class App
     sParamKeys.put(KEY_WORKING,  "Working folder");
 //    sParamKeys.put(MODE_EXEC,    "Execution mode");
     sParamKeys.put(CFG_FILE,     "Full path of the cfg file");
+    sParamKeys.put(CMD_LINE,     "The full command line");
   }
 
   //--------------------------------------------------------------------------
@@ -85,6 +88,7 @@ abstract public class App
   {
     System.out.println(getAppTitle());
 
+    mParameters.setProperty(CMD_LINE, Strs.toString(args, " "));
     for (int i = 0; i < args.length; i++)
     {
       if (args[i].length() == 0 || args[i].charAt(0) != '-') continue;
@@ -178,12 +182,12 @@ abstract public class App
     // append the ending '/' if necessary
     return (Strs.isSet(wd) && !wd.endsWith("/") && !wd.endsWith("\\"))?wd + (wd.indexOf('\\')>=0?"\\":"/"):wd;
   }
-  public String getLogFile()     { return getOutFile()!=null?getOutFile().replaceAll("\\*","_")+".log":"temp.log"; }
+  public String getLogFile()     { return getOutFile()!=null?getOutFile().replaceAll("\\*","_")+"/"+mMode+".log":"temp.log"; }
 
   protected void close() throws IOException
   {
   }
-  protected String expandByWorkingRoot(String s)
+  protected String exRoot(String s)
   {
     return (s!=null && (s.indexOf('/')==0 || s.indexOf('\\')==0))?s:(getWorkingRoot()+s);
   }
@@ -220,7 +224,7 @@ abstract public class App
     {
       for (String key : sParamKeys.keySet())
         if (param(key)!=null && sParamKeys.get(key)!=null)
-          buf.append(key+"\t\t"+param(key) + "\t" + sParamKeys.get(key)+"\n");
+          buf.append(key+"\t"+param(key) + "\t" + sParamKeys.get(key)+"\n");
     }
 
     return buf;
@@ -245,11 +249,11 @@ abstract public class App
   {
     try
     {
-      System.out.println("Reading the configuration: " + expandByWorkingRoot(cfgname));
+      System.out.println("Reading the configuration: " + exRoot(cfgname));
       BufferedReader cfg = null;
       try
       {
-        cfg = new BufferedReader(new InputStreamReader(new FileInputStream(expandByWorkingRoot(cfgname))));
+        cfg = new BufferedReader(new InputStreamReader(new FileInputStream(exRoot(cfgname))));
         while (cfg.ready())
         {
           String line = cfg.readLine().trim();
@@ -270,6 +274,10 @@ abstract public class App
       ie.printStackTrace();
     }
     return this;
+  }
+  protected void writeParams()
+  {
+    IOs.save(exRoot((Strs.isSet(getOutFile())?getOutFile()+"/":""))+mMode.replaceAll("\\,","_")+".param", showParams());
   }
   protected void logn()         { log("\n"); }
   protected void logn(String s) { log(s+"\n"); }
