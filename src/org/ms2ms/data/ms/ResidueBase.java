@@ -15,13 +15,16 @@ public class ResidueBase implements Cloneable
   public static ResidueBase REDUCED, CIM, TMT10;
   public static Map<Character, Double> sVarCharMods=null;
 
+  // user-defined residue bases
+  public Map<String, ResidueBase> mUserBases;
+
   static
   {
     sVarCharMods = new HashMap<>();
     sVarCharMods.put('N',  0.984016d); // deamidation
 //    sVarMods.put('Q',  0.984016d); // deamidation at a much slower rate
     sVarCharMods.put('M', 15.994915d);
-//    sVarMods.put('^', -229.162932d);
+    sVarCharMods.put('^', -229.162932d); // for testing only
     sVarCharMods.put('c',-17.026549d); // N-terminal cyclization
     sVarCharMods.put('q',-17.026549d); // N-terminal cyclization
 
@@ -41,7 +44,7 @@ public class ResidueBase implements Cloneable
   private double[] mTrivialMods =null;
   private ImmutableSetMultimap<Character, Double> mVarAAMods4Exact=null;
 
-  private Multimap<String, Double> sVarMods=null;
+//  private Multimap<String, Double> sVarMods=null;
   private MultiTreeTable<String, String, Double> sExactMods=null;
   private Map<Double, Character> sAACt =null;
   private SortedMap<Double, Float> sModCharge=null;
@@ -97,6 +100,11 @@ public class ResidueBase implements Cloneable
   public ResidueBase setModVault(  NumericalModVault s) { mModVault     =s; return this; }
   public ResidueBase setAADic( Map<Character, Float> s) { mAADic=s; return this; }
 
+  public void config(String cfg_file)
+  {
+
+  }
+
   private void init(String fixed)
   {
     mAADic = Peptides.newAAsMass(fixed);
@@ -120,17 +128,17 @@ public class ResidueBase implements Cloneable
     sFacileMods.put(192.063388d,  0f); // Heptose
     sFacileMods.put(79.966331d,  75f); // Phospho
 
-    // move the static vars here
-    sVarMods= HashMultimap.create();
-    //sVarMods.put( "*", -0.984016d); // C-terminal, any
-    sVarMods.put( "*",   1.003355d); // c12->c13
-    sVarMods.put( "*",   2.006710d); // c12->2xc13
-    sVarMods.put( "N",   0.984016d); // deamidation
-    sVarMods.put( "M",  15.994915d);
-    sVarMods.put( "K",  27.994915d); // Formylation @ Nt and K
-    sVarMods.put("^C", -17.026549d); // N-terminal cyclization
-    sVarMods.put("^Q", -17.026549d); // N-terminal cyclization
-    sVarMods.put("^S", -18.01056d);  // N-terminal cyclization
+//    // move the static vars here
+//    sVarMods= HashMultimap.create();
+//    //sVarMods.put( "*", -0.984016d); // C-terminal, any
+//    sVarMods.put( "*",   1.003355d); // c12->c13
+//    sVarMods.put( "*",   2.006710d); // c12->2xc13
+//    sVarMods.put( "N",   0.984016d); // deamidation
+//    sVarMods.put( "M",  15.994915d);
+//    sVarMods.put( "K",  27.994915d); // Formylation @ Nt and K
+//    sVarMods.put("^C", -17.026549d); // N-terminal cyclization
+//    sVarMods.put("^Q", -17.026549d); // N-terminal cyclization
+//    sVarMods.put("^S", -18.01056d);  // N-terminal cyclization
 
     sModCharge=Maps.newTreeMap();
 
@@ -188,16 +196,16 @@ public class ResidueBase implements Cloneable
     sFacileMods.put(79.966331d,  75f); // Phospho
 
     // move the static vars here
-    sVarMods= HashMultimap.create();
-    //sVarMods.put( "*", -0.984016d); // C-terminal, any
-    sVarMods.put( "*",   1.003355d); // c12->c13
-    sVarMods.put( "*",   2.006710d); // c12->2xc13
-    sVarMods.put( "N",   0.984016d); // deamidation
-    sVarMods.put( "M",  15.994915d);
-    sVarMods.put( "K",  27.994915d); // Formylation @ Nt and K
-    sVarMods.put("^C", -17.026549d); // N-terminal cyclization
-    sVarMods.put("^Q", -17.026549d); // N-terminal cyclization
-    sVarMods.put("^S", -18.01056d);  // N-terminal cyclization
+//    sVarMods= HashMultimap.create();
+//    //sVarMods.put( "*", -0.984016d); // C-terminal, any
+//    sVarMods.put( "*",   1.003355d); // c12->c13
+//    sVarMods.put( "*",   2.006710d); // c12->2xc13
+//    sVarMods.put( "N",   0.984016d); // deamidation
+//    sVarMods.put( "M",  15.994915d);
+//    sVarMods.put( "K",  27.994915d); // Formylation @ Nt and K
+//    sVarMods.put("^C", -17.026549d); // N-terminal cyclization
+//    sVarMods.put("^Q", -17.026549d); // N-terminal cyclization
+//    sVarMods.put("^S", -18.01056d);  // N-terminal cyclization
 
     sModCharge=Maps.newTreeMap();
     sModCharge.put(Peptides.TMT10, 1f);
@@ -243,7 +251,7 @@ public class ResidueBase implements Cloneable
     buf = Tools.printParam(buf, "CTmods", Strs.toString(mCTmods, ","), "");
 
     buf = Tools.printParam(buf, "VarAAMods", mVarAAMods4Exact, "");
-    buf = Tools.printParam(buf, "sVarMods", sVarMods, "");
+//    buf = Tools.printParam(buf, "sVarMods", sVarMods, "");
 
     buf.append("ExactMods\n");
     for (String row : sExactMods.keySet())
@@ -267,7 +275,7 @@ public class ResidueBase implements Cloneable
     cloned.mTrivialMods = Tools.cloneDoubleArray(mTrivialMods);
     cloned.mVarAAMods4Exact = ImmutableSetMultimap.copyOf(mVarAAMods4Exact);
     cloned.mModVault    = (mModVault  !=null?mModVault.clone():null);
-    cloned.sVarMods     = (sVarMods   !=null?TreeMultimap.create(sVarMods):null);
+//    cloned.sVarMods     = (sVarMods   !=null?TreeMultimap.create(sVarMods):null);
     cloned.sExactMods   = (sExactMods !=null?sExactMods.clone():null);
     cloned.sModCharge   = (sModCharge !=null?new TreeMap<>(sModCharge):null);
     cloned.sFacileMods  = (sFacileMods!=null?new TreeMap<>(sFacileMods):null);

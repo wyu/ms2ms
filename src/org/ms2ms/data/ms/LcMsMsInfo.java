@@ -55,9 +55,10 @@ public class LcMsMsInfo
     run_scan_row = HashBasedTable.create();
 
     // prepare the scan-based index
-    for (String row : scans.rows())
-      if (((Long )scans.row(row).get("MsLevel"))>=mMinMsLevel)
-        run_scan_row.put(scans.row(row).get("Run").toString(), ((Long )scans.row(row).get("Scan")).intValue(), row);
+    if (scans!=null && scans.size()>0)
+      for (String row : scans.rows())
+        if (((Long )scans.row(row).get("MsLevel"))>=mMinMsLevel)
+          run_scan_row.put(scans.row(row).get("Run").toString(), ((Long )scans.row(row).get("Scan")).intValue(), row);
 
     return this;
   }

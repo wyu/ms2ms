@@ -110,25 +110,26 @@ public class ScoreModel implements Binary
   public ScoreModel fitEval(int samples)
   {
     // prepare for the e-val calculation
-    if (mDecoys!=null && mDecoys.get(eType.bs)!=null) mDecoys.get(eType.bs).fitEval(samples,2,0.95);
-    if (mNorms !=null &&  mNorms.get(eType.bs)!=null)  mNorms.get(eType.bs).fitEval(samples,2,0.95);
-    if (mBoth  !=null &&   mBoth.get(eType.bs)!=null)   mBoth.get(eType.bs).fitEval(samples*2,3, 0.95);
+    if (mDecoys!=null && mDecoys.get(eType.bs)!=null) mDecoys.get(eType.bs).fitEval(samples,2,0.95, false);
+    if (mNorms !=null &&  mNorms.get(eType.bs)!=null)  mNorms.get(eType.bs).fitEval(samples,2,0.95, false);
+    if (mBoth  !=null &&   mBoth.get(eType.bs)!=null)   mBoth.get(eType.bs).fitEval(samples*2,3, 0.95, false);
 
     return this;
   }
   // if y or b is absence, we'll allow it to extend up to 'extension' as in the algorithm itself
-  public ScoreModel bootstrapping(int samples, double jitter, double extension, double trypicity)
+  public ScoreModel bootstrapping(int samples, double jitter, double extension, double trypicity, float mid)
   {
     mBootstrapSize=samples;
-    add(bootstrapping(samples, jitter, extension, trypicity, true,  eType.y, eType.b), true,  eType.bs);
-    add(bootstrapping(samples, jitter, extension, trypicity, false, eType.y, eType.b), false, eType.bs);
+    add(bootstrapping(samples, jitter, trypicity, true,  eType.y, eType.b, mid), true,  eType.bs);
+    add(bootstrapping(samples, jitter, trypicity, false, eType.y, eType.b, mid), false, eType.bs);
     // now do the combined dist
-    add(bootstrapping(samples, jitter, extension, trypicity, null,  eType.y, eType.b), null,  eType.bs);
+    add(bootstrapping(samples, jitter, trypicity, null,  eType.y, eType.b, mid), null,  eType.bs);
 
     return this;
   }
-  // simulate for the null distribution
-  public Histogram bootstrapping(int samples, double jitter, double extension, double trypicity, Boolean decoy, eType C, eType N)
+  // simulate for the null distribution.
+  // WYU 20190130. starting point (0 to 1) of the distribution to sample from
+  public Histogram bootstrapping(int samples, double jitter, double trypicity, Boolean decoy, eType C, eType N, float mid)
   {
     List<Double> Nc=new ArrayList<>(), Cc=new ArrayList<>();
 
@@ -161,9 +162,10 @@ public class ScoreModel implements Binary
     // boot strap for the combined distribution
     Histogram combo = new Histogram("Bootstrapping estimation of the score distribution: "+decoy+"/"+N+"/"+C);
     Random      RND = new Random(System.nanoTime());
+    int N0 = Math.round(mid * Nc.size()), C0 = Math.round(mid * Cc.size());
     for (int i=0; i<samples; i++)
     {
-      double nt = Nc.get(RND.nextInt(Nc.size())), ct = Cc.get(RND.nextInt(Cc.size())),
+      double nt = Nc.get(N0+RND.nextInt(Nc.size()-N0)), ct = Cc.get(C0+RND.nextInt(Cc.size()-C0)),
             enz = sTrypicity[RND.nextInt(sTrypicity.length)]*trypicity;
 
       combo.add(nt+ct+RND.nextDouble()*jitter+enz);

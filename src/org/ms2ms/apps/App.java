@@ -22,6 +22,7 @@ import java.util.List;
  */
 abstract public class App
 {
+  public static final String KEY_TEST     = "test";
   public static final String KEY_THREAD   = "thread";
   public static final String KEY_WORKING  = "w";
   public static final String KEY_OUT      = "o";
@@ -134,6 +135,7 @@ abstract public class App
   }
   public String[] getModes(String def) { return Strs.isSet(mMode) ? Strs.split(mMode,',',true): Strs.toStringArray(def); }
 
+  public boolean isTestOnly() { return param(KEY_TEST)!=null && param(KEY_TEST, false); }
   public Boolean isMode(String s) { return Strs.equals(s, mMode); }
   public Boolean isModeNULL() { return mMode==null; }
   public void setVerbose(boolean inValue)

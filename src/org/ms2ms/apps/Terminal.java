@@ -7,6 +7,7 @@ public class Terminal
 {
   protected PrintStream mConsole = new PrintStream(System.out, true);
   protected String mLogFile = null, mJobID="";
+  protected boolean mIsTestOnly=false;
 
   public Terminal setLogfile(String s) { mLogFile=s; return this; }
 
@@ -40,4 +41,7 @@ public class Terminal
     }
     catch (Exception e) { mConsole.print(s); }
   }
+
+  public boolean isTestOnly()          { return mIsTestOnly; }
+  public void    isTestOnly(boolean s) { mIsTestOnly=s; }
 }
