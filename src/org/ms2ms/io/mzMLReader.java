@@ -13,6 +13,7 @@ import uk.ac.ebi.jmzml.xml.io.MzMLUnmarshaller;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 
 /**
  * Deprecated! Use jmzml reader instead
@@ -27,7 +28,7 @@ public class mzMLReader extends mzReader
     NUMBER    = "num";
     RT        = "retentionTime";
   }
-  public static Dataframe readScanInfo(Dataframe data, double ppm, double dRT, String root, String pattern, double... channels) throws IOException
+  public static Dataframe readScanInfo(Dataframe data, double ppm, double dRT, String root, String pattern, Collection<Double> neuloss, double... channels) throws IOException
   {
     String[] searches = IOs.listFiles(root, pattern);
 
@@ -37,15 +38,17 @@ public class mzMLReader extends mzReader
       for (String s : searches)
       {
 //        data = mzMLReader.inferPrecursorsFromMS2(data, s).init(true);
-        data = readScanInfo(data, ppm, s, true, channels).init(true);
+        data = readScanInfo(data, ppm, s, true, neuloss, channels).init(true);
         data = mzMLReader.readPeptideFeatures(data, ppm, dRT, s).init(true);
       }
 
     return data;
   }
-  public static Dataframe readScanInfo(Dataframe out, double ppm, String filename, boolean loadIons, double... channels) throws IOException
+  public static Dataframe readScanInfo(Dataframe out, double ppm, String filename, boolean loadIons, Collection<Double> neuloss, double... channels) throws IOException
   {
     System.out.println("Reading scans from "+filename+"...");
+
+    boolean needIons = (loadIons || Tools.isSet(neuloss) || Tools.isSet(channels));
 
     File file = new File(filename); String run = file.getName().substring(0,file.getName().indexOf('.'));
     MzMLUnmarshaller mzml = new MzMLUnmarshaller(file, false, null);
@@ -56,7 +59,7 @@ public class mzMLReader extends mzReader
     if (out==null) out = new Dataframe(filename);
     while (spectrumIterator.hasNext())
     {
-      MsnSpectrum ms = MsReaders.from(spectrumIterator.next(), !loadIons);
+      MsnSpectrum ms = MsReaders.from(spectrumIterator.next(), !needIons);
       String row = filename+"#"+ms.getScanNumbers().getFirst().getValue();
       out.put(row, "Scan",       ms.getScanNumbers().getFirst().getValue());
       out.put(row, "MsLevel",    ms.getMsLevel());
@@ -69,15 +72,27 @@ public class mzMLReader extends mzReader
       out.put(row, "TIC", ms.getTotalIonCurrent());
       out.put(row, "RunFile", filename);
       out.put(row, "Run", run);
-      if (ms.getScanNumbers().getFirst().getValue()==7135)
-        System.out.println();
-      if (ms!=null && ms.size()>0 && Tools.isSet(channels))
-        for (double channel : channels)
-        {
-          double delta = channel*1E-6*ppm, sum=Spectra.sum(ms, Range.closed(channel-delta,channel+delta));
-          if (sum>0)
-            out.put(row, "X"+Tools.d2s(channel,4), sum);
-        }
+//      if (ms.getScanNumbers().getFirst().getValue()==7135)
+//        System.out.println();
+      if (ms!=null && ms.getMsLevel()>1 && ms.size()>0)
+      {
+        if (Tools.isSet(channels))
+          for (double channel : channels)
+          {
+            double delta = channel*1E-6*ppm, sum=Spectra.sum(ms, Range.closed(channel-delta,channel+delta));
+            if (sum>0)
+              out.put(row, "LM"+Tools.d2s(channel,4), sum);
+          }
+        if (Tools.isSet(neuloss))
+          for (double nl : neuloss)
+          {
+            double targeted = ms.getPrecursor().getMz()-(nl/ms.getPrecursor().getCharge()),
+                    delta = targeted*1E-6*ppm,
+                    sum = Spectra.sum(ms, Range.closed(targeted-delta,targeted+delta));
+            if (sum>0)
+              out.put(row, "NL"+Tools.d2s(nl,4), sum);
+          }
+      }
 
       // remove the spectrum from the memory
       ms.clear(); ms=null;
