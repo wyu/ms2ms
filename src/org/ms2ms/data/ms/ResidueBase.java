@@ -234,8 +234,11 @@ public class ResidueBase implements Cloneable
     // pull out the variable mods at the N/C-term
     mNTmods = new ArrayList<>(); mCTmods = new ArrayList<>();
 
-    if (sVarCharMods.containsKey('^')) mNTmods.add(sVarCharMods.get('^')); else mNTmods.add(0d);
-    if (sVarCharMods.containsKey('$')) mCTmods.add(sVarCharMods.get('$')); else mCTmods.add(0d);
+    // always start with 'no' mod. 20190228
+    mNTmods.add(0d); mCTmods.add(0d);
+
+    if (sVarCharMods.containsKey('^')) mNTmods.add(sVarCharMods.get('^'));
+    if (sVarCharMods.containsKey('$')) mCTmods.add(sVarCharMods.get('$'));
   }
   public StringBuffer printParams(StringBuffer buf)
   {
