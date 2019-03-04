@@ -21,12 +21,13 @@ public class ResidueBase implements Cloneable
   static
   {
     sVarCharMods = new HashMap<>();
-    sVarCharMods.put('N',  0.984016d); // deamidation
+    sVarCharMods.put('N',  Peptides.N2D); // deamidation
 //    sVarMods.put('Q',  0.984016d); // deamidation at a much slower rate
-    sVarCharMods.put('M', 15.994915d);
-    sVarCharMods.put('^', -229.162932d); // for testing only
-    sVarCharMods.put('c',-17.026549d); // N-terminal cyclization
-    sVarCharMods.put('q',-17.026549d); // N-terminal cyclization
+    sVarCharMods.put('M', Peptides.O);
+    sVarCharMods.put('^', Peptides.TMT10_LOSS); // for testing only
+    sVarCharMods.put('c', Peptides.NH3_LOSS); // N-terminal cyclization
+    sVarCharMods.put('q', Peptides.NH3_LOSS); // N-terminal cyclization
+    sVarCharMods.put('@', Peptides.NH3_LOSS); // N-terminal cyclization with Q/Cim as the 1st residue
 
     REDUCED = new ResidueBase(); REDUCED.init("reduced");
     CIM     = new ResidueBase();     CIM.init("LFQ");
@@ -86,6 +87,14 @@ public class ResidueBase implements Cloneable
   public Collection<Double> getNTmods() { return mNTmods; }
   public Collection<Double> getCTmods() { return mCTmods; }
 
+  public static boolean hasVarCharMod(Character... aa)
+  {
+    if (Tools.isSet(aa))
+      for (Character A : aa)
+        if (sVarCharMods.containsKey(A)) return true;
+
+    return false;
+  }
   public ResidueBase setAAs(Map<Character, Float> aas)
   {
     mAAs = Peptides.toAAs(aas);
@@ -150,19 +159,20 @@ public class ResidueBase implements Cloneable
 
     // mods that ought to be placed in the 'Exact' matches because their are expected at a particular residue type
     sExactMods = MultiTreeTable.create();
-    sExactMods.put("*", "M", 15.994915d);
-    sExactMods.put("*", "N", 0.984016d);
-    sExactMods.put("^", "Q", -17.026549d);
-    sExactMods.put("^", "C", -17.026549d);
+    sExactMods.put("*", "M", Peptides.O);
+    sExactMods.put("*", "N", Peptides.N2D);
+    sExactMods.put("^", "Q", Peptides.NH3*-1d);
+    sExactMods.put("^", "C", Peptides.NH3*-1d);
 
     mDenovoModAAs = Peptides.modAAsMass("Oxidation:M");
     mDenovoModAAs.remove("^"); mDenovoModAAs.remove("$"); mDenovoModAAs.remove("K");
 
     // pull out the variable mods at the N/C-term
     mNTmods = new ArrayList<>(); mCTmods = new ArrayList<>();
+    mNTmods.add(0d); mCTmods.add(0d);
 
-    if (sVarCharMods.containsKey('^')) mNTmods.add(sVarCharMods.get('^')); else mNTmods.add(0d);
-    if (sVarCharMods.containsKey('$')) mCTmods.add(sVarCharMods.get('$')); else mCTmods.add(0d);
+    if (sVarCharMods.containsKey('^')) mNTmods.add(sVarCharMods.get('^'));
+    if (sVarCharMods.containsKey('$')) mCTmods.add(sVarCharMods.get('$'));
   }
   private void initTMT()
   {
@@ -236,6 +246,9 @@ public class ResidueBase implements Cloneable
 
     // always start with 'no' mod. 20190228
     mNTmods.add(0d); mCTmods.add(0d);
+
+    // cyclized Glu/Cim can't take the TMT either!
+    sVarCharMods.put('@', Peptides.TMT10_LOSS+Peptides.NH3_LOSS);
 
     if (sVarCharMods.containsKey('^')) mNTmods.add(sVarCharMods.get('^'));
     if (sVarCharMods.containsKey('$')) mCTmods.add(sVarCharMods.get('$'));

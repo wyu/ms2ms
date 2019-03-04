@@ -1213,22 +1213,6 @@ public class Peaks {
         ai += pk.getIntensity();
         isotopes = c13;
         if (c12 == 0) c12 = pk.getMz();
-//        int[] c = null; ImmutableNavigableMap<Peak> prec=null;
-//        for (ImmutableNavigableMap<Peak> precursors : isolated_precursors)
-//        {
-//          c = precursors!=null?precursors.query(tol.getMin(mz + c13 * 1.003355d / z), tol.getMax(mz + c13 * 1.003355d / z)):null;
-//          if (c!=null) { prec=precursors; break; }
-//        }
-//        if (c==null)
-//        {
-//          isotopes = c13-1;
-//          break;
-//        }
-//        // accumulate the intensities
-//        ai += AbsIntensitySum(prec.fetchVals(c));
-//        isotopes = c13;
-//        if (c12 == 0) c12 = Peaks.centroid(prec.fetchVals(c), null,null);
-//        c=null;
       }
       if (isotopes > best || (isotopes == best && isotopes > 0 && ai > calc.getIntensity()))
       {

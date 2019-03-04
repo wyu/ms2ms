@@ -90,8 +90,15 @@ public class NumericalModVault implements Cloneable
     if (Tools.isSet(AAs))
       for (Integer A : AAs)
       {
-        SortedMap<Double, Double> slice = (sAAMods[A]!=null?sAAMods[A].subMap(delta-d, delta+d):null);
-        if (Tools.isSet(slice) && Collections.max(slice.values())>score) score = Collections.max(slice.values());
+        try
+        {
+          SortedMap<Double, Double> slice = (sAAMods[A]!=null?sAAMods[A].subMap(delta-d, delta+d):null);
+          if (Tools.isSet(slice) && Collections.max(slice.values())>score) score = Collections.max(slice.values());
+        }
+        catch (Exception e)
+        {
+          e.printStackTrace();
+        }
       }
     else
       for (int i=0; i<sAAMods.length; i++)
