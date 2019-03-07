@@ -154,6 +154,7 @@ public class PeakMatch extends PeakFragmentMatch implements Copyable<PeakMatch>,
   public double  getCalcMz()           { return mCalcMz; }
   public double  getScore()            { return mScore; }
   public IonType getIonType()          { return ionType; }
+  public boolean isIonType(IonType s)  { return Tools.equals(s, ionType); }
 
   public PeakMatch setIndex(         int z) { mIndex=z; return this; }
   public PeakMatch setCharge(        int z) { charge=z; return this; }
@@ -172,6 +173,7 @@ public class PeakMatch extends PeakFragmentMatch implements Copyable<PeakMatch>,
   public PeakMatch setCalcMz(     double s) { mCalcMz        =s; return this; }
   public PeakMatch setScore(      double s) { mScore         =s; return this; }
   public PeakMatch setCounts(       long s) { mCounts        =s; return this; }
+  public PeakMatch setIonType(   IonType s) { ionType        =s; return this; }
 
   @Override
   public String toString()

@@ -25,7 +25,7 @@ public class FragmentEntry implements Comparable<FragmentEntry>, Disposable, Bin
   public FragmentEntry(FragmentEntry s)
   {
     super();
-    mLength=s.mLength; mPeptideKey=s.mPeptideKey; mMH=s.mMH; mPrev=s.mPrev;
+    if (s!=null) { mLength=s.mLength; mPeptideKey=s.mPeptideKey; mMH=s.mMH; mPrev=s.mPrev; }
   }
   @Deprecated
   public FragmentEntry(Float mh, int peptide, FragmentEntry prev, int len)
@@ -39,12 +39,18 @@ public class FragmentEntry implements Comparable<FragmentEntry>, Disposable, Bin
     mMH=mh; mPeptideKey=peptide; mPrev=prev; mLength=len; mCharge=z;
   }
 
-  public int           getLength()       { return mLength; }
+  public int           getLength()       { return Math.abs(mLength); }
   public char          getCharge()       { return mCharge; }
   public float         getMH()           { return mMH; }
   public int           getPeptideKey()   { return mPeptideKey; }
   public FragmentEntry getPrev()         { return mPrev; }
 
+  public FragmentEntry isProDirected(boolean s)
+  {
+    if (s) mLength = Math.abs(mLength)*-1;
+    return this;
+  }
+  public boolean isProDirected() { return mLength<0; }
   public FragmentEntry setCharge(char s) { mCharge=s; return this; }
   public FragmentEntry setPeptideKey(Integer s)
   {
@@ -63,7 +69,7 @@ public class FragmentEntry implements Comparable<FragmentEntry>, Disposable, Bin
   public int compareTo(FragmentEntry o)
   {
     int c = Long.compare(mPeptideKey, o.getPeptideKey());
-    if (c==0) c = Integer.compare(mLength, o.getLength());
+    if (c==0) c = Integer.compare(getLength(), o.getLength());
 
     return c;
   }
@@ -71,7 +77,7 @@ public class FragmentEntry implements Comparable<FragmentEntry>, Disposable, Bin
   @Override
   public String toString()
   {
-    return mPeptideKey+":"+mLength+"#"+ (Tools.d2s(mMH, 4))+"<-"+(mPrev!=null?Tools.d2s(mPrev.getMH(), 4):"NUL");
+    return mPeptideKey+":"+getLength()+"#"+ (Tools.d2s(mMH, 4))+"<-"+(mPrev!=null?Tools.d2s(mPrev.getMH(), 4):"NUL");
   }
 
   @Override
@@ -80,7 +86,7 @@ public class FragmentEntry implements Comparable<FragmentEntry>, Disposable, Bin
   @Override
   public void write(DataOutput ds) throws IOException
   {
-    IOs.write(ds, mLength);
+    IOs.write(ds, getLength());
     IOs.write(ds, mCharge);
     IOs.write(ds, mPeptideKey);
     IOs.write(ds, mMH);

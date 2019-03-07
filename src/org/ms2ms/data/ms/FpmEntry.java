@@ -20,7 +20,7 @@ import java.util.*;
 public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
 {
   private boolean mHas1st=false, mExpectedY1=false;
-  private int                 mMotifs=0, m1stPass=0, mWeaks=0, mC13=0;
+  private int                 mMotifs=0, m1stPass=0, mWeaks=0, mC13=0, mPros=0;
   private double              mGapScore=0, mIntensities=0d, mGapScore0=0;
 //  private Double              mMatchScore =null;
   private FragmentEntry       mFragment   =null;
@@ -53,6 +53,8 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
   public double              getGapScore()  { return mGapScore; }
   public double              getIntensity() { return mIntensities; }
   public int                 getMotifs()    { return mMotifs; }
+  public int                 getProlines()  { return mPros; }
+  public FpmEntry            increProlines()  { mPros++; return this; }
 //  public Double             getZScore() { return mMatchScore; }
   public FragmentEntry       getFragment()  { return mFragment; }
   public ImmutableList<PeakMatch> getTrack()     { return mTrack; }
