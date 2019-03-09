@@ -38,7 +38,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
       mHas1st=f.mHas1st; mExpectedY1=f.mExpectedY1; mMotifs=f.mMotifs; m1stPass=f.m1stPass; mWeaks=f.mWeaks; mC13=f.mC13;
       mGapScore=f.mGapScore; mIntensities=f.mIntensities;
       mFragment = new FragmentEntry(f.mFragment);
-      mTrack = f.mTrack.asList();
+      mTrack = f.mTrack!=null?f.mTrack.asList():null;
     }
   }
   public FpmEntry(FragmentEntry f, List<PeakMatch> t)
