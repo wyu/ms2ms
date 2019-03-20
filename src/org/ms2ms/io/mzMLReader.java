@@ -68,10 +68,12 @@ public class mzMLReader extends mzReader
       out.put(row, "mz",         ms.getPrecursor().getMz());
       out.put(row, "z",          ms.getPrecursor().getCharge());
       out.put(row, "Intensity",  ms.getPrecursor().getIntensity());
-      out.put(row, "Ions", ms.size());
-      out.put(row, "TIC", ms.getTotalIonCurrent());
-      out.put(row, "RunFile", filename);
-      out.put(row, "Run", run);
+      out.put(row, "Ions",       ms.size());
+      out.put(row, "TIC",        ms.getTotalIonCurrent());
+      out.put(row, "BaseMz",     ms.getBasePeakMz());
+      out.put(row, "BaseInt",    ms.getBasePeakIntensity());
+      out.put(row, "RunFile",    filename);
+      out.put(row, "Run",        run);
 //      if (ms.getScanNumbers().getFirst().getValue()==7135)
 //        System.out.println();
       if (ms!=null && ms.getMsLevel()>1 && ms.size()>0)

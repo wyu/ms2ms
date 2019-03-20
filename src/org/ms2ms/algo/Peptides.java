@@ -33,6 +33,8 @@ public class Peptides
   public static final double S   = 31.972072;
   public static final double H2O = 2d*H+O;
   public static final double NH3 = N+3d*H;
+  public static final double Ac = 2*C+2d*H+O;
+  public static final double Me = C+2d*H;
   public static final double NH3_LOSS = (N+3d*H)*-1d;
   public static final double CO  = C+O;
   public static final double OH  = H+O;

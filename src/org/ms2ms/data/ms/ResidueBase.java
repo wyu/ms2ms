@@ -14,12 +14,17 @@ public class ResidueBase implements Cloneable
 {
   public static ResidueBase REDUCED, CIM, TMT10;
   public static Map<Character, Double> sVarCharMods=null;
+  public static Collection<Double> sProtNTmods;
 
   // user-defined residue bases
   public Map<String, ResidueBase> mUserBases;
 
   static
   {
+    sProtNTmods = new ArrayList<>();
+    sProtNTmods.add(0d);
+    sProtNTmods.add(Peptides.Ac);
+
     sVarCharMods = new HashMap<>();
     sVarCharMods.put('N',  Peptides.N2D); // deamidation
 //    sVarMods.put('Q',  0.984016d); // deamidation at a much slower rate
@@ -54,7 +59,6 @@ public class ResidueBase implements Cloneable
   // pull out the variable mods at the N/C-term
   private Collection<Double> mNTmods, mCTmods;
 
-
   public ResidueBase() { super(); }
 
   public static ResidueBase valueOf(String s)
@@ -86,6 +90,7 @@ public class ResidueBase implements Cloneable
   public ImmutableSetMultimap<Character, Double> getVarAAMods4Exact() { return mVarAAMods4Exact; }
   public Collection<Double> getNTmods() { return mNTmods; }
   public Collection<Double> getCTmods() { return mCTmods; }
+  public static Collection<Double> getProtNTmods() { return sProtNTmods; }
 
   public static boolean hasVarCharMod(Character... aa)
   {
@@ -163,6 +168,7 @@ public class ResidueBase implements Cloneable
     sExactMods.put("*", "N", Peptides.N2D);
     sExactMods.put("^", "Q", Peptides.NH3*-1d);
     sExactMods.put("^", "C", Peptides.NH3*-1d);
+    sExactMods.put("^", "*", Peptides.Ac);
 
     mDenovoModAAs = Peptides.modAAsMass("Oxidation:M");
     mDenovoModAAs.remove("^"); mDenovoModAAs.remove("$"); mDenovoModAAs.remove("K");
@@ -237,6 +243,7 @@ public class ResidueBase implements Cloneable
     sExactMods.put("^", "Q", -17.026549d);
     sExactMods.put("^", "C", -17.026549d);
     sExactMods.put("*", "K", Peptides.TMT10*-1d); // unmodified K by TMT6/10
+    sExactMods.put("^", "*", Peptides.Ac);
 
     mDenovoModAAs = Peptides.modAAsMass("TMT6plex:K/^","Oxidation:M");
     mDenovoModAAs.remove("^"); mDenovoModAAs.remove("$"); mDenovoModAAs.remove("^^TMT6plex"); mDenovoModAAs.remove("K");
