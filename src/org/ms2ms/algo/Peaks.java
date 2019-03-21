@@ -1471,6 +1471,43 @@ public class Peaks {
     Collections.sort(A);
     return A;
   }
+  public static List<AnnotatedPeak> consolidate(Tolerance tol, int min_pks, ImmutableNavigableMap<Peak>... As)
+  {
+    if (!Tools.isSet(As)) return null;
+
+    List<Peak> combo = new ArrayList<>();
+    for (ImmutableNavigableMap<Peak> A : As)
+      for (Peak pk : A.getVals()) combo.add(new Peak(pk));
+
+    Collections.sort(combo);
+
+    Collection<Point> pts = new ArrayList<>();
+    List<AnnotatedPeak> news = new ArrayList<>();
+    for (int i = 0; i < combo.size(); i++)
+    {
+      if (combo.get(i).getIntensity()<=0) continue;
+      double max = tol.getMax(combo.get(i).getMz());
+      pts.clear();
+      pts.add(new Point(combo.get(i).getMz(), combo.get(i).getIntensity()));
+      combo.get(i).setIntensity(-1d);
+      for (int j = i + 1; j < combo.size(); j++)
+      {
+        if (j < combo.size() && combo.get(j).getMz() <= max)
+        {
+          pts.add(new Point(combo.get(j).getMz(), combo.get(j).getIntensity()));
+          combo.get(j).setIntensity(-1d);
+        } else break;
+      }
+      // require a min number of peaks
+      if (pts.size() > min_pks)
+        news.add(new AnnotatedPeak(Points.centroid(pts), Points.sumY(pts), pts.size()));
+    }
+
+    // dispose the intermediate objects
+    pts =(Collection )Tools.dispose(pts);
+
+    return news;
+  }
   public static double[] MH2Mzs(double mh, int zlower, int zupper)
   {
     if (zupper<zlower) return new double[] {mh};
@@ -1520,6 +1557,16 @@ public class Peaks {
 
     return ai;
   }
+  public static <T extends Peak> double query4ai(Collection<T> peaks, double k0, double k1)
+  {
+    double ai=0;
+    if (Tools.isSet(peaks))
+    for (T pk : peaks)
+      if (pk.getMz()>=k0 && pk.getMz()<=k1 && isValid(pk)) ai+=pk.getIntensity();
+
+    return ai;
+  }
+
   public static SortedMap<Double, Peak> toPeaks(Collection<Peak> ms)
   {
     if (!Tools.isSet(ms)) return null;
