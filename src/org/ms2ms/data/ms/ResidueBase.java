@@ -22,8 +22,8 @@ public class ResidueBase implements Cloneable
   static
   {
     sProtNTmods = new ArrayList<>();
-    sProtNTmods.add(0d);
-    sProtNTmods.add(Peptides.Ac);
+//    sProtNTmods.add(0d);
+//    sProtNTmods.add(Peptides.Ac);
 
     sVarCharMods = new HashMap<>();
     sVarCharMods.put('N',  Peptides.N2D); // deamidation
@@ -177,6 +177,8 @@ public class ResidueBase implements Cloneable
     mNTmods = new ArrayList<>(); mCTmods = new ArrayList<>();
     mNTmods.add(0d); mCTmods.add(0d);
 
+    sProtNTmods.add(Peptides.Ac);
+
     if (sVarCharMods.containsKey('^')) mNTmods.add(sVarCharMods.get('^'));
     if (sVarCharMods.containsKey('$')) mCTmods.add(sVarCharMods.get('$'));
   }
@@ -253,6 +255,8 @@ public class ResidueBase implements Cloneable
 
     // always start with 'no' mod. 20190228
     mNTmods.add(0d); mCTmods.add(0d);
+
+    sProtNTmods.add(Peptides.Ac+Peptides.TMT10_LOSS);
 
     // cyclized Glu/Cim can't take the TMT either!
     sVarCharMods.put('@', Peptides.TMT10_LOSS+Peptides.NH3_LOSS);

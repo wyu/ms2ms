@@ -1477,7 +1477,9 @@ public class Peaks {
 
     List<Peak> combo = new ArrayList<>();
     for (ImmutableNavigableMap<Peak> A : As)
-      for (Peak pk : A.getVals()) combo.add(new Peak(pk));
+      if (A!=null && Tools.isSet(A.getVals()))
+        for (Peak pk : A.getVals())
+          if (pk!=null) combo.add(new Peak(pk));
 
     Collections.sort(combo);
 
