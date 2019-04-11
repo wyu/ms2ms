@@ -41,7 +41,7 @@ public class NumericalModVault implements Cloneable
         if (mDeltaProb!=null) known=mDeltaProb.size();
       }
     }
-    catch (Exception e) { e.printStackTrace(); }
+    catch (Exception e) { /*e.printStackTrace();*/ }
 
     Collection<Double> checked = new HashSet<>();
 

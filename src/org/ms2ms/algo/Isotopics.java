@@ -277,11 +277,61 @@ public class Isotopics
     return true;
   }
 
+//  public IsoEnvelope gatherIsotopes(ImmutableNavigableMap<PeakMatch> peaks, double mz, double mh, OffsetPpmTolerance tol)
+//  {
+//    // return null, if has negative intensity
+//    IsoEnvelope iso = PeakMatch.query4isotope(peaks, mz, tol, false);
+//
+//    // for large peptide, also check the 1st c13
+//    if (iso==null && mz>1000)
+//    {
+//      iso = PeakMatch.query4isotope(peaks, mz+Peptides.C13, tol, false);
+//      if (iso!=null)
+//        iso = new IsoEnvelope(iso.getMz()-Peptides.C13, iso.getIntensity(), 0).setScore(iso.getScore());
+//    }
+//
+//    // quit if not matching to the first mz!
+//    if (iso!=null)
+//    {
+//      iso.setMz(iso.getMz()).setCharge((int) Math.round(mh/iso.getMz()));
+//      // check for any below m/z
+//      if (PeakMatch.query4counts(peaks, tol, mz-(1.0025/(double) iso.getCharge()))>0)
+//      {
+//        // got an incorrect c12!
+//        iso.setChargeScore(-1);
+//      }
+//      else
+//      {
+//        iso.setChargeScore(1d);
+//        // looking forward
+//        for (int i=1; i<iso.getCharge()+1; i++)
+//        {
+//          double ai = PeakMatch.query4ai(peaks, mz+(i*1.0025/(double) iso.getCharge()), tol);
+//          if (ai<=0) break;
+//
+//          iso.setChargeScore(iso.getChargeScore()+1d);
+//          iso.setIntensity(iso.getIntensity()+ai);
+//        }
+//      }
+//
+//      return iso;
+//    }
+//
+//    return null;
+//  }
+
   public IsoEnvelope gatherIsotopes(ImmutableNavigableMap<PeakMatch> peaks, double mz, double mh, OffsetPpmTolerance tol)
   {
     // return null, if has negative intensity
     IsoEnvelope iso = PeakMatch.query4isotope(peaks, mz, tol, false);
 
+    // for large peptide, also check the 1st c13
+    iso = gatherFirstIsotope(iso, peaks, mz, tol);
+    return gather(iso, peaks, mz, mh, tol);
+  }
+
+  public IsoEnvelope gatherFirstIsotope(IsoEnvelope iso, ImmutableNavigableMap<PeakMatch> peaks, double mz, OffsetPpmTolerance tol)
+  {
     // for large peptide, also check the 1st c13
     if (iso==null && mz>1000)
     {
@@ -289,7 +339,10 @@ public class Isotopics
       if (iso!=null)
         iso = new IsoEnvelope(iso.getMz()-Peptides.C13, iso.getIntensity(), 0).setScore(iso.getScore());
     }
-
+    return iso;
+  }
+  public IsoEnvelope gather(IsoEnvelope iso, ImmutableNavigableMap<PeakMatch> peaks, double mz, double mh, OffsetPpmTolerance tol)
+  {
     // quit if not matching to the first mz!
     if (iso!=null)
     {
@@ -316,7 +369,6 @@ public class Isotopics
 
       return iso;
     }
-
     return null;
   }
 

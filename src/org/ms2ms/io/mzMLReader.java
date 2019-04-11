@@ -57,6 +57,7 @@ public class mzMLReader extends mzReader
     MzMLObjectIterator<uk.ac.ebi.jmzml.model.mzml.Spectrum> spectrumIterator = mzml.unmarshalCollectionFromXpath("/run/spectrumList/spectrum", uk.ac.ebi.jmzml.model.mzml.Spectrum.class);
 
     if (out==null) out = new Dataframe(filename);
+    int rows=0;
     while (spectrumIterator.hasNext())
     {
       MsnSpectrum ms = MsReaders.from(spectrumIterator.next(), !needIons);
@@ -87,18 +88,24 @@ public class mzMLReader extends mzReader
           }
         if (Tools.isSet(neuloss))
           for (double nl : neuloss)
-          {
-            double targeted = ms.getPrecursor().getMz()-(nl/ms.getPrecursor().getCharge()),
-                    delta = targeted*1E-6*ppm,
-                    sum = Spectra.sum(ms, Range.closed(targeted-delta,targeted+delta));
-            if (sum>0)
-              out.put(row, "NL"+Tools.d2s(nl,4), sum);
-          }
+            for (double iso=0d; iso<4d; iso=iso+1d)
+            {
+              // gather the precursor and its neutral loss
+              double prec     = ms.getPrecursor().getMz()+(iso/ms.getPrecursor().getCharge()),
+                     targeted = prec-(nl/ms.getPrecursor().getCharge()),
+                     delta    = targeted*1E-6*ppm,
+                     sumP     = Spectra.sum(ms, Range.closed(prec-delta,    prec+delta)),
+                     sum      = Spectra.sum(ms, Range.closed(targeted-delta,targeted+delta));
+              if (sum >0) out.put(row, "NL"+Tools.d2s(nl,4)+"iso"+((int )iso), sum);
+              if (sumP>0) out.put(row, "Prec"+((int )iso), sumP);
+            }
       }
-
+      if (++rows%1000==0) System.out.print(".");
       // remove the spectrum from the memory
       ms.clear(); ms=null;
     }
+    System.out.println(rows);
+
     return out;
   }
   public static Dataframe readPeptideFeatures(Dataframe out, double ppm, double dRT, String filename) throws IOException
