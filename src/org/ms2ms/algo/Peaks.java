@@ -1246,6 +1246,30 @@ public class Peaks {
 
     return false;
   }
+  public static double query4aiByPeakMatch(ImmutableNavigableMap<PeakMatch> peaks, double k0, double k1)
+  {
+    int i0=Math.max(0, peaks.index(k0)), start=peaks.start(i0);
+
+    if (start>=0)
+    {
+      int j0=-1, j1=-1;
+      for (int k=start; k<peaks.getKeys().length; k++)
+      {
+        if (j0==-1 && peaks.getKeys()[k]>=k0)   j0=k;
+        if (          peaks.getKeys()[k]> k1) { j1=k; break; }
+      }
+      if (j0>=0 && j1>j0)
+      {
+        double ai=0d;
+        for (int j=j0; j<j1; j++)
+          ai+=Math.abs(peaks.getVals()[j].getIntensity());
+
+        return ai;
+      }
+    }
+
+    return 0;
+  }
 
   public static Peak query4peak(ImmutableNavigableMap<Peak> peaks, double k0, double k1)
   {

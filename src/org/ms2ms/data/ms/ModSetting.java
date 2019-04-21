@@ -1,9 +1,11 @@
 package org.ms2ms.data.ms;
 
+import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.ms2ms.Disposable;
 import org.ms2ms.algo.Peaks;
 import org.ms2ms.algo.Peptides;
 import org.ms2ms.math.Stats;
+import org.ms2ms.nosql.ms.HBasePeakList;
 import org.ms2ms.utils.Tools;
 
 import java.util.ArrayList;
@@ -23,6 +25,10 @@ public class ModSetting implements Disposable
   public double[]          masses;
   public char[]            charges, sumZ, sumH2O, sumNH3;
   public List<ModLocation> mods;
+
+  public static final MsSettings LTQ  = new MsSettings(HBasePeakList.SPEC_TRAP_CID, new AbsoluteTolerance(0.5d), new AbsoluteTolerance(0.5d),  Peaks.CID);
+
+  public static final NLoss L43 = new NLoss("Neutral loss due to citrullination",-43.05, 0.7);
 
   @Deprecated
   public ModSetting(double[] m, List<ModLocation> mod)           { masses=m; mods=mod; }

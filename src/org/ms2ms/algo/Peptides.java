@@ -284,6 +284,7 @@ public class Peptides
 
     return Ct;
   }
+
   // generate the predicted fragments of the peptide.
   public static Map<Float, String> toFragments(char[] peptide, Map<Integer, Double> mods, double ntMod, double ctMod,
                                                float[] AAs, Float minMH, SortedMap<Double, Float> sModCharge, int maxZ)

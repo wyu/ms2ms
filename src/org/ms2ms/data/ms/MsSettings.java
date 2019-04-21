@@ -26,6 +26,7 @@ public class MsSettings extends Settings
   public static final MsSettings ORBITRAP_HCD = new MsSettings(HBasePeakList.SPEC_TRAP_HCD, new PpmTolerance(15d), new AbsoluteTolerance(0.05d), Peaks.HCD);
 
   public MsSettings() { super(); properties.put(Z_FLOAT, 0); }
+  public MsSettings(MsSettings s) { super(s);  }
   public MsSettings(byte[] type, Tolerance precursor, Tolerance frag, String mode)
   {
     super();

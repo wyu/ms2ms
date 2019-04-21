@@ -1,6 +1,5 @@
 package org.ms2ms.data.ms;
 
-import org.ms2ms.algo.MsStats;
 import org.ms2ms.utils.Tools;
 
 /**
@@ -10,11 +9,14 @@ public class ModLocation
 {
   public int    locations;
   public double mods;
+  public NLoss nloss=null;
 
   public ModLocation(int loc, double mm)
   {
     locations=loc; mods=mm;
   }
+
+  public ModLocation setNLoss(NLoss s) { nloss=s; return this; }
 
   @Override
   public String toString()
