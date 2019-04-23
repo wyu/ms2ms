@@ -28,7 +28,7 @@ public class ModSetting implements Disposable
 
   public static final MsSettings LTQ  = new MsSettings(HBasePeakList.SPEC_TRAP_CID, new AbsoluteTolerance(0.5d), new AbsoluteTolerance(0.5d),  Peaks.CID);
 
-  public static final NLoss L43 = new NLoss("Neutral loss due to citrullination",-43.05, 0.7);
+  public static final NLoss L43 = new NLoss("Neutral loss due to citrullination",-43.005814d, 0.7d);
 
   @Deprecated
   public ModSetting(double[] m, List<ModLocation> mod)           { masses=m; mods=mod; }
