@@ -5,7 +5,7 @@ import org.ms2ms.utils.Tools;
 /**
  * Created by yuw on 8/15/16.
  */
-public class ModLocation
+public class ModLocation implements Cloneable
 {
   public int    locations;
   public double mods;
@@ -16,8 +16,16 @@ public class ModLocation
     locations=loc; mods=mm;
   }
 
-  public ModLocation setNLoss(NLoss s) { nloss=s; return this; }
+  public ModLocation setLocation(int s) { locations=s; return this; }
+  public ModLocation setNLoss( NLoss s) { nloss=s; return this; }
 
+  @Override
+  public ModLocation clone()
+  {
+    ModLocation cloned = new ModLocation(locations, mods);
+    if (nloss!=null) cloned.setNLoss(nloss.clone());
+    return cloned;
+  }
   @Override
   public String toString()
   {

@@ -10,5 +10,6 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" exported="" name="ms2ms" level="project" />
     <orderEntry type="module" module-name="javaRdata" />
+    <orderEntry type="library" name="log4j-1.2.13" level="project" />
   </component>
 </module>

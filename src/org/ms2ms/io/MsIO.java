@@ -19,6 +19,10 @@ import org.expasy.mzjava.proteomics.ms.ident.ModificationMatch;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideProteinMatch;
 import org.expasy.mzjava.proteomics.ms.ident.SpectrumIdentifier;
+import org.ms2ms.algo.LCMSMS;
+import org.ms2ms.algo.Peaks;
+import org.ms2ms.algo.PurgingPeakProcessor;
+import org.ms2ms.algo.Spectra;
 import org.ms2ms.data.Binary;
 import org.ms2ms.data.Features;
 import org.ms2ms.data.collect.MultiTreeTable;
@@ -756,6 +760,21 @@ public class MsIO extends IOs
       if (ms.getSpectrumIndex()>=min_dup) MGF.write(ms);
 
     MGF.close();
+  }
+  public static void mzML2MGF(String filename, Integer scan, String out_dir) throws IOException
+  {
+    MsnSpectrum ms = mzMLReader.fetchByScan(filename, scan);
+
+    // remove the peaks at or below a min ai
+    ms = ms.copy(new PurgingPeakProcessor<>());
+
+    if (ms!=null && ms.size()>0)
+    {
+      MgfWriter MGF = new MgfWriter(new File(out_dir+"/"+ LCMSMS.toRun(filename)+"_"+scan+".mgf"), PeakList.Precision.DOUBLE);
+      MGF.write(ms);
+
+      MGF.close();
+    }
   }
 
   //  // write the content of the spectrum from an mzML file to another MGF file

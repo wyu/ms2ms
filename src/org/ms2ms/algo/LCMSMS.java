@@ -12,6 +12,7 @@ import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
+import java.io.File;
 import java.util.*;
 
 /**
@@ -19,6 +20,12 @@ import java.util.*;
  */
 public class LCMSMS
 {
+  public static String toRun(String s)
+  {
+    File file = new File(s);
+    return file.getName().substring(0,file.getName().indexOf('.'));
+  }
+
   public static String toScanStr(ScanNumberList scans)
   {
     String scan=null;

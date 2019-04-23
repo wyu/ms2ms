@@ -164,4 +164,19 @@ public class mzMLReader extends mzReader
     }
     return out;
   }
+  public static MsnSpectrum fetchByScan(String filename, Integer scan)
+  {
+    System.out.println("Reading "+filename+"...");
+
+    MzMLUnmarshaller mzml = new MzMLUnmarshaller(new File(filename), false, null);
+    // looping through the scans
+    MzMLObjectIterator<uk.ac.ebi.jmzml.model.mzml.Spectrum> spectrumIterator = mzml.unmarshalCollectionFromXpath("/run/spectrumList/spectrum", uk.ac.ebi.jmzml.model.mzml.Spectrum.class);
+
+    while (spectrumIterator.hasNext())
+    {
+      MsnSpectrum ms = MsReaders.from(spectrumIterator.next(), false);
+      if (scan.equals(ms.getScanNumbers().getFirst().getValue())) return ms;
+    }
+    return null;
+  }
 }
