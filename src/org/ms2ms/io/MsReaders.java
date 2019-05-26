@@ -17,6 +17,7 @@ import org.ms2ms.algo.LCMSMS;
 import org.ms2ms.algo.Peaks;
 import org.ms2ms.algo.PurgingPeakProcessor;
 import org.ms2ms.algo.Spectra;
+import org.ms2ms.data.ms.IonMobilityCCS;
 import org.ms2ms.data.ms.MsSpectrum;
 import org.ms2ms.math.Stats;
 import org.ms2ms.r.Dataframe;
@@ -273,7 +274,14 @@ public class MsReaders
     spec.setSpectrumIndex(ms.getIndex());
     // set the scan filter:
     // 'ITMS + c NSI r d Full ms2 838.7747@cid35.00 [226.0000-2000.0000]'
-    spec.setComment(MsIO.get(ms.getScanList().getScan().get(0).getCvParam(), "MS:1000512"));
+    String title=null;
+    if (ms.getScanList()!=null && ms.getScanList().getScan()!=null && ms.getScanList().getScan().get(0)!=null)
+      title = MsIO.get(ms.getScanList().getScan().get(0).getCvParam(), "MS:1000512");
+
+    if (title==null && ms.getCvParam()!=null) title = MsIO.get(ms.getCvParam(), "MS:1000512");
+    if (title==null && ms.getCvParam()!=null) title = MsIO.get(ms.getCvParam(), "MS:1000796");
+
+    spec.setComment(title);
     if (spec.getMsLevel()==3)
     {
       // 'FTMS + p NSI sps d Full ms3 838.77@cid35.00 432.89@hcd40.00 [120.00-1800.00]'
@@ -296,40 +304,69 @@ public class MsReaders
     }
 
     // set the scan number
-    spec.addScanNumber(MsIO.ScanNumberFromSpectrumRef(ms.getId()));
-    spec.addRetentionTime(new RetentionTimeDiscrete(MsIO.getDouble(ms.getScanList().getScan().get(0).getCvParam(), "MS:1000016"), TimeUnit.MINUTE));
+    if (MsIO.ScanNumberFromSpectrumRef(ms.getId())!=null) spec.addScanNumber(MsIO.ScanNumberFromSpectrumRef(ms.getId()));
+    if (MsIO.getDouble(ms.getScanList().getScan().get(0).getCvParam(), "MS:1000016")!=null)
+      spec.addRetentionTime(new RetentionTimeDiscrete(MsIO.getDouble(ms.getScanList().getScan().get(0).getCvParam(), "MS:1000016"), TimeUnit.MINUTE));
+
+    // for timsTOF
+    if (ms.getScanList()!=null && ms.getScanList().getScan()!=null &&
+        ms.getScanList().getScan().get(0)!=null && ms.getScanList().getScan().get(0).getCvParam()!=null &&
+        MsIO.getDouble(ms.getScanList().getScan().get(0).getCvParam(), "MS:1002815")!=null)
+      spec.addRetentionTime(new IonMobilityCCS(MsIO.getDouble(ms.getScanList().getScan().get(0).getCvParam(), "MS:1002815")));
 
     // readSpectrumIdentifier the ions
     Number[] mzs=null, ais=null;
-    for (BinaryDataArray bin : ms.getBinaryDataArrayList().getBinaryDataArray())
-    {
-      int     precision = MsIO.hasAccession(bin.getCvParam(), "MS:1000521")?32:64;
-      String  compressionType=MsIO.hasAccession(bin.getCvParam(), "MS:1000574")?"zlib":"none";
-      try
+    if (ms.getBinaryDataArrayList()!=null && ms.getBinaryDataArrayList().getBinaryDataArray()!=null)
+      for (BinaryDataArray bin : ms.getBinaryDataArrayList().getBinaryDataArray())
       {
-        if      (!skip_ions && MsIO.hasAccession(bin.getCvParam(), "MS:1000514"))
+        int     precision = MsIO.hasAccession(bin.getCvParam(), "MS:1000521")?32:64;
+        String  compressionType=MsIO.hasAccession(bin.getCvParam(), "MS:1000574")?"zlib":"none";
+        try
         {
-          // decode the m/z string
-          mzs = bin.getBinaryDataAsNumberArray();
+          if      (!skip_ions && MsIO.hasAccession(bin.getCvParam(), "MS:1000514"))
+          {
+            // decode the m/z string
+            mzs = bin.getBinaryDataAsNumberArray();
+          }
+          else if (!skip_ions && (MsIO.hasAccession(bin.getCvParam(), "MS:1000515")))
+          {
+            // decode the m/z string
+            ais = bin.getBinaryDataAsNumberArray();
+          }
         }
-        else if (!skip_ions && MsIO.hasAccession(bin.getCvParam(), "MS:1000515"))
+        catch (Exception e)
         {
-          // decode the m/z string
-          ais = bin.getBinaryDataAsNumberArray();
+          e.printStackTrace();
         }
       }
-      catch (Exception e)
-      {
-        e.printStackTrace();
-      }
-    }
-    if (mzs!=null && ais!=null && mzs.length==ais.length)
+
+    if (mzs!=null && ais!=null && mzs.length==ais.length && mzs.length>0)
       for (int i=0; i<mzs.length; i++)
       {
         spec.add(mzs[i].doubleValue(), ais[i].doubleValue());
       }
 
     return spec;
+  }
+  public static Number[] getVector(Spectrum ms, String cvTag)
+  {
+    if (ms==null) return null;
+    if (ms.getBinaryDataArrayList()!=null && ms.getBinaryDataArrayList().getBinaryDataArray()!=null)
+      for (BinaryDataArray bin : ms.getBinaryDataArrayList().getBinaryDataArray())
+        try
+        {
+          if (MsIO.hasAccession(bin.getCvParam(), cvTag))
+          {
+            // decode the m/z string
+            return bin.getBinaryDataAsNumberArray();
+          }
+        }
+        catch (Exception e)
+        {
+          e.printStackTrace();
+        }
+
+    return null;
   }
   /*******************
    * Function returns an array of doubles that was decoded from the passed string

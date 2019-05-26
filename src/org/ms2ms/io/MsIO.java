@@ -734,7 +734,8 @@ public class MsIO extends IOs
   {
     String[] ids = Strs.split(ref, ' ', true);
     for (String id : ids)
-      if (id.indexOf("scan=")==0) return Stats.toInt(id.substring(5));
+      if      (id.indexOf("scan=")  ==0) return Stats.toInt(id.substring(5)); // for Thermo
+      else if (id.indexOf("merged=")==0) return Stats.toInt(id.substring(7)); // for timsTOF
 
     return null;
   }

@@ -191,6 +191,7 @@ abstract public class App
   }
   protected String exRoot(String s)
   {
+    if (s==null) return s;
     return (s!=null && (s.indexOf('/')==0 || s.indexOf('\\')==0))?s:(getWorkingRoot()+s);
   }
   public String getAppName()         { return mAppName; }

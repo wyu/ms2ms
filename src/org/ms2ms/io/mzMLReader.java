@@ -1,17 +1,25 @@
 package org.ms2ms.io;
 
 import com.google.common.collect.Range;
+import org.expasy.mzjava.core.io.ms.spectrum.MgfWriter;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
+import org.expasy.mzjava.core.ms.peaklist.PeakList;
+import org.expasy.mzjava.core.ms.peaklist.peakfilter.CentroidFilter;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
+import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
 import org.ms2ms.algo.Spectra;
 import org.ms2ms.data.collect.MultiTreeTable;
+import org.ms2ms.data.ms.IonMobilityCCS;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.IOs;
+import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
+import uk.ac.ebi.jmzml.model.mzml.Spectrum;
 import uk.ac.ebi.jmzml.xml.io.MzMLObjectIterator;
 import uk.ac.ebi.jmzml.xml.io.MzMLUnmarshaller;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Collection;
 
@@ -28,23 +36,31 @@ public class mzMLReader extends mzReader
     NUMBER    = "num";
     RT        = "retentionTime";
   }
-  public static Dataframe readScanInfo(Dataframe data, double ppm, double dRT, String root, String pattern, Collection<Double> neuloss, double... channels) throws IOException
+  public static Dataframe readScanInfo(Dataframe data, double ppm, double dRT, String root, String pattern,
+                                       boolean toCentroid, double maxDiffMz, String mgf_file, Collection<Double> neuloss, double... channels) throws IOException
   {
     String[] searches = IOs.listFiles(root, pattern);
 
-    System.out.println("mzML files: "+ searches.length);
+    System.out.print("mzML files: "+ root + ", "+pattern);
+    System.out.println(" --> "+ (Tools.isSet(searches)?searches.length:0));
+
+    MgfWriter mgf=null;
+    try { mgf = new MgfWriter(new File(mgf_file), PeakList.Precision.DOUBLE); } catch (Exception e) {}
 
     if (Tools.isSet(searches))
       for (String s : searches)
       {
 //        data = mzMLReader.inferPrecursorsFromMS2(data, s).init(true);
-        data = readScanInfo(data, ppm, s, true, neuloss, channels).init(true);
+        data = readScanInfo(data, ppm, s, true, toCentroid, maxDiffMz, mgf, neuloss, channels).init(true);
         data = mzMLReader.readPeptideFeatures(data, ppm, dRT, s).init(true);
       }
 
+    if (mgf!=null) mgf.close();
+
     return data;
   }
-  public static Dataframe readScanInfo(Dataframe out, double ppm, String filename, boolean loadIons, Collection<Double> neuloss, double... channels) throws IOException
+  public static Dataframe readScanInfo(Dataframe out, double ppm, String filename, boolean loadIons, boolean toCentroid,
+                                       double maxDiffMz, MgfWriter mgf, Collection<Double> neuloss, double... channels) throws IOException
   {
     System.out.println("Reading scans from "+filename+"...");
 
@@ -56,11 +72,24 @@ public class mzMLReader extends mzReader
     // looping through the scans
     MzMLObjectIterator<uk.ac.ebi.jmzml.model.mzml.Spectrum> spectrumIterator = mzml.unmarshalCollectionFromXpath("/run/spectrumList/spectrum", uk.ac.ebi.jmzml.model.mzml.Spectrum.class);
 
+    FileWriter trace = new FileWriter(filename+".dat");
+    trace.write("Scan\tMsLevel\tlength\tims\n");
+
     if (out==null) out = new Dataframe(filename);
     int rows=0;
     while (spectrumIterator.hasNext())
     {
-      MsnSpectrum ms = MsReaders.from(spectrumIterator.next(), !needIons);
+      Spectrum ss = spectrumIterator.next();
+      MsnSpectrum ms = MsReaders.from(ss, !needIons);
+
+      Number[] ims = MsReaders.getVector(ss, "MS:1002816");
+
+//      if (Tools.isSet(ims))
+//        trace.write(ms.getScanNumbers().getFirst().getValue()+"\t"+ms.getMsLevel()+"\t"+ ims.length + "\t"+Strs.toString(ims, ';')+"\n");
+
+      // peak picking if asked
+      if (loadIons && toCentroid) ms = ms.copy(new CentroidFilter<>(maxDiffMz, CentroidFilter.IntensityMode.SUM));
+
       String row = filename+"#"+ms.getScanNumbers().getFirst().getValue();
       out.put(row, "Scan",       ms.getScanNumbers().getFirst().getValue());
       out.put(row, "MsLevel",    ms.getMsLevel());
@@ -70,11 +99,20 @@ public class mzMLReader extends mzReader
       out.put(row, "z",          ms.getPrecursor().getCharge());
       out.put(row, "Intensity",  ms.getPrecursor().getIntensity());
       out.put(row, "Ions",       ms.size());
-      out.put(row, "TIC",        ms.getTotalIonCurrent());
-      out.put(row, "BaseMz",     ms.getBasePeakMz());
-      out.put(row, "BaseInt",    ms.getBasePeakIntensity());
+      if (ms.size()>0)
+      {
+        out.put(row, "TIC",        ms.getTotalIonCurrent());
+        out.put(row, "BaseMz",     ms.getBasePeakMz());
+        out.put(row, "BaseInt",    ms.getBasePeakIntensity());
+      }
       out.put(row, "RunFile",    filename);
       out.put(row, "Run",        run);
+      out.put(row, "Title",      ms.getComment());
+
+      // do we have the CCS value?
+      for (RetentionTime rt : ms.getRetentionTimes())
+        if (rt instanceof IonMobilityCCS) { out.put(row, "CCS", rt.getTime()); break; }
+
 //      if (ms.getScanNumbers().getFirst().getValue()==7135)
 //        System.out.println();
       if (ms!=null && ms.getMsLevel()>1 && ms.size()>0)
@@ -99,12 +137,22 @@ public class mzMLReader extends mzReader
               if (sum >0) out.put(row, "NL"+Tools.d2s(nl,4)+"iso"+((int )iso), sum);
               if (sumP>0) out.put(row, "Prec"+((int )iso), sumP);
             }
+        // write the spectrum out
+        if (mgf!=null)
+        {
+          // remove the 2nd RT if present
+          if (ms.getRetentionTimes().size()>1)
+            ms.getRetentionTimes().remove(1);
+
+          mgf.write(ms);
+        }
       }
       if (++rows%1000==0) System.out.print(".");
       // remove the spectrum from the memory
       ms.clear(); ms=null;
     }
     System.out.println(rows);
+    trace.close();
 
     return out;
   }
