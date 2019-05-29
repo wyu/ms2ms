@@ -266,7 +266,9 @@ public class ResidueBase implements Cloneable
   }
   public StringBuffer printParams(StringBuffer buf)
   {
-    buf = Tools.printParam(buf, "AADic", mAADic, "tmt10");
+    if (buf==null) buf = new StringBuffer();
+
+    buf = Tools.printParam(buf, "AADic", mAADic, "AADic");
     buf = Tools.printParam(buf, "DenovoModAAs", mDenovoModAAs);
     buf = Tools.printParam(buf, "AACt", mAACt);
     buf = Tools.printParam(buf, "sAACt", sAACt);

@@ -73,7 +73,7 @@ public class mzMLReader extends mzReader
     MzMLObjectIterator<uk.ac.ebi.jmzml.model.mzml.Spectrum> spectrumIterator = mzml.unmarshalCollectionFromXpath("/run/spectrumList/spectrum", uk.ac.ebi.jmzml.model.mzml.Spectrum.class);
 
     FileWriter trace = new FileWriter(filename+".dat");
-    trace.write("Scan\tMsLevel\tlength\tims\n");
+    trace.write("Type\ti\tScan\tRT\tCCS\tMsLevel\tmz\tai\tims\n");
 
     if (out==null) out = new Dataframe(filename);
     int rows=0;
@@ -84,11 +84,24 @@ public class mzMLReader extends mzReader
 
       Number[] ims = MsReaders.getVector(ss, "MS:1002816");
 
-//      if (Tools.isSet(ims))
-//        trace.write(ms.getScanNumbers().getFirst().getValue()+"\t"+ms.getMsLevel()+"\t"+ ims.length + "\t"+Strs.toString(ims, ';')+"\n");
+      if (Tools.isSet(ims) && ms.getScanNumbers().getFirst().getValue()==1187)
+      {
+        int scan=ms.getScanNumbers().getFirst().getValue();
+        double rt=ms.getRetentionTimes().getFirst().getTime(), cs = ms.getRetentionTimes().getLast().getTime();
+        for (int i=0; i<ms.size(); i++)
+          trace.write("trace\t"+i+"\t"+scan+"\t"+rt+"\t"+cs+"\t"+ms.getMsLevel()+"\t"+ ms.getMz(i)+"\t"+ms.getIntensity(i)+"\t"+(i<ims.length?ims[i]:0)+"\n");
+      }
 
       // peak picking if asked
       if (loadIons && toCentroid) ms = ms.copy(new CentroidFilter<>(maxDiffMz, CentroidFilter.IntensityMode.SUM));
+
+      if (Tools.isSet(ims) && ms.getScanNumbers().getFirst().getValue()==1187)
+      {
+        int scan=ms.getScanNumbers().getFirst().getValue();
+        double rt=ms.getRetentionTimes().getFirst().getTime(), cs = ms.getRetentionTimes().getLast().getTime();
+        for (int i=0; i<ms.size(); i++)
+          trace.write("centroid\t"+i+"\'t"+scan+"\t"+rt+"\t"+cs+"\t"+ms.getMsLevel()+"\t"+ms.getMz(i)+"\t"+ms.getIntensity(i)+"\t0\n");
+      }
 
       String row = filename+"#"+ms.getScanNumbers().getFirst().getValue();
       out.put(row, "Scan",       ms.getScanNumbers().getFirst().getValue());
