@@ -8,6 +8,7 @@ import org.expasy.mzjava.core.ms.spectrum.LibPeakAnnotation;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeList;
+import org.ms2ms.data.collect.ImmutableNavigableMap;
 import org.ms2ms.data.ms.IsoEnvelope;
 import org.ms2ms.data.ms.OffsetPpmTolerance;
 import org.ms2ms.data.ms.PeakMatch;
@@ -802,6 +803,21 @@ public class Spectra
       peaks.put(ms.getMz(i), ms.getIntensity(i));
 
     return peaks;
+  }
+  public static Map<Integer, Double> getPeakFrequency(PeakList ms, int span)
+  {
+    Map<Integer, Double> ion_freq = new HashMap<>();
+    int left,right;
+    for (int i=0; i<ms.size(); i++)
+    {
+      // estimates the local frequency
+      left=i-span;right=i+span;
+      if      (left <0)           { left =0;          right=Math.min(left+span*2,ms.size()-1); }
+      else if (right>ms.size()-1) { right=ms.size()-1; left=Math.max(right-span*2, 0); }
+
+      ion_freq.put(i, Math.max(1,Peaks.countC12(ms, left, right))/(ms.getMz(right)-ms.getMz(left)));
+    }
+    return ion_freq;
   }
   public static List<Peak> toListOfPeaks(PeakList ms) { return toListOfPeaks(ms,null); }
   public static List<Peak> toListOfPeaks(PeakList ms, Float min_mz)

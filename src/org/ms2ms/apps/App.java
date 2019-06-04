@@ -189,6 +189,15 @@ abstract public class App
   protected void close() throws IOException
   {
   }
+  protected String[] exRoots(String... s)
+  {
+    if (s==null) return null;
+    String[] outs = new String[s.length];
+    for (int i=0; i<s.length; i++)
+      outs[i] = (s[i]!=null && (s[i].indexOf('/')==0 || s[i].indexOf('\\')==0))?s[i]:(getWorkingRoot()+s[i]);
+
+    return outs;
+  }
   protected String exRoot(String s)
   {
     if (s==null) return s;

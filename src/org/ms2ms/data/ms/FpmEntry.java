@@ -46,6 +46,11 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
     super();
     mFragment=f; mTrack=ImmutableList.copyOf(t);
   }
+  public FpmEntry(FragmentEntry f, PeakMatch[] matches, int size)
+  {
+    super();
+    mFragment=f; mTrack=ImmutableList.copyOf(Arrays.copyOfRange(matches, 0, size));
+  }
 
   public boolean             isDecoy()      { return mFragment!=null && mFragment.getPeptideKey()<0; }
   public boolean             has1st()       { return mHas1st; }

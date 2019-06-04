@@ -73,7 +73,7 @@ public class mzMLReader extends mzReader
     MzMLObjectIterator<uk.ac.ebi.jmzml.model.mzml.Spectrum> spectrumIterator = mzml.unmarshalCollectionFromXpath("/run/spectrumList/spectrum", uk.ac.ebi.jmzml.model.mzml.Spectrum.class);
 
     FileWriter trace = new FileWriter(filename+".dat");
-    trace.write("Type\ti\tScan\tRT\tCCS\tMsLevel\tmz\tai\tims\n");
+    trace.write("Type\ti\tScan\tRT\tCCS\tMsLevel\tprecursor\tz\tmz\tai\tims\n");
 
     if (out==null) out = new Dataframe(filename);
     int rows=0;
@@ -84,23 +84,25 @@ public class mzMLReader extends mzReader
 
       Number[] ims = MsReaders.getVector(ss, "MS:1002816");
 
-      if (Tools.isSet(ims) && ms.getScanNumbers().getFirst().getValue()==1187)
+      if (Tools.isSet(ims) && Tools.isA(ms.getScanNumbers().getFirst().getValue(), 18527,18536,18546,18495,18496,18504,18539,18503,18452))
       {
         int scan=ms.getScanNumbers().getFirst().getValue();
         double rt=ms.getRetentionTimes().getFirst().getTime(), cs = ms.getRetentionTimes().getLast().getTime();
         for (int i=0; i<ms.size(); i++)
-          trace.write("trace\t"+i+"\t"+scan+"\t"+rt+"\t"+cs+"\t"+ms.getMsLevel()+"\t"+ ms.getMz(i)+"\t"+ms.getIntensity(i)+"\t"+(i<ims.length?ims[i]:0)+"\n");
+          trace.write("trace\t"+i+"\t"+scan+"\t"+rt+"\t"+cs+"\t"+ms.getMsLevel()+"\t"+ ms.getPrecursor().getMz()+"\t"+
+              ms.getPrecursor().getCharge()+"\t"+ms.getMz(i)+"\t"+ms.getIntensity(i)+"\t"+(i<ims.length?ims[i]:0)+"\n");
       }
 
       // peak picking if asked
       if (loadIons && toCentroid) ms = ms.copy(new CentroidFilter<>(maxDiffMz, CentroidFilter.IntensityMode.SUM));
 
-      if (Tools.isSet(ims) && ms.getScanNumbers().getFirst().getValue()==1187)
+      if (Tools.isSet(ims) && Tools.isA(ms.getScanNumbers().getFirst().getValue(), 18527,18536,18546,18495,18496,18504,18539,18503,18452))
       {
         int scan=ms.getScanNumbers().getFirst().getValue();
         double rt=ms.getRetentionTimes().getFirst().getTime(), cs = ms.getRetentionTimes().getLast().getTime();
         for (int i=0; i<ms.size(); i++)
-          trace.write("centroid\t"+i+"\'t"+scan+"\t"+rt+"\t"+cs+"\t"+ms.getMsLevel()+"\t"+ms.getMz(i)+"\t"+ms.getIntensity(i)+"\t0\n");
+          trace.write("centroid\t"+i+"\t"+scan+"\t"+rt+"\t"+cs+"\t"+ms.getMsLevel()+"\t"+ ms.getPrecursor().getMz()+"\t"+
+              ms.getPrecursor().getCharge()+"\t"+ms.getMz(i)+"\t"+ms.getIntensity(i)+"\t0\n");
       }
 
       String row = filename+"#"+ms.getScanNumbers().getFirst().getValue();
