@@ -41,7 +41,7 @@ public class PsmWriters
 
     return buf;
   }
-  //  # id, scanNum, RT, mz(data), z, pepMass(denovo), err(data-denovo), ppm(1e6*err/(mz*z)), score, peptide, aaScore,
+  //  # id, scanNum, RT, mz(data), z, pepMass(denovo), err(data-denovo), ppm(1e6*err/(mz*z)), score, key, aaScore,
 //  1, 0, 1.1, 419.3200, 2, 836.5848, 0.0407, 48.5, 0.1, PLLLLLR, 1-1-1-1-1-1-32
 //  2, 0, 1.3, 596.7500, 4, 2383.0038, -0.0329, -13.8, 5.3, C(Cam)LC(Cam)MSSPDAWVSDRC(Cam)NRNR, 36-1-1-1-1-1-1-7-1-1-1-1-1-1-1-1-1-7-32
 //  3, 0, 7.6, 1550.4600, 3, 4648.6858, -0.3276, -70.4, 0.0, HGC(Cam)C(Cam)C(Cam)C(Cam)DYKKLFGENRM(O)HC(Cam)C(Cam)C(Cam)NFGQC(Cam)C(Cam)C(Cam)C(Cam)GVTYM(O)K, 3-1-3-1-1-1-1-2-1-1-1-1-1-1-1-1-1-1-1-2-2-2-1-1-1-1-1-1-1-2-1-1-1-9-4
@@ -58,7 +58,7 @@ public class PsmWriters
     w.write(newNovorHeader(input).toString());
 
     int counts=1; String delim = ", ";
-    w.write("# id, scanNum, RT, mz(data), z, pepMass(denovo), err(data-denovo), ppm(1e6*err/(mz*z)), score, peptide, aaScore, \n");
+    w.write("# id, scanNum, RT, mz(data), z, pepMass(denovo), err(data-denovo), ppm(1e6*err/(mz*z)), score, key, aaScore, \n");
     for (SpectrumIdentifier id : id_match.keySet())
     {
       // only care about the run as indicated

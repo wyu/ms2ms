@@ -86,7 +86,7 @@ public class mzReader
                      MultiTreeTable<Double, Double, Peak>   rt_mz_mz1)
   {
     double rt = ms.getRetentionTimes().getFirst().getTime()/60d, mz=ms.getPrecursor().getMz();
-    // deposit the ms1 intensity if fell within the bound of a peptide precursor
+    // deposit the ms1 intensity if fell within the bound of a key precursor
     SortedMap<Double, TreeMultimap<Double, String>> slice = rt_mz_row.getData().subMap(rt-dRT,rt+dRT);
     if (Tools.isSet(slice))
     {

@@ -18,10 +18,10 @@ public class Quantitatives
   {
 
   }
-  /** Extract the RT calibration curves from the peptide alignment
+  /** Extract the RT calibration curves from the key alignment
    *
-   * @param evidences is a data frame from Maxquant containing the peptide alignment
-   * @param cols are the column headers for peptide, Rt and RT deviation in order
+   * @param evidences is a data frame from Maxquant containing the key alignment
+   * @param cols are the column headers for key, Rt and RT deviation in order
    * @return a new data frame containing the RT calibration curves
    */
   public static Dataframe toRtCalibrationCurves(Dataframe evidences, String... cols)

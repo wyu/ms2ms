@@ -80,21 +80,21 @@ public class RtPredictTest extends TestAbstract
 //
 //    // no more than 15, up to the size-2
 //    List<WeightedObservedPoint> Rs = new ArrayList<>();
-//    for (String peptide : predicted.keySet())
-//      for (Double rt : peptides.get(peptide))
-//        Rs.add(new WeightedObservedPoint(1, rt, predicted.get(peptide)));
+//    for (String key : predicted.keySet())
+//      for (Double rt : peptides.get(key))
+//        Rs.add(new WeightedObservedPoint(1, rt, predicted.get(key)));
 //
 //    // quadratic fit is not suitable because of the possibility of curving back up at higher score. Even though the fit is often better.
 //    Fitted fit = new Fitted().fit(1, Rs);
 //
 //    // convert the observed RT to predicted H
 //    Multimap<String, Double> devi = HashMultimap.create();
-//    for (String peptide : predicted.keySet())
-//      for (Double rt : peptides.get(peptide))
+//    for (String key : predicted.keySet())
+//      for (Double rt : peptides.get(key))
 //      {
 //        double Hi = fit.polynomial(rt);
-//        if (H!=null) H.put(peptide, Hi);
-//        devi.put(peptide,Hi-predicted.get(peptide));
+//        if (H!=null) H.put(key, Hi);
+//        devi.put(key,Hi-predicted.get(key));
 //      }
 //
 //    return devi;

@@ -282,7 +282,7 @@ public class Isotopics
 //    // return null, if has negative intensity
 //    IsoEnvelope iso = PeakMatch.query4isotope(peaks, mz, tol, false);
 //
-//    // for large peptide, also check the 1st c13
+//    // for large key, also check the 1st c13
 //    if (iso==null && mz>1000)
 //    {
 //      iso = PeakMatch.query4isotope(peaks, mz+Peptides.C13, tol, false);
@@ -325,14 +325,14 @@ public class Isotopics
     // return null, if has negative intensity
     IsoEnvelope iso = PeakMatch.query4isotope(peaks, mz, tol, false);
 
-    // for large peptide, also check the 1st c13
+    // for large key, also check the 1st c13
     iso = gatherFirstIsotope(iso, peaks, mz, tol);
     return gather(iso, peaks, mz, mh, tol);
   }
 
   public IsoEnvelope gatherFirstIsotope(IsoEnvelope iso, ImmutableNavigableMap<PeakMatch> peaks, double mz, OffsetPpmTolerance tol)
   {
-    // for large peptide, also check the 1st c13
+    // for large key, also check the 1st c13
     if (iso==null && mz>1000)
     {
       iso = PeakMatch.query4isotope(peaks, mz+Peptides.C13, tol, false);

@@ -173,7 +173,7 @@ public class mzMLReader extends mzReader
   }
   public static Dataframe readPeptideFeatures(Dataframe out, double ppm, double dRT, String filename) throws IOException
   {
-    System.out.println("Reading peptide features from "+filename+"...");
+    System.out.println("Reading key features from "+filename+"...");
 
     MultiTreeTable<Double, Double, String> rt_mz_row = MultiTreeTable.create();
     MultiTreeTable<Double, Double, Peak>   rt_mz_ms1 = MultiTreeTable.create(), rt_mz_mz1 = MultiTreeTable.create();

@@ -410,7 +410,7 @@ public class PsmReaders
   }
   // TODO to be completed
   //allPeptide//Raw file	Type	Charge	m/z	Mass	Uncalibrated m/z	Resolution	Number of data points	Number of scans	Number of isotopic peaks	PIF	Mass fractional part	Mass deficit	Mass precision [ppm]	Max intensity m/z 0	Retention time	Retention length	Retention length (FWHM)	Min scan number	Max scan number	Identified	MS/MS IDs	Sequence	Length	Modifications	Modified sequence	Proteins	Score	Intensity	Intensities	MS/MS Count	MSMS Scan Numbers	MSMS Isotope Indices
-  //evidence//Sequence	Length	Modifications	Modified sequence	Oxidation (M) Probabilities	Oxidation (M) Score Diffs	Acetyl (Protein N-term)	Oxidation (M)	Missed cleavages	Proteins	Leading proteins	Leading razor protein	Type	Raw file	Fraction	Experiment	MS/MS m/z	Charge	m/z	Mass	Resolution	Uncalibrated - Calibrated m/z [ppm]	Uncalibrated - Calibrated m/z [Da]	Mass Error [ppm]	Mass Error [Da]	Uncalibrated Mass Error [ppm]	Uncalibrated Mass Error [Da]	Max intensity m/z 0	Retention time	Retention length	Calibrated retention time	Calibrated retention time start	Calibrated retention time finish	Retention time calibration	Match time difference	Match m/z difference	Match q-value	Match score	Number of data points	Number of scans	Number of isotopic peaks	PIF	Fraction of total spectrum	Base peak fraction	PEP	MS/MS Count	MS/MS Scan Number	Score	Delta score	Combinatorics	Intensity	Reporter intensity 0	Reporter intensity 1	Reporter intensity 2	Reporter intensity 3	Reporter intensity 4	Reporter intensity 5	Reporter intensity 6	Reporter intensity 7	Reporter intensity 8	Reporter intensity 9	Reporter intensity not corrected 0	Reporter intensity not corrected 1	Reporter intensity not corrected 2	Reporter intensity not corrected 3	Reporter intensity not corrected 4	Reporter intensity not corrected 5	Reporter intensity not corrected 6	Reporter intensity not corrected 7	Reporter intensity not corrected 8	Reporter intensity not corrected 9	Reporter intensity count 0	Reporter intensity count 1	Reporter intensity count 2	Reporter intensity count 3	Reporter intensity count 4	Reporter intensity count 5	Reporter intensity count 6	Reporter intensity count 7	Reporter intensity count 8	Reporter intensity count 9	Reporter PIF	Reporter fraction	Reverse	Potential contaminant	id	Protein group IDs	Peptide ID	Mod. peptide ID	MS/MS IDs	Best MS/MS	AIF MS/MS IDs	Oxidation (M) site IDs
+  //evidence//Sequence	Length	Modifications	Modified sequence	Oxidation (M) Probabilities	Oxidation (M) Score Diffs	Acetyl (Protein N-term)	Oxidation (M)	Missed cleavages	Proteins	Leading proteins	Leading razor protein	Type	Raw file	Fraction	Experiment	MS/MS m/z	Charge	m/z	Mass	Resolution	Uncalibrated - Calibrated m/z [ppm]	Uncalibrated - Calibrated m/z [Da]	Mass Error [ppm]	Mass Error [Da]	Uncalibrated Mass Error [ppm]	Uncalibrated Mass Error [Da]	Max intensity m/z 0	Retention time	Retention length	Calibrated retention time	Calibrated retention time start	Calibrated retention time finish	Retention time calibration	Match time difference	Match m/z difference	Match q-value	Match score	Number of data points	Number of scans	Number of isotopic peaks	PIF	Fraction of total spectrum	Base peak fraction	PEP	MS/MS Count	MS/MS Scan Number	Score	Delta score	Combinatorics	Intensity	Reporter intensity 0	Reporter intensity 1	Reporter intensity 2	Reporter intensity 3	Reporter intensity 4	Reporter intensity 5	Reporter intensity 6	Reporter intensity 7	Reporter intensity 8	Reporter intensity 9	Reporter intensity not corrected 0	Reporter intensity not corrected 1	Reporter intensity not corrected 2	Reporter intensity not corrected 3	Reporter intensity not corrected 4	Reporter intensity not corrected 5	Reporter intensity not corrected 6	Reporter intensity not corrected 7	Reporter intensity not corrected 8	Reporter intensity not corrected 9	Reporter intensity count 0	Reporter intensity count 1	Reporter intensity count 2	Reporter intensity count 3	Reporter intensity count 4	Reporter intensity count 5	Reporter intensity count 6	Reporter intensity count 7	Reporter intensity count 8	Reporter intensity count 9	Reporter PIF	Reporter fraction	Reverse	Potential contaminant	id	Protein group IDs	Peptide ID	Mod. key ID	MS/MS IDs	Best MS/MS	AIF MS/MS IDs	Oxidation (M) site IDs
   public static Multimap<SpectrumIdentifier, PeptideMatch> readMaxquant(String mq) throws IOException
   {
     UnimodModificationResolver modResolver = new UnimodModificationResolver();
@@ -778,7 +778,7 @@ public class PsmReaders
     return PSMs.trimByRank(LCMSMS.rank(id_match, "MSGFScore", true, false), lowest_rank);
   }
   // read the output of Percolator *.psms file
-  // PSMId   score   q-value posterior_error_prob    peptide proteinIds
+  // PSMId   score   q-value posterior_error_prob    key proteinIds
   // x-Mouse_Plasma_LIRKO2_13_27Aug12_Lynx_12-06-05-12243    0.98606 0       5.0324e-09      K.VADALANAAGHLDDLPGALSALSDLHAHK.L       145301549
 
   public static Multimap<SpectrumIdentifier, PeptideMatch> readPSMS(String filename, double qval, boolean decoy) throws IOException
@@ -804,7 +804,7 @@ public class PsmReaders
         id.addScanNumber(new Integer(scan));
         run_scan_id.put(run, scan, id);
       }
-      String[] sequences = Strs.split(file.get("peptide"),'.');
+      String[] sequences = Strs.split(file.get("key"),'.');
       PeptideMatch match = new PeptideMatch(sequences[1]);
 
       try
@@ -1168,7 +1168,7 @@ public class PsmReaders
 
     return id_match;
   }
-//  # id, scanNum, RT, mz(data), z, pepMass(denovo), err(data-denovo), ppm(1e6*err/(mz*z)), score, peptide, aaScore,
+//  # id, scanNum, RT, mz(data), z, pepMass(denovo), err(data-denovo), ppm(1e6*err/(mz*z)), score, key, aaScore,
 //  1, 0, 1.1, 419.3200, 2, 836.5848, 0.0407, 48.5, 0.1, PLLLLLR, 1-1-1-1-1-1-32
 //  2, 0, 1.3, 596.7500, 4, 2383.0038, -0.0329, -13.8, 5.3, C(Cam)LC(Cam)MSSPDAWVSDRC(Cam)NRNR, 36-1-1-1-1-1-1-7-1-1-1-1-1-1-1-1-1-7-32
 //  3, 0, 7.6, 1550.4600, 3, 4648.6858, -0.3276, -70.4, 0.0, HGC(Cam)C(Cam)C(Cam)C(Cam)DYKKLFGENRM(O)HC(Cam)C(Cam)C(Cam)NFGQC(Cam)C(Cam)C(Cam)C(Cam)GVTYM(O)K, 3-1-3-1-1-1-1-2-1-1-1-1-1-1-1-1-1-1-1-2-2-2-1-1-1-1-1-1-1-2-1-1-1-9-4
@@ -1265,7 +1265,7 @@ public class PsmReaders
     modmap.put("iTRAQ114 on K", UnimodManager.getModification("iTRAQ4plex114").get());
     modmap.put("methyl ester of D", UnimodManager.getModification("Methyl").get());
     modmap.put("methyl ester of E (duplicate of 17)", UnimodManager.getModification("Methyl").get());
-    modmap.put("methyl ester of peptide c-term (duplicate of 18)", UnimodManager.getModification("Methyl").get());
+    modmap.put("methyl ester of key c-term (duplicate of 18)", UnimodManager.getModification("Methyl").get());
     modmap.put("oxidation of M",         UnimodManager.getModification("Hydroxylation").get());
     modmap.put("oxidation of H", UnimodManager.getModification("Oxidation").get());
     modmap.put("oxidation of W", UnimodManager.getModification("Oxidation").get());
@@ -1464,7 +1464,7 @@ public class PsmReaders
 
 //    return id_match;
   }
-//  scan    charge  spectrum precursor m/z  spectrum neutral mass   peptide mass    delta_cn        sp score        sp rank xcorr score     xcorr rank      b/y ions matched        b/y ions total  distinct matches/spectrum       sequence        cleavage type   protein id      flanking aa     original target sequence
+//  scan    charge  spectrum precursor m/z  spectrum neutral mass   key mass    delta_cn        sp score        sp rank xcorr score     xcorr rank      b/y ions matched        b/y ions total  distinct matches/spectrum       sequence        cleavage type   protein id      flanking aa     original target sequence
 //  10254   2       300.175 598.335 598.344 0.0402319       15.4584 1       0.188466        1       2       10      1       PNAVAK  trypsin/p-full-digest   gi|253772588|ref|YP_003035419.1|(12)    KN      PNAVAK
 //  10254   2       300.175 598.335 598.344 0       15.4584 2       0.148234        2       2       10      1       PANAVK  trypsin/p-full-digest   decoy_gi|253772588|ref|YP_003035419.1|(12)      KN      PNAVAK
 // TODO to be completed
@@ -1538,7 +1538,7 @@ public class PsmReaders
       // add as much information to the match as possible
       match.setNeutralPeptideMass(p.getMolecularMass());
 //      match.setMassDiff(match.getNeutralPeptideMass() - p.getMolecularMass());
-      match.setMassDiff(file.getDouble("spectrum neutral mass") - file.getDouble("peptide mass"));
+      match.setMassDiff(file.getDouble("spectrum neutral mass") - file.getDouble("key mass"));
 
       PSMs.addScore(match, "^Charge", file.getInt("charge"));
 
@@ -1565,7 +1565,7 @@ public class PsmReaders
       matches.clear();
       for (PeptideMatch m : readers.getResultMap().get(id))
       {
-        // fix the absence of the neutral peptide mass
+        // fix the absence of the neutral key mass
         try
         {
           // provoke the call which will throw the exception if the value is absent

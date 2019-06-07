@@ -46,7 +46,7 @@ public class SpLibs
       byte[] b = HBasePeakList.toBytes(test);
       HBasePeakList test2 = HBasePeakList.fromBytes(b);
       PeakList peak2 = test2.toPeakList();
-      Peptide peptide = spec.getPeptide();
+      Peptide key = spec.getPeptide();
 */
     }
     return spectra;

@@ -50,7 +50,7 @@ public class PsiStdTest extends TestAbstract
   {
     String data = "/Users/yuw/Documents/Data/Joslin/PSMs/default/Mouse_Plasma_LIRKO2_24_27Aug12_Lynx_12-07-02.omssa.csv";
 
-    // produce a list of peptide matches
+    // produce a list of key matches
     Multimap<SpectrumIdentifier, PeptideMatch> spec_match = Engine.OMSSA.readPSMs(data, 1);
 
     // a basic setup to write out an mzID file from a set of PeptideMatches

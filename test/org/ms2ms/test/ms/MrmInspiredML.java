@@ -70,7 +70,7 @@ public class MrmInspiredML extends TestAbstract
   }
   public void vtestQueryBySignature() throws Exception
   {
-    // YSVFFQSLAVVEQEMK, a high quality peptide ID with high background, in the library
+    // YSVFFQSLAVVEQEMK, a high quality key ID with high background, in the library
     //List<MsIon> signatures = MsIon_Util.setCharge(newSignatureFromMsMsSpectrum(conn, 68568244L), 0);
     //List<MsIon> signatures = MsIon_Util.setCharge(newSignatureFromMsMsSpectrum(conn, 68539694L), 0);
     //List<MsIon> signatures = MsIon_Util.setCharge(newSignatureFromMsMsSpectrum(conn, 68563004L), 0);
@@ -91,7 +91,7 @@ public class MrmInspiredML extends TestAbstract
   }
   public void vtestModQueryBySignature() throws Exception
   {
-    // IEDVGsDEEDDSGK, a high quality peptide ID with high background, in the library
+    // IEDVGsDEEDDSGK, a high quality key ID with high background, in the library
     List<MsIon> signatures = MsIon_Util.setCharge(newSignatureFromMsMsSpectrum(conn, 76547545L), 0);
 
     for (MsIon ion : signatures)
@@ -106,7 +106,7 @@ public class MrmInspiredML extends TestAbstract
     mimp = randomQuery(mimp, signatures, 6, new MsMsPeak(787.8, 0d, 2), new Random(System.nanoTime()));
     mimp.announce("", 25, 10d);
   }
-  // starting a list of peptide ids that are known to exist in the library, test for the recovery
+  // starting a list of key ids that are known to exist in the library, test for the recovery
   public void vtestBayesianProphetWithPeptideIDs() throws Exception
   {
     Collection<Long> msids = Spectre_MsMsSpectrum.getRowIdsAnnotatedForAnalysisRun(conn, 59885L, 2, 5d, new Range<Double>(0d, 670d));
@@ -349,22 +349,22 @@ public class MrmInspiredML extends TestAbstract
     Histogram deltas = new Histogram();
 
     int order = 0;
-    for (MsMsAssignment peptide : peptides)
+    for (MsMsAssignment key : peptides)
     {
-      //System.out.println(">>" + peptide.getAssignment().toString());
-      if (!Toolbox.isSet(peptide.getMsMs().getRawData()))
+      //System.out.println(">>" + key.getAssignment().toString());
+      if (!Toolbox.isSet(key.getMsMs().getRawData()))
       {
-        Spectre_MsMsSpectrum row = Spectre_MsMsSpectrum.row(conn, peptide.getMsMs().getPrimaryKey(), MsMsSpectrumRetrievalFlags.ASSIGNMENT_ION);
+        Spectre_MsMsSpectrum row = Spectre_MsMsSpectrum.row(conn, key.getMsMs().getPrimaryKey(), MsMsSpectrumRetrievalFlags.ASSIGNMENT_ION);
         row.getPeptideAssignment().matchToSpectrum(conn, row.getRawSpectrum(), 0.5f, true);
-        peptide.getMsMs().setData(row.getRawSpectrum().getData());
-        //peptide.setMsMs(row.toMsMsAssignment().getMsMs());
+        key.getMsMs().setData(row.getRawSpectrum().getData());
+        //key.setMsMs(row.toMsMsAssignment().getMsMs());
       }
-      List<MsIon> signatures = MimpCore.extractSignatureFragments(peptide, min_snr, 50d, 7);
+      List<MsIon> signatures = MimpCore.extractSignatureFragments(key, min_snr, 50d, 7);
       mimp = randomQuery(mimp, MsIon_Util.setCharge(signatures, 0), sample,
-        use_precursor && peptide.getMsMs() != null ? peptide.getMsMs().getPrecursor() : null, rand);
+        use_precursor && key.getMsMs() != null ? key.getMsMs().getPrecursor() : null, rand);
 
       Map<PeptideHit, MsMsAssignment> candidates = mimp.fdr(10, min_snr);
-      //boolean matched = mimp.isMatch(candidates, 10d, match ? peptide.getAssignment() : null, 1, Math.log(1));
+      //boolean matched = mimp.isMatch(candidates, 10d, match ? key.getAssignment() : null, 1, Math.log(1));
       boolean matched = mimp.isMatch(candidates, 10d, 1, Math.log(1));
       if (matched) stats.A_cnt++; else stats.B_cnt++;
 
@@ -372,21 +372,21 @@ public class MrmInspiredML extends TestAbstract
       {
         //System.out.println(Mimp.sMessage.toString());
         System.out.println();
-        System.out.println(Wiki_Util.newMsMsWiki(peptide.getMsMs().getName() + ": " + peptide.getConcensusSize() + " votes @ " + peptide.getAssignment().getErrorPct() + "%", null, peptide.getMsMs().getPrimaryKey()));
+        System.out.println(Wiki_Util.newMsMsWiki(key.getMsMs().getName() + ": " + key.getConcensusSize() + " votes @ " + key.getAssignment().getErrorPct() + "%", null, key.getMsMs().getPrimaryKey()));
         for (MsIon ion : signatures)
         {
           boolean used = mimp.getFragmentMzs().values().contains(ion);
           System.out.print((used ? "*" : "") + Toolbox.d2s(ion.getMz(), 3) + "/" + Toolbox.d2s(ion.getIntensity(), 0) + (used ? "*" : "") + "; ");
         }
         System.out.println();
-        mimp.announce(peptide.getAssignment().toString(), candidates);
+        mimp.announce(key.getAssignment().toString(), candidates);
         System.out.println("hit/miss: " + stats.A_cnt + "/" + stats.B_cnt);
       }
       if (Toolbox.isSet(candidates))
       {
         PeptideHit top = Toolbox.front(candidates.keySet());
-        if (top != null && peptide != null)
-          if (Toolbox.equals(top.getSequence(), peptide.getAssignment().getSequence()) == match) deltas.add(top.getScoreDelta());
+        if (top != null && key != null)
+          if (Toolbox.equals(top.getSequence(), key.getAssignment().getSequence()) == match) deltas.add(top.getScoreDelta());
       }
       Mimp.sMessage = new StringBuffer();
 
@@ -413,19 +413,19 @@ public class MrmInspiredML extends TestAbstract
     System.out.println("with sample=" + sample + (rand != null ? " randomly selected fragments." : "most intensed fragments by SNR."));
 
     int order = 0, found = 0, unfound = 0;
-    for (MsMsAssignment peptide : peptides)
+    for (MsMsAssignment key : peptides)
     {
-      //System.out.println(">>" + peptide.getAssignment().toString());
+      //System.out.println(">>" + key.getAssignment().toString());
       Spectre_MsMsSpectrum row = null;
-      if (!Toolbox.isSet(peptide.getMsMs().getRawData()))
+      if (!Toolbox.isSet(key.getMsMs().getRawData()))
       {
-        row = Spectre_MsMsSpectrum.row(conn, peptide.getMsMs().getPrimaryKey(), MsMsSpectrumRetrievalFlags.ASSIGNMENT_ION);
+        row = Spectre_MsMsSpectrum.row(conn, key.getMsMs().getPrimaryKey(), MsMsSpectrumRetrievalFlags.ASSIGNMENT_ION);
         row.getPeptideAssignment().matchToSpectrum(conn, row.getRawSpectrum(), 0.5f, true);
-        peptide.getMsMs().setData(row.getRawSpectrum().getData());
+        key.getMsMs().setData(row.getRawSpectrum().getData());
       }
-      List<MsIon> signatures = MimpCore.extractSignatureFragments(peptide, min_snr, half_width, tops);
+      List<MsIon> signatures = MimpCore.extractSignatureFragments(key, min_snr, half_width, tops);
       mimp = randomQuery(mimp, MsIon_Util.setCharge(signatures, 0), sample,
-        use_precursor && peptide.getMsMs() != null ? peptide.getMsMs().getPrecursor() : null, rand);
+        use_precursor && key.getMsMs() != null ? key.getMsMs().getPrecursor() : null, rand);
 
       Map<PeptideHit, MsMsAssignment> candidates = mimp.fdr(10, min_snr);
 
@@ -437,7 +437,7 @@ public class MrmInspiredML extends TestAbstract
         if (matched) stat.A_cnt++; else stat.B_cnt++;
 
       // record the counts
-      if (peptide.is(Candidate.eVerdict.ref))
+      if (key.is(Candidate.eVerdict.ref))
         if (matched) stat.ref_assigned_cnt++; else
         {
           stat.ref_missed_cnt++;
@@ -445,7 +445,7 @@ public class MrmInspiredML extends TestAbstract
             top_ranked.getScore() != null && top_ranked.getScore() > 15)
           {
             System.out.println("\nh4. False Negative with delta < 1, score > 15: ");
-            message(mimp, signatures, peptide, candidates);
+            message(mimp, signatures, key, candidates);
           }
         }
       else
@@ -456,7 +456,7 @@ public class MrmInspiredML extends TestAbstract
           if (top_ranked != null && top_ranked.getScoreDelta() != null && top_ranked.getScoreDelta() > 10)
           {
             System.out.println("\nh4. False Positive with delta > 10: ");
-            message(mimp, signatures, peptide, candidates);
+            message(mimp, signatures, key, candidates);
           }
         }
         else stat.decoy_missed_cnt++;
@@ -464,7 +464,7 @@ public class MrmInspiredML extends TestAbstract
 
       if (top_ranked != null)
       {
-        if (peptide.is(Candidate.eVerdict.ref))
+        if (key.is(Candidate.eVerdict.ref))
         {
           if (top_ranked.getScoreDelta() != null) prophet.addPositive(top_ranked.getScoreDelta());
           scores.addPositive(top_ranked.getScore());
@@ -484,7 +484,7 @@ public class MrmInspiredML extends TestAbstract
       Toolbox.dispose(row);
       Toolbox.dispose(candidates);
       Toolbox.dispose(signatures);
-      //Toolbox.dispose(peptide.getMsMs().getRawData());
+      //Toolbox.dispose(key.getMsMs().getRawData());
 
       if (++order % 100   == 0) System.out.print(".");
     }
@@ -504,18 +504,18 @@ public class MrmInspiredML extends TestAbstract
 
     return prophet;
   }
-  private static void message(Mimp mimp, List<MsIon> signatures, MsMsAssignment peptide, Map<PeptideHit, MsMsAssignment> candidates)
+  private static void message(Mimp mimp, List<MsIon> signatures, MsMsAssignment key, Map<PeptideHit, MsMsAssignment> candidates)
   {
     //System.out.println(Mimp.sMessage.toString());
     System.out.println("\n" + signatures.size());
-    System.out.println(Wiki_Util.newMsMsWiki(peptide.getMsMs().getName() + ": " + peptide.getConcensusSize() + " votes @ " + peptide.getAssignment().getErrorPct() + "%", null, peptide.getMsMs().getPrimaryKey()));
+    System.out.println(Wiki_Util.newMsMsWiki(key.getMsMs().getName() + ": " + key.getConcensusSize() + " votes @ " + key.getAssignment().getErrorPct() + "%", null, key.getMsMs().getPrimaryKey()));
     for (MsIon ion : signatures)
     {
       boolean used = mimp.getFragmentMzs().values().contains(ion);
       System.out.print((used ? "*" : "") + Toolbox.d2s(ion.getMz(), 3) + "/" + Toolbox.d2s(ion.getIntensity(), 0) + (used ? "*" : "") + "; ");
     }
     System.out.println();
-    mimp.announce("+" + peptide.getAssignment().getCharge() + ", " + peptide.getAssignment().toString(), candidates);
+    mimp.announce("+" + key.getAssignment().getCharge() + ", " + key.getAssignment().toString(), candidates);
   }
   public static void newRepoFromProteinMatrix(Connection conn, String matrix, String libname, int row_limit) throws Exception
   {

@@ -44,7 +44,7 @@ public class LcMsMsFeatures implements Binary
   public static final String COL_AI_APEX    = "intensityApex";
   public static final String COL_AI_AREA    = "intensitySum";
   public static final String COL_SEQ        = "sequence";
-  public static final String COL_PEPTIDE    = "peptide";
+  public static final String COL_PEPTIDE    = "key";
   public static final String COL_PROT       = "protein";
   public static final String COL_MOD        = "mods";
   public static final String COL_PSMID      = "psmID";
@@ -70,7 +70,7 @@ public class LcMsMsFeatures implements Binary
 
   private Collection<Pattern> mRunFilters;
 
-  // assemble the protein and peptide matches
+  // assemble the protein and key matches
   private Map<String, ProteinID> mProteinIDs;
   private Table<PeptideMatch, String, Features> mPeptideRunFeatures;
   private Table<String, String, Features> mSampleProperties;
@@ -215,7 +215,7 @@ public class LcMsMsFeatures implements Binary
       // Retention time  Retention length        Calibrated retention time       Calibrated retention time start Calibrated retention time finish        Retention time calibration
       // Match time difference  Match m/z difference    Match q-value   Match score     Number of data points   Number of scans Number of isotopic peaks        PIF
       // Fraction of total spectrum      Base peak fraction      PEP     MS/MS count     MS/MS scan number       Score   Delta score     Combinatorics   Intensity
-      // Reverse Potential contaminant   id      Protein group IDs       Peptide ID      Mod. peptide ID MS/MS IDs       Best MS/MS      AIF MS/MS IDs   Deamidation (NQ) site IDs
+      // Reverse Potential contaminant   id      Protein group IDs       Peptide ID      Mod. key ID MS/MS IDs       Best MS/MS      AIF MS/MS IDs   Deamidation (NQ) site IDs
       // Oxidation (M) site IDs
 
       // add the features
@@ -482,12 +482,12 @@ public class LcMsMsFeatures implements Binary
 
   public Dataframe toPeptideExptMatrix()
   {
-    Dataframe df = new Dataframe("peptide-charge vs experiment matrix");
-    // going thro each peptide features
+    Dataframe df = new Dataframe("key-charge vs experiment matrix");
+    // going thro each key features
     for (PeptideFeature F : getPeptideExptAI().rowKeySet())
     {
       String row = F.getTitle()+"z"+F.getCharge()+","+Tools.d2s(F.getRT(), 3)+"sec";
-      // put in the peptide cols
+      // put in the key cols
       df.put(row, "Peptide",   F.getTitle());
       df.put(row, "Sequence",  F.toSymbolString());
       df.put(row, "PSMs",      F.getMatches().size());
@@ -505,12 +505,12 @@ public class LcMsMsFeatures implements Binary
   }
   public Dataframe toProteinExptMatrix()
   {
-    // let's build the protein-peptide groups
+    // let's build the protein-key groups
     Multimap<ProteinID, PeptideFeature> protein_peptide = HashMultimap.create();
     for (PeptideFeature F : getPeptideExptAI().rowKeySet()) protein_peptide.put(F.getProteinID(), F);
 
     Dataframe df = new Dataframe("protein vs experiment matrix");
-    // going thro each peptide features
+    // going thro each key features
     for (ProteinID pid : protein_peptide.keySet())
     {
       String row = pid.toString();
@@ -606,7 +606,7 @@ public class LcMsMsFeatures implements Binary
     Double avg = Stats.mean(nums); nums=Tools.dispose(nums);
     return avg;
   }
-  // collapse the PSMs to single representation per peptide (with mod)
+  // collapse the PSMs to single representation per key (with mod)
   public Multimap<String, Double> toPeptideRt(double contrast, String... mods)
   {
     if (!Tools.isSet(getIons())) return null;
@@ -618,7 +618,7 @@ public class LcMsMsFeatures implements Binary
         if (IsExpectedMaxQuantMods(F.getStr(COL_MOD), mods))
           peptides.put(F.getStr(COL_PEPTIDE), F.getInt(COL_Z), F);
 
-    // use only one peptide/charge per feature
+    // use only one key/charge per feature
     Collection<Features> DQ = new ArrayList<>();
     for (String peptide : peptides.keySet())
       for (Integer z : peptides.row(peptide).keySet())
@@ -743,7 +743,7 @@ public class LcMsMsFeatures implements Binary
 //    private Table<PeptideFeature, String, Float>      mPeptideExptAI;;
 //    private Multimap<String, String>                  mExptRun;
 //
-//    // assemble the protein and peptide matches
+//    // assemble the protein and key matches
 //    private Map<String, ProteinID> mProteinIDs;
 //    private Table<PeptideMatch, String, Features> mPeptideRunFeatures;
 //    private Table<String, String, Features> mSampleProperties;

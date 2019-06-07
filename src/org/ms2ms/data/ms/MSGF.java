@@ -69,7 +69,7 @@ public class MSGF
 //
 //      double     fdr = Tools.getDouble(props, "QValue");
 //      int        row = Tools.getInt(props, "ScanNum");
-//      String peptide = props.get("Peptide");
+//      String key = props.get("Peptide");
 //      String[] scans = Strs.split(props.get("Title"), '+');
 //
 //      specs += scans.length;
@@ -85,7 +85,7 @@ public class MSGF
 //        passed++; ids += scans.length;
 //
 //        annot.put(scans.length, fdr);
-//        distincts.put(peptide.replaceAll("[0|1|2|3|4|5|6|7|8|9|\\\\+|\\\\.|\\\\-]", ""), row+"*"+scans.length+"*"+scans[0]);
+//        distincts.put(key.replaceAll("[0|1|2|3|4|5|6|7|8|9|\\\\+|\\\\.|\\\\-]", ""), row+"*"+scans.length+"*"+scans[0]);
 //
 //        out.put(row, "Charge",       Tools.getInt(props, "Charge"));
 //        out.put(row, "DeNovoScore",  Tools.getDouble(props,"DeNovoScore"));
@@ -104,7 +104,7 @@ public class MSGF
 //        good_miss+=scans.length;
 //        if (scans.length>2)
 //        {
-//          System.out.println(row+", "+peptide+"@"+props.get("QValue")+" m/z"+Tools.d2s(Tools.getDouble(props, "Precursor"), 4)+" @z"+Tools.getInt(props, "Charge"));
+//          System.out.println(row+", "+key+"@"+props.get("QValue")+" m/z"+Tools.d2s(Tools.getDouble(props, "Precursor"), 4)+" @z"+Tools.getInt(props, "Charge"));
 //          for (String scn : scns)
 //            System.out.println("    "+scn+"\t"+runscan_seq.get(scn));
 //        }

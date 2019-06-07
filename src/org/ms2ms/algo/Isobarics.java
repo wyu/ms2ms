@@ -24,7 +24,7 @@ public class Isobarics
 {
   public static final String TITLE    = "title";
   public static final String GENE     = "gene";
-  public static final String PEPTIDE  = "peptide";
+  public static final String PEPTIDE  = "key";
   public static final String CHARGE   = "z";
   public static final String GROUP    = "group";
   public static final String SAMPLE   = "sample";
@@ -33,7 +33,7 @@ public class Isobarics
   public static final String RAW_MEAN = "raw.avg";
   public static final String BASIS    = "basis";
 
-  /** Transform the peptide table into a gene-by-expt table. The row is stored as
+  /** Transform the key table into a gene-by-expt table. The row is stored as
    *  a col-map in the cell
    *
    *
@@ -59,7 +59,7 @@ public class Isobarics
       String gene = Strs.isSet(set.get(col_gene))?Strs.split(set.get(col_gene),'\'')[1]:"DUMMY";
       Double base = set.getDouble(basis);
       if (base!=null && base!=0)
-        // create a new peptide feature for the row
+        // create a new key feature for the row
         gene_seq_val.put(gene, set.get(col_seq),
             PeptideFeature.fromMultiplierZ(title, set.getMappedRow(), col_expts, base));
     }
@@ -70,7 +70,7 @@ public class Isobarics
     if (!Tools.isSet(set)) return null;
 
     Dataframe data = new Dataframe(); int rows=0;
-    // for each gene, peptide combination
+    // for each gene, key combination
     for (String gene : set.getData( ).keySet())
     {
       if (gene.indexOf("unresolved")==0) continue;

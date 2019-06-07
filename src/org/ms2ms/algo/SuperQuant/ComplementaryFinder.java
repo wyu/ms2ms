@@ -25,7 +25,7 @@ public class ComplementaryFinder
 /*
   [IntSelectionParameter(
   Category = "1. Spectrum extraction",
-  DisplayName = "Secondary peptide charge",
+  DisplayName = "Secondary key charge",
   Description = "Possible charge states of secondary peptides",
   SelectionValues = new int[] { 1, 2, 3, 4, 5, 6, 7, 8 },
   DefaultValue = "2, 3, 4",

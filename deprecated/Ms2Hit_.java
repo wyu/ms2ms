@@ -344,7 +344,7 @@ public class Ms2Hit_ implements Comparable<Ms2Hit_>, Disposable
   // "blocks" is a dictionary of AA combination to be considered as building blocks
   public List<Integer> hashcodeByIntervals(float[] AAs, OffsetPpmTolerance tolerance, Range<Integer> isotopeErr, float deci, TreeMultimap<Float, String> blocks)
   {
-    // everything is built on the peptide sequence
+    // everything is built on the key sequence
     if (!Strs.isSet(getSequence())) return null;
 
     // populate the calculate MH if necessary

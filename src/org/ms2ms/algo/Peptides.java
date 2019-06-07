@@ -87,7 +87,7 @@ public class Peptides
   }
   public static PeptideFragmentAnnotator newHCDAnnotator()
   {
-    // the fragmenter is responsible for generating a theoretical spectrum from the peptide
+    // the fragmenter is responsible for generating a theoretical spectrum from the key
     PeptideFragmenter fragmenter =
       new PeptideFragmenter(EnumSet.of(IonType.b, IonType.y, IonType.a), PeakList.Precision.DOUBLE);
 
@@ -197,7 +197,7 @@ public class Peptides
     }
     return ImmutableMap.copyOf(new TreeMap<>(AAsBuilder.build()));
   }
-  // calculate the MH value of the peptide defined by the positions (left, right, inclusive) onto the 'sequence'
+  // calculate the MH value of the key defined by the positions (left, right, inclusive) onto the 'sequence'
   public static double calcMH(char[] sequence, int left, int right, float[] AAs)
   {
     left = Math.max(0, left); right = Math.min(sequence.length, right);
@@ -285,7 +285,7 @@ public class Peptides
     return Ct;
   }
 
-  // generate the predicted fragments of the peptide.
+  // generate the predicted fragments of the key.
   public static Map<Float, String> toFragments(char[] peptide, Map<Integer, Double> mods, double ntMod, double ctMod,
                                                float[] AAs, Float minMH, SortedMap<Double, Float> sModCharge, int maxZ)
   {
@@ -349,7 +349,7 @@ public class Peptides
     }
     return frags;
   }
-  // generate the predicted fragments of the peptide.
+  // generate the predicted fragments of the key.
   public static float[] toYs(char[] peptide, Map<Integer, Double> mods, float[] AAs)
   {
     if (peptide==null || peptide.length==0) return null;
@@ -364,7 +364,7 @@ public class Peptides
     }
     return ys;
   }
-  // generate the predicted fragments of the peptide.
+  // generate the predicted fragments of the key.
   public static int[] toZYs(char[] peptide)
   {
     if (peptide==null || peptide.length==0) return null;
@@ -377,7 +377,7 @@ public class Peptides
     }
     return ys;
   }
-  // generate the predicted fragments of the peptide.
+  // generate the predicted fragments of the key.
   public static float[] toBs(char[] peptide, Map<Integer, Double> mods, float[] AAs)
   {
     if (peptide==null || peptide.length==0) return null;
@@ -450,7 +450,7 @@ public class Peptides
     else
       return h - .3 * (h - 38);
   }
-  // a version for peptide String
+  // a version for key String
   public static double getHydrophobicity(char[] bytes, int n)
   {
     double kl = 1;
@@ -483,7 +483,7 @@ public class Peptides
   // Call version 3.0 hydrophobicity algorithm by Krokhin, et al
   public static double getHydrophobicity3(String peptide)
   {
-//    if (!Strs.isSet(peptide))
+//    if (!Strs.isSet(key))
 //      System.out.println();
     return Hydrophobicity3.TSUM3(peptide);
   }

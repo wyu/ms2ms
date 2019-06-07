@@ -55,7 +55,7 @@ public class Hydrophobicity3
     char AA;                     //amino acid residue owning these parameters
     //Retention Factors
     public double RC, RC1, RC2, RCN, RCN2;
-    //Short peptide retention factors
+    //Short key retention factors
     public double RCS, RC1S, RC2S, RCNS, RCN2S;
 
     public double UndKRH;               //Factors for aa's near undigested KRH
@@ -557,10 +557,10 @@ public class Hydrophobicity3
   private static final int ALGORITHM_VERSION = 3;
 
   // Length Scaling length limits and scaling factors
-  private static double LPLim = 20;            // long peptide lower length limit
-  private static double SPLim = 8;             // short peptide upper length limit
-  private static double LPSFac = 0.0270;    // long peptide scaling factor
-  private static double SPSFac = -0.055;    // short peptide scaling factor
+  private static double LPLim = 20;            // long key lower length limit
+  private static double SPLim = 8;             // short key upper length limit
+  private static double LPSFac = 0.0270;    // long key scaling factor
+  private static double SPSFac = -0.055;    // short key scaling factor
 
   // UnDigested (missed cuts) scaling Factors
   private static double	 UDF21=0.0, UDF22=0.0;    // rightmost
@@ -711,8 +711,8 @@ public class Hydrophobicity3
     // Core summation
 
     sze = sq3.length();
-    if(sze < 4) return tsum3;           // peptide is too short ot have any retention
-    if(sze < 10) {                      // short peptides use short peptide retention weights
+    if(sze < 4) return tsum3;           // key is too short ot have any retention
+    if(sze < 10) {                      // short peptides use short key retention weights
       tsum3 =
           AAPARAMS.get(sq3.charAt(0)).RC1S +        // Sum weights for 1st
               AAPARAMS.get(sq3.charAt(1)).RC2S +        // second,
@@ -775,9 +775,9 @@ public class Hydrophobicity3
     int i, sze=sq.length();
 
     // Core summation
-    if(sze < 4) return rt;           // peptide is too short ot have any retention
+    if(sze < 4) return rt;           // key is too short ot have any retention
     // the G factor?
-    if(sze < 10) {                      // short peptides use short peptide retention weights
+    if(sze < 10) {                      // short peptides use short key retention weights
       rt =
           AAPARAMS.get(sq.charAt(0)).RC1S +        // Sum weights for 1st
           AAPARAMS.get(sq.charAt(1)).RC2S +        // second,

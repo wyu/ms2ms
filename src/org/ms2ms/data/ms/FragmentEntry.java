@@ -15,10 +15,10 @@ import java.io.IOException;
  */
 public class FragmentEntry implements Comparable<FragmentEntry>, Disposable, Binary
 {
-  private char  mCharge=1;
-  private int   mLength;
-  private int   mPeptideKey;
-  private float mMH;
+  protected char  mCharge=1;
+  protected int   mLength;
+  protected int   mPeptideKey;
+  protected float mMH;
   private FragmentEntry mPrev;
 
   public FragmentEntry() { super(); }
@@ -91,7 +91,7 @@ public class FragmentEntry implements Comparable<FragmentEntry>, Disposable, Bin
     IOs.write(ds, mPeptideKey);
     IOs.write(ds, mMH);
     // can't write the actual object. to avoid recursive
-    // write the peptide seq key and MH so we can hook up the right frag at later time
+    // write the key seq key and MH so we can hook up the right frag at later time
     IOs.write(ds, mPrev!=null?mPrev.mMH:0f);
   }
 

@@ -282,7 +282,7 @@ public class LCMSMS
     }
     return null;
   }
-  // check the protein sequences to see if any peptide is a match
+  // check the protein sequences to see if any key is a match
   public static Multimap<String, PeptideMatch> byProteinSequence(Collection<String> sequences, Collection<PeptideMatch>... hits)
   {
     if (!Tools.isSet(hits) || !Tools.isSet(hits[0])) return null;

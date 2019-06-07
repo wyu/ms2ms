@@ -152,7 +152,7 @@ public class MaxQuantTest extends TestAbstract
       analysisSummaryCv.setValue("true");
       analysisSummary.getParamGroup().add(analysisSummaryCv);
 
-      analysisSummaryCv = createCvParam("label-free peptide level quantitation", "PSI-MS", "MS:1002020");
+      analysisSummaryCv = createCvParam("label-free key level quantitation", "PSI-MS", "MS:1002020");
       analysisSummaryCv.setValue("true");
       analysisSummary.getParamGroup().add(analysisSummaryCv);
 
@@ -170,7 +170,7 @@ public class MaxQuantTest extends TestAbstract
       analysisSummaryCv.setValue("true");
       analysisSummary.getParamGroup().add(analysisSummaryCv);
 
-      analysisSummaryCv = createCvParam("MS1 label-based peptide level quantitation", "PSI-MS", "MS:1002002");
+      analysisSummaryCv = createCvParam("MS1 label-based key level quantitation", "PSI-MS", "MS:1002002");
       analysisSummaryCv.setValue("true");
       analysisSummary.getParamGroup().add(analysisSummaryCv);
 
@@ -470,7 +470,7 @@ public class MaxQuantTest extends TestAbstract
             peptideConsensus.setId(pepId);
             peptideConsensus.setPeptideSequence(pepSeq);
 
-            // avoid duplicate peptide existing in one protein
+            // avoid duplicate key existing in one protein
             if (!pepIds.contains(pepId)) {
               peptideConsensusRefList.add(peptideConsensus);
               pepIds.add(pepId);
@@ -581,7 +581,7 @@ public class MaxQuantTest extends TestAbstract
       QuantLayer assayQL_prot_uniqpep = new QuantLayer();
       assayQL_prot_uniqpep.setId("Prot_Assay_QL2");
       CvParamRef cvParamRef_prot_uniqpep = new CvParamRef();
-      cvParamRef_prot_uniqpep.setCvParam(createCvParam("MaxQuant:peptide counts (unique)", "PSI-MS", "MS:1001897"));
+      cvParamRef_prot_uniqpep.setCvParam(createCvParam("MaxQuant:key counts (unique)", "PSI-MS", "MS:1001897"));
       assayQL_prot_uniqpep.setDataType(cvParamRef_prot_uniqpep);
 
       iAss = maxRd.getAssayList().iterator();
@@ -674,7 +674,7 @@ public class MaxQuantTest extends TestAbstract
         String ftId = "ft_" + key;
         feature.setId(ftId);
 
-        // create peptide sequence to feture HashMap: peptideFeaturesMap
+        // create key sequence to feture HashMap: peptideFeaturesMap
         String pepSeq = value.get(0);
         if (pepSeq != null) {
           ArrayList<Feature> fList = peptideFeaturesMap.get(pepSeq);
@@ -687,7 +687,7 @@ public class MaxQuantTest extends TestAbstract
 
         String rgId = "rg_" + rawFileNameIdMap.get(rfn + ".raw").substring(4);
 
-        // create peptide sequence to assay id HashMap: peptideAssaysMap
+        // create key sequence to assay id HashMap: peptideAssaysMap
         String assayId = assayNameIdMap.get(rfn);
         if (pepSeq != null) {
           ArrayList<String> aList = peptideAssaysMap.get(pepSeq);
@@ -796,7 +796,7 @@ public class MaxQuantTest extends TestAbstract
         String ftId_H = "ft_" + key_H;
         feature_H.setId(ftId_H);
 
-        // create peptide sequence to feture HashMap: peptideFeaturesMap
+        // create key sequence to feture HashMap: peptideFeaturesMap
         String pepSeq = value.get(0);
         if (pepSeq != null) {
           ArrayList<Feature> fList = peptideFeaturesMap.get(pepSeq);
@@ -902,7 +902,7 @@ public class MaxQuantTest extends TestAbstract
     List<PeptideConsensus> peptideList = peptideConsensuses.getPeptideConsensus();
 
     Iterator iPep = maxRd.getPeptideList().iterator();
-    // peptide feature id map
+    // key feature id map
     HashMap<String, ArrayList<String>> peptideFeatureIdsMap = (HashMap<String, ArrayList<String>> )maxRd.getPeptideEvidenceIdsMap();
 
     DataMatrix pep_IntDM = new DataMatrix();

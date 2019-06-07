@@ -276,14 +276,14 @@ public class MsfReader
 //            abstractParam = new CvParam();
 //            ((CvParam)abstractParam).setAccession("MS:1002322");
 //            ((CvParam)abstractParam).setCv(MzIdentMLTools.getCvPSIMS());
-//            abstractParam.setName("ProteomeDiscoverer:min peptide length");
+//            abstractParam.setName("ProteomeDiscoverer:min key length");
 //            abstractParam.setValue(processingNodeParams.getParameterValue());
 //            additionalSearchParams.getCvParam().add((CvParam)abstractParam);
 //          } else if (paramName.equals("MaximumPeptideLength")) {
 //            abstractParam = new CvParam();
 //            ((CvParam)abstractParam).setAccession("MS:1002323");
 //            ((CvParam)abstractParam).setCv(MzIdentMLTools.getCvPSIMS());
-//            abstractParam.setName("ProteomeDiscoverer:max peptide length");
+//            abstractParam.setName("ProteomeDiscoverer:max key length");
 //            abstractParam.setValue(processingNodeParams.getParameterValue());
 //            additionalSearchParams.getCvParam().add((CvParam)abstractParam);
 //          } else {
@@ -454,7 +454,7 @@ public class MsfReader
 //
 //
 //    // parse the peptides
-//    logger.info("get peptide info...");
+//    logger.info("get key info...");
 //    Collection<Object> peptides = Peptides.getObjectMap(fileConnectionParams, Peptides.class).values();
 //    logger.info("#peptides: " + peptides.size());
 //
@@ -525,8 +525,8 @@ public class MsfReader
 //    logger.info("#peptides associated to sores: " + peptidesScores.size());
 //
 //    long emptyPSMs = 0;
-//    for (Object peptide : peptides) {
-//      if (parsePSM(peptide, false, spectraMap, massPeakMap, fileMap,
+//    for (Object key : peptides) {
+//      if (parsePSM(key, false, spectraMap, massPeakMap, fileMap,
 //          peptidesProteins, peptidesScores, peptidesModifications, terminalModifications,
 //          aminoAcidMap, sequencesMap, annotationsMap, scoresMap,
 //          compiler,
@@ -538,7 +538,7 @@ public class MsfReader
 //
 //
 //    // parse the decoy peptides
-//    logger.info("get decoy peptide info...");
+//    logger.info("get decoy key info...");
 //    peptides = Peptides_decoy.getObjectMap(fileConnectionParams, Peptides_decoy.class).values();
 //    logger.info("#decoy peptides: " + peptides.size());
 //
@@ -606,8 +606,8 @@ public class MsfReader
 //      }
 //      logger.info("#decoy peptides associated to sores: " + peptidesScores.size());
 //
-//      for (Object peptide : peptides) {
-//        if (parsePSM(peptide, true, spectraMap, massPeakMap, fileMap,
+//      for (Object key : peptides) {
+//        if (parsePSM(key, true, spectraMap, massPeakMap, fileMap,
 //            peptidesProteins, peptidesScores, peptidesModifications, terminalModifications,
 //            aminoAcidMap, sequencesMap, annotationsMap, scoresMap,
 //            compiler,
@@ -857,7 +857,7 @@ public class MsfReader
 
 
   /**
-   * Creates and adds an {@link PeptideSpectrumMatch} from an peptide entry in
+   * Creates and adds an {@link PeptideSpectrumMatch} from an key entry in
    * the MSF file.
    */
   private static PeptideSpectrumMatch parsePSM(Object peptideObject,
@@ -882,7 +882,7 @@ public class MsfReader
     APeptides peptide = (APeptides)peptideObject;
 
     if (!peptidesProteins.containsKey(peptide.getPeptideID())) {
-      // there is no protein information for the peptide! PD does these things...
+      // there is no protein information for the key! PD does these things...
       // for now: do not include these PSMs
       // TODO: find some better solution
       return null;
@@ -896,7 +896,7 @@ public class MsfReader
     double precursorMZ = PIATools.round(massPeak.getMass(), 6);
     String sourceID = "index=" + (spectrum.getFirstScan()-1);
 
-    // get the spectrumIdentification, which identified this peptide
+    // get the spectrumIdentification, which identified this key
     SpectrumIdentification spectrumID =
         nodeNumbersToIdentifications.get(peptide.getProcessingNodeNumber());
 
@@ -1032,13 +1032,13 @@ public class MsfReader
 
     psm.setIsDecoy(isDecoy);
 
-    // get the peptide or create it
+    // get the key or create it
     Peptide piaPeptide = compiler.getPeptide(pepSequence);
     if (piaPeptide == null) {
       piaPeptide = compiler.insertNewPeptide(pepSequence);
     }
 
-    // add the spectrum to the peptide
+    // add the spectrum to the key
     piaPeptide.addSpectrum(psm);
 
     // add the scores
@@ -1114,7 +1114,7 @@ public class MsfReader
         acc.addSearchDatabaseRef(dbRef.getSearchDatabase().getId());
       }
 
-      // add the accession occurrence to the peptide
+      // add the accession occurrence to the key
       // have to recalculate the occurrence, because it is not saved in the MSF
       if (proteinSequence != null) {
         int start = proteinSequence.indexOf(pepSequence);
@@ -1130,7 +1130,7 @@ public class MsfReader
         piaPeptide.addAccessionOccurrence(acc, 0, 0);
       }
 
-      // now insert the peptide and the accession into the accession peptide map
+      // now insert the key and the accession into the accession key map
       Set<Peptide> accsPeptides =
           compiler.getFromAccPepMap(acc.getAccession());
 
@@ -1141,7 +1141,7 @@ public class MsfReader
 
       accsPeptides.add(piaPeptide);
 
-      // and also insert them into the peptide accession map
+      // and also insert them into the key accession map
       Set<Accession> pepsAccessions =
           compiler.getFromPepAccMap(piaPeptide.getSequence());
 

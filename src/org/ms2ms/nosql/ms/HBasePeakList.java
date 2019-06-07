@@ -74,7 +74,7 @@ public final class HBasePeakList extends MsSpectrum
 
     if (src instanceof PeptideConsensusSpectrum)
     {
-      peptide = ((PeptideConsensusSpectrum )src).getPeptide().toString().replace("(Carbamidomethyl)", "");
+      key = ((PeptideConsensusSpectrum )src).getPeptide().toString().replace("(Carbamidomethyl)", "");
       protein = Tools.front(((PeptideConsensusSpectrum) src).getProteinAccessionNumbers());
     }
 
@@ -110,7 +110,7 @@ public final class HBasePeakList extends MsSpectrum
 
     if (peaks instanceof AnnotatedSpectrum)
     {
-      // can't set the peptide so we have to put it into the comment
+      // can't set the key so we have to put it into the comment
       // TODO need to setup a proper graph to store the relationship
       ((AnnotatedSpectrum)peaks).setComment(peptide + "^" + protein);
     }

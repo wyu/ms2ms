@@ -83,7 +83,7 @@ public class MetaPeptideMatch
 //    {
 ////      System.out.println();
 //    }
-    // looking for the consensus where 2 or more engines voted for the same peptide
+    // looking for the consensus where 2 or more engines voted for the same key
     for (String peptide : mPeptideEngineMatch.rowKeySet())
       if (mPeptideEngineMatch.row(peptide).keySet().size()>1)
         tops.add(getCombinedMatch(peptide, dirt));

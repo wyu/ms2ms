@@ -62,18 +62,18 @@ public class ModSetting implements Disposable
       }
     }
 //    Float incre_z = 0f;
-//    ModSetting mm = new ModSetting(peptide.length, loc, increment);
+//    ModSetting mm = new ModSetting(key.length, loc, increment);
 //
 //    if (increment!=0 && getBase().getModCharge()!=null)
 //    {
 //      Map<Double, Float> slice = getBase().getModCharge().subMap(increment-0.01, increment+0.01);
 //      if (Tools.isSet(slice)) incre_z = Stats.sumFloats(slice.values())*10f;
 //    }
-//    for (int i=0; i<peptide.length; i++)
+//    for (int i=0; i<key.length; i++)
 //    {
 //      Double dM = (mods!=null&&mods.containsKey(i)?mods.get(i):0d);
-//      mm.masses[ i] = AAs[peptide[i]] + (i==loc?increment:0d) + dM;
-//      mm.charges[i] = (char )Math.round(("KR".indexOf(peptide[i])>=0?10:("H".indexOf(peptide[i])>=0?5:0)) +
+//      mm.masses[ i] = AAs[key[i]] + (i==loc?increment:0d) + dM;
+//      mm.charges[i] = (char )Math.round(("KR".indexOf(key[i])>=0?10:("H".indexOf(key[i])>=0?5:0)) +
 //          (i==loc?incre_z:0) + (getBase().getModCharge().containsKey(dM)?getBase().getModCharge().get(dM)*10f:0f));
 //    }
   }

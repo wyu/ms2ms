@@ -26,7 +26,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 /** The class to create an instance of mzID file. To get started, create the object and populate the required parameters.
- *  Then call the "write" method with peptide IDs to complete the output.
+ *  Then call the "write" method with key IDs to complete the output.
  *
  */
 public class MzIDs
@@ -540,11 +540,11 @@ public class MzIDs
 
     if (ModAttachment.N_TERM.equals(attachment))
     {
-      modCvParamList.add(makeCvParam("MS:1001189", "modification specificity peptide N-term", sPsiCV));
+      modCvParamList.add(makeCvParam("MS:1001189", "modification specificity key N-term", sPsiCV));
     }
     else if (ModAttachment.C_TERM.equals(attachment))
     {
-      modCvParamList.add(makeCvParam("MS:1001190", "modification specificity peptide C-term", sPsiCV));
+      modCvParamList.add(makeCvParam("MS:1001190", "modification specificity key C-term", sPsiCV));
     }
     // no provision for protein N/C-terminus?
 
@@ -595,8 +595,8 @@ public class MzIDs
     if (Strs.isSet(strs[4]))
       for (int i=0; i<strs[4].length(); i++) residueList.add(strs[4].substring(i, i + 1));
 
-    if      ("Nt".equals(strs[3])) modCvParamList.add(newCvParam("MS:1001189", "modification specificity peptide N-term"));
-    else if ("Ct".equals(strs[3])) modCvParamList.add(newCvParam("MS:1001190", "modification specificity peptide C-term"));
+    if      ("Nt".equals(strs[3])) modCvParamList.add(newCvParam("MS:1001189", "modification specificity key N-term"));
+    else if ("Ct".equals(strs[3])) modCvParamList.add(newCvParam("MS:1001190", "modification specificity key C-term"));
     else if ("NT".equals(strs[3])) modCvParamList.add(newCvParam("MS:1002057", "modification specificity protein N-term"));
     else if ("CT".equals(strs[3])) modCvParamList.add(newCvParam("MS:1002058", "modification specificity protein C-term"));
 
@@ -850,11 +850,11 @@ public class MzIDs
 
       if (ModAttachment.N_TERM.equals(mm.getModAttachment()))
       {
-        mzidMod.getCvParam().add(makeCvParam("MS:1001189", "modification specificity peptide N-term", sPsiCV));
+        mzidMod.getCvParam().add(makeCvParam("MS:1001189", "modification specificity key N-term", sPsiCV));
       }
       else if (ModAttachment.C_TERM.equals(mm.getModAttachment()))
       {
-        mzidMod.getCvParam().add(makeCvParam("MS:1001190", "modification specificity peptide C-term", sPsiCV));
+        mzidMod.getCvParam().add(makeCvParam("MS:1001190", "modification specificity key C-term", sPsiCV));
       }
       else
       {
@@ -893,7 +893,7 @@ public class MzIDs
 
     int sirCounter = 1;
 
-    // go through the peptide matches
+    // go through the key matches
     for (SpectrumIdentifier ms2 : spec_matches.keySet())
     {
       SpectrumIdentificationResult sir = new SpectrumIdentificationResult();

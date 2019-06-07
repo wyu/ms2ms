@@ -8,7 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** An entry of peptide pointing to multiple proteins, without the actual sequence or mass information
+/** An entry of key pointing to multiple proteins, without the actual sequence or mass information
  *
  * Created by yuw on 8/3/16.
  */

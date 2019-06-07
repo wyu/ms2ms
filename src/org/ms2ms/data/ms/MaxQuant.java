@@ -47,7 +47,7 @@ public class MaxQuant extends LcMsMsDataset
 
   static
   {
-    // Sequence	Length	Modifications	Modified sequence	Deamidation (NQ) Probabilities	Oxidation (M) Probabilities	Deamidation (NQ) Score Diffs	Oxidation (M) Score Diffs	Acetyl (Protein N-term)	Deamidation (NQ)	Oxidation (M)	Missed cleavages	Proteins	Leading proteins	Leading razor protein	Gene names	Protein names	Type	Raw file	MS/MS m/z	Charge	m/z	Mass	Resolution	Uncalibrated - Calibrated m/z [ppm]	Uncalibrated - Calibrated m/z [Da]	Mass error [ppm]	Mass error [Da]	Uncalibrated mass error [ppm]	Uncalibrated mass error [Da]	Max intensity m/z 0	Retention time	Retention length	Calibrated retention time	Calibrated retention time start	Calibrated retention time finish	Retention time calibration	Match time difference	Match m/z difference	Match q-value	Match score	Number of data points	Number of scans	Number of isotopic peaks	PIF	Fraction of total spectrum	Base peak fraction	PEP	MS/MS count	MS/MS scan number	Score	Delta score	Combinatorics	Intensity	Reverse	Potential contaminant	id	Protein group IDs	Peptide ID	Mod. peptide ID	MS/MS IDs	Best MS/MS	AIF MS/MS IDs	Deamidation (NQ) site IDs	Oxidation (M) site IDs
+    // Sequence	Length	Modifications	Modified sequence	Deamidation (NQ) Probabilities	Oxidation (M) Probabilities	Deamidation (NQ) Score Diffs	Oxidation (M) Score Diffs	Acetyl (Protein N-term)	Deamidation (NQ)	Oxidation (M)	Missed cleavages	Proteins	Leading proteins	Leading razor protein	Gene names	Protein names	Type	Raw file	MS/MS m/z	Charge	m/z	Mass	Resolution	Uncalibrated - Calibrated m/z [ppm]	Uncalibrated - Calibrated m/z [Da]	Mass error [ppm]	Mass error [Da]	Uncalibrated mass error [ppm]	Uncalibrated mass error [Da]	Max intensity m/z 0	Retention time	Retention length	Calibrated retention time	Calibrated retention time start	Calibrated retention time finish	Retention time calibration	Match time difference	Match m/z difference	Match q-value	Match score	Number of data points	Number of scans	Number of isotopic peaks	PIF	Fraction of total spectrum	Base peak fraction	PEP	MS/MS count	MS/MS scan number	Score	Delta score	Combinatorics	Intensity	Reverse	Potential contaminant	id	Protein group IDs	Peptide ID	Mod. key ID	MS/MS IDs	Best MS/MS	AIF MS/MS IDs	Deamidation (NQ) site IDs	Oxidation (M) site IDs
     headers = new HashMap<>();
     headers.put("Sequence", "Sequence");
     headers.put("RT",       "Retention time");
@@ -62,7 +62,7 @@ public class MaxQuant extends LcMsMsDataset
   //    'MSMS'         – for an MS/MS spectrum without an MS1 isotope pattern assigned.
   //    'ISO-MSMS'     – MS1 isotope cluster identified by MS/MS.
   //    'MULTI-MSMS'   – MS1 labeling cluster identified by MS/MS.
-  //    'MULTI-SECPEP' – MS1 labeling cluster identified by MS/MS as second peptide.
+  //    'MULTI-SECPEP' – MS1 labeling cluster identified by MS/MS as second key.
   //    'MULTI-MATCH'  – MS1 labeling cluster identified by matching between runs.
 
   private Dataframe mMsMs;
@@ -169,7 +169,7 @@ public class MaxQuant extends LcMsMsDataset
 //      [52] "MS.MS.scan.number"                   "Score"                               "Delta.score"
 //      [55] "Combinatorics"                       "Intensity"                           "Reverse"
 //      [58] "Potential.contaminant"               "id"                                  "Protein.group.IDs"
-//      [61] "Peptide.ID"                          "Mod..peptide.ID"                     "MS.MS.IDs"
+//      [61] "Peptide.ID"                          "Mod..key.ID"                     "MS.MS.IDs"
 //      [64] "Best.MS.MS"                          "AIF.MS.MS.IDs"                       "Deamidation..NQ..site.IDs"
 //      [67] "Oxidation..M..site.IDs"
     return M;
@@ -206,14 +206,14 @@ public class MaxQuant extends LcMsMsDataset
 //          if (protein_info.get(protein, expt)==null) protein_info.put(protein, expt, Maps.newHashMap());
 //          if (P.getFloat(info+" "+expt)      !=null) protein_info.get(protein, expt).put(info, P.getFloat(info+" "+expt));
         }
-      // now focus on the peptide and MS/MS
+      // now focus on the key and MS/MS
       lcmsms = lookupEvidences(lcmsms, P.get("Evidence IDs"), evidences, protein);
 
 //      Long[] ev_ids = Stats.toLongArray(P.get("Evidence IDs"), ';');
 //      if (ev_ids!=null)
 //        for (Long ev : ev_ids)
 //        {
-//          // deposit the peptide match
+//          // deposit the key match
 //          PeptideMatch M = protein.put( newPeptideMatchFromEvidence(evidences.get(ev).getProperties()));
 //
 //          Features F = evidences.get(ev);
@@ -235,13 +235,13 @@ public class MaxQuant extends LcMsMsDataset
   }
   private static LcMsMsFeatures lookupEvidences(LcMsMsFeatures lcmsms, Object evIDs, Map<Long, Features> evidences, ProteinID protein)
   {
-    // now focus on the peptide and MS/MS
+    // now focus on the key and MS/MS
     Long[] ev_ids = Stats.toLongArray(evIDs, ';');
     if (ev_ids!=null)
       for (Long ev : ev_ids)
       {
         Features F = evidences.get(ev);
-        // deposit the peptide match
+        // deposit the key match
         PeptideMatch M = protein.put( newPeptideMatch(F.getProperties()));
 
         String run = F.get("Raw file").toString(), expt=F.get("Experiment").toString();
@@ -274,17 +274,17 @@ public class MaxQuant extends LcMsMsDataset
 //    [66] "Intensity"                 "Intensity.A1"              "Intensity.A2"              "Intensity.A3"              "Intensity.A4"
 //    [71] "Intensity.A5"              "Intensity.N1"              "Intensity.N2"              "Intensity.N3"              "Intensity.N4"
 //    [76] "Intensity.N5"              "Reverse"                   "Potential.contaminant"     "id"                        "Protein.group.IDs"
-//    [81] "Mod..peptide.IDs"          "Evidence.IDs"              "MS.MS.IDs"                 "Best.MS.MS"                "Deamidation..NQ..site.IDs"
+//    [81] "Mod..key.IDs"          "Evidence.IDs"              "MS.MS.IDs"                 "Best.MS.MS"                "Deamidation..NQ..site.IDs"
 //    [86] "Oxidation..M..site.IDs"    "MS.MS.Count"
 //  private static LcMsMsFeatures lookupPeptides(LcMsMsFeatures lcmsms, Object pepIDs, Map<Long, Features> peptides, ProteinID protein, Collection<String> expts)
 //  {
-//    // now focus on the peptide and MS/MS
+//    // now focus on the key and MS/MS
 //    Long[] peptide_ids = Stats.toLongArray(pepIDs, ';');
 //    if (peptide_ids!=null)
 //      for (Long ev : peptide_ids)
 //      {
 //        Features F = peptides.get(ev);
-//        // deposit the peptide match
+//        // deposit the key match
 //        PeptideMatch M = protein.put(newPeptideMatch(F.getProperties()));
 //
 //        for (String expt : expts)
@@ -411,7 +411,7 @@ public class MaxQuant extends LcMsMsDataset
       // LFQ intensity N1        LFQ intensity N2        LFQ intensity N3        LFQ intensity N4        LFQ intensity N5
       // MS/MS count A1  MS/MS count A2  MS/MS count A3  MS/MS count A4  MS/MS count A5  MS/MS count N1  MS/MS count N2  MS/MS count N3  MS/MS count N4  MS/MS count N5  MS/MS count
       // Only identified by site Reverse Potential contaminant   id      Peptide IDs     Peptide is razor
-      // Mod. peptide IDs        Evidence IDs    MS/MS IDs       Best MS/MS      Deamidation (NQ) site IDs
+      // Mod. key IDs        Evidence IDs    MS/MS IDs       Best MS/MS      Deamidation (NQ) site IDs
       // Oxidation (M) site IDs  Deamidation (NQ) site positions Oxidation (M) site positions
       Double mz = features.getDouble("m/z"), rt = features.getDouble("Retention time");
       // add the features

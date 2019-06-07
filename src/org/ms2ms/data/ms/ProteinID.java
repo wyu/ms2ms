@@ -115,7 +115,7 @@ public class ProteinID implements Comparable<ProteinID>, Binary
   {
     if (proteins==null) return null;
 
-    // build an index by the peptide sequences
+    // build an index by the key sequences
     TreeMultimap<Float, ProteinID> peptide_protein = TreeMultimap.create(Ordering.natural().reverse(), Ordering.natural().reverse());
     for (ProteinID protein : proteins)
       if (Tools.isSet(protein.getSeqMatch()) && protein.getSequence()!=null)
@@ -132,7 +132,7 @@ public class ProteinID implements Comparable<ProteinID>, Binary
   {
     if (proteins==null) return null;
 
-    // build an index by the peptide sequences
+    // build an index by the key sequences
     Multimap<String, ProteinID> peptide_protein = HashMultimap.create();
     for (ProteinID protein : proteins)
       if (Tools.isSet(protein.getSeqMatch()))

@@ -25,7 +25,7 @@ import java.util.Map;
 /**
  * ** Copyright 2014-2015 ms2ms.org
  * <p/>
- * Description: A peptide ID with quantitative info
+ * Description: A key ID with quantitative info
  * <p/>
  * Author: wyu
  * Date:   3/26/15
@@ -97,14 +97,14 @@ public class PeptideFeature extends PeptideMatch implements Binary
     return OK;
   }
 
-  /** create a new peptide feature from the output of 'multiplierz'
+  /** create a new key feature from the output of 'multiplierz'
    *
    *
    * @param title is the title of the experiment
    * @param set containing a particular row of the scan-level summary of a TMT experiment
    * @param expts are the cols for the sample channels
    * @param base is the abundance of the control experiment. Not check against 0
-   * @return a new peptide feature
+   * @return a new key feature
    */
   public static PeptideFeature fromMultiplierZ(String title, Map<String, String> set, Map<String, String> expts, double base)
   {

@@ -66,7 +66,7 @@ public class Clustering
     // check the readiness of the incoming data
     if (data==null || !data.hasVars(MaxQuant.V_CLUSTER,MaxQuant.V_MSEQ)) return;
 
-    // check the quality of the cluster using the peptide IDs
+    // check the quality of the cluster using the key IDs
     Multimap<String, String> seq_row = data.factorize(MaxQuant.V_MSEQ);
 
     //

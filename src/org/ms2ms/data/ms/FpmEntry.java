@@ -1,6 +1,7 @@
 package org.ms2ms.data.ms;
 
 import com.google.common.collect.ImmutableList;
+import org.expasy.mzjava.core.ms.spectrum.IonType;
 import org.ms2ms.Disposable;
 import org.ms2ms.data.Binary;
 import org.ms2ms.math.Stats;
@@ -250,6 +251,97 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
 
     return data;
   }
+  // estimates the preliminary score for the screening step only!
+  // NO re-calibration or intermediate track to avoid GC probem
+  public FpmEntry inspect4screen(double multiple)
+  {
+    if (!Tools.isSet(getTrack())) return this;
+
+//    double           ppm0 = 0d, ppm=0d, mz_y1=0d;
+//    List<PeakMatch> track = new ArrayList<>(F.getTrack().size());
+//    double[]         ppms = new double[F.getTrack().size()], dppm = new double[F.getTrack().size()];
+    boolean        has1st = false, y1=false;
+
+    // get a simple average as the starter
+//    for (PeakMatch p : F.getTrack()) { ppm0+=p.getMz()*p.getSNR(); ppm+=p.getSNR(); }
+//    ppm0/=ppm;
+
+    for (int i=0; i<getTrack().size(); i++)
+    {
+//      ppm=F.at(i).getMz();
+//      PeakMatch pk = new PeakMatch(ppm, Math.abs(F.at(i).getSNR()), F.at(i).getCharge(), ppm-ppm0,F.at(i).getFrequency());
+//      pk.setCounts(F.at(i).getCounts());
+//      pk.setOriginalMz(F.at(i).getIntensity()).setIndex(i);
+//      track.add(pk);
+//      ppms[i]=ppm; dppm[i]=(ppm-ppm0); ppm0=ppm;
+
+      // check the presence of y1
+      if (at(i).getCharge()==1 && !has1st) has1st=true;
+      // the observed m/z was saved in the 'intensity' field!!!
+//      if (F.at(i).getCharge()==1 && y1s!=null && y1s.contains(F.at(i).getIntensity()))
+//      { y1=true; mz_y1=F.at(i).getIntensity(); }
+
+      // check for the presence of Pro at the N-t of the fragment
+      if (at(i).isIonType(IonType.p)) increProlines();
+    }
+    // capture the individual ppm and remove the worst one if outside 2xsigma
+//    double mid = PeakMatch.centroid(track), d0=Stats.mean(dppm, dppm.length),
+//        sigma = Stats.stdev(ppms, ppms.length), dsigma=Stats.stdev(dppm, dppm.length);
+//
+//    int bad=-1, dbad=-1; double worst=multiple*sigma, dworst=multiple*dsigma;
+//    for (int i=0; i<track.size(); i++)
+//    {
+//      if (Math.abs(track.get(i).getMz()-mid)> worst) {  bad=i;  worst=Math.abs(track.get(i).getMz() -mid); }
+//      if (Math.abs(track.get(i).getSNR()-d0)>dworst) { dbad=i; dworst=Math.abs(track.get(i).getSNR()-d0); }
+//    }
+
+    // return now if there isn't enough matches
+//    if (track.size()==0)
+//      return F.has1st(has1st).hasExpectedY1(Tools.isSet(y1s) && y1).setIntensity(0).setMotifs(0).setGapScore(0);
+
+    // re-calculate the mid point
+//    mid = PeakMatch.centroid(track);
+
+    int best=0, start=1, delta=0;
+    double scr=0, percentile=0, score=(y1?calcGapScore(at(getTrack().size()-1), 1, 1d):0), sumAI=0d;
+    setGapScore0(score);
+    for (int i=getTrack().size()-1; i>=0; i--)
+    {
+      PeakMatch pk = at(i);
+//      // correct the drift only if 3 or more fragments are present
+//      if (track.size()>2) pk.setMzAndCharge(pk.getMz()-mid, pk.getCharge());
+      delta = pk.getCharge()-start;
+      percentile = (pk.getIntensity()*0.01); // set a minimum
+      // accumualte the gap score
+      if (delta>0) {
+        scr   =calcGapScore(pk, delta, 1d);
+        pk.setScore(scr);
+        score+=scr*percentile;
+      }
+      else scr=0;
+
+      start=pk.getCharge(); sumAI+=percentile;
+
+      int first=pk.getCharge(), last=first;
+      for (int j=i+1; j<getTrack().size(); j++)
+        if (last-at(j).getCharge()!=1) break; else last=at(j).getCharge();
+
+      if (first-last>best) best=first-last;
+    }
+
+    // http://sfb649.wiwi.hu-berlin.de/fedc_homepage/xplore/tutorials/xegbohtmlnode16.html
+    has1st(has1st).setIntensity(sumAI).setMotifs(best).setGapScore(-10d*score);
+
+//    if (track!=null)
+//    {
+//      for (PeakMatch p : track) p.dispose();
+//      track.clear(); track=null;
+//    }
+//    ppms=dppm=null;
+
+    return this;
+  }
+
   public FpmEntry inspect(Set<Double> y1s, Double local_base)
   {
     if (!Tools.isSet(getTrack())) return this;

@@ -6,7 +6,7 @@ import org.ms2ms.utils.Tools;
 
 import java.util.*;
 
-/** An entry of peptide without the actual sequence or mass information
+/** An entry of key without the actual sequence or mass information
  *
  * Created by yuw on 8/3/16.
  */

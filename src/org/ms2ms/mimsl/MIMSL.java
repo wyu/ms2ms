@@ -695,7 +695,7 @@ public class MIMSL
       header.addCell("ppm");
       header.addCell("z");
       header.addCell("m/z");
-      header.addCell("peptide");
+      header.addCell("key");
     }
     else
     {
@@ -709,7 +709,7 @@ public class MIMSL
       header.addCell("z");
       header.addCell("m/z");
       header.addCell("()");
-      header.addCell("peptide");
+      header.addCell("key");
       header.addCell("()");
       header.addCell("ID");
       header.addCell("sig");
@@ -723,11 +723,11 @@ public class MIMSL
       Tr row = tbl.addRow().setClass(++order % 2 == 0 ? "cls_row_shade" : "cls_row_light");
 
       XYPoint pt = calcResidual(H.getMassDeviation().floatValue(), H.getCharge());
-      String peptide = H.getBackboneCutPattern(false).replaceAll("C\\[Carbamidomethylation\\]", "c"
+      String key = H.getBackboneCutPattern(false).replaceAll("C\\[Carbamidomethylation\\]", "c"
       ).replaceAll("\\[Carbamidomethylation\\]C", "c"
       ).replaceAll("\\[Carbamidomethyl\\]C", "c"
       ).replaceAll("C\\[Carbamidomethyl\\]", "c");
-      if (H.isDecoy()) peptide = "<font color='gray'>" + peptide + "</font>";
+      if (H.isDecoy()) key = "<font color='gray'>" + key + "</font>";
 
       if (brief)
       {
@@ -737,7 +737,7 @@ public class MIMSL
         row.addCell(H.getCharge() + "");
         row.addCell(Toolbox.d2s(H.getMzObs(), 3));
         Td C = new Td();
-        C.addContentWithoutEscaping(peptide);
+        C.addContentWithoutEscaping(key);
         row.addCell(C);
       }
       else
@@ -753,7 +753,7 @@ public class MIMSL
         row.addCell(Toolbox.d2s(H.getMzObs(), 3));
         row.addCell(H.getPrevAA());
         Td C = new Td();
-        C.addContentWithoutEscaping(peptide);
+        C.addContentWithoutEscaping(key);
         row.addCell(C);
         row.addCell(H.getNextAA());
         row.addCell(H.getPeptideHitId().toString());
@@ -1287,7 +1287,7 @@ public class MIMSL
 
     return lib.toString();
   }
-  // prepare a BIN repository from experiments with peptide assignments
+  // prepare a BIN repository from experiments with key assignments
   public static Long saveBinaryLibs(DataOutput output, Collection<String> sequences, boolean compact, boolean consolidateBySequence,
     Connection conn, Collection<Long> runids) throws Exception
   {
@@ -1328,10 +1328,10 @@ public class MIMSL
       ProteinId matrix_sum = Qualitative_Util.toSummation(pid, matrix.getCaller().getAssignmentMap());
       if (matrix_sum.getAssignments().keySet().size() > 1)
       {
-        for (String peptide : matrix_sum.getAssignments().keySet())
+        for (String key : matrix_sum.getAssignments().keySet())
         {
           pids.clear();
-          for (MsMsAssignment A : matrix_sum.getAssignments().cells(peptide)) pids.add(A.getId());
+          for (MsMsAssignment A : matrix_sum.getAssignments().cells(key)) pids.add(A.getId());
 
           Collection<Spectre_MsMsSpectrum> rows = Spectre_MsMsSpectrum.getRowsForPeptideAssignmentIds(conn, pids, true);
           rows = Spectre_MsMsSpectrum.populateSpectra(  conn, rows, true);
@@ -1340,12 +1340,12 @@ public class MIMSL
           Spectre_MsMsSpectrum composit = SpectralClustering_Util.composite(rows, null, mztol, true);
           composit.getPeptideAssignment().matchToSpectrum(conn, composit.getRawSpectrum(), 0.5f, true);
 
-          MsMsAssignment assignment = Toolbox.front(matrix_sum.getAssignments().cells(peptide));
+          MsMsAssignment assignment = Toolbox.front(matrix_sum.getAssignments().cells(key));
           assignment.setMsMs(composit.convertToMsMsMatches());
           assignment.getMsMs().setScanType(MsScanType.CENTROID);
           assignment.write(os);
           assignments++;
-          msms += matrix_sum.getAssignments().cells(peptide).size();
+          msms += matrix_sum.getAssignments().cells(key).size();
         }
       }
       //break; // for debugging
@@ -1394,17 +1394,17 @@ public class MIMSL
       {
         ProteinId matrix_sum = ds == null ? Qualitative_Util.toSummation(pid, assignment_map) :
           Qualitative_Util.toSummation(pid, peptide_pointer, ds);
-        for (String peptide : matrix_sum.getAssignments().keySet())
+        for (String key : matrix_sum.getAssignments().keySet())
         {
           pids.clear();
           // trim the set by the error rate first
-          for (MsMsAssignment A : matrix_sum.getAssignments().cells(peptide)) pids.add(A.getId());
+          for (MsMsAssignment A : matrix_sum.getAssignments().cells(key)) pids.add(A.getId());
 
           if (pids.size() > row_limit)
           {
             // no need to set the owner
             Map<Long, Spectre_MsMsSpectrum> pid_ms = Spectre_MsMsSpectrum.getRowMapWithTypesForPeptideAssignmentIds(conn, pids);
-            for (MsMsAssignment A : matrix_sum.getAssignments().cells(peptide))
+            for (MsMsAssignment A : matrix_sum.getAssignments().cells(key))
             {
               if (!pid_ms.containsKey(A.getId())) throw new RuntimeException("MS not found: " + A.getId());
               pid_ms.cells(A.getId()).setRetentionTime((float )A.getAssignment().getErrorPct());
@@ -1425,7 +1425,7 @@ public class MIMSL
             rows = savePeptideAssignments(conn, lib, rows, row_limit); // need no more than a dozen
 
           assignments++;
-          msms += matrix_sum.getAssignments().cells(peptide).size();
+          msms += matrix_sum.getAssignments().cells(key).size();
 
           // dispose the temp objects
           Toolbox.dispose(rows);
@@ -1606,7 +1606,7 @@ public class MIMSL
     for (BinPepLibFile lib : binlibs.values())
     {
       if (lib.getDataOutput() != null) System.out.println(lib.getAbsolutePath() + " with " + lib.getNumberOfEntry() + " of entries created.");
-      System.out.println("    # distinct (peptides/peptide_z/peptide seq): " + lib.mPeptides.size() + "/" + lib.mPeptideZs.size() + "/" + lib.mPeptideSeqs.size());
+      System.out.println("    # distinct (peptides/peptide_z/key seq): " + lib.mPeptides.size() + "/" + lib.mPeptideZs.size() + "/" + lib.mPeptideSeqs.size());
       lib.close();
     }
   }
@@ -1752,11 +1752,11 @@ public class MIMSL
         {
           if (++counts % 50000 == 0) System.out.print(".");
 
-          String peptide = assign.getAssignment().getUniqueTag();
-          if (!peptides.contains(peptide))
+          String key = assign.getAssignment().getUniqueTag();
+          if (!peptides.contains(key))
           {
             assign.write(outfile.getDataOutput());
-            peptides.add(peptide);
+            peptides.add(key);
           }
           assign.dispose();
           assign = lib.newMsMsAssignment();
@@ -1879,7 +1879,7 @@ public class MIMSL
     return this;
   }
 
-  //** Fetch the pool of peptide keys by the precursor m/z values. THe tolerance can be defined by ppm or isolation alone or both.
+  //** Fetch the pool of key keys by the precursor m/z values. THe tolerance can be defined by ppm or isolation alone or both.
   public Map<Long, Float> queryByPrecursor(Float low, Float high)
   {
     return queryByPrecursor(low, high, 0);

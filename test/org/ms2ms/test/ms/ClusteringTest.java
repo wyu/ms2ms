@@ -40,7 +40,7 @@ public class ClusteringTest extends TestAbstract
   {
     Dataframe msms = abbr("/media/data/test/mzXML/composite_scans_clusters.txt");
 
-    // check the quality of the cluster using the peptide IDs
+    // check the quality of the cluster using the key IDs
   }
   @Test
   public void clustering() throws Exception

@@ -345,10 +345,10 @@ H  2
 
     return formula;
   }
-//  public static IsoEnvelope calcIsotopesForPeptide(String peptide, int charge)
+//  public static IsoEnvelope calcIsotopesForPeptide(String key, int charge)
 //  {
 //    List<Peak>   result = new ArrayList<Peak>();
-//    Map<Integer, Long> fm = newFormulaMap(peptide, charge);
+//    Map<Integer, Long> fm = newFormulaMap(key, charge);
 //
 //    // initialize the result
 //    result.add(new Peak(0.0, 1.0));
@@ -356,10 +356,10 @@ H  2
 //    calculate(new ArrayList<Peak>(), result, fm, 0, charge);
 //    return new IsoEnvelope(result, charge);
 //  }
-//  public static IsoEnvelope calcIsotopesForPeptide(Protein peptide, int charge)
+//  public static IsoEnvelope calcIsotopesForPeptide(Protein key, int charge)
 //  {
 //    List<Peak>     result = new ArrayList<Peak>();
-//    Map<Integer, Long> fm = newFormulaMap(peptide, charge);
+//    Map<Integer, Long> fm = newFormulaMap(key, charge);
 //
 //    // initialize the result
 //    result.add(new Peak(0.0, 1.0));
@@ -528,21 +528,21 @@ H  2
 
     return iso;
   }
-//  public static IsoEnvelope subtract(double[] mzs, double[] ais, Tolerance tol, String peptide, int charge)
+//  public static IsoEnvelope subtract(double[] mzs, double[] ais, Tolerance tol, String key, int charge)
 //  {
-//    return subtract(mzs, ais, tol, calcIsotopesForPeptide(peptide, charge));
+//    return subtract(mzs, ais, tol, calcIsotopesForPeptide(key, charge));
 //  }
-//  public static IsoEnvelope subtract(double[] mzs, double[] ais, Tolerance tol, Protein peptide, int charge)
+//  public static IsoEnvelope subtract(double[] mzs, double[] ais, Tolerance tol, Protein key, int charge)
 //  {
-//    return subtract(mzs, ais, tol, calcIsotopesForPeptide(peptide, charge));
+//    return subtract(mzs, ais, tol, calcIsotopesForPeptide(key, charge));
 //  }
-//  public static IsoEnvelope subtract(List<Peak> isolation, Tolerance tol, double ri_tol,String peptide, int charge)
+//  public static IsoEnvelope subtract(List<Peak> isolation, Tolerance tol, double ri_tol,String key, int charge)
 //  {
-//    return subtract(isolation, calcIsotopesForPeptide(peptide, charge), tol, true);
+//    return subtract(isolation, calcIsotopesForPeptide(key, charge), tol, true);
 //  }
-//  public static IsoEnvelope subtract(List<Peak> isolation, Tolerance tol, double ri_tol, Protein peptide, int charge)
+//  public static IsoEnvelope subtract(List<Peak> isolation, Tolerance tol, double ri_tol, Protein key, int charge)
 //  {
-//    return subtract(isolation, calcIsotopesForPeptide(peptide, charge), tol, true);
+//    return subtract(isolation, calcIsotopesForPeptide(key, charge), tol, true);
 //  }
   protected static Peak optimum_scale(Map<Peak, Peak> outcomes, Range<Double> bound, int steps)
   {
@@ -611,11 +611,11 @@ H  2
 //
 //    // remove the peaks corresponding to the peptides if required
 //    if (Tools.isSet(peptides))
-//      for (Protein peptide : peptides)
+//      for (Protein key : peptides)
 //      {
-//        if (peptide == null) continue;
-//        // force a component for each peptide
-//        IsoEnvelope iso = subtract(mzs, ais, tol, peptide, z);
+//        if (key == null) continue;
+//        // force a component for each key
+//        IsoEnvelope iso = subtract(mzs, ais, tol, key, z);
 //        precursors.add(iso);
 //      }
 //

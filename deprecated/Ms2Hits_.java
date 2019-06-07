@@ -12,7 +12,7 @@ import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
-/** Keeper of the peptide matches to a MS/MS spectrum. It's not a single PSM since we don;t assume a single precursor
+/** Keeper of the key matches to a MS/MS spectrum. It's not a single PSM since we don;t assume a single precursor
  *
  * Created by yuw on 8/7/16.
  */
@@ -156,7 +156,7 @@ public class Ms2Hits_ implements Disposable
         {
           if (H.getSequence().equals(distincts.get(hash).getSequence()) &&
               H.getScore()          >distincts.get(hash).getScore()+5d ||
-             (H.getProteinKey()>0 && distincts.get(hash).getProteinKey()<0)) // in case of small peptide
+             (H.getProteinKey()>0 && distincts.get(hash).getProteinKey()<0)) // in case of small key
           {
             // more complicate if we need to remove the prior one
             distincts.get(hash).invalidate();
@@ -399,7 +399,7 @@ public class Ms2Hits_ implements Disposable
       }
 
     // set the initial counts
-    // setup the offsets by the peptide len
+    // setup the offsets by the key len
     for (ScoreModel m : mScoreModels.values())
     {
       m.setOffset(ScoreModel.eType.exact, Tools.isSet(getExactMatches()) ? getExactMatches().size() : 0);

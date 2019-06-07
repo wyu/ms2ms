@@ -23,7 +23,7 @@ import org.ms2ms.utils.Tools;
 
 import java.util.*;
 
-/** Routines about the peptide-spectrum-matches.
+/** Routines about the key-spectrum-matches.
  *
  * Created by yuw on 10/19/2015.
  */
@@ -55,7 +55,7 @@ public class PSMs
 //    PeptideFragmenter fragmenter = new PeptideFragmenter(EnumSet.of(IonType.b, IonType.y), PeakList.Precision.DOUBLE);
     Peptide peptide = Peptide.parse("GYDSPR");
 
-// generating peptide b and y fragments with charges +1 and +2
+// generating key b and y fragments with charges +1 and +2
     PeptideSpectrum peptideSpectrum = fragmenter.fragment(m.toPeptide(), 2);
 
   }
@@ -69,7 +69,7 @@ public class PSMs
     if (!Tools.isSet(matches)) return consensus;
     if (consensus==null) consensus = new Dataframe();
 
-    // go over each of the peptide matches
+    // go over each of the key matches
     for (SpectrumIdentifier id : matches.keySet())
     {
       if (!id.getName().isPresent())
@@ -114,7 +114,7 @@ public class PSMs
       for (SpectrumIdentifier id : consensus.rowKeySet())
         runscan2id.put(id.getSpectrum(), id);
 
-      // go over each of the peptide matches
+      // go over each of the key matches
     for (SpectrumIdentifier id : matches.keySet())
     {
       if (!id.getName().isPresent())
@@ -286,7 +286,7 @@ public class PSMs
     return (int )(Math.log(1+(mz1-mz0)/mz0)/Math.log(1d+1E-6*ppm));
   }
 
-  /** FragmentAnnotator is a facade that highly simplifies and hides the complexity of annotating a PeakList given a peptide.
+  /** FragmentAnnotator is a facade that highly simplifies and hides the complexity of annotating a PeakList given a key.
    *  Annotating a peak list requires a theoretical spectra to be generated, the peaks of the theoretical and query spectra
    *  to be aligned and reporting annotations back to the PeakList. Here is a java snippet to annotate a PeakList from a Peptide:
    *  http://mzjava.expasy.org/daily/wiki/Recipe-4.1.html
@@ -297,17 +297,17 @@ public class PSMs
    */
   public static PeakList<PepFragAnnotation> annotate(PeakList<PepFragAnnotation> spectrum, Peptide peptide)
   {
-    // the fragmenter is responsible for generating a theoretical spectrum from the peptide
+    // the fragmenter is responsible for generating a theoretical spectrum from the key
     PeptideFragmenter fragmenter =
         new PeptideFragmenter(EnumSet.of(IonType.b, IonType.y), PeakList.Precision.DOUBLE);
 
     // the annotator needs to delegate to the fragmenter the fragmentation process and to the internal aligner the tolerance for aligning peaks
     PeptideFragmentAnnotator annotator = new PeptideFragmentAnnotator(fragmenter, new AbsoluteTolerance(0.1));
 
-    // the peptide as a source for theoretical fragments with annotations
-    // Peptide peptide = Peptide.parse("QVHPDTGISSK");
+    // the key as a source for theoretical fragments with annotations
+    // Peptide key = Peptide.parse("QVHPDTGISSK");
 
-    // start process: fragmenting peptide, aligning to the spectrum and reporting matched ions back to the spectrum
+    // start process: fragmenting key, aligning to the spectrum and reporting matched ions back to the spectrum
     return annotator.annotate(spectrum, peptide, 3);
   }
   public static PeptideSpectrum annotate(PeptideFragmentAnnotator annotator, MsnSpectrum spectrum, PeptideMatch match)
@@ -318,7 +318,7 @@ public class PSMs
     for (int i=0; i<spectrum.size(); i++)
       msms.add(spectrum.getMz(i), spectrum.getIntensity(i));
 
-    // start process: fragmenting peptide, aligning to the spectrum and reporting matched ions back to the spectrum
+    // start process: fragmenting key, aligning to the spectrum and reporting matched ions back to the spectrum
     return annotator.annotate(msms, peptide, spectrum.getPrecursor().getCharge());
   }
   public static boolean hasFragType(Collection<PepFragAnnotation> as, IonType... types)
@@ -562,7 +562,7 @@ public class PSMs
   }
 /*
   */
-/**@param mm are the input peptide matches
+/**@param mm are the input key matches
    * @param multiple is the score multiple required
    * @return a cloned match where the worst of the
    *//*

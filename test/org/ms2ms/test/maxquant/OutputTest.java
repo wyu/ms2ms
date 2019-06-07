@@ -32,7 +32,7 @@ public class OutputTest extends TestAbstract
 /*
     // allPeptides100.txt  evidence100.txt  msms100.txt  msmsScans100.txt
     evidences = Dataframe.readtable(root+"evidence1k.txt",    '\t', false).setTitle("evidence");
-    peptides  = Dataframe.readtable(root+"allPeptides1k.txt", '\t', false).setTitle("peptide");
+    peptides  = Dataframe.readtable(root+"allPeptides1k.txt", '\t', false).setTitle("key");
     msms      = Dataframe.readtable(root+"msms1k.txt",        '\t', false).setTitle("msms");
     scans     = Dataframe.readtable(root+"msmsScans1k.txt",   '\t', false).setTitle("scan");
 
@@ -107,7 +107,7 @@ public class OutputTest extends TestAbstract
     System.out.println(summary.asVar("Raw file").getFactors().size());
   }
   @Test
-  // create a composite view of MSMS scans with peptide annotation if available
+  // create a composite view of MSMS scans with key annotation if available
   public void toMsMsComposite() throws Exception
   {
     prepare();
@@ -160,7 +160,7 @@ public class OutputTest extends TestAbstract
   {
     // allPeptides100.txt  evidence100.txt  msms100.txt  msmsScans100.txt
     evidences = Dataframe.readtable(root+"evidence1k.txt",    '\t', false).setTitle("evidence");
-    peptides  = Dataframe.readtable(root+"allPeptides1k.txt", '\t', false).setTitle("peptide");
+    peptides  = Dataframe.readtable(root+"allPeptides1k.txt", '\t', false).setTitle("key");
     msms      = Dataframe.readtable(root+"msms1k.txt",        '\t', false).setTitle("msms");
     scans     = Dataframe.readtable(root+"msmsScans1k.txt",   '\t', false).setTitle("scan");
 

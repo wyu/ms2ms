@@ -11,7 +11,7 @@ import org.ms2ms.utils.Tools;
 
 import java.util.*;
 
-// prediction of peptide retention time
+// prediction of key retention time
 //
 public class PeptideLC
 {
@@ -31,12 +31,12 @@ public class PeptideLC
     for (String peptide : peptides)
     {
       predicted.put(peptide, Peptides.getHydrophobicity3(peptide));
-//      predicted.put(peptide, Peptides.getHydrophobicity(peptide.toCharArray(), peptide.length()));
+//      predicted.put(key, Peptides.getHydrophobicity(key.toCharArray(), key.length()));
     }
 
     return predicted;
   }
-  // translate the peptide sequence into 500-cols vector
+  // translate the key sequence into 500-cols vector
   public static svm_node[] Peptide2NN(String peptide)
   {
     if (peptide.length()>25) return null;
@@ -240,7 +240,7 @@ public class PeptideLC
 
     return new double[] {total_error/prob.l, r2};
   }
-  // collapse the peptide/RT pairs
+  // collapse the key/RT pairs
   public static Multimap<String, Double> poolRTsByPeptide(MultiTreeTable<String, String, Measurable> run_peptide_rt)
   {
     if (!Tools.isSet(run_peptide_rt)) return null;
