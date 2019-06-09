@@ -14,6 +14,7 @@ public class FragmentMatch implements Comparable<FragmentMatch>
   public FragmentEntry getEntry()    { return mEntry; }
   public int           getObsIndex() { return mObsIdx; }
 
+  // order by the peptide key in desending order
   @Override
-  public int compareTo(FragmentMatch o) { return mEntry!=null?mEntry.compareTo(o.mEntry):0; }
+  public int compareTo(FragmentMatch o) { return mEntry!=null?o.mEntry.compareByPeptide(mEntry):0; }
 }

@@ -74,6 +74,15 @@ public class FragmentEntry implements Comparable<FragmentEntry>, Disposable, Bin
     return c;
   }
 
+  public int compareByPeptide(FragmentEntry o)
+  {
+    return Long.compare(mPeptideKey, o.getPeptideKey());
+//    int c = -1*Long.compare(mPeptideKey, o.getPeptideKey());
+//    if (c==0) c = Integer.compare(getLength(), o.getLength());
+//
+//    return c;
+  }
+
   @Override
   public String toString()
   {

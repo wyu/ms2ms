@@ -302,31 +302,39 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
     // re-calculate the mid point
 //    mid = PeakMatch.centroid(track);
 
-    int best=0, start=1, delta=0;
-    double scr=0, percentile=0, score=(y1?calcGapScore(at(getTrack().size()-1), 1, 1d):0), sumAI=0d;
-    setGapScore0(score);
-    for (int i=getTrack().size()-1; i>=0; i--)
+    int best=0, start=0, delta=0, contig_start=0, contig_last=0;
+    double scr=0, percentile=0, score=0, sumAI=0d;
+    setGapScore0(0);
+    for (int i=0; i<getTrack().size(); i++)
     {
       PeakMatch pk = at(i);
 //      // correct the drift only if 3 or more fragments are present
 //      if (track.size()>2) pk.setMzAndCharge(pk.getMz()-mid, pk.getCharge());
-      delta = pk.getCharge()-start;
+      delta      =  pk.getCharge()-start;
       percentile = (pk.getIntensity()*0.01); // set a minimum
       // accumualte the gap score
       if (delta>0) {
-        scr   =calcGapScore(pk, delta, 1d);
-        pk.setScore(scr);
-        score+=scr*percentile;
+//        scr   =calcGapScore(pk, delta, 1d);
+        pk.calcGapScore(delta, 1d);
+//        score+=pk.getScore()*percentile;
+        score+=pk.getScore() - Math.log10(percentile);
       }
-      else scr=0;
+//      else scr=0;
 
       start=pk.getCharge(); sumAI+=percentile;
 
-      int first=pk.getCharge(), last=first;
-      for (int j=i+1; j<getTrack().size(); j++)
-        if (last-at(j).getCharge()!=1) break; else last=at(j).getCharge();
-
-      if (first-last>best) best=first-last;
+      // check the config
+      if (i>0 && start-contig_last>1)
+      {
+        if (contig_last-contig_start>best) best=contig_last-contig_start;
+        contig_start=pk.getCharge();
+      }
+//
+//      int first=pk.getCharge(), last=first;
+//      for (int j=i+1; j<getTrack().size(); j++)
+//        if (last-at(j).getCharge()!=1) break; else last=at(j).getCharge();
+//
+//      if (first-last>best) best=first-last;
     }
 
     // http://sfb649.wiwi.hu-berlin.de/fedc_homepage/xplore/tutorials/xegbohtmlnode16.html

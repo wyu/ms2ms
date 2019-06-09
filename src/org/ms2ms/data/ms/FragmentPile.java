@@ -15,18 +15,17 @@ public class FragmentPile extends AbstractPile<FragmentMatch>
   // zero or more trunks of fragment entry vectors to hold the bulk data
   private PeakMatch[] track = new PeakMatch[255]; // no more than 255 residue long for now.
   // holding the query results
-  private FragmentMatch[] mFragSeries = new FragmentMatch[255];
+//  private FragmentMatch[] mFragSeries = new FragmentMatch[255];
 
   public FragmentPile()       { super(); }
-  public FragmentPile(int s)  { super(s); }
+  public FragmentPile(int s)  { super(s); init(); }
 
-  public FragmentMatch at(int i)  { return mFragSeries[i]; }
   public PeakMatch[]   getTrack() { return track; }
 
   @Override
   public int getKeyAt(int pile, int idx) { return get(pile,idx).getEntry().getPeptideKey(); }
   @Override
-  public FragmentMatch[] newPile() { return new FragmentMatch[mInitialLength]; }
+  public FragmentMatch[] newPile(int s) { return new FragmentMatch[s]; }
 
   public int toTrack(PeakList ms, Map<Integer, Double> ion_freq, OffsetPpmTolerance tol)
   {
@@ -34,8 +33,8 @@ public class FragmentPile extends AbstractPile<FragmentMatch>
     int track_size = 0;
     for (int i=0; i<mSeriesEnd; i++)
     {
-      FragmentEntry E = mFragSeries[i].getEntry();
-      int         ion = mFragSeries[i].getObsIndex();
+      FragmentEntry E = at(i).getEntry();
+      int         ion = at(i).getObsIndex();
       // starting from the lower mass end
       double mz0 = Peaks.MnH2MnH(ms.getMz(ion), (int )E.getCharge(), 1);
 

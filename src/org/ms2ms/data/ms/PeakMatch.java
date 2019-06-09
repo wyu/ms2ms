@@ -39,6 +39,9 @@ public class PeakMatch extends PeakFragmentMatch implements Copyable<PeakMatch>,
 //  private Map<String, Double> mAnnotations = null;
   private IonType ionType = IonType.unknown ;
 
+  // temp objects
+  int[] tAccumSamples = Stats.fillIntArray(new int[255], 0);
+
   @Override
   public void dispose()
   {
@@ -175,10 +178,10 @@ public class PeakMatch extends PeakFragmentMatch implements Copyable<PeakMatch>,
   public PeakMatch setCounts(       long s) { mCounts        =s; return this; }
   public PeakMatch setIonType(   IonType s) { ionType        =s; return this; }
 
-  private double calcGapScore(int gap, double min_ppm)
+  public PeakMatch calcGapScore(int gap, double min_ppm)
   {
     // no point to proceed...
-    if (gap<=0/* || gap>4*/) return 0;
+    if (gap<=0 || gap>250) return setScore(0);
 
     // average AA mass: 115, largest - smallest: 129
     // match.getMz() is the actual mass deviation of the fragment
@@ -186,8 +189,14 @@ public class PeakMatch extends PeakFragmentMatch implements Copyable<PeakMatch>,
         nsamples = 0, ntrials=Math.max(1,(int )Math.round(((gap-1)*115d+129d)*getFrequency()));
 
     // cumulative numbers of gaps
-    for (int i=1; i<=gap; i++)
-      if (i<19 && nsamples<bins) nsamples+=Math.exp(Stats.ln_combination(19, i)); else break;
+    if (tAccumSamples[gap]==0)
+    {
+      for (int i=1; i<=gap; i++)
+        if (i<19 && nsamples<bins) nsamples+=Math.exp(Stats.ln_combination(19, i)); else break;
+
+      tAccumSamples[gap]=nsamples;
+    }
+    else nsamples = tAccumSamples[gap];
 
     double score0=0;
     if (nsamples<bins/2)
@@ -196,7 +205,7 @@ public class PeakMatch extends PeakFragmentMatch implements Copyable<PeakMatch>,
       if (score0 > -0.1) score0=0;
     }
 
-    return score0;
+    return setScore(score0);
   }
 
   @Override
