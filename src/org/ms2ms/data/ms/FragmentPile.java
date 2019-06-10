@@ -35,6 +35,9 @@ public class FragmentPile extends AbstractPile<FragmentMatch>
     {
       FragmentEntry E = at(i).getEntry();
       int         ion = at(i).getObsIndex();
+
+      if (ion>ms.size())
+        System.out.println();
       // starting from the lower mass end
       double mz0 = Peaks.MnH2MnH(ms.getMz(ion), (int )E.getCharge(), 1);
 

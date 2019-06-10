@@ -15,16 +15,27 @@ import java.util.Random;
 
 public class PileTest extends TestAbstract
 {
+  FragmentPile pile = new FragmentPile(100);
+
+  @Test
+  public void FragmentPileTestRepeat() throws Exception
+  {
+    for (int k=0; k<5; k++)
+    {
+      System.out.println("Round "+k);
+      FragmentPileTest();
+    }
+
+  }
 
   @Test
   public void FragmentPileTest() throws Exception
   {
-    FragmentPile pile = new FragmentPile(100);
-
     Random rnd = new Random(System.nanoTime());
     TreeListMultimap<Integer, FragmentMatch> data = TreeListMultimap.create();
     Multimap<Integer, Integer> pile_key = HashMultimap.create();
 
+    pile.init();
     for (int i=0; i<28; i++)
     {
       int key = rnd.nextInt(), block = rnd.nextInt(10);
@@ -38,10 +49,10 @@ public class PileTest extends TestAbstract
     }
     pile.sort();
 
-    for (Integer key : data.keySet())
-      System.out.println(key+" --> "+data.get(key).size());
-
-    System.out.println();
+//    for (Integer key : data.keySet())
+//      System.out.println(key+" --> "+data.get(key).size());
+//
+//    System.out.println();
 
     // key unique to the pile 2
     Collection<Integer> problems = Collections.difference(pile_key.get(1), pile_key.get(0));
