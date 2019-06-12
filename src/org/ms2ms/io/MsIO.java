@@ -299,26 +299,28 @@ public class MsIO extends IOs
   public static List<MsnSpectrum> readSpectra(String s) { return readSpectra(s, null); }
   public static List<MsnSpectrum> readSpectra(String s, long[] offsets)
   {
-    RandomAccessFile F = null;
-    try
+    try (RandomAccessFile F = new RandomAccessFile(s, "r"))
     {
-      try
-      {
-        F = new RandomAccessFile(s, "r");
-        List<MsnSpectrum> spec = Tools.isSet(offsets) ? readSpectra(F, offsets) : readSpectra(F);
-        F.close();
-        return spec;
-      }
-      catch (FileNotFoundException fne)
-      {
-        throw new RuntimeException("Not able to locate the file: " + s, fne);
-      }
-      finally
-      {
-        if (F!=null) F.close();
-      }
+//        F = new RandomAccessFile(s, "r");
+      List<MsnSpectrum> spec = Tools.isSet(offsets) ? readSpectra(F, offsets) : readSpectra(F);
+//        F.close();
+      return spec;
     }
-    catch (IOException ie) { throw new RuntimeException("Error while reading the spectra", ie); }
+    catch (IOException io)
+    {
+      throw new RuntimeException("Not able to locate the file: " + s, io);
+    }
+  }
+  public static Map<Integer, MsnSpectrum> readScanSpectra(String s)
+  {
+    try (RandomAccessFile F = new RandomAccessFile(s, "r"))
+    {
+      return readScanSpectra(F);
+    }
+    catch (IOException io)
+    {
+      throw new RuntimeException("Not able to locate the file: " + s, io);
+    }
   }
   public static List<MsnSpectrum> readSpectra(RandomAccessFile s) throws IOException
   {
@@ -335,6 +337,23 @@ public class MsIO extends IOs
     catch (Exception ie) {}
     return spectra;
   }
+  public static Map<Integer, MsnSpectrum> readScanSpectra(RandomAccessFile s) throws IOException
+  {
+    if (s==null) return null;
+    // the output
+    Map<Integer, MsnSpectrum> spectra = new TreeMap<>();
+    try
+    {
+      Integer rows = read(s, 0);
+      for (int i=0; i<rows; i++)
+      {
+        spectra.put(read(s, 0), readSpectrumIdentifier(s).toMsnSpectrum());
+      }
+    }
+    catch (Exception ie) {}
+    return spectra;
+  }
+
   public static List<MsnSpectrum> readSpectra(RandomAccessFile s, long[] offsets) throws IOException
   {
     if (s==null || !Tools.isSet(offsets)) return null;
@@ -364,29 +383,35 @@ public class MsIO extends IOs
   {
     if (s==null || !Tools.isSet(spectra)) return;
     // the output
-    RandomAccessFile F = null;
-    try
+    try(RandomAccessFile F = new RandomAccessFile(s, "rw"))
     {
-      try
+      for (MsnSpectrum m : spectra)
       {
-        F = new RandomAccessFile(s, "rw");
-        for (MsnSpectrum m : spectra)
-        {
-          write(F, MsSpectrum.adopt(m));
-        }
-        F.close();
-        return;
-      }
-      catch (FileNotFoundException fne)
-      {
-        throw new RuntimeException("Not able to locate the file: " + s, fne);
-      }
-      finally
-      {
-        if (F!=null) F.close();
+        write(F, MsSpectrum.adopt(m));
       }
     }
-    catch (IOException ie) { throw new RuntimeException("Error while writing the spectra", ie); }
+    catch (FileNotFoundException fne)
+    {
+      throw new RuntimeException("Not able to locate the file: " + s, fne);
+    }
+  }
+  public static void writeScanSpectra(String s, Map<Integer, MsnSpectrum> spectra) throws IOException
+  {
+    if (s==null || !Tools.isSet(spectra)) return;
+    // the output
+    try(RandomAccessFile F = new RandomAccessFile(s, "rw"))
+    {
+      write(F, spectra.size());
+      for (Integer scan : spectra.keySet())
+      {
+        write(F, scan);
+        write(F, MsSpectrum.adopt(spectra.get(scan)));
+      }
+    }
+    catch (FileNotFoundException fne)
+    {
+      throw new RuntimeException("Not able to locate the file: " + s, fne);
+    }
   }
   public static void writeAAs(DataOutput w, List<AminoAcid> seqs) throws IOException
   {
