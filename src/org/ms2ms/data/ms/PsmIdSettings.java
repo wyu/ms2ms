@@ -72,7 +72,7 @@ public class PsmIdSettings extends Settings
   {
     setDefaults();
 
-    properties.put(KEY_DUPL, s.getDouble(KEY_DUPL));
+    setDuplicateProb(s.getDouble(KEY_DUPL));
 
     setMinTrackSize(  s.getInt(KEY_TRACK));
     setMinMotifs(     s.getInt(KEY_MOTIF));
@@ -111,9 +111,27 @@ public class PsmIdSettings extends Settings
     setMinPeptideSize(4);
     setMinMatchProb(100d);
 
+    // values taken from Bonfire.java
+    setDuplicateProb(105d);
+
+    setMinTrackSize(  3);
+    setMinMotifs(     2);
+    keepC13(          true);
+    keepZZ(           false);
+    setDefaultTracks( 3);
+    setDefaultMotifs( 2);
+    useMultiZFrags(   false);
+    setEvalSamples(   1000);
+    expandExacts(     true);
+    setBootstrapMid(  0f);
+    setResidueBase(ResidueBase.TMT10);
+
+    // set the spectrum pre-processor
+    setProcessor(Spectra.PrepProcessor.LOCAL_NORM);
+
     return this;
   }
-  public PsmIdSettings updateTrackMotif(MsnSpectrum ms)
+  public PsmIdSettings updateSettings(MsnSpectrum ms)
   {
     int motifs=3,track=getDefaultTracks(); double L=0;
     L = (ms.getPrecursor().getMass()-460)/115d; // assumming 2x TMT10 tags
@@ -127,70 +145,65 @@ public class PsmIdSettings extends Settings
 
     return this;
   }
-  public String getOutfile() { return (String )properties.get(KEY_OUT); }
 
-  public Integer getEvalSamples() { return (Integer )properties.get(KEY_EVAL_N); }
-  public Integer getNumCandidates() { return (Integer )properties.get(KEY_CANDIDATE); }
-  public Integer getMinTrackSize()  { return (Integer )properties.get(KEY_TRACK); }
-  public Integer getMinMotifs()     { return (Integer )properties.get(KEY_MOTIF); }
-  public Double  getDuplicateProb() { return (Double  )properties.get(KEY_DUPL); }
-  public Integer getMaxNullMotifs() { return (Integer )properties.get("MaxNullMotifs"); }
-  public Double  getPeakTransform() { return (Double  )properties.get("PeakTransform"); }
-  public Integer getDefaultTracks() { return (Integer )properties.get("DefaultTracks"); }
-  public Integer getDefaultMotifs() { return (Integer )properties.get("DefaultMotifs"); }
-  public Double  getTrypicity()     { return (Double  )properties.get("getTrypicity"); }
-  public Double  getMinSeriesZval() { return (Double  )properties.get("MinSeriesZval"); }
+  /*** Getters and Setters ***/
+  //
+  public Float   getBootstrapMid()   { return (Float )properties.get(KEY_MID); }
+  public Integer getDefaultMotifs()  { return (Integer )properties.get("DefaultMotifs"); }
+  public Integer getDefaultTracks()  { return (Integer )properties.get("DefaultTracks"); }
+  public Double  getDuplicateProb()  { return (Double  )properties.get(KEY_DUPL); }
+  public Integer getEvalSamples()    { return (Integer )properties.get(KEY_EVAL_N); }
+  public Integer getMaxNullMotifs()  { return (Integer )properties.get("MaxNullMotifs"); }
+  public Double  getMinMatchProb()   { return (Double )properties.get("MinMatchProb"); }
+  public Integer getMinMotifs()      { return (Integer )properties.get(KEY_MOTIF); }
   public Integer getMinPeptideSize() { return (Integer )properties.get("MinPeptideSize"); }
-  public Float getBootstrapMid() { return (Float )properties.get(KEY_MID); }
-  public Double getMinMatchProb() { return (Double )properties.get("MinMatchProb"); }
-  public String getTrueTags() { return (String )properties.get(KEY_TRUE); }
+  public Double  getMinSeriesZval()  { return (Double  )properties.get("MinSeriesZval"); }
+  public Integer getMinTrackSize()   { return (Integer )properties.get(KEY_TRACK); }
+  public Integer getNumCandidates()  { return (Integer )properties.get(KEY_CANDIDATE); }
+  public String  getOutfile()        { return (String )properties.get(KEY_OUT); }
+  public Double  getPeakTransform()  { return (Double  )properties.get("PeakTransform"); }
+  public Double  getTrypicity()      { return (Double  )properties.get("getTrypicity"); }
+  public String  getTrueTags()       { return (String )properties.get(KEY_TRUE); }
 
-  public Spectra.PrepProcessor getProcess()   { return (Spectra.PrepProcessor )properties.get(KEY_PROC); }
-  public OffsetPpmTolerance getAccuracy()     { return (OffsetPpmTolerance )properties.get(KEY_FRAG_PPM); }
-  public OffsetPpmTolerance getPrecursorTol() { return (OffsetPpmTolerance )properties.get(KEY_PREC_PPM); }
-  public OffsetPpmTolerance getPrecision()    { return (OffsetPpmTolerance )properties.get("Precision"); }
+  public ResidueBase           getBase()         { return (ResidueBase )properties.get(KEY_RESIDUE); }
+  public OffsetPpmTolerance    getAccuracy()     { return (OffsetPpmTolerance )properties.get(KEY_FRAG_PPM); }
+  public OffsetPpmTolerance    getPrecursorTol() { return (OffsetPpmTolerance )properties.get(KEY_PREC_PPM); }
+  public OffsetPpmTolerance    getPrecision()    { return (OffsetPpmTolerance )properties.get("Precision"); }
+  public Spectra.PrepProcessor getProcess()      { return (Spectra.PrepProcessor )properties.get(KEY_PROC); }
 
-  public ResidueBase getBase() { return (ResidueBase )properties.get(KEY_RESIDUE); }
-
-  public boolean expandExacts() { return (Boolean )properties.get(KEY_EXPAND); }
-  public boolean keepC13()          { return (Boolean )properties.get(KEY_C13_KEEP); }
-  public boolean keepZZ()          { return (Boolean )properties.get(KEY_ZZ_KEEP); }
+  public boolean expandExacts()   { return (Boolean )properties.get(KEY_EXPAND); }
+  public boolean keepC13()        { return (Boolean )properties.get(KEY_C13_KEEP); }
+  public boolean keepZZ()         { return (Boolean )properties.get(KEY_ZZ_KEEP); }
   public boolean useMultiZFrags() { return (Boolean )properties.get("useMultiZFrags"); }
 
-  public PsmIdSettings keepC13(         Boolean s) { properties.put(KEY_C13_KEEP, s); return this; }
-  public PsmIdSettings keepZZ(          Boolean s) { properties.put(KEY_ZZ_KEEP,  s); return this; }
-
-  public PsmIdSettings setOutfile(       String s) { properties.put(KEY_OUT, s);         return this; }
-  public PsmIdSettings setMaxNullMotifs(Integer s) { properties.put("MaxNullMotifs", s); return this; }
-  public PsmIdSettings setPeakTransform( Double s) { properties.put("PeakTransform", s); return this; }
-  public PsmIdSettings setDefaultTracks(Integer s) { properties.put("DefaultTracks", s); return this; }
-  public PsmIdSettings setDefaultMotifs(Integer s) { properties.put("DefaultMotifs", s); return this; }
-  public PsmIdSettings setMinTrackSize( Integer s) { properties.put(KEY_TRACK, s); return this; }
-  public PsmIdSettings setMinMotifs(    Integer s) { properties.put(KEY_MOTIF, s); return this; }
-  public PsmIdSettings setDecoyMultiple(Double  s) { properties.put("DecoyMultiple", s); return this; }
-  public PsmIdSettings useMultiZFrags( Boolean  s) { properties.put("useMultiZFrags", s); return this; }
-  public PsmIdSettings setMinSeriesZval(Double  s) { properties.put("MinSeriesZval", s); return this; }
-  public PsmIdSettings setMinMatchProb(  Double s) { properties.put("MinMatchProb", s); return this; }
+  public PsmIdSettings expandExacts(     Boolean s) { properties.put(KEY_EXPAND, s); return this; }
+  public PsmIdSettings keepC13(          Boolean s) { properties.put(KEY_C13_KEEP, s); return this; }
+  public PsmIdSettings keepZZ(           Boolean s) { properties.put(KEY_ZZ_KEEP,  s); return this; }
+  public PsmIdSettings setBootstrapMid(    Float s) { properties.put(KEY_MID, s); return this; }
+  public PsmIdSettings setDecoyMultiple( Double  s) { properties.put("DecoyMultiple", s); return this; }
+  public PsmIdSettings setDefaultMotifs( Integer s) { properties.put("DefaultMotifs", s); return this; }
+  public PsmIdSettings setDefaultTracks( Integer s) { properties.put("DefaultTracks", s); return this; }
+  public PsmIdSettings  setDuplicateProb( Double s) { properties.put(KEY_DUPL, s); return this; }
+  public PsmIdSettings setEvalSamples(   Integer s) { properties.put(KEY_EVAL_N, s); return this; }
+  public PsmIdSettings setFalseTags(      String s) { properties.put(KEY_FALSE, s); return this; }
+  public PsmIdSettings setMaxNullMotifs( Integer s) { properties.put("MaxNullMotifs", s); return this; }
+  public PsmIdSettings setMinMatchProb(   Double s) { properties.put("MinMatchProb", s); return this; }
+  public PsmIdSettings setMinMotifs(     Integer s) { properties.put(KEY_MOTIF, s); return this; }
+  public PsmIdSettings setMinPeptideSize(Integer s) { properties.put("MinPeptideSize", s); return this; }
+  public PsmIdSettings setMinSeriesZval( Double  s) { properties.put("MinSeriesZval", s); return this; }
+  public PsmIdSettings setMinTrackSize(  Integer s) { properties.put(KEY_TRACK, s); return this; }
+  public PsmIdSettings setModVault(       String s) { properties.put(KEY_KNOWN, s); return this; }
+  public PsmIdSettings setOutfile(        String s) { properties.put(KEY_OUT, s);         return this; }
+  public PsmIdSettings setPeakTransform(  Double s) { properties.put("PeakTransform", s); return this; }
+  public PsmIdSettings setRefAssignments( String s) { properties.put(KEY_REFS, s); return this; }
+  public PsmIdSettings setSelectedMSMS(   String s) { properties.put(KEY_SCAN, s); return this; }
+  public PsmIdSettings setTrueTags(       String s) { properties.put(KEY_TRUE, s); return this; }
+  public PsmIdSettings useMultiZFrags(  Boolean  s) { properties.put("useMultiZFrags", s); return this; }
 
   public PsmIdSettings setAccuracy(    OffsetPpmTolerance s) { properties.put(KEY_FRAG_PPM, s); return this; }
-  public PsmIdSettings setPrecursorTol(OffsetPpmTolerance s) { properties.put(KEY_PREC_PPM, s); return this; }
   public PsmIdSettings setPrecision(   OffsetPpmTolerance s) { properties.put("Precision", s); return this; }
-  public PsmIdSettings setEvalSamples(            Integer s) { properties.put(KEY_EVAL_N, s); return this; }
-  public PsmIdSettings expandExacts(            Boolean s) { properties.put(KEY_EXPAND, s); return this; }
-  public PsmIdSettings setBootstrapMid(            Float s) { properties.put(KEY_MID, s); return this; }
-  public PsmIdSettings setMinPeptideSize(Integer s) { properties.put("MinPeptideSize", s); return this; }
-
-  public PsmIdSettings setFalseTags(String s) { properties.put(KEY_FALSE, s); return this; }
-  public PsmIdSettings setTrueTags(String s) { properties.put(KEY_TRUE, s); return this; }
-  public PsmIdSettings setRefAssignments(String s) { properties.put(KEY_REFS, s); return this; }
-
-  public PsmIdSettings setResidueBase(ResidueBase s) { properties.put(KEY_RESIDUE, s); return this; }
-  public PsmIdSettings setModVault(String s) { properties.put(KEY_KNOWN, s); return this; }
-
-  // only a subset of scans if requested
-  public PsmIdSettings setSelectedMSMS(String s) { properties.put(KEY_SCAN, s); return this; }
-
+  public PsmIdSettings setPrecursorTol(OffsetPpmTolerance s) { properties.put(KEY_PREC_PPM, s); return this; }
   // set the spectrum pre-processor
   public PsmIdSettings setProcessor(Spectra.PrepProcessor s) { properties.put(KEY_PROC, s); return this; }
-
+  public PsmIdSettings setResidueBase(        ResidueBase s) { properties.put(KEY_RESIDUE, s); return this; }
 }
