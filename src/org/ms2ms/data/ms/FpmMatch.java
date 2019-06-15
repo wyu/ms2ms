@@ -22,7 +22,7 @@ public class FpmMatch implements Comparable<FpmMatch>
   @Override
   public int compareTo(FpmMatch o)
   {
-    int c = Integer.compare(mProteinIdx, o.mProteinIdx);
+    int c = Integer.compare(o.mProteinIdx, mProteinIdx);
     if (c==0) c = mEntry.compareTo(o.mEntry);
 
     return c;

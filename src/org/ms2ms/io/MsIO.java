@@ -115,13 +115,11 @@ public class MsIO extends IOs
 
     w.writeInt(   ms.size());
     if (ms.size()>0)
-    {
       for (int i=0; i<ms.size(); i++)
       {
         w.writeDouble(ms.getMz(i));
         w.writeDouble(ms.getIntensity(i));
       }
-    }
   }
   public static void write(DataOutput w, UUID s) throws IOException
   {
@@ -154,10 +152,19 @@ public class MsIO extends IOs
     return (n==1? PeakList.Precision.valueOf(read(w,"")):null);
   }
 
+  public static void writeMsnMS(RandomAccessFile w, MsnSpectrum ms) throws IOException
+  {
+    write(w, MsSpectrum.adopt(ms));
+    writeMsnHeader(w, ms);
+  }
   public static void writeMsnMS(DataOutput w, MsnSpectrum ms) throws IOException
   {
     // peaks and RT only
     write(w, ms);
+    writeMsnHeader(w, ms);
+  }
+  public static void writeMsnHeader(DataOutput w, MsnSpectrum ms) throws IOException
+  {
     // write the rest of the info. use a diff call signature to avoid messing up the old codes
     write(w, ms.getComment());
     write(w, ms.getScanNumbers().getFirst().getValue());
@@ -167,11 +174,21 @@ public class MsIO extends IOs
     write(w, ms.getId());
     write(w, ms.getSpectrumSource());
   }
+
+  public static MsnSpectrum readMsnMS(RandomAccessFile w) throws IOException
+  {
+
+    MsnSpectrum ms = readSpectrumIdentifier(w).toMsnSpectrum();
+    return readMsnHeader(w, ms);
+  }
   public static MsnSpectrum readMsnMS(DataInput w) throws IOException
   {
     // peaks and RT only
     MsnSpectrum ms = readSpectrumIdentifier(w, new MsnSpectrum());
-
+    return readMsnHeader(w, ms);
+  }
+  public static MsnSpectrum readMsnHeader(DataInput w, MsnSpectrum ms) throws IOException
+  {
     // write the rest of the info. use a diff call signature to avoid messing up the old codes
     ms.setComment(read(w,""));
     ms.addScanNumber(read(w,0));
@@ -311,6 +328,22 @@ public class MsIO extends IOs
       throw new RuntimeException("Not able to locate the file: " + s, io);
     }
   }
+  public static List<MsnSpectrum> readMsnSpectra(String s)
+  {
+    try (RandomAccessFile F = new RandomAccessFile(s, "r"))
+    {
+      Integer n = read(F, 0);
+      List<MsnSpectrum> spectra = new ArrayList<>(n);
+
+      for (int i=0; i<n; i++) spectra.add(readMsnMS(F));
+      return spectra;
+    }
+    catch (IOException io)
+    {
+      throw new RuntimeException("Not able to locate the file: " + s, io);
+    }
+  }
+
   public static Map<Integer, MsnSpectrum> readScanSpectra(String s)
   {
     try (RandomAccessFile F = new RandomAccessFile(s, "r"))
@@ -347,7 +380,7 @@ public class MsIO extends IOs
       Integer rows = read(s, 0);
       for (int i=0; i<rows; i++)
       {
-        spectra.put(read(s, 0), readSpectrumIdentifier(s).toMsnSpectrum());
+        spectra.put(read(s, 0), readMsnMS(s));
       }
     }
     catch (Exception ie) {}
@@ -379,6 +412,21 @@ public class MsIO extends IOs
     }
     return spectra;
   }
+  public static void writeMsnSpectra(String s, Collection<MsnSpectrum> spectra) throws IOException
+  {
+    if (s==null || !Tools.isSet(spectra)) return;
+    // the output
+    try(RandomAccessFile F = new RandomAccessFile(s, "rw"))
+    {
+      write(F, spectra.size());
+      for (MsnSpectrum m : spectra) writeMsnMS(F, m);
+    }
+    catch (FileNotFoundException fne)
+    {
+      throw new RuntimeException("Not able to locate the file: " + s, fne);
+    }
+  }
+
   public static void writeSpectra(String s, Collection<MsnSpectrum> spectra) throws IOException
   {
     if (s==null || !Tools.isSet(spectra)) return;
@@ -405,7 +453,7 @@ public class MsIO extends IOs
       for (Integer scan : spectra.keySet())
       {
         write(F, scan);
-        write(F, MsSpectrum.adopt(spectra.get(scan)));
+        writeMsnMS(F, spectra.get(scan));
       }
     }
     catch (FileNotFoundException fne)
@@ -955,4 +1003,36 @@ public class MsIO extends IOs
       e.printStackTrace();
     }
   }
+
+  public static MsnSpectrum fromBytes(byte[] s)
+  {
+    try (ByteArrayInputStream bai = new ByteArrayInputStream(s);
+         ObjectInputStream     in = new ObjectInputStream(bai))
+    {
+      return (MsnSpectrum ) in.readObject();
+    }
+    catch(IOException i)
+    {
+      i.printStackTrace();
+    }
+    catch(ClassNotFoundException c)
+    {
+      System.out.println("Employee class not found");
+      c.printStackTrace();
+    }
+    return null;
+  }
+  public static byte[] toBytes(MsnSpectrum s)
+  {
+    try (ByteArrayOutputStream bao = new ByteArrayOutputStream();
+         ObjectOutputStream    out = new ObjectOutputStream(bao))
+    {
+
+      out.writeObject(s);
+      return bao.toByteArray();
+    }
+    catch (IOException e)
+    { throw new RuntimeException("Error during persistence", e); }
+  }
+
 }

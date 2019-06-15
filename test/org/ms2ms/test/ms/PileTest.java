@@ -60,7 +60,7 @@ public class PileTest extends TestAbstract
     pile.start(); int track_size=1, rows=0;
     while (track_size>0)
     {
-      track_size=pile.nextPeptide(); rows+=track_size;
+      track_size=pile.nextChunk(); rows+=track_size;
       System.out.println(pile.getCurrentKey()+" --> "+track_size+"/"+rows);
 
       if (data.containsKey(pile.getCurrentKey()) &&

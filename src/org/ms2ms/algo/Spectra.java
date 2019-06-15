@@ -978,7 +978,7 @@ public class Spectra
   public static MsnSpectrum setIsolationComment(MsnSpectrum ms, double left, double right, MsnSpectrum ms10, MsnSpectrum ms11)
   {
     // parse the isolated m/z. It maybe different from the precursor m/z
-    String[] strs = ms.getComment().split("@")[0].split(" ");
+    String[] strs = Strs.isSet(ms.getComment()) ? ms.getComment().split("@")[0].split(" "):null;
     double center = (Tools.isSet(strs)? Stats.toDouble(strs[strs.length-1]):ms.getPrecursor().getMz());
 
     // save the precursor isolation region

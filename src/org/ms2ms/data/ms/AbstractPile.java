@@ -2,6 +2,7 @@ package org.ms2ms.data.ms;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 /** A 'tall' array of sortable objects as a more space efficient collection vs SortedMultimap **/
@@ -34,13 +35,13 @@ abstract public class AbstractPile<T extends Comparable<T>>
   public T get(int pile, int idx) { return mDataPiles.get(pile)[idx]; }
   public T at(int i)              { return mSeries[i]; }
 
-  public AbstractPile add(T s)
+  public T add(T s)
   {
     // do we enough room to populate it?
     hasNext();
     mDataPiles.get(curr)[trunks[curr].N++] = s;
 //    mDataPiles.get(curr)[trunks[curr].N++] = new FragmentMatch(s, i);
-    return this;
+    return s;
   }
   public T get(int idx) { return mDataPiles.get(curr)[idx]; }
   public T front()      { return mDataPiles.get(curr)[trunks[curr].beg]; }
@@ -107,7 +108,7 @@ abstract public class AbstractPile<T extends Comparable<T>>
     return newStart;
   }
   // return the chunk of FragmentEntry for the next key
-  public int nextPeptide()
+  public int nextChunk()
   {
     currKey = nextStart(); mSeriesEnd=0;
 
