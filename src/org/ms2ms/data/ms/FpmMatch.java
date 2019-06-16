@@ -23,7 +23,9 @@ public class FpmMatch implements Comparable<FpmMatch>
   public int compareTo(FpmMatch o)
   {
     int c = Integer.compare(o.mProteinIdx, mProteinIdx);
-    if (c==0) c = mEntry.compareTo(o.mEntry);
+    if (c==0) c = Integer.compare(
+        o.getEntry().getTrack().size(),
+          getEntry().getTrack().size());
 
     return c;
   }

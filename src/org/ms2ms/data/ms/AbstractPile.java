@@ -2,7 +2,6 @@ package org.ms2ms.data.ms;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 
 /** A 'tall' array of sortable objects as a more space efficient collection vs SortedMultimap **/
@@ -31,6 +30,7 @@ abstract public class AbstractPile<T extends Comparable<T>>
   public int     getTrunkEnd()    { return mTrunkEnd; }
   public Integer getCurrentKey()  { return currKey; }
   public Integer getCurrPile()    { return curr; }
+  public PileTrunk[] getTrunks() { return trunks; }
 
   public T get(int pile, int idx) { return mDataPiles.get(pile)[idx]; }
   public T at(int i)              { return mSeries[i]; }

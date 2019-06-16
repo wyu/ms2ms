@@ -14,8 +14,6 @@ public class FragmentPile extends AbstractPile<FragmentMatch>
 {
   // zero or more trunks of fragment entry vectors to hold the bulk data
   private PeakMatch[] track = new PeakMatch[255]; // no more than 255 residue long for now.
-  // holding the query results
-//  private FragmentMatch[] mFragSeries = new FragmentMatch[255];
 
   public FragmentPile()       { super(); }
   public FragmentPile(int s)  { super(s); init(); }
@@ -36,8 +34,6 @@ public class FragmentPile extends AbstractPile<FragmentMatch>
       FragmentEntry E = at(i).getEntry();
       int         ion = at(i).getObsIndex();
 
-      if (ion>ms.size())
-        System.out.println();
       // starting from the lower mass end
       double mz0 = Peaks.MnH2MnH(ms.getMz(ion), (int )E.getCharge(), 1);
 
