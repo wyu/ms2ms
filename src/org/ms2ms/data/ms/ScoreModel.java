@@ -38,6 +38,11 @@ public class ScoreModel implements Binary
 
   public static float[] sTrypicity = {0f,0f,0f,0f,0.5f,1f,2f};
 
+  // temp counts
+  private int nPeaks=0;
+  private double mCenterY=0d, mSigmaY=0d, mCenterB=0d, mSigmaB=0d, mNumHits=0;
+
+
   public ScoreModel() { super(); }
   public ScoreModel(String s) { super(); mName=s; }
 
@@ -47,6 +52,22 @@ public class ScoreModel implements Binary
   public Double getOffset(eType t) { return mOffsets.get(t); }
   public String getName() { return mName; }
   public Integer getBootstrapSize() { return mBootstrapSize; }
+
+  public double getCenterY() { return mNumHits>0?mCenterY/mNumHits:0d; }
+  public double getCenterB() { return mNumHits>0?mCenterB/mNumHits:0d; }
+  public double getSigmaY( ) { return mNumHits>0 && mSigmaY>0?mSigmaY/mNumHits:1d; }
+  public double getSigmaB( ) { return mNumHits>0 && mSigmaB>0?mSigmaB/mNumHits:1d; }
+
+  public double getOffsetB() { return mCenterB / mSigmaB; }
+  public double getOffsetY() { return mCenterY / mSigmaY; }
+
+  public double toZvalY(double s) { return (s-mCenterY)/mSigmaY; }
+  public double toZvalB(double s) { return (s-mCenterB)/mSigmaB; }
+
+  public ScoreModel increCenterY(double s) { mCenterY+=s; return this; }
+  public ScoreModel increCenterB(double s) { mCenterB+=s; return this; }
+  public ScoreModel increSigmaY( double s) { mSigmaY +=s; return this; }
+  public ScoreModel increSigmaB( double s) { mSigmaB +=s; return this; }
 
   public int size(boolean decoy, eType t)
   {
