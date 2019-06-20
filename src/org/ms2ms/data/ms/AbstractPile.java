@@ -39,9 +39,23 @@ abstract public class AbstractPile<T extends Comparable<T>>
   {
     // do we enough room to populate it?
     hasNext();
+    if (trunks[curr].N>=mDataPiles.get(curr).length)
+      System.out.println();
     mDataPiles.get(curr)[trunks[curr].N++] = s;
 //    mDataPiles.get(curr)[trunks[curr].N++] = new FragmentMatch(s, i);
     return s;
+  }
+  private void add2series(T s)
+  {
+    if (mSeriesEnd>=mSeries.length)
+    {
+      // extends the array
+      int new_capacity = (int )(mSeries.length*2d);
+      mSeries = Arrays.copyOf(mSeries, new_capacity);
+    }
+
+    mSeries[mSeriesEnd++] = s;
+
   }
   public T get(int idx) { return mDataPiles.get(curr)[idx]; }
   public T front()      { return mDataPiles.get(curr)[trunks[curr].beg]; }
@@ -128,7 +142,8 @@ abstract public class AbstractPile<T extends Comparable<T>>
           if (getKeyAt(i,j)==currKey)
           {
             // accumualte the entries
-            mSeries[mSeriesEnd++] = get(i,j);
+//            mSeries[mSeriesEnd++] = get(i,j);
+            add2series(get(i,j));
           }
           else
           {
