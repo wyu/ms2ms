@@ -789,8 +789,9 @@ public class Spectra
     // walking thro the peaks and recording the matching peaks
     SortedMap<Double,Peak> peaks = new TreeMap<>();
 
-    for (int i=0; i<ms.size(); i++)
-      peaks.put(ms.getMz(i), new Peak(ms.getMz(i), ms.getIntensity(i)));
+    if (ms!=null)
+      for (int i=0; i<ms.size(); i++)
+        peaks.put(ms.getMz(i), new Peak(ms.getMz(i), ms.getIntensity(i)));
 
     return peaks;
   }
