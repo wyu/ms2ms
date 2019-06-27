@@ -135,10 +135,11 @@ abstract public class AbstractPile<T extends Comparable<T>>
     for (i=0; i<getTrunkEnd(); i++)
     {
       // look for the entries for this peptides across the trunks
-      boolean OK=false;
+      boolean OK=false; int jBeg=trunks[i].beg, jEnd=trunks[i].N;
       if (getKeyAt(i,trunks[i].beg)==currKey)
       {
-        for (j=trunks[i].beg; j<trunks[i].N; j++)
+        for (j=jBeg; j<jEnd; j++)
+        {
           if (getKeyAt(i,j)==currKey)
           {
             // accumualte the entries
@@ -151,6 +152,7 @@ abstract public class AbstractPile<T extends Comparable<T>>
             trunks[i].key =getKeyAt(i,j);
             OK=true; break;
           }
+        }
         // hit the end of the array without seeing a new peptide
         if (j>=trunks[i].N && !OK) trunks[i].key=null;
       }

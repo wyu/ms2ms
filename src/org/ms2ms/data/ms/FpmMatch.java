@@ -26,6 +26,7 @@ public class FpmMatch implements Comparable<FpmMatch>
     if (c==0) c = Integer.compare(
         o.getEntry().getTrack().size(),
           getEntry().getTrack().size());
+    if (c==0) c = mIonType.compareTo(o.mIonType);
 
     return c;
   }

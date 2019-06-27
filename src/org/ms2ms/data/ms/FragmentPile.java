@@ -21,7 +21,7 @@ public class FragmentPile extends AbstractPile<FragmentMatch>
   public PeakMatch[]   getTrack() { return track; }
 
   @Override
-  public int getKeyAt(int pile, int idx) { return get(pile,idx).getEntry().getPeptideKey(); }
+  public int getKeyAt(int pile, int idx) { return mDataPiles.get(pile)[idx].getEntry().getPeptideKey(); }
   @Override
   public FragmentMatch[] newPile(int s) { return new FragmentMatch[s]; }
 
