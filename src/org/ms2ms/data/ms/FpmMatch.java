@@ -1,6 +1,7 @@
 package org.ms2ms.data.ms;
 
 import org.expasy.mzjava.core.ms.spectrum.IonType;
+import org.ms2ms.utils.Tools;
 
 public class FpmMatch implements Comparable<FpmMatch>
 {
@@ -30,5 +31,12 @@ public class FpmMatch implements Comparable<FpmMatch>
 
     return c;
   }
+
+  @Override
+  public String toString()
+  {
+    return mIonType.toString()+",protein:"+mProteinIdx+"; "+mEntry.toString();
+  }
+
 }
 

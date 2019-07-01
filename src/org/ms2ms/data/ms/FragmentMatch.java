@@ -1,5 +1,7 @@
 package org.ms2ms.data.ms;
 
+import org.ms2ms.utils.Tools;
+
 public class FragmentMatch implements Comparable<FragmentMatch>
 {
   private FragmentEntry mEntry;
@@ -17,4 +19,11 @@ public class FragmentMatch implements Comparable<FragmentMatch>
   // order by the peptide key in desending order
   @Override
   public int compareTo(FragmentMatch o) { return mEntry!=null?o.mEntry.compareTo(mEntry):0; }
+
+  @Override
+  public String toString()
+  {
+    return "#"+mObsIdx+"; "+mEntry.toString();
+  }
+
 }
