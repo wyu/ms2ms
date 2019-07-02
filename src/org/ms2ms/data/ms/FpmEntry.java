@@ -261,9 +261,6 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
 
     boolean        has1st = false, y1=false;
 
-//    if (getTrack().size()>=7)
-//      System.out.println();
-
     for (int i=0; i<getTrack().size(); i++)
     {
       // check the presence of y1

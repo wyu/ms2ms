@@ -106,6 +106,14 @@ public class PeakMatch extends PeakFragmentMatch implements Copyable<PeakMatch>,
     this.setMzAndCharge(mz, charge);
     this.intensity=intensity;
   }
+  public void invalidate()
+  {
+    mz=mass=intensity=mass=mFreq=mSNR=0;
+    charge=0;
+
+    ionType=IonType.unknown;
+  }
+  public boolean isValid() { return mz!=0 && intensity>0; }
 
   public double getMz()        { return this.mz; }
   public Float getMzLow()     { return this.mz_low; }
@@ -211,10 +219,8 @@ public class PeakMatch extends PeakFragmentMatch implements Copyable<PeakMatch>,
   @Override
   public String toString()
   {
-    String line = "m/z"+Tools.d2s(getMz(),2)+", %"+Tools.d2s(getIntensity(),4)+", z"+getCharge()+
-        ", S/N"+Tools.d2s(getSNR(),1)+(getIsotopes()>1?"$"+getIsotopes():"")+(", scr="+Tools.d2s(getScore()*-10d,1));
-
-    return line;
+    return isValid()? ("m/z"+Tools.d2s(getMz(),2)+", %"+Tools.d2s(getIntensity(),4)+", z"+getCharge()+
+        ", S/N"+Tools.d2s(getSNR(),1)+(getIsotopes()>1?"$"+getIsotopes():"")+(", scr="+Tools.d2s(getScore()*-10d,1))) : "---";
   }
   public PeakMatch clone()
   {
