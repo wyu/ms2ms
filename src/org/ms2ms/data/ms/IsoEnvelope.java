@@ -151,4 +151,14 @@ public class IsoEnvelope
 
     return buf.toString();
   }
+
+  public IsoEnvelope reset()
+  {
+    mz=intensity=mScore=mChargeScore = 0;
+    charge = 0;
+    if (mIsotopes !=null) mIsotopes.clear();
+    if (mPredicted!=null) mPredicted.clear();
+
+    return this;
+  }
 }

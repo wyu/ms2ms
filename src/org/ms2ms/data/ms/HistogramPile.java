@@ -11,7 +11,7 @@ import java.util.List;
 
 public class HistogramPile extends DoublePile
 {
-  private Double mCentroid, mPct1, mPct5, mPct33, mMedian;
+  private Double mCentroid, mPct1, mPct2, mPct5, mPct33, mMedian;
   private List<Point> mHistogram;
 
   public HistogramPile()       { super(); }
@@ -52,6 +52,7 @@ public class HistogramPile extends DoublePile
 
     // look into the top ranks values for true top-percentiles
     mPct5   = tops.get((int )Math.floor((size()-1)*0.05d));
+    mPct2   = tops.get((int )Math.floor((size()-1)*0.02d));
     mPct1   = tops.get((int )Math.floor((size()-1)*0.01d));
 
     tops = (List )Tools.dispose(tops);

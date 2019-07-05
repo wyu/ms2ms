@@ -86,7 +86,7 @@ abstract public class AbstractPile<T extends Comparable<T>>
   public AbstractPile init()
   {
     // need at least one trunk
-    if (getTrunkEnd()==0) mDataPiles.add(newPile(mInitialLength));
+    if (mDataPiles.size()==0) mDataPiles.add(newPile(mInitialLength));
 
     mSeries = newPile(mSeriesCapacity);
     mSeriesEnd=mTrunkEnd=curr=0;
@@ -102,8 +102,8 @@ abstract public class AbstractPile<T extends Comparable<T>>
     if (trunks[curr].N>=mInitialLength) curr++;
     if (curr>=getTrunkEnd())
     {
-      mDataPiles.add(newPile(mInitialLength));
       mTrunkEnd++;
+      if (mTrunkEnd>mDataPiles.size()) mDataPiles.add(newPile(mInitialLength));
       // reset the counts
       trunks[curr] = new PileTrunk();
     }
@@ -143,7 +143,6 @@ abstract public class AbstractPile<T extends Comparable<T>>
           if (getKeyAt(i,j)==currKey)
           {
             // accumualte the entries
-//            mSeries[mSeriesEnd++] = get(i,j);
             add2series(get(i,j));
           }
           else

@@ -19,9 +19,16 @@ public class FpmPile extends AbstractPile<FpmMatch>
   {
     // once a block of FragmentEntry was located in the 'pile', we can turn them into a 'track'
     mProtein.ensureCapacity(mSeriesEnd, 1.5).start();
+
+    // skip the repeats
+    double scr=-1000; int seq=0;
     for (int i=0; i<mSeriesEnd; i++)
     {
-      mProtein.addSegment(at(i));
+      if (at(i).getPeptideSeq()!=seq || at(i).getEntry().getGapScore()!=scr)
+      {
+        mProtein.addSegment(at(i));
+        scr = at(i).getEntry().getGapScore(); seq = at(i).getPeptideSeq();
+      }
     }
 
     return mProtein;

@@ -311,7 +311,7 @@ public class PeakMatch extends PeakFragmentMatch implements Copyable<PeakMatch>,
       // save the c13 with negative intensity, WYU 20170318
       if (Peaks.hasC13(ms.getAnnotations(i)))
       {
-        peaks.put(ms.getMz(i), new PeakMatch(ms.getMz(i), raw_ai*-1d).setRawAI(raw_ai));
+        peaks.put(ms.getMz(i), new PeakMatch(ms.getMz(i), ms.getIntensity(i)*-1d).setRawAI(raw_ai));
         i++; continue;
       }
 
@@ -407,8 +407,6 @@ public class PeakMatch extends PeakFragmentMatch implements Copyable<PeakMatch>,
           fr+=peaks.getVals()[j].getFrequency();
           ai+=Math.abs(peaks.getVals()[j].getIntensity());
         }
-        if (fr==0)
-          System.out.println();
         pk = new IsoEnvelope(m0/(double )(j1-j0),ai, 0);
         pk.setScore(fr/(double) (j1-j0));
       }

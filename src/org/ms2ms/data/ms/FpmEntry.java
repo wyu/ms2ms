@@ -284,7 +284,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
         score+=pk.getScore() - Math.log10(percentile);
       }
       // move the contig start if gap>1
-      if (pk.getCharge()-contig_last>1)  contig_start=pk.getCharge();
+      if (contig_start==0 || pk.getCharge()-contig_last>1)  contig_start=pk.getCharge();
       // always update to the preceeding ion
       contig_last=pk.getCharge(); sumAI+=percentile;
       // update the longest contig if qualified
