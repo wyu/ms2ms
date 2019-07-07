@@ -12,10 +12,11 @@ abstract public class AbstractPile<T extends Comparable<T>>
   protected int mInitialLength   = 100000, // the length of the array in each trunk
                 mSeriesCapacity  = 255,
                 mTrunkEnd        = 0,      // last of the pile in use
-                mSeriesEnd       = 0;      // end position of the FragmentEntry of a key block
+                mSeriesEnd       = 0,      // end position of the FragmentEntry of a key block
+                mDeadKey         = Integer.MAX_VALUE;
 
-  protected Integer curr         = null,     // currnt trunk
-                    currKey      = null;  // the key block we're looking at
+  protected int curr             = Integer.MAX_VALUE,  // currnt trunk
+                currKey          = Integer.MAX_VALUE;  // the key block we're looking at
 
   protected List<T[]> mDataPiles = new ArrayList<>();
   protected PileTrunk[]   trunks = new PileTrunk[mSeriesCapacity];
@@ -39,10 +40,7 @@ abstract public class AbstractPile<T extends Comparable<T>>
   {
     // do we enough room to populate it?
     hasNext();
-    if (trunks[curr].N>=mDataPiles.get(curr).length)
-      System.out.println();
     mDataPiles.get(curr)[trunks[curr].N++] = s;
-//    mDataPiles.get(curr)[trunks[curr].N++] = new FragmentMatch(s, i);
     return s;
   }
   private void add2series(T s)
@@ -111,12 +109,12 @@ abstract public class AbstractPile<T extends Comparable<T>>
     return this;
   }
 
-  public Integer nextStart()
+  public int nextStart()
   {
-    Integer newStart=null;
+    int newStart=mDeadKey;
     for (int i=0; i<getTrunkEnd(); i++)
       // the keys are sorted in desending order, so we want the largest one across the piles
-      if (trunks[i].key!=null && (newStart==null || trunks[i].key>newStart))
+      if (trunks[i].key!=mDeadKey && (newStart==mDeadKey || trunks[i].key>newStart))
         newStart=trunks[i].key;
 
     return newStart;
@@ -129,7 +127,7 @@ abstract public class AbstractPile<T extends Comparable<T>>
 //    System.out.print("Searching for "+currKey+" --> ");
 
     // quit if no more key to be find
-    if (currKey==null) return 0;
+    if (currKey==mDeadKey) return 0;
 
     int i=0,j=0;
     for (i=0; i<getTrunkEnd(); i++)
@@ -153,7 +151,7 @@ abstract public class AbstractPile<T extends Comparable<T>>
           }
         }
         // hit the end of the array without seeing a new peptide
-        if (j>=trunks[i].N && !OK) trunks[i].key=null;
+        if (j>=trunks[i].N && !OK) trunks[i].key=mDeadKey;
       }
     }
     return mSeriesEnd;

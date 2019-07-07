@@ -28,7 +28,7 @@ import java.util.*;
 public class PeakMatch extends PeakFragmentMatch implements Copyable<PeakMatch>, Comparable<PeakMatch>
 {
   private double mz=0.0d, intensity=0.0d, mass=0.0d, mSNR=0d, mFreq=0d, mOrigMz=0d, mCalcMz=0d, mScore=0d, mRawAI=0d;
-  private Float mz_low=0f, mz_high=0f;
+  private Float mz_low, mz_high;
 //  private Polarity polarity;
 //  private int[] chargeList=new int[0];
   private int charge=0;
@@ -92,14 +92,23 @@ public class PeakMatch extends PeakFragmentMatch implements Copyable<PeakMatch>,
 //  }
   public PeakMatch(PeakMatch peak)
   {
-    this.mz=peak.mz;
-    this.mass=peak.mass;
+    this.mz       =peak.mz;
+    this.mass     =peak.mass;
     this.intensity=peak.intensity;
-    this.charge=peak.charge;
-    this.mass=peak.mass;
-    this.mFreq=peak.mFreq;
+    this.charge   =peak.charge;
+    this.mass     =peak.mass;
+    this.mFreq    =peak.mFreq;
+    this.mSNR     =peak.mSNR;
 
     ionType=peak.getIonType();
+  }
+  public PeakMatch(PeakEntry peak)
+  {
+    this.mz       =peak.getMz();
+    this.intensity=peak.getIntensity();
+    this.charge   =peak.getCharge();
+    this.mFreq    =peak.getFrequency();
+    this.mSNR     =peak.getSNR();
   }
   public void setValues(double mz, double intensity, int charge)
   {

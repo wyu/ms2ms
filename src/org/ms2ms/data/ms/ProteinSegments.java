@@ -13,9 +13,9 @@ public class ProteinSegments
 {
   private IonType[]    mIonTypes;
   private int          mSegmentCapacity = 10000;
-  private Integer      mProteinKey;
-  private FpmEntry[][] mIonTypeSegments = new FpmEntry[IonType.values().length][];  // maximum of all ion types
-  private Integer[]    mSegmentEnds     = new Integer[ IonType.values().length];
+  private int          mProteinKey;
+  private FpmSlot[][] mIonTypeSegments = new FpmSlot[IonType.values().length][];  // maximum of all ion types
+  private Integer[]    mSegmentEnds    = new Integer[ IonType.values().length];
 
   public ProteinSegments() { super(); }
   public ProteinSegments(IonType... ions)
@@ -26,15 +26,15 @@ public class ProteinSegments
       mIonTypes = ions;
       for (IonType ion : ions)
       {
-        mIonTypeSegments[ion.ordinal()] = new FpmEntry[mSegmentCapacity];
+        mIonTypeSegments[ion.ordinal()] = new FpmSlot[mSegmentCapacity];
         mSegmentEnds[    ion.ordinal()] = 0;
       }
     }
   }
 
-  public Integer getProteinKey() { return mProteinKey; }
-  public FpmEntry   getIon(IonType s, int p) { return mIonTypeSegments[s.ordinal()][p]; }
-  public FpmEntry[] getIons(IonType s) { return mIonTypeSegments[s.ordinal()]; }
+  public int getProteinKey() { return mProteinKey; }
+  public FpmSlot   getIon(IonType s, int p) { return mIonTypeSegments[s.ordinal()][p]; }
+  public FpmSlot[] getIons(IonType s) { return mIonTypeSegments[s.ordinal()]; }
 
   public int getSegmentEnd(IonType ion) { return mSegmentEnds[ion.ordinal()]; }
   public int size()
@@ -75,5 +75,17 @@ public class ProteinSegments
     mSegmentEnds[p]++;
 
     return this;
+  }
+
+  public void sortByPosition()
+  {
+    for (IonType ion : mIonTypes)
+    {
+      Arrays.sort(mIonTypeSegments[ion.ordinal()], 0, mSegmentEnds[ion.ordinal()], new FpmSlot.PositionComparator());
+    }
+  }
+  public void sortByGapScore(IonType ion)
+  {
+    Arrays.sort(mIonTypeSegments[ion.ordinal()], 0, mSegmentEnds[ion.ordinal()], new FpmSlot.GapScoreDecendComparator());
   }
 }

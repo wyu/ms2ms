@@ -27,10 +27,43 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
   private FragmentEntry       mFragment   =null;
   private ImmutableList<PeakMatch> mTrack =null;
 
+  public static class PositionComparator implements Comparator<FpmEntry>
+  {
+    public PositionComparator() { }
+    public int compare(FpmEntry o1, FpmEntry o2)
+    {
+      return Integer.compare(Math.abs(o1.getFragment().getPeptideKey()), Math.abs(o2.getFragment().getPeptideKey()));
+    }
+  }
+  public static class GapScoreDecendComparator implements Comparator<FpmEntry>
+  {
+    public GapScoreDecendComparator() { }
+    public int compare(FpmEntry o1, FpmEntry o2)
+    {
+      return Double.compare(o2.getGapScore(), o1.getGapScore());
+    }
+  }
+
   public FpmEntry()
   {
     super(); mFragment = new FragmentEntry();
   }
+  public FpmEntry(FpmSlot f)
+  {
+    super();
+    if (f!=null)
+    {
+      mMotifs   = f.getMotifs();
+      mGapScore = f.getGapScore();
+      mFragment = new FragmentEntry(f.getFragment());
+
+      List<PeakMatch> tr = new ArrayList<>(f.getTrack().size());
+      for (PeakEntry P : f.getTrack()) tr.add(new PeakMatch(P));
+
+      mTrack = ImmutableList.copyOf(tr);
+    }
+  }
+
   public FpmEntry(FpmEntry f)
   {
     super();
@@ -50,9 +83,11 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
   public FpmEntry(FragmentEntry f, PeakMatch[] matches, int size)
   {
     super();
-    PeakMatch[] m = Arrays.copyOfRange(matches, 0, size);
-    Arrays.sort(m);
-    mFragment=f; mTrack=ImmutableList.copyOf(m);
+    setTrack(matches, 0, size);
+//    PeakMatch[] m = Arrays.copyOfRange(matches, 0, size);
+//    Arrays.sort(m);
+//    mTrack=ImmutableList.copyOf(m);
+    mFragment=f;
   }
 
   public boolean             isDecoy()      { return mFragment!=null && mFragment.getPeptideKey()<0; }
@@ -77,6 +112,22 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
   public FpmEntry setIntensity(   double s) { mIntensities=s; return this; }
   public FpmEntry setTrack(ImmutableList<PeakMatch> s) { mTrack=s; return this; }
 
+  public FpmEntry setTrack(PeakEntry[] track, int beg, int end)
+  {
+    List<PeakMatch> tr = new ArrayList<>(end-beg);
+    for (int i=beg; i<end; i++) tr.add(new PeakMatch(track[i]));
+
+    mTrack = ImmutableList.copyOf(tr);
+    return this;
+  }
+  public FpmEntry setTrack(PeakMatch[] track, int beg, int end)
+  {
+    List<PeakMatch> tr = new ArrayList<>(end-beg);
+    for (int i=beg; i<end; i++) tr.add(new PeakMatch(track[i]));
+
+    mTrack = ImmutableList.copyOf(tr);
+    return this;
+  }
   // need the calc mz of the unmodified backbone in the order of the ion series
   public Long[] hashByWTCalcMz(double[] backbone)
   {
@@ -257,17 +308,16 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
   // NO re-calibration or intermediate track to avoid GC probem
   public FpmEntry inspect4screen(double multiple)
   {
-    if (!Tools.isSet(getTrack())) return this;
+//    if (!Tools.isSet(getTrack())) return this;
+//    boolean        has1st = false, y1=false;
 
-    boolean        has1st = false, y1=false;
-
-    for (int i=0; i<getTrack().size(); i++)
-    {
-      // check the presence of y1
-      if (at(i).getCharge()==1 && !has1st) has1st=true;
-      // check for the presence of Pro at the N-t of the fragment
-      if (at(i).isIonType(IonType.p)) increProlines();
-    }
+//    for (int i=0; i<getTrack().size(); i++)
+//    {
+//      // check the presence of y1
+//      if (at(i).getCharge()==1 && !has1st) has1st=true;
+//      // check for the presence of Pro at the N-t of the fragment
+//      if (at(i).isIonType(IonType.p)) increProlines();
+//    }
 
     int gap=0, contig_start=0, contig_last=0, best=0;
     double percentile=0, score=0, sumAI=0d;
@@ -292,7 +342,7 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
     }
 
     // http://sfb649.wiwi.hu-berlin.de/fedc_homepage/xplore/tutorials/xegbohtmlnode16.html
-    has1st(has1st).setIntensity(sumAI).setMotifs(best).setGapScore(-10d*score);
+    setIntensity(sumAI).setMotifs(best).setGapScore(-10d*score);
 
     return this;
   }

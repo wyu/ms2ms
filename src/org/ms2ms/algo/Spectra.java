@@ -805,9 +805,9 @@ public class Spectra
 
     return peaks;
   }
-  public static Map<Integer, Double> getPeakFrequency(PeakList ms, int span)
+  public static double[] getPeakFrequency(PeakList ms, int span)
   {
-    Map<Integer, Double> ion_freq = new HashMap<>();
+    double[] ion_freq = new double[ms.size()];
     int left,right;
     for (int i=0; i<ms.size(); i++)
     {
@@ -816,7 +816,7 @@ public class Spectra
       if      (left <0)           { left =0;          right=Math.min(left+span*2,ms.size()-1); }
       else if (right>ms.size()-1) { right=ms.size()-1; left=Math.max(right-span*2, 0); }
 
-      ion_freq.put(i, Math.max(1,Peaks.countC12(ms, left, right))/(ms.getMz(right)-ms.getMz(left)));
+      ion_freq[i] = Math.max(1,Peaks.countC12(ms, left, right))/(ms.getMz(right)-ms.getMz(left));
     }
     return ion_freq;
   }
