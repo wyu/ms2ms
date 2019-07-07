@@ -304,48 +304,48 @@ public class FpmEntry implements Comparable<FpmEntry>, Disposable, Binary
 
     return data;
   }
-  // estimates the preliminary score for the screening step only!
-  // NO re-calibration or intermediate track to avoid GC probem
-  public FpmEntry inspect4screen(double multiple)
-  {
-//    if (!Tools.isSet(getTrack())) return this;
-//    boolean        has1st = false, y1=false;
-
+//  // estimates the preliminary score for the screening step only!
+//  // NO re-calibration or intermediate track to avoid GC probem
+//  public FpmEntry inspect4screen(double multiple)
+//  {
+////    if (!Tools.isSet(getTrack())) return this;
+////    boolean        has1st = false, y1=false;
+//
+////    for (int i=0; i<getTrack().size(); i++)
+////    {
+////      // check the presence of y1
+////      if (at(i).getCharge()==1 && !has1st) has1st=true;
+////      // check for the presence of Pro at the N-t of the fragment
+////      if (at(i).isIonType(IonType.p)) increProlines();
+////    }
+//
+//    int gap=0, contig_start=0, contig_last=0, best=0;
+//    double percentile=0, score=0, sumAI=0d;
+////    setGapScore0(0);
 //    for (int i=0; i<getTrack().size(); i++)
 //    {
-//      // check the presence of y1
-//      if (at(i).getCharge()==1 && !has1st) has1st=true;
-//      // check for the presence of Pro at the N-t of the fragment
-//      if (at(i).isIonType(IonType.p)) increProlines();
+//      PeakMatch pk = at(i);
+//      gap          =  pk.getCharge()-contig_last;
+//      percentile   = (pk.getIntensity()*0.01); // set a minimum
+//      // accumualte the gap score
+//      if (gap>0)
+//      {
+//        pk.calcGapScore(gap, 1d);
+//        score+=pk.getScore() - Math.log10(percentile);
+//      }
+//      // move the contig start if gap>1
+//      if (contig_start==0 || pk.getCharge()-contig_last>1)  contig_start=pk.getCharge();
+//      // always update to the preceeding ion
+//      contig_last=pk.getCharge(); sumAI+=percentile;
+//      // update the longest contig if qualified
+//      if (contig_last-contig_start>best) best=contig_last-contig_start;
 //    }
-
-    int gap=0, contig_start=0, contig_last=0, best=0;
-    double percentile=0, score=0, sumAI=0d;
-//    setGapScore0(0);
-    for (int i=0; i<getTrack().size(); i++)
-    {
-      PeakMatch pk = at(i);
-      gap          =  pk.getCharge()-contig_last;
-      percentile   = (pk.getIntensity()*0.01); // set a minimum
-      // accumualte the gap score
-      if (gap>0)
-      {
-        pk.calcGapScore(gap, 1d);
-        score+=pk.getScore() - Math.log10(percentile);
-      }
-      // move the contig start if gap>1
-      if (contig_start==0 || pk.getCharge()-contig_last>1)  contig_start=pk.getCharge();
-      // always update to the preceeding ion
-      contig_last=pk.getCharge(); sumAI+=percentile;
-      // update the longest contig if qualified
-      if (contig_last-contig_start>best) best=contig_last-contig_start;
-    }
-
-    // http://sfb649.wiwi.hu-berlin.de/fedc_homepage/xplore/tutorials/xegbohtmlnode16.html
-    setIntensity(sumAI).setMotifs(best).setGapScore(-10d*score);
-
-    return this;
-  }
+//
+//    // http://sfb649.wiwi.hu-berlin.de/fedc_homepage/xplore/tutorials/xegbohtmlnode16.html
+//    setIntensity(sumAI).setMotifs(best).setGapScore(-10d*score);
+//
+//    return this;
+//  }
 
   public FpmEntry inspect(Set<Double> y1s, Double local_base)
   {

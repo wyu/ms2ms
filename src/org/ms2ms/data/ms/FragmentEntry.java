@@ -27,6 +27,11 @@ public class FragmentEntry implements Comparable<FragmentEntry>, Disposable, Bin
     super();
     if (s!=null) { mLength=s.mLength; mPeptideKey=s.mPeptideKey; mMH=s.mMH; mPrev=s.mPrev; }
   }
+  public FragmentEntry(FragmentSlot s)
+  {
+    super();
+    if (s!=null) { mLength=s.mLength; mPeptideKey=s.mPeptideKey; mMH=s.mMH; }
+  }
   @Deprecated
   public FragmentEntry(Float mh, int peptide, FragmentEntry prev, int len)
   {

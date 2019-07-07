@@ -22,7 +22,7 @@ public class FpmSlot implements Comparable<FpmSlot>, Disposable, Binary
   private char                 mMotifs=0;
   private float              mGapScore=0;
 //  private Double              mMatchScore =null;
-  private FragmentEntry       mFragment   =null;
+  private FragmentSlot       mFragment   =null;
   private ImmutableList<PeakEntry> mTrack =null;
 
   public static class PositionComparator implements Comparator<FpmSlot>
@@ -44,7 +44,7 @@ public class FpmSlot implements Comparable<FpmSlot>, Disposable, Binary
 
   public FpmSlot()
   {
-    super(); mFragment = new FragmentEntry();
+    super(); mFragment = new FragmentSlot();
   }
   public FpmSlot(FpmSlot f)
   {
@@ -53,16 +53,16 @@ public class FpmSlot implements Comparable<FpmSlot>, Disposable, Binary
     {
       mMotifs=f.mMotifs;
       mGapScore=f.mGapScore;
-      mFragment = new FragmentEntry(f.mFragment);
+      mFragment = new FragmentSlot(f.mFragment);
       mTrack = f.mTrack!=null?f.mTrack.asList():null;
     }
   }
-  public FpmSlot(FragmentEntry f, List<PeakEntry> t)
+  public FpmSlot(FragmentSlot f, List<PeakEntry> t)
   {
     super();
     mFragment=f; mTrack=ImmutableList.copyOf(t);
   }
-  public FpmSlot(FragmentEntry f, PeakEntry[] matches, int size)
+  public FpmSlot(FragmentSlot f, PeakEntry[] matches, int size)
   {
     super();
     setTrack(matches, 0, size);
@@ -72,7 +72,7 @@ public class FpmSlot implements Comparable<FpmSlot>, Disposable, Binary
   public boolean             isDecoy()      { return mFragment!=null && mFragment.getPeptideKey()<0; }
   public double              getGapScore()  { return mGapScore; }
   public int                 getMotifs()    { return mMotifs; }
-  public FragmentEntry       getFragment()  { return mFragment; }
+  public FragmentSlot        getFragment()  { return mFragment; }
   public ImmutableList<PeakEntry> getTrack()     { return mTrack; }
   public PeakEntry       at(int s)      { return mTrack.get(s); }
 
@@ -328,7 +328,7 @@ public class FpmSlot implements Comparable<FpmSlot>, Disposable, Binary
   @Override
   public void dispose()
   {
-    mFragment=(FragmentEntry )Tools.dispose(mFragment);
+    mFragment=(FragmentSlot )Tools.dispose(mFragment);
     mTrack=null;
   }
 

@@ -7,6 +7,7 @@ import org.ms2ms.data.collect.TreeListMultimap;
 import org.ms2ms.data.ms.FragmentEntry;
 import org.ms2ms.data.ms.FragmentMatch;
 import org.ms2ms.data.ms.FragmentPile;
+import org.ms2ms.data.ms.FragmentSlot;
 import org.ms2ms.test.TestAbstract;
 import toools.collections.Collections;
 
@@ -41,7 +42,7 @@ public class PileTest extends TestAbstract
       int key = rnd.nextInt(), block = rnd.nextInt(10);
       for (int j=0; j<block; j++)
       {
-        FragmentMatch pm = new FragmentMatch(new FragmentEntry(0f, key, null, j), 1);
+        FragmentMatch pm = new FragmentMatch(new FragmentSlot(0f, key, j), 1);
         pile.add(pm);
         data.put(key, pm);
         pile_key.put(pile.getCurrPile(), key);

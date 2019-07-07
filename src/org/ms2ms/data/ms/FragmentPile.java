@@ -42,8 +42,8 @@ public class FragmentPile extends AbstractPile<FragmentMatch>
     int track_size = 0;
     for (int i=0; i<mSeriesEnd; i++)
     {
-      FragmentEntry E = at(i).getEntry();
-      int         ion = at(i).getObsIndex();
+      FragmentSlot E = at(i).getEntry();
+      int        ion = at(i).getObsIndex();
 
       // starting from the lower mass end
       float mz0 = (float )Peaks.MnH2MnH(ms.getMz(ion), (int )E.getCharge(), 1);
@@ -82,7 +82,7 @@ public class FragmentPile extends AbstractPile<FragmentMatch>
     int track_size = 0;
     for (int i=0; i<mSeriesEnd; i++)
     {
-      FragmentEntry E = at(i).getEntry();
+      FragmentSlot  E = at(i).getEntry();
       int         ion = at(i).getObsIndex();
 
       // starting from the lower mass end

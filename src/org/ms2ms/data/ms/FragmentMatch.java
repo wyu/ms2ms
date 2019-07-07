@@ -1,19 +1,17 @@
 package org.ms2ms.data.ms;
 
-import org.ms2ms.utils.Tools;
-
 public class FragmentMatch implements Comparable<FragmentMatch>
 {
-  private FragmentEntry mEntry;
-  private int           mObsIdx;
+  private FragmentSlot mEntry;
+  private short        mObsIdx; // -32,767 to 32,767, 2 bytes
 
   public FragmentMatch() { super(); }
-  public FragmentMatch(FragmentEntry s, int i)
+  public FragmentMatch(FragmentSlot s, int i)
   {
-    mEntry=s; mObsIdx=i;
+    mEntry=s; mObsIdx=(short )i;
   }
 
-  public FragmentEntry getEntry()    { return mEntry; }
+  public FragmentSlot getEntry()    { return mEntry; }
   public int           getObsIndex() { return mObsIdx; }
 
   // order by the peptide key in desending order
