@@ -26,7 +26,7 @@ import java.util.TreeMap;
  */
 public class PeakEntry implements Copyable<PeakEntry>, Comparable<PeakEntry>, Disposable, Binary
 {
-  private float mz=0.0f, intensity=0.0f, mSNR=0f, mFreq=0f, mScore=0f;
+  private float mz=0.0f, intensity=0.0f, mSNR=0f, mFreq=0f, mScore=0f, mCalcMz=0f;
   private char charge=0;
 
 //  // temp objects
@@ -69,6 +69,8 @@ public class PeakEntry implements Copyable<PeakEntry>, Comparable<PeakEntry>, Di
     this.charge   =peak.charge;
     this.mFreq    =peak.mFreq;
     this.mSNR     =peak.mSNR;
+    this.mScore   =peak.mScore;
+    this.mCalcMz  =peak.mCalcMz;
   }
   public void setValues(float mz, float intensity, int charge)
   {
@@ -87,6 +89,7 @@ public class PeakEntry implements Copyable<PeakEntry>, Comparable<PeakEntry>, Di
   public float getIntensity() { return this.intensity; }
 
   public void setMz(float mz) { this.mz=mz; }
+  public void setCalcMz(float mz) { this.mCalcMz=mz; }
   public void setMzAndCharge(float mz, int z)
   {
     setMz(mz); setCharge(z);
@@ -113,6 +116,7 @@ public class PeakEntry implements Copyable<PeakEntry>, Comparable<PeakEntry>, Di
   public float  getSNR()              { return mSNR; }
   public float  getFrequency()        { return mFreq; }
   public float  getScore()            { return mScore; }
+  public float  getCalcMz()           { return mCalcMz; }
 
   public PeakEntry setCharge(int z) { charge=(char )z; return this; }
   public PeakEntry setSNR(float s) { mSNR           =s; return this; }

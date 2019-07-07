@@ -37,23 +37,30 @@ public class FragmentPile extends AbstractPile<FragmentMatch>
   public double[] screenTrack(PeakList ms, double[] ion_freq, OffsetPpmTolerance tol, int[] tAccumSamples)
   {
     int gap=0, contig_start=0, contig_last=0, best=0;
-    double percentile=0, score=0, sumAI=0d;
+    double percentile=0, score=0;
 
     int track_size = 0;
     for (int i=0; i<mSeriesEnd; i++)
     {
       FragmentSlot E = at(i).getEntry();
       int        ion = at(i).getObsIndex();
+      float      mz0 = (float )ms.getMz(ion);
 
       // starting from the lower mass end
-      float mz0 = (float )Peaks.MnH2MnH(ms.getMz(ion), (int )E.getCharge(), 1);
-
+//      float mz0 = (float )Peaks.MnH2MnH(ms.getMz(ion), (int )E.getCharge(), 1);
       PeakEntry M = track[track_size++];
 
       // mz deviation in ppm, mz of the observed fragment, order of the fragment in the series
       M.setValues((float )(Stats.ppm(mz0, E.getMH())+tol.getOffset(mz0)), mz0, E.getLength());
       M.setSNR((float )Math.abs(ms.getIntensity(ion)));               // the intensity
       M.setFrequency((float )ion_freq[ion]);
+      M.setCalcMz(E.getMH());
+    }
+    // sort the track so it goes from b/y1 and up
+    Arrays.sort(track, 0, track_size);
+    for (int i=0; i<track_size; i++)
+    {
+      PeakEntry M = track[i];
 
       gap          =  M.getCharge()-contig_last;
       percentile   = (M.getIntensity()*0.01); // set a minimum
@@ -66,7 +73,7 @@ public class FragmentPile extends AbstractPile<FragmentMatch>
       // move the contig start if gap>1
       if (contig_start==0 || M.getCharge()-contig_last>1)  contig_start=M.getCharge();
       // always update to the preceeding ion
-      contig_last=M.getCharge(); sumAI+=percentile;
+      contig_last=M.getCharge();
       // update the longest contig if qualified
       if (contig_last-contig_start>best) best=contig_last-contig_start;
     }

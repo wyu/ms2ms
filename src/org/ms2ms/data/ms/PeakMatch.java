@@ -109,6 +109,7 @@ public class PeakMatch extends PeakFragmentMatch implements Copyable<PeakMatch>,
     this.charge   =peak.getCharge();
     this.mFreq    =peak.getFrequency();
     this.mSNR     =peak.getSNR();
+    this.mCalcMz  =peak.getCalcMz();
   }
   public void setValues(double mz, double intensity, int charge)
   {

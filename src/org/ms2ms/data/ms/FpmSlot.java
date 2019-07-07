@@ -216,7 +216,7 @@ public class FpmSlot implements Comparable<FpmSlot>, Disposable, Binary
   @Override
   public String toString()
   {
-    return "#"+(Tools.isSet(mTrack)?mMotifs+"/"+mTrack.size():0)+"@"+(mFragment!=null?mFragment.toString():"")+"$"+Tools.d2s(getGapScore(), 1);
+    return "#"+(Tools.isSet(mTrack)?getMotifs()+"/"+mTrack.size():0)+"@"+(mFragment!=null?mFragment.toString():"")+"$"+Tools.d2s(getGapScore(), 1);
   }
   public static Map<String, Object> report(List<PeakMatch> track)
   {
