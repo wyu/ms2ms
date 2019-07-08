@@ -133,15 +133,15 @@ public class PsmIdSettings extends Settings
   }
   public PsmIdSettings updateSettings(MsnSpectrum ms)
   {
-    int motifs=3,track=getDefaultTracks(); double L=0;
-    L = (ms.getPrecursor().getMass()-460)/115d; // assumming 2x TMT10 tags
-    if (L<8d) motifs=2; else if (L<7) motifs=1; else motifs=3;
+    if (getDefaultTracks()==null) setDefaultTracks(getMinTrackSize());
+    if (getDefaultMotifs()==null) setDefaultMotifs(getMinMotifs());
+
+    double  L = (ms.getPrecursor().getMass()-2*getBase().getAAs()['^'])/getBase().getAAs()['D']; // assumming 2x TMT10 tags
+    int decre = (L<8?(L<7?2:1):0);
 
     // shorter key need lower threshold. Assume 2+ in case of altZ
-    L = (ms.getPrecursor().getMz()*2-460d)/115d;
-    setMinTrackSize(L<8?track-1:track);
-
-    setMinMotifs(motifs);
+    setMinTrackSize(Math.max(1, getDefaultTracks()-decre));
+    setMinMotifs(   Math.max(0, getDefaultMotifs()-decre));
 
     return this;
   }

@@ -2,6 +2,8 @@ package org.ms2ms.data.ms;
 
 import org.expasy.mzjava.core.ms.spectrum.IonType;
 
+import java.util.Arrays;
+
 public class FpmPile extends AbstractPile<FpmMatch>
 {
   private ProteinSegments mProtein = new ProteinSegments(IonType.y, IonType.b);
@@ -33,4 +35,12 @@ public class FpmPile extends AbstractPile<FpmMatch>
 
     return mProtein;
   }
+  public FpmPile sortByTrackSize()
+  {
+    for (int i=0; i<getTrunkEnd(); i++)
+      Arrays.sort(mDataPiles.get(i), 0, trunks[i].N, new FpmMatch.TrackDesendComparator());
+
+    return this;
+  }
+
 }

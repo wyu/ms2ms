@@ -33,6 +33,8 @@ public class ScoreModel implements Binary
   private EnumMap<eType, Histogram> mDecoys, mNorms, mBoth;
   private EnumMap<eType, Double>    mOffsets;
   private Double                    mBaseline,mCenter;
+  private int                       mExactCounts=0, mOpenCounts=0,
+                                    mFullTrypics=0, mPartialTryptics=0, mUncleaved0=0, mUncleaved1=0;
   private Integer                   mBootstrapSize=1000;
   private SortedSetMultimap<String, Double> mBootsrapped;
 
@@ -69,6 +71,10 @@ public class ScoreModel implements Binary
   public ScoreModel increSigmaY( double s) { mSigmaY +=s; return this; }
   public ScoreModel increSigmaB( double s) { mSigmaB +=s; return this; }
 
+  public ScoreModel increHitCounts(boolean s) { if (s) mExactCounts++; else mOpenCounts++; return this; }
+  public ScoreModel increTryptics( int s) { if (s==2) mFullTrypics++; else if (s==1) mPartialTryptics++; return this; }
+  public ScoreModel increUncleaved(int     s) { if (s==0) mUncleaved0++; else mUncleaved1++; return this; }
+
   public int size(boolean decoy, eType t)
   {
     if ( decoy && mDecoys!=null && mDecoys.get(t)!=null && mDecoys.get(t).getData()!=null) return mDecoys.get(t).getData().size();
@@ -98,6 +104,8 @@ public class ScoreModel implements Binary
         if (mDecoys!=null && mDecoys.get(t)!=null) mDecoys.get(t).clear();
         if (mNorms !=null && mNorms.get( t)!=null) mNorms.get( t).clear();
       }
+
+    mExactCounts=mOpenCounts=mFullTrypics=mPartialTryptics=mUncleaved0=mUncleaved1=0;
   }
   public ScoreModel add(Histogram hist, Boolean decoy, eType t)
   {

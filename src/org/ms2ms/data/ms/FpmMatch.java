@@ -2,11 +2,28 @@ package org.ms2ms.data.ms;
 
 import org.expasy.mzjava.core.ms.spectrum.IonType;
 
+import java.util.Comparator;
+
 public class FpmMatch implements Comparable<FpmMatch>
 {
   private FpmSlot mEntry;
   private int      mProteinIdx, mPeptideSeqIdx;
   private IonType  mIonType;
+
+  public static class TrackDesendComparator implements Comparator<FpmMatch>
+  {
+    public TrackDesendComparator() { }
+    public int compare(FpmMatch o1, FpmMatch o2)
+    {
+      if (o2.getEntry()==null) return -1;
+      if (o1.getEntry()==null) return  1;
+
+      int c = Integer.compare(o2.getEntry().getTrack().size(), o1.getEntry().getTrack().size());
+      if (c==0) c = Integer.compare(o2.getEntry().getMotifs(), o1.getEntry().getMotifs());
+
+      return c;
+    }
+  }
 
   public FpmMatch() { super(); }
   public FpmMatch(FpmSlot s, IonType ion, int protein, int seq)

@@ -10,6 +10,8 @@ import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
 import org.ms2ms.algo.Spectra;
 import org.ms2ms.data.collect.MultiTreeTable;
 import org.ms2ms.data.ms.IonMobilityCCS;
+import org.ms2ms.data.ms.LcMsMsInfo;
+import org.ms2ms.data.ms.OffsetPpmTolerance;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
@@ -21,6 +23,8 @@ import uk.ac.ebi.jmzml.xml.io.MzMLUnmarshaller;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
+import java.util.Arrays;
 import java.util.Collection;
 
 /**
@@ -242,4 +246,50 @@ public class mzMLReader extends mzReader
     }
     return null;
   }
+  public static Dataframe extractXICs(Dataframe out, String filename, OffsetPpmTolerance tol, double... mzs) throws IOException
+  {
+    // looping through the scans
+    System.out.println("Reading "+filename+"...");
+
+    MzMLUnmarshaller mzml = new MzMLUnmarshaller(new File(filename), false, null);
+    // looping through the scans
+    MzMLObjectIterator<uk.ac.ebi.jmzml.model.mzml.Spectrum> spectrumIterator = mzml.unmarshalCollectionFromXpath("/run/spectrumList/spectrum", uk.ac.ebi.jmzml.model.mzml.Spectrum.class);
+
+    int rows=0; String rowid=null;
+    double[] sumXYs = new double[mzs.length], sumYs = new double[mzs.length];
+    Arrays.fill(sumXYs, 0d); Arrays.fill(sumYs, 0d);
+    while (spectrumIterator.hasNext())
+    {
+      MsnSpectrum ms = MsReaders.from(spectrumIterator.next(), true);
+      if (ms!=null && ms.getMsLevel()==1 && ms.size()>0)
+      {
+        for (int i=0; i<ms.size(); i++)
+          for (int k=0; k<mzs.length; k++)
+            if (tol.withinTolerance(mzs[k], ms.getMz(i)))
+            {
+              sumYs[k] += ms.getIntensity(i);
+              sumXYs[k]+=(ms.getMz(i) * ms.getIntensity(i));
+            }
+
+        rows++;
+        for (int k=0; k<mzs.length; k++)
+          if (sumYs[k]>0)
+          {
+            rowid = rows+"#"+ms.getScanNumbers().getFirst().getValue()+"#"+k;
+            out.put(rowid, "Scan", ms.getScanNumbers().getFirst().getValue());
+            out.put(rowid, "RT", ms.getRetentionTimes().getFirst().getTime());
+            out.put(rowid, "mz", sumXYs[k]/sumYs[k]);
+            out.put(rowid, "Intensity", sumYs[k]);
+            out.put(rowid, "Isotope", k);
+            out.put(rowid, "Filename", filename);
+          }
+      }
+
+      if (++rows%100==0) System.out.print(".");
+    }
+    System.out.println("$"+out.size());
+
+    return out;
+  }
+
 }
