@@ -114,6 +114,7 @@ public class PsmIdSettings extends Settings
     // values taken from Bonfire.java
     setDuplicateProb(105d);
 
+    setNumCandidates(10);
     setMinTrackSize(  3);
     setMinMotifs(     2);
     keepC13(          true);
@@ -193,6 +194,7 @@ public class PsmIdSettings extends Settings
   public PsmIdSettings setMinSeriesZval( Double  s) { properties.put("MinSeriesZval", s); return this; }
   public PsmIdSettings setMinTrackSize(  Integer s) { properties.put(KEY_TRACK, s); return this; }
   public PsmIdSettings setModVault(       String s) { properties.put(KEY_KNOWN, s); return this; }
+  public PsmIdSettings setNumCandidates(     int s) { properties.put(KEY_CANDIDATE, s); return this; }
   public PsmIdSettings setOutfile(        String s) { properties.put(KEY_OUT, s);         return this; }
   public PsmIdSettings setPeakTransform(  Double s) { properties.put("PeakTransform", s); return this; }
   public PsmIdSettings setRefAssignments( String s) { properties.put(KEY_REFS, s); return this; }

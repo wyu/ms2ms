@@ -75,6 +75,9 @@ public class ScoreModel implements Binary
   public ScoreModel increTryptics( int s) { if (s==2) mFullTrypics++; else if (s==1) mPartialTryptics++; return this; }
   public ScoreModel increUncleaved(int     s) { if (s==0) mUncleaved0++; else mUncleaved1++; return this; }
 
+  public double getTrypticFactor()   { return (mFullTrypics!=0 && mPartialTryptics!=0)?10d*Math.log10(mPartialTryptics/mFullTrypics):0; }
+  public double getOpenMatchFactor() { return (mOpenCounts !=0 && mExactCounts    !=0)?10d*Math.log10(mOpenCounts/mExactCounts):0; }
+
   public int size(boolean decoy, eType t)
   {
     if ( decoy && mDecoys!=null && mDecoys.get(t)!=null && mDecoys.get(t).getData()!=null) return mDecoys.get(t).getData().size();
