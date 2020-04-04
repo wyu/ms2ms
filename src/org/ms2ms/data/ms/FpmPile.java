@@ -42,5 +42,11 @@ public class FpmPile extends AbstractPile<FpmMatch>
 
     return this;
   }
+  public FpmPile sortByProtein()
+  {
+    for (int i=0; i<getTrunkEnd(); i++)
+      Arrays.sort(mDataPiles.get(i), 0, trunks[i].N, new FpmMatch.ProteinDesendComparator());
 
+    return this;
+  }
 }

@@ -2,6 +2,7 @@ package org.ms2ms.io;
 
 import com.google.common.collect.Range;
 import org.expasy.mzjava.core.io.ms.spectrum.MgfWriter;
+import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.peaklist.peakfilter.CentroidFilter;
@@ -10,13 +11,13 @@ import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeDiscrete;
 import org.ms2ms.algo.Spectra;
 import org.ms2ms.data.collect.MultiTreeTable;
-import org.ms2ms.data.ms.IonMobilityCCS;
-import org.ms2ms.data.ms.LcMsMsInfo;
-import org.ms2ms.data.ms.OffsetPpmTolerance;
+import org.ms2ms.data.ms.*;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
+import uk.ac.ebi.jmzidml.model.mzidml.CvParam;
+import uk.ac.ebi.jmzml.model.mzml.Precursor;
 import uk.ac.ebi.jmzml.model.mzml.Spectrum;
 import uk.ac.ebi.jmzml.xml.io.MzMLObjectIterator;
 import uk.ac.ebi.jmzml.xml.io.MzMLUnmarshaller;
@@ -27,6 +28,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.SortedMap;
 
 /**
  * Deprecated! Use jmzml reader instead
@@ -64,6 +66,73 @@ public class mzMLReader extends mzReader
 
     return data;
   }
+  public static Dataframe readScanHeader(Dataframe out, String filename) throws IOException
+  {
+    System.out.println("Reading scans from "+filename+"...");
+
+    File file = new File(filename); String run = file.getName().substring(0,file.getName().indexOf('.'));
+    MzMLUnmarshaller mzml = new MzMLUnmarshaller(file, false, null);
+
+    // looping through the scans
+    MzMLObjectIterator<uk.ac.ebi.jmzml.model.mzml.Spectrum> spectrumIterator = mzml.unmarshalCollectionFromXpath("/run/spectrumList/spectrum", uk.ac.ebi.jmzml.model.mzml.Spectrum.class);
+
+    if (out==null) out = new Dataframe(filename);
+    int rows=0;
+    while (spectrumIterator.hasNext()) {
+      Spectrum ss = spectrumIterator.next();
+      MsnSpectrum ms = MsReaders.from(ss, true);
+
+      double ion_injection=0, scan_start=0;
+      for (uk.ac.ebi.jmzml.model.mzml.CVParam cv : ss.getScanList().getScan().get(0).getCvParam())
+      {
+        if (cv.getAccession().equals("MS:1000927")) ion_injection = Double.parseDouble(cv.getValue());
+        if (cv.getAccession().equals("MS:1000016")) scan_start    = Double.parseDouble(cv.getValue());
+      }
+      double targeted=0;
+      for (Precursor prec : ss.getPrecursorList().getPrecursor())
+      {
+        for (uk.ac.ebi.jmzml.model.mzml.CVParam cv : prec.getIsolationWindow().getCvParam())
+        {
+          if (cv.getAccession().equals("MS:1000827")) targeted = Double.parseDouble(cv.getValue());
+        }
+      }
+      double basemz=0, TIC=0;
+      for (uk.ac.ebi.jmzml.model.mzml.CVParam cv : ss.getCvParam())
+      {
+        if (cv.getAccession().equals("MS:1000504")) basemz = Double.parseDouble(cv.getValue());
+        if (cv.getAccession().equals("MS:1000505")) TIC    = Double.parseDouble(cv.getValue());
+      }
+
+      String row = filename + "#" + ms.getScanNumbers().getFirst().getValue();
+      out.put(row, "Scan", ms.getScanNumbers().getFirst().getValue());
+      out.put(row, "MsLevel", ms.getMsLevel());
+      out.put(row, "FragMethod", ms.getFragMethod());
+      out.put(row, "RT", ms.getRetentionTimes().getFirst().getTime() / 60);
+      out.put(row, "mz", ms.getPrecursor().getMz());
+      out.put(row, "z", ms.getPrecursor().getCharge());
+      out.put(row, "IonInjection", ion_injection);
+      out.put(row, "ScanStartTime", scan_start);
+      out.put(row, "TargetedMz", targeted);
+      out.put(row, "BasePeakMz", basemz);
+      out.put(row, "HeaderTIC", TIC);
+
+      if (ms.getPrecursor().getIntensity()>0) out.put(row, "Intensity", ms.getPrecursor().getIntensity());
+
+      if (ms.size() > 0) {
+        out.put(row, "Ions", ms.size());
+        out.put(row, "TIC", ms.getTotalIonCurrent());
+        out.put(row, "BaseMz", ms.getBasePeakMz());
+        out.put(row, "BaseInt", ms.getBasePeakIntensity());
+      }
+      out.put(row, "RunFile", filename);
+      out.put(row, "Run", run);
+      out.put(row, "Title", ms.getComment());
+    }
+    System.out.println(rows);
+
+    return out;
+  }
+
   public static Dataframe readScanInfo(Dataframe out, double ppm, String filename, boolean loadIons, boolean toCentroid,
                                        double maxDiffMz, MgfWriter mgf, Collection<Double> neuloss, double... channels) throws IOException
   {
@@ -301,5 +370,55 @@ public class mzMLReader extends mzReader
 
     return out;
   }
+  public static MultiTreeTable<Float, Float, SRMGroup> extractTransitionXICs(
+      String root, String filename, OffsetPpmTolerance tol, float dRT, MultiTreeTable<Float, Float, SRMGroup> groups) throws IOException
+  {
+    // looping through the scans
+    System.out.println("Reading "+filename+"...");
 
+    MzMLUnmarshaller mzml = new MzMLUnmarshaller(new File(root+"/"+filename), false, null);
+    // looping through the scans
+    MzMLObjectIterator<uk.ac.ebi.jmzml.model.mzml.Spectrum> spectrumIterator = mzml.unmarshalCollectionFromXpath("/run/spectrumList/spectrum", uk.ac.ebi.jmzml.model.mzml.Spectrum.class);
+
+    int rows=0; String rowid=null;
+    while (spectrumIterator.hasNext())
+    {
+      Spectrum ss = spectrumIterator.next();
+      float    rt = MsIO.getDouble(ss.getScanList().getScan().get(0).getCvParam(), "MS:1000016").floatValue();
+      int    scan = MsIO.ScanNumberFromSpectrumRef(ss.getId());
+
+      if (++rows%100==0) System.out.print(".");
+      if (rows%10000==0) System.out.print(rows+"\n");
+
+      MsnSpectrum ms = MsReaders.from(ss, false);
+
+      if (ms.getMsLevel()==1) continue;
+
+      float m0=0f, mL=0f, mR=0f;
+      for (Precursor prec : ss.getPrecursorList().getPrecursor())
+      {
+        for (uk.ac.ebi.jmzml.model.mzml.CVParam cv : prec.getIsolationWindow().getCvParam())
+        {
+          if (cv.getAccession().equals("MS:1000827")) m0 = Float.parseFloat(cv.getValue());
+          if (cv.getAccession().equals("MS:1000828")) mL = Float.parseFloat(cv.getValue());
+          if (cv.getAccession().equals("MS:1000829")) mR = Float.parseFloat(cv.getValue());
+        }
+      }
+
+      // bring in the suitable SRM groups
+      Range<Float> rt_bound = Range.closed(rt-dRT, rt+dRT), mz_bound = Range.closed(m0-mL, m0+mR);
+      Collection<SRMGroup> slice = groups.subset(mz_bound, rt_bound);
+
+      // let's go thro each fragments
+      if (slice.size()>0)
+      {
+        SortedMap<Double, Peak> pks = Spectra.toPeaks(ms);
+        for (SRMGroup g : slice)
+        {
+          g.scanMS2(pks, rt, tol);
+        }
+      }
+    }
+    return groups;
+  }
 }

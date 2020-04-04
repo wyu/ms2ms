@@ -31,6 +31,7 @@ public class PsmIdSettings extends Settings
   public static final String KEY_MGF      = "mgf";
   public static final String KEY_MATCHES  = "matches";
   public static final String KEY_MID      = "mid";
+  public static final String KEY_MOD      = "mod";
   public static final String KEY_MOTIF    = "motif";
   public static final String KEY_MULTIZ_DB= "zs";
   public static final String KEY_MZML     = "mzml";
@@ -82,6 +83,7 @@ public class PsmIdSettings extends Settings
     setDefaultTracks( s.getInt(KEY_TRACK));
     setDefaultMotifs( s.getInt(KEY_MOTIF));
 
+    setMaxMods(       s.getDouble(KEY_MOD));
     useMultiZFrags(   s.getBoolean(KEY_MULTIZ_DB));
     setEvalSamples(   s.getInt(KEY_EVAL_N));
     expandExacts(     s.getBoolean(KEY_EXPAND));
@@ -106,6 +108,7 @@ public class PsmIdSettings extends Settings
     setPrecursorTol(new OffsetPpmTolerance(15d, 0d));
 
     setMaxNullMotifs(5).setPeakTransform(0.5d);
+    setMaxMods(250d);
 
     setMinSeriesZval(1.25);
     setMinPeptideSize(4);
@@ -154,6 +157,7 @@ public class PsmIdSettings extends Settings
   public Integer getDefaultTracks()  { return (Integer )properties.get("DefaultTracks"); }
   public Double  getDuplicateProb()  { return (Double  )properties.get(KEY_DUPL); }
   public Integer getEvalSamples()    { return (Integer )properties.get(KEY_EVAL_N); }
+  public Double  getMaxMods()        { return (Double )properties.get(KEY_MOD); }
   public Integer getMaxNullMotifs()  { return (Integer )properties.get("MaxNullMotifs"); }
   public Double  getMinMatchProb()   { return (Double )properties.get("MinMatchProb"); }
   public Integer getMinMotifs()      { return (Integer )properties.get(KEY_MOTIF); }
@@ -188,6 +192,7 @@ public class PsmIdSettings extends Settings
   public PsmIdSettings setEvalSamples(   Integer s) { properties.put(KEY_EVAL_N, s); return this; }
   public PsmIdSettings setFalseTags(      String s) { properties.put(KEY_FALSE, s); return this; }
   public PsmIdSettings setMaxNullMotifs( Integer s) { properties.put("MaxNullMotifs", s); return this; }
+  public PsmIdSettings setMaxMods(        Double s) { properties.put(KEY_MOD, s); return this; }
   public PsmIdSettings setMinMatchProb(   Double s) { properties.put("MinMatchProb", s); return this; }
   public PsmIdSettings setMinMotifs(     Integer s) { properties.put(KEY_MOTIF, s); return this; }
   public PsmIdSettings setMinPeptideSize(Integer s) { properties.put("MinPeptideSize", s); return this; }

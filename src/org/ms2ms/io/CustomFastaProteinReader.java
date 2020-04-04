@@ -4,9 +4,7 @@ import org.expasy.mzjava.proteomics.io.mol.FastaProteinReader;
 import org.expasy.mzjava.proteomics.mol.Protein;
 import org.ms2ms.utils.Strs;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.Reader;
+import java.io.*;
 import java.util.EnumMap;
 
 import static org.ms2ms.io.CustomFastaProteinReader.SeqInfo.*;
@@ -14,7 +12,7 @@ import static org.ms2ms.io.CustomFastaProteinReader.SeqInfo.*;
 /**
  * Created by yuw on 1/14/17.
  */
-public class CustomFastaProteinReader extends FastaProteinReader
+public class CustomFastaProteinReader extends FastaProteinReader implements Closeable
 {
   public enum SeqInfo { AC, NAME, DESC, GN, OS };
 
@@ -70,4 +68,5 @@ public class CustomFastaProteinReader extends FastaProteinReader
     A.putAll(B);
     return A;
   }
+
 }

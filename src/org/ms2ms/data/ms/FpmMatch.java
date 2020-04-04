@@ -24,6 +24,21 @@ public class FpmMatch implements Comparable<FpmMatch>
       return c;
     }
   }
+  public static class ProteinDesendComparator implements Comparator<FpmMatch>
+  {
+    public ProteinDesendComparator() { }
+    public int compare(FpmMatch o1, FpmMatch o2)
+    {
+      if (o2.getEntry()==null) return -1;
+      if (o1.getEntry()==null) return  1;
+
+      int c = Float.compare(Math.signum(o2.getProtein()), Math.signum(o1.getProtein()));
+      if (c==0) c = Integer.compare(o1.getProtein(), o2.getProtein());
+      if (c==0) c = Integer.compare(o2.getEntry().getTrack().size(), o1.getEntry().getTrack().size());
+
+      return c;
+    }
+  }
 
   public FpmMatch() { super(); }
   public FpmMatch(FpmSlot s, IonType ion, int protein, int seq)

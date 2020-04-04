@@ -1075,6 +1075,14 @@ public class Peaks {
 
     return sum;
   }
+  public static <T extends Peak> double IntensitySum(Collection<Peak> peaks)
+  {
+    if (!Tools.isSet(peaks)) return 0;
+
+    double sum = 0d;
+    for (Peak peak : peaks) sum += peak.getIntensity();
+    return sum;
+  }
   public static <T extends Peak> boolean hasNegativeIntensity(T... peaks)
   {
     if (Tools.isSet(peaks))

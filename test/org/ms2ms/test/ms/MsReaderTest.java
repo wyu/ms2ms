@@ -8,6 +8,8 @@ import org.junit.Test;
 import org.ms2ms.data.ms.MsSpectrum;
 import org.ms2ms.io.MsIO;
 import org.ms2ms.io.MsReaders;
+import org.ms2ms.io.mzMLReader;
+import org.ms2ms.r.Dataframe;
 import org.ms2ms.test.TestAbstract;
 
 import java.io.*;
@@ -25,6 +27,30 @@ public class MsReaderTest extends TestAbstract
   // TODO: Need to modify or extend MzxmlReader to readSpectrumIdentifier only selected msLevel or RT range, etc
   // peak processing takes lots of time!
 
+  @Test
+  public void readFAIMSFolder() throws Exception
+  {
+    String  root = "/Users/kfvf960/Downloads/mzML", out="/scans";
+    File[] files = new File(root).listFiles();
+
+    for (File file : files)
+    {
+      if (file.getName().indexOf("mzML")>0) {
+        System.out.println("Parsing the "+file.getName());
+        Dataframe data = mzMLReader.readScanHeader(null, file.getAbsolutePath());
+        if (data!=null) data.init(true).write(new FileWriter(root+"/"+file.getName()+"_scan_headers.tsv"), "\t", true, "NA");
+      }
+    }
+  }
+
+  @Test
+  public void readFAIMS() throws Exception
+  {
+    String root = "/Users/kfvf960/Apps/contrib/XSLT", out="/scans";
+
+    Dataframe data = mzMLReader.readScanHeader(null, root+"/M2B0159_20200113_LLOQ18_FS_Dbl.mzML");
+    if (data!=null) data.init(true).write(new FileWriter(root+"/scan_headers.tsv"), "\t", true, "NA");
+  }
   @Test
   public void prepApp() throws Exception
   {

@@ -2,6 +2,8 @@ package org.ms2ms.test.io;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.io.Files;
+import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.expasy.mzjava.proteomics.io.mol.FastaProteinReader;
 import org.expasy.mzjava.proteomics.mol.Protein;
 import org.junit.Test;
@@ -11,15 +13,28 @@ import org.ms2ms.utils.IOs;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.Collection;
 
 public class ProteinSequenceTest extends TestAbstract
 {
   public final String NOTMAPPED = "NotMapped";
 
+  @Test
+  public void consolidateFASTAs() throws Exception
+  {
+    String root = "/Users/kfvf960/OneDrive - AZCollaboration/Collaboration/COPD/Microbiome/sequences";
+    File[] fas = new File(root).listFiles((FileFilter)(new WildcardFileFilter("*.fasta")));
+
+    for (File fa : fas)
+    {
+      System.out.println("Reading the protein sequences from " + fa.getName());
+      Multimap<String, Protein> seqs = readProteinSequences(fa.getAbsolutePath());
+      System.out.println(seqs.size() + " read containing "+seqs.keySet().size()+" unique sequences.");
+
+      writeProteinsAsFASTA(root+"mapped.fasta", seqs.values());
+    }
+  }
   @Test
   public void FASTA2Tab() throws Exception
   {
