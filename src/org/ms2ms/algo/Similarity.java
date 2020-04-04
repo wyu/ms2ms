@@ -138,6 +138,20 @@ public class Similarity
     dp = sum_ab * sum_ab / (sum_a * sum_b);
     return sqrted?Math.sqrt(dp):dp;
   }
+  public static float dp(List<Float> A, List<Float> B)
+  {
+    // false if one of the spectra is empty or with diff dimension
+    if (A.isEmpty() || B.isEmpty() || A.size() != B.size()) return 0;
+
+    float dp = 0, sum_a = 0, sum_b = 0, sum_ab = 0;
+    for (int ia = 0; ia < A.size(); ia++) {
+      sum_a  +=   A.get(ia) * A.get(ia);
+      sum_b  +=   B.get(ia) * B.get(ia);
+      sum_ab +=   A.get(ia) * B.get(ia);
+    }
+    // calculating the dot-product
+    return sum_ab * sum_ab / (sum_a * sum_b);
+  }
   public static double dp(Map<Double,Double> A, Map<Double,Double> B, boolean sqrted)
   {
     // false if one of the spectra is empty or with diff dimension

@@ -34,8 +34,8 @@ public class DIATest extends TestAbstract
     SRMGroup.headerXIC(xic); SRMGroup.headerFeatures(ftr);
     for (SRMGroup grp : groups.values())
     {
-      grp.composite().printXIC(xic);
-      grp.centroid().printFeatures(ftr);
+      grp.composite().centroid().scoreSimillarity();
+      grp.printXIC(xic).printFeatures(ftr);
     }
     xic.close(); ftr.close();
   }

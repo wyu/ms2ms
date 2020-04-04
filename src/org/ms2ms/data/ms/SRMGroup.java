@@ -5,6 +5,7 @@ import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.ms2ms.algo.Peaks;
+import org.ms2ms.algo.Similarity;
 import org.ms2ms.data.Point;
 import org.ms2ms.data.collect.MultiTreeTable;
 import org.ms2ms.math.Points;
@@ -19,20 +20,20 @@ import java.util.*;
 public class SRMGroup implements Ion, Comparable<SRMGroup>
 {
   private String mPeptideSequence;
-  private float mRT, mPrecursorMz;
+  private float mRT, mPrecursorMz, mDpSimilarity;
   private int mCharge;
 
-  private TreeMap<Float, Float> mTransitions;
-  private TreeMultimap<Float, Point> mXIC;
-  private TreeMap<Float, Point> mFeatures;
+//  private TreeMap<Float, Float> mTransitions;
+//  private TreeMultimap<Float, Point> mXIC;
+//  private TreeMap<Float, Point> mFeatures;
+  private TreeMap<Float, SRM> mSRMs;
 
   public SRMGroup() { super(); }
   public SRMGroup(String peptide, float rt, float mz, int z)
   {
     super();
     mPeptideSequence = peptide;
-    mTransitions     = new TreeMap<>();
-    mXIC             = TreeMultimap.create();
+    mSRMs            = new TreeMap<>();
 
     mRT=rt; mPrecursorMz=mz; mCharge=z;
   }
@@ -43,55 +44,64 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
   @Override public float getMH()     { return 0; }
   @Override public int   getCharge() { return mCharge; }
   public float getRT() { return mRT; }
+  public float getSimilarity() { return mDpSimilarity; }
   public String getSequence() { return mPeptideSequence; }
 
-  public TreeMap<Float, Float> getTransitions() { return mTransitions; }
-  public Collection<Float> getFragmentMzs(Float f0, Float f1)
-  {
-    SortedMap<Float, Float> g = mTransitions.subMap(f0,f1);
-    return (g!=null && g.size()>0) ? g.values() : null;
-  }
+  public Map<Float, SRM> getSRMs() { return mSRMs; }
+
   public SRMGroup setMz(  float s) { mPrecursorMz=s; return this; }
   public SRMGroup setCharge(int s) { mCharge=s; return this; }
 
   private SRMGroup addTransition(float frag, float intensity)
   {
-    mTransitions.put(frag, intensity);
+    mSRMs.put(frag, new SRM(frag, intensity));
     return this;
   }
   private SRMGroup addXICPoint(float frag, float rt, float intensity)
   {
-    mXIC.put(frag, new Point(rt, intensity));
+    if (mSRMs.get(frag)==null) mSRMs.put(0f, new SRM());
+
+    mSRMs.get(frag).addXIC(rt, intensity);
     return this;
   }
 
   public SRMGroup composite()
   {
     TreeMultimap<Float, Double> rt_ai = TreeMultimap.create();
-    for (Float frag : mXIC.keySet())
-      for (Point pk : mXIC.get(frag))
-      {
+    for (Float frag : mSRMs.keySet())
+      for (Point pk : mSRMs.get(frag).getXIC())
         rt_ai.put((float )pk.getX(), Math.log10(pk.getY()));
-      }
+
 
     // create the composite trace
     for (Float rt : rt_ai.keySet())
-      mXIC.put(0f, new Point(rt, Math.pow(10d, Stats.sum(rt_ai.get(rt)))));
+      mSRMs.get(0f).addXIC(rt, (float )Math.pow(10d, Stats.sum(rt_ai.get(rt))));
 
     return this;
   }
   public SRMGroup centroid()
   {
-    mFeatures = new TreeMap<>();
-    for (Float frag : mXIC.keySet())
+    for (Float frag : mSRMs.keySet())
     {
-      mFeatures.put(frag, Points.centroid(mXIC.get(frag), 5d));
+      mSRMs.get(frag).setFeature(Points.centroid(mSRMs.get(frag).getXIC(), 5d));
     }
+    return this;
+  }
+  public SRMGroup scoreSimillarity()
+  {
+    List<Float> lib = new ArrayList<>(), obs = new ArrayList<>();
+    for (SRM srm : mSRMs.values())
+    {
+      lib.add(        srm.getLibraryIntensity());
+      obs.add((float )srm.getFeature().getY());
+    }
+    mDpSimilarity = Similarity.dp(lib, obs);
+
     return this;
   }
   public SRMGroup scanMS2(SortedMap<Double, Peak> peaks, float rt, Tolerance tol)
   {
-    for (Float k : mTransitions.keySet())
+    for (Float k : mSRMs.keySet())
     {
       SortedMap<Double, Peak> pks = peaks.subMap(tol.getMin(k), tol.getMax(k));
       if (pks!=null && pks.size()>0)
@@ -103,37 +113,76 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
   {
     w.write("Peptide\tz\tPrecMz\tRT\tFragMz\txic.rt\txic.ai\n");
   }
-  public void printXIC(Writer w) throws IOException
+  public SRMGroup printXIC(Writer w) throws IOException
   {
-    for (Float frag : mXIC.keySet())
-      for (Point pk : mXIC.get(frag))
+    for (Float frag : mSRMs.keySet())
+      for (Point pk : mSRMs.get(frag).getXIC())
       {
-        w.write(getSequence()+"\t");
-        w.write(getCharge()+"\t");
-        w.write(Tools.d2s(getMz(),4)+"\t");
-        w.write(getRT()+"\t");
-
+        printGroup(w);
         w.write(Tools.d2s(frag,4)+"\t");
         w.write(Tools.d2s(pk.getX(),3)+"\t");
         w.write(Tools.d2s(pk.getY(),2)+"\n");
       }
+
+    return this;
   }
   public static void headerFeatures(Writer w) throws IOException
   {
-    w.write("Peptide\tz\tPrecMz\tRT\tFragMz\tfeature.rt\tfeature.ai\n");
+    headerGroup(w);
+    w.write("FragMz\tfeature.rt\tfeature.ai\n");
   }
   public void printFeatures(Writer w) throws IOException
   {
-    for (Float frag : mFeatures.keySet())
+    for (Float frag : mSRMs.keySet())
     {
-        w.write(getSequence()+"\t");
-        w.write(getCharge()+"\t");
-        w.write(Tools.d2s(getMz(),4)+"\t");
-        w.write(getRT()+"\t");
-        w.write(Tools.d2s(frag,4)+"\t");
-        w.write(Tools.d2s(mFeatures.get(frag).getX(),3)+"\t");
-        w.write(Tools.d2s(mFeatures.get(frag).getY(),2)+"\n");
+      printGroup(w);
+      w.write(Tools.d2s(frag,4)+"\t");
+      w.write(Tools.d2s(mSRMs.get(frag).getFeature().getX(),3)+"\t");
+      w.write(Tools.d2s(mSRMs.get(frag).getFeature().getY(),2)+"\n");
     }
+  }
+  public static void headerGroup(Writer w) throws IOException
+  {
+    w.write("Peptide\tz\tPrecMz\tRT\tSimilarity\t");
+  }
+  private void printGroup(Writer w) throws IOException
+  {
+    w.write(getSequence()+"\t");
+    w.write(getCharge()+"\t");
+    w.write(Tools.d2s(getMz(),4)+"\t");
+    w.write(getRT()+"\t");
+    w.write(getSimilarity()+"\t");
+  }
+
+  class SRM
+  {
+    private float mFragmentMz, mLibraryIntensity, mApex, mArea;
+    private List<Point> mXIC;
+    private Point mFeature;
+
+    SRM()
+    {
+      super();
+      mFragmentMz=mLibraryIntensity=0;
+      mXIC = new ArrayList<>();
+    }
+    SRM(float frag, float ai)
+    {
+      mFragmentMz=frag; mLibraryIntensity=ai;
+      mXIC = new ArrayList<>();
+    }
+
+    public float getFragmentMz() { return mFragmentMz; }
+    public float getLibraryIntensity() { return mLibraryIntensity; }
+    public float getApex() { return mApex; }
+    public float getArea() { return mArea; }
+
+    public List<Point> getXIC() { return mXIC; }
+    public Point getFeature() { return mFeature; }
+
+    public SRM addXIC(float rt, float ai) { mXIC.add(new Point(rt,ai)); return this; }
+
+    public SRM setFeature(Point s) { mFeature=s; return this; }
   }
 
   public static MultiTreeTable<Float, Float, SRMGroup> readTransitions(String trfile)
