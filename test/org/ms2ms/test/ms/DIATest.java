@@ -29,14 +29,15 @@ public class DIATest extends TestAbstract
     groups = mzMLReader.extractTransitionXICs(root, "M1A1732_20191211_SERD_AA178.mzML", tol, 5f, groups);
 
     FileWriter xic = new FileWriter(root+"M1A1732_20191211_SERD_AA178.xic"),
-               cpo = new FileWriter(root+"M1A1732_20191211_SERD_AA178.cpo");
+               ftr = new FileWriter(root+"M1A1732_20191211_SERD_AA178.feature");
 
-    SRMGroup.headerXIC(xic); SRMGroup.headerXIC(cpo);
+    SRMGroup.headerXIC(xic); SRMGroup.headerFeatures(ftr);
     for (SRMGroup grp : groups.values())
     {
       grp.composite().printXIC(xic);
+      grp.centroid().printFeatures(ftr);
     }
-    xic.close();
+    xic.close(); ftr.close();
   }
 
 }

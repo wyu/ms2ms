@@ -7,6 +7,7 @@ import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.ms2ms.algo.Peaks;
 import org.ms2ms.data.Point;
 import org.ms2ms.data.collect.MultiTreeTable;
+import org.ms2ms.math.Points;
 import org.ms2ms.math.Stats;
 import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
@@ -23,6 +24,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
 
   private TreeMap<Float, Float> mTransitions;
   private TreeMultimap<Float, Point> mXIC;
+  private TreeMap<Float, Point> mFeatures;
 
   public SRMGroup() { super(); }
   public SRMGroup(String peptide, float rt, float mz, int z)
@@ -78,6 +80,15 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
 
     return this;
   }
+  public SRMGroup centroid()
+  {
+    mFeatures = new TreeMap<>();
+    for (Float frag : mXIC.keySet())
+    {
+      mFeatures.put(frag, Points.centroid(mXIC.get(frag), 5d));
+    }
+    return this;
+  }
   public SRMGroup scanMS2(SortedMap<Double, Peak> peaks, float rt, Tolerance tol)
   {
     for (Float k : mTransitions.keySet())
@@ -106,6 +117,23 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
         w.write(Tools.d2s(pk.getX(),3)+"\t");
         w.write(Tools.d2s(pk.getY(),2)+"\n");
       }
+  }
+  public static void headerFeatures(Writer w) throws IOException
+  {
+    w.write("Peptide\tz\tPrecMz\tRT\tFragMz\tfeature.rt\tfeature.ai\n");
+  }
+  public void printFeatures(Writer w) throws IOException
+  {
+    for (Float frag : mFeatures.keySet())
+    {
+        w.write(getSequence()+"\t");
+        w.write(getCharge()+"\t");
+        w.write(Tools.d2s(getMz(),4)+"\t");
+        w.write(getRT()+"\t");
+        w.write(Tools.d2s(frag,4)+"\t");
+        w.write(Tools.d2s(mFeatures.get(frag).getX(),3)+"\t");
+        w.write(Tools.d2s(mFeatures.get(frag).getY(),2)+"\n");
+    }
   }
 
   public static MultiTreeTable<Float, Float, SRMGroup> readTransitions(String trfile)

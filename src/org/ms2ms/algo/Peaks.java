@@ -361,7 +361,6 @@ public class Peaks {
     // send the base peak back
     return base;
   }
-
   public static int getBasePeak(double[] ais) {
     if (!Tools.isSet(ais)) return -1;
 
