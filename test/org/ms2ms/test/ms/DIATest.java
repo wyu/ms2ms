@@ -1,6 +1,8 @@
 package org.ms2ms.test.ms;
 
+import org.expasy.mzjava.core.ms.Tolerance;
 import org.junit.Test;
+import org.ms2ms.algo.DIA.DIA_utils;
 import org.ms2ms.data.collect.MultiTreeTable;
 import org.ms2ms.data.ms.OffsetPpmTolerance;
 import org.ms2ms.data.ms.SRMGroup;
@@ -21,23 +23,29 @@ public class DIATest extends TestAbstract
   // peak processing takes lots of time!
 
   @Test
-  public void readTransitionList() throws Exception
+  public void runLandmarks() throws Exception
   {
-    MultiTreeTable<Float, Float, SRMGroup> groups =  SRMGroup.readTransitions(root+"L039_SERD_Project_4Frag_007_tr.tsv");
-
-    OffsetPpmTolerance tol = new OffsetPpmTolerance(15d);
-    groups = mzMLReader.extractTransitionXICs(root, "M1A1732_20191211_SERD_AA178.mzML", tol, 5f, groups);
-
-    FileWriter xic = new FileWriter(root+"M1A1732_20191211_SERD_AA178.xic"),
-               ftr = new FileWriter(root+"M1A1732_20191211_SERD_AA178.feature");
-
-    SRMGroup.headerXIC(xic); SRMGroup.headerFeatures(ftr);
-    for (SRMGroup grp : groups.values())
-    {
-      grp.composite().centroid().scoreSimillarity();
-      grp.printXIC(xic).printFeatures(ftr);
-    }
-    xic.close(); ftr.close();
+    DIA_utils.runDIA(root, "L039_SERD_Project_4Frag_007_tr.tsv", "_landmarks", new OffsetPpmTolerance(15d), 5f, "M1A1732_20191211_SERD_AA178");
+//    MultiTreeTable<Float, Float, SRMGroup> groups =  SRMGroup.readTransitions(root+"L039_SERD_Project_4Frag_007_tr.tsv");
+//
+//    OffsetPpmTolerance tol = new OffsetPpmTolerance(15d);
+//    groups = mzMLReader.extractTransitionXICs(root, "M1A1732_20191211_SERD_AA178.mzML", tol, 5f, groups);
+//
+//    FileWriter xic = new FileWriter(root+"M1A1732_20191211_SERD_AA178.xic"),
+//               ftr = new FileWriter(root+"M1A1732_20191211_SERD_AA178.feature");
+//
+//    SRMGroup.headerXIC(xic); SRMGroup.headerFeatures(ftr);
+//    for (SRMGroup grp : groups.values())
+//    {
+//      grp.composite().centroid().scoreSimillarity();
+//      grp.printXIC(xic).printFeatures(ftr);
+//    }
+//    xic.close(); ftr.close();
+  }
+  @Test
+  public void runLibrary() throws Exception
+  {
+    DIA_utils.runDIA(root, "L039_SERD_Project_4Frag_007_secs_tr_lib.tsv", "_lib", new OffsetPpmTolerance(15d), 0.5f, "M1A1732_20191211_SERD_AA178");
   }
 
 }

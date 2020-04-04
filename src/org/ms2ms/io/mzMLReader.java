@@ -371,7 +371,7 @@ public class mzMLReader extends mzReader
     return out;
   }
   public static MultiTreeTable<Float, Float, SRMGroup> extractTransitionXICs(
-      String root, String filename, OffsetPpmTolerance tol, float dRT, MultiTreeTable<Float, Float, SRMGroup> groups) throws IOException
+      String root, String filename, Tolerance tol, float dRT, MultiTreeTable<Float, Float, SRMGroup> groups) throws IOException
   {
     // looping through the scans
     System.out.println("Reading "+filename+"...");

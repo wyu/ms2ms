@@ -72,10 +72,16 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
       for (Point pk : mSRMs.get(frag).getXIC())
         rt_ai.put((float )pk.getX(), Math.log10(pk.getY()));
 
-
     // create the composite trace
+    double n = mSRMs.size();
+    mSRMs.put(0f, new SRM(0f, 0f));
     for (Float rt : rt_ai.keySet())
-      mSRMs.get(0f).addXIC(rt, (float )Math.pow(10d, Stats.sum(rt_ai.get(rt))));
+    {
+      float v = (float )Math.pow(10d, Stats.sum(rt_ai.get(rt))/n);
+      if (Double.isInfinite(v))
+        System.out.println();
+      mSRMs.get(0f).addXIC(rt, v);
+    }
 
     return this;
   }
