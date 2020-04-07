@@ -385,14 +385,23 @@ public class mzMLReader extends mzReader
     {
       Spectrum ss = spectrumIterator.next();
       float    rt = MsIO.getDouble(ss.getScanList().getScan().get(0).getCvParam(), "MS:1000016").floatValue();
-      int    scan = MsIO.ScanNumberFromSpectrumRef(ss.getId());
+      Range<Float> rt_bound = Range.closed(rt-dRT, rt+dRT);
 
       if (++rows%100==0) System.out.print(".");
       if (rows%10000==0) System.out.print(rows+"\n");
 
       MsnSpectrum ms = MsReaders.from(ss, false);
 
-      if (ms.getMsLevel()==1) continue;
+      if (ms.getMsLevel()==1)
+      {
+        Collection<SRMGroup> ms1 = groups.subset(Range.closed(0f, 10000f), rt_bound);
+        if (Tools.isSet(ms1))
+        {
+          SortedMap<Double, Peak> pks = Spectra.toPeaks(ms);
+          for (SRMGroup g : ms1) g.scanMS1(pks, rt, tol);
+        }
+        continue;
+      }
 
       float m0=0f, mL=0f, mR=0f;
       for (Precursor prec : ss.getPrecursorList().getPrecursor())
@@ -406,17 +415,14 @@ public class mzMLReader extends mzReader
       }
 
       // bring in the suitable SRM groups
-      Range<Float> rt_bound = Range.closed(rt-dRT, rt+dRT), mz_bound = Range.closed(m0-mL, m0+mR);
+      Range<Float> mz_bound = Range.closed(m0-mL, m0+mR);
       Collection<SRMGroup> slice = groups.subset(mz_bound, rt_bound);
 
       // let's go thro each fragments
       if (slice.size()>0)
       {
         SortedMap<Double, Peak> pks = Spectra.toPeaks(ms);
-        for (SRMGroup g : slice)
-        {
-          g.scanMS2(pks, rt, tol);
-        }
+        for (SRMGroup g : slice) g.scanMS2(pks, rt, tol);
       }
     }
     return groups;

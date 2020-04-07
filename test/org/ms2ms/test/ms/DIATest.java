@@ -25,22 +25,7 @@ public class DIATest extends TestAbstract
   @Test
   public void runLandmarks() throws Exception
   {
-    DIA_utils.runDIA(root, "L039_SERD_Project_4Frag_007_tr.tsv", "_landmarks", new OffsetPpmTolerance(15d), 5f, "M1A1732_20191211_SERD_AA178");
-//    MultiTreeTable<Float, Float, SRMGroup> groups =  SRMGroup.readTransitions(root+"L039_SERD_Project_4Frag_007_tr.tsv");
-//
-//    OffsetPpmTolerance tol = new OffsetPpmTolerance(15d);
-//    groups = mzMLReader.extractTransitionXICs(root, "M1A1732_20191211_SERD_AA178.mzML", tol, 5f, groups);
-//
-//    FileWriter xic = new FileWriter(root+"M1A1732_20191211_SERD_AA178.xic"),
-//               ftr = new FileWriter(root+"M1A1732_20191211_SERD_AA178.feature");
-//
-//    SRMGroup.headerXIC(xic); SRMGroup.headerFeatures(ftr);
-//    for (SRMGroup grp : groups.values())
-//    {
-//      grp.composite().centroid().scoreSimillarity();
-//      grp.printXIC(xic).printFeatures(ftr);
-//    }
-//    xic.close(); ftr.close();
+    DIA_utils.runDIA(root, "L039_SERD_Project_4Frag_007_tr.tsv", "_landmarks_18sec", new OffsetPpmTolerance(15d), 5f, "M1A1732_20191211_SERD_AA178");
   }
   @Test
   public void runLibrary() throws Exception

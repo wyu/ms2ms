@@ -1,5 +1,6 @@
 package org.ms2ms.data.ms;
 
+import com.google.common.collect.Range;
 import com.google.common.collect.TreeMultimap;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
@@ -59,9 +60,11 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
   }
   private SRMGroup addXICPoint(float frag, float rt, float intensity)
   {
-    if (mSRMs.get(frag)==null) mSRMs.put(0f, new SRM());
-
-    mSRMs.get(frag).addXIC(rt, intensity);
+    if (intensity>0)
+    {
+      if (mSRMs.get(frag)==null) mSRMs.put(frag, new SRM());
+      mSRMs.get(frag).addXIC(rt, intensity);
+    }
     return this;
   }
 
@@ -85,11 +88,14 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
 
     return this;
   }
-  public SRMGroup centroid()
+  public SRMGroup centroid(float min_ri, float rt_span)
   {
+    Point cpo= Points.centroid(mSRMs.get(0f).getXIC(), 5d, Range.closed(0d, 1000d));
+    Range<Double> rt_range = Range.closed(cpo.getX()-rt_span, cpo.getX()+rt_span);
     for (Float frag : mSRMs.keySet())
     {
-      mSRMs.get(frag).setFeature(Points.centroid(mSRMs.get(frag).getXIC(), 5d));
+      SRM srm = mSRMs.get(frag);
+      srm.setFeature(Points.centroid(srm.getXIC(), 5d, rt_range));
     }
     return this;
   }
@@ -97,10 +103,12 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
   {
     List<Float> lib = new ArrayList<>(), obs = new ArrayList<>();
     for (SRM srm : mSRMs.values())
-    {
-      lib.add(        srm.getLibraryIntensity());
-      obs.add((float )srm.getFeature().getY());
-    }
+      if (srm.getFeature()!=null)
+      {
+        lib.add(        srm.getLibraryIntensity());
+        obs.add((float )srm.getFeature().getY());
+      }
+
     mDpSimilarity = Similarity.dp(lib, obs);
 
     return this;
@@ -109,15 +117,25 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
   {
     for (Float k : mSRMs.keySet())
     {
+      if (k<=0) continue;
+
       SortedMap<Double, Peak> pks = peaks.subMap(tol.getMin(k), tol.getMax(k));
       if (pks!=null && pks.size()>0)
         addXICPoint(k, rt, (float )Peaks.IntensitySum(pks.values()));
     }
     return this;
   }
+  public SRMGroup scanMS1(SortedMap<Double, Peak> peaks, float rt, Tolerance tol)
+  {
+    SortedMap<Double, Peak> pks = peaks.subMap(tol.getMin(getMz()), tol.getMax(getMz()));
+    if (pks!=null && pks.size()>0)
+      addXICPoint(-1f, rt, (float )Peaks.IntensitySum(pks.values()));
+    return this;
+  }
   public static void headerXIC(Writer w) throws IOException
   {
-    w.write("Peptide\tz\tPrecMz\tRT\tFragMz\txic.rt\txic.ai\n");
+    headerGroup(w);
+    w.write("FragMz\txic.rt\txic.ai\n");
   }
   public SRMGroup printXIC(Writer w) throws IOException
   {
@@ -140,12 +158,13 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
   public void printFeatures(Writer w) throws IOException
   {
     for (Float frag : mSRMs.keySet())
-    {
-      printGroup(w);
-      w.write(Tools.d2s(frag,4)+"\t");
-      w.write(Tools.d2s(mSRMs.get(frag).getFeature().getX(),3)+"\t");
-      w.write(Tools.d2s(mSRMs.get(frag).getFeature().getY(),2)+"\n");
-    }
+      if (mSRMs.get(frag).getFeature()!=null)
+      {
+        printGroup(w);
+        w.write(Tools.d2s(frag,4)+"\t");
+        w.write(Tools.d2s(mSRMs.get(frag).getFeature().getX(),3)+"\t");
+        w.write(Tools.d2s(mSRMs.get(frag).getFeature().getY(),2)+"\n");
+      }
   }
   public static void headerGroup(Writer w) throws IOException
   {

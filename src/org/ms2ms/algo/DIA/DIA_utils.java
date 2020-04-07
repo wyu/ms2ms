@@ -22,7 +22,7 @@ public class DIA_utils
     SRMGroup.headerXIC(xic); SRMGroup.headerFeatures(ftr);
     for (SRMGroup grp : groups.values())
     {
-      grp.composite().centroid().scoreSimillarity();
+      grp.composite().centroid(5f, 0.5f).scoreSimillarity();
       grp.printXIC(xic).printFeatures(ftr);
     }
     xic.close(); ftr.close();
