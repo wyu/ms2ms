@@ -30,7 +30,7 @@ public class DIATest extends TestAbstract
   @Test
   public void runLibrary() throws Exception
   {
-    DIA_utils.runDIA(root, "L039_SERD_Project_4Frag_007_lib_tr.tsv", "_lib", new OffsetPpmTolerance(15d), 2.5f, "M1A1732_20191211_SERD_AA178");
+    DIA_utils.runDIA(root, "L039_SERD_Project_4Frag_007_lib_tr.tsv", "_lib", new OffsetPpmTolerance(15d), 5f, "M1A1732_20191211_SERD_AA178");
   }
 
 }

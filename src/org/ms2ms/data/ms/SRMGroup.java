@@ -123,6 +123,15 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
 
     return this;
   }
+  public SRMGroup calcFeatureExclusivity(float span)
+  {
+    if (Tools.isSet(mSRMs) && mSRMs.get(0f)!=null && mSRMs.get(0f).getFeature()!=null)
+    {
+      double rt = mSRMs.get(0f).getFeature().getX();
+      for (SRM srm : mSRMs.values()) srm.calPeakPct(rt, span);
+    }
+    return this;
+  }
   public SRMGroup scanMS2(SortedMap<Double, Peak> peaks, float rt, Tolerance tol)
   {
     for (Float k : mSRMs.keySet())
@@ -163,20 +172,23 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
   public static void headerFeatures(Writer w) throws IOException
   {
     headerGroup(w);
-    w.write("FragMz\tNumPts\txicL\txicR\tfeature.rt\tfeature.ai\n");
+    w.write("FragMz\tNumPts\txicL\txicR\tPkEx\tPkExAll\tfeature.rt\tfeature.ai\n");
   }
   public void printFeatures(Writer w) throws IOException
   {
     for (Float frag : mSRMs.keySet())
       if (mSRMs.get(frag).getFeature()!=null)
       {
+        SRM srm = mSRMs.get(frag);
         printGroup(w);
         w.write(Tools.d2s(frag,4)+"\t");
-        w.write(mSRMs.get(frag).getXIC().size()+"\t");
-        w.write(Tools.d2s(mSRMs.get(frag).getXIC().get(0).getX(),3)+"\t");
-        w.write(Tools.d2s(mSRMs.get(frag).getXIC().get(mSRMs.get(frag).getXIC().size()-1).getX(),3)+"\t");
-        w.write(Tools.d2s(mSRMs.get(frag).getFeature().getX(),3)+"\t");
-        w.write(Tools.d2s(mSRMs.get(frag).getFeature().getY(),2)+"\n");
+        w.write(srm.getXIC().size()+"\t");
+        w.write(Tools.d2s(srm.getXIC().get(0).getX(),3)+"\t");
+        w.write(Tools.d2s(srm.getXIC().get(srm.getXIC().size()-1).getX(),3)+"\t");
+        w.write(Tools.d2s(srm.getPeakPct(),2)+"\t");
+        w.write(Tools.d2s(srm.getPeakPctAll(),2)+"\t");
+        w.write(Tools.d2s(srm.getFeature().getX(),3)+"\t");
+        w.write(Tools.d2s(srm.getFeature().getY(),2)+"\n");
       }
   }
   public static void headerGroup(Writer w) throws IOException
@@ -194,7 +206,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
 
   class SRM
   {
-    private float mFragmentMz, mLibraryIntensity, mApex, mArea;
+    private float mFragmentMz, mLibraryIntensity, mApex, mArea, mPkPct=0, mPkPctAll=0;
     private List<Point> mXIC;
     private Point mFeature;
 
@@ -212,8 +224,10 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
 
     public float getFragmentMz() { return mFragmentMz; }
     public float getLibraryIntensity() { return mLibraryIntensity; }
-    public float getApex() { return mApex; }
-    public float getArea() { return mArea; }
+    public float getApex()       { return mApex; }
+    public float getArea()       { return mArea; }
+    public float getPeakPct()    { return mPkPct; }
+    public float getPeakPctAll() { return mPkPctAll; }
 
     public List<Point> getXIC() { return mXIC; }
     public Point getFeature() { return mFeature; }
@@ -222,6 +236,23 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
 
     public SRM setFeature(Point s) { mFeature=s; return this; }
 
+    public SRM calPeakPct(double rt, double span)
+    {
+      if (!Tools.isSet(getXIC())) return this;
+
+      double inside=0, outside=0, all=0;
+      Range<Double> inner = Range.closed(rt-span, rt+span), outer = Range.closed(rt-2d*span, rt+2d*span);
+
+      for (Point p : getXIC())
+      {
+        if       (inner.contains(p.getX())) inside+=p.getY();
+        else if (!outer.contains(p.getX())) outside+=p.getY();
+        all += p.getY();
+      }
+      mPkPct    = (float )(100f*inside/(inside+outside));
+      mPkPctAll = (float )(100f*inside/all);
+      return this;
+    }
     @Override
     public String toString()
     {
