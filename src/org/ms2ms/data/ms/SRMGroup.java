@@ -4,7 +4,6 @@ import com.google.common.collect.Range;
 import com.google.common.collect.TreeMultimap;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
-import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.ms2ms.algo.Peaks;
 import org.ms2ms.algo.Similarity;
 import org.ms2ms.data.Point;
@@ -72,17 +71,25 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
   {
     TreeMultimap<Float, Double> rt_ai = TreeMultimap.create();
     for (Float frag : mSRMs.keySet())
-      for (Point pk : mSRMs.get(frag).getXIC())
-        rt_ai.put((float )pk.getX(), Math.log10(pk.getY()));
+      if (frag>0) // only the MS2 XIC
+        for (Point pk : mSRMs.get(frag).getXIC())
+          rt_ai.put((float )pk.getX(), Math.log10(pk.getY()));
 
     // create the composite trace
-    double n = mSRMs.size();
+    double n = mSRMs.size(); int ms1_start=0;
+    SRM ms1 = mSRMs.get(-1f);
     mSRMs.put(0f, new SRM(0f, 0f));
     for (Float rt : rt_ai.keySet())
     {
+      // look for the ms1 trace
+      if (ms1!=null && Tools.isSet(ms1.getXIC()))
+        for (int i=ms1_start; i<ms1.getXIC().size()-1; i++)
+          if (rt>=ms1.getXIC().get(i).getX() && rt<=ms1.getXIC().get(i+1).getX())
+          {
+            rt_ai.put(rt, Math.log10(0.5*(ms1.getXIC().get(i).getY()+ms1.getXIC().get(i+1).getY()))); ms1_start=i+1; break;
+          }
+
       float v = (float )Math.pow(10d, Stats.sum(rt_ai.get(rt))/n);
-      if (Double.isInfinite(v))
-        System.out.println();
       mSRMs.get(0f).addXIC(rt, v);
     }
 
@@ -90,12 +97,15 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
   }
   public SRMGroup centroid(float min_ri, float rt_span)
   {
-    Point cpo= Points.centroid(mSRMs.get(0f).getXIC(), 5d, Range.closed(0d, 1000d));
-    Range<Double> rt_range = Range.closed(cpo.getX()-rt_span, cpo.getX()+rt_span);
-    for (Float frag : mSRMs.keySet())
+    Point cpo = Points.centroid(mSRMs.get(0f).getXIC(), 5d, Range.closed(0d, 1000d));
+    if (cpo!=null)
     {
-      SRM srm = mSRMs.get(frag);
-      srm.setFeature(Points.centroid(srm.getXIC(), 5d, rt_range));
+      Range<Double> rt_range = Range.closed(cpo.getX()-rt_span, cpo.getX()+rt_span);
+      for (Float frag : mSRMs.keySet())
+      {
+        SRM srm = mSRMs.get(frag);
+        srm.setFeature(Points.centroid(srm.getXIC(), 5d, rt_range));
+      }
     }
     return this;
   }
@@ -103,7 +113,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
   {
     List<Float> lib = new ArrayList<>(), obs = new ArrayList<>();
     for (SRM srm : mSRMs.values())
-      if (srm.getFeature()!=null)
+      if (srm.getFeature()!=null && srm.getFragmentMz()>0)
       {
         lib.add(        srm.getLibraryIntensity());
         obs.add((float )srm.getFeature().getY());
@@ -153,7 +163,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
   public static void headerFeatures(Writer w) throws IOException
   {
     headerGroup(w);
-    w.write("FragMz\tfeature.rt\tfeature.ai\n");
+    w.write("FragMz\tNumPts\txicL\txicR\tfeature.rt\tfeature.ai\n");
   }
   public void printFeatures(Writer w) throws IOException
   {
@@ -162,6 +172,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
       {
         printGroup(w);
         w.write(Tools.d2s(frag,4)+"\t");
+        w.write(mSRMs.get(frag).getXIC().size()+"\t");
+        w.write(Tools.d2s(mSRMs.get(frag).getXIC().get(0).getX(),3)+"\t");
+        w.write(Tools.d2s(mSRMs.get(frag).getXIC().get(mSRMs.get(frag).getXIC().size()-1).getX(),3)+"\t");
         w.write(Tools.d2s(mSRMs.get(frag).getFeature().getX(),3)+"\t");
         w.write(Tools.d2s(mSRMs.get(frag).getFeature().getY(),2)+"\n");
       }
@@ -175,8 +188,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
     w.write(getSequence()+"\t");
     w.write(getCharge()+"\t");
     w.write(Tools.d2s(getMz(),4)+"\t");
-    w.write(getRT()+"\t");
-    w.write(getSimilarity()+"\t");
+    w.write(Tools.d2s(getRT(),3)+"\t");
+    w.write(Tools.d2s(getSimilarity(),3)+"\t");
   }
 
   class SRM
@@ -205,9 +218,38 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
     public List<Point> getXIC() { return mXIC; }
     public Point getFeature() { return mFeature; }
 
-    public SRM addXIC(float rt, float ai) { mXIC.add(new Point(rt,ai)); return this; }
+    public SRM addXIC(float rt, float ai) { if (ai>0) mXIC.add(new Point(rt,ai)); return this; }
 
     public SRM setFeature(Point s) { mFeature=s; return this; }
+
+    @Override
+    public String toString()
+    {
+      String out = "";
+      if (Tools.isSet(getXIC())) out = "xic="+getXIC().size();
+      if (mFeature!=null)        out += ", " + mFeature.toString();
+
+      return out;
+    }
+  }
+
+  @Override
+  public String toString()
+  {
+    String out = getSequence() + ", m/z" + Tools.d2s(getMz(), 4) + ", " + Tools.d2s(getRT(), 2) + "min, dp=" +
+        Tools.d2s(getSimilarity(),2) + " ";
+
+    if (Tools.isSet(mSRMs))
+      for (Float frag : mSRMs.keySet())
+      {
+        if (!Tools.isSet(mSRMs.get(frag).getXIC())) continue;
+
+        if (frag==-1f) out += ("ms1$"); else if (frag==0f) out += ("cpo$"); else  out += (Tools.d2s(frag, 3)+"$");
+
+        out += (mSRMs.get(frag).getXIC().size()+";");
+      }
+
+    return out;
   }
 
   public static MultiTreeTable<Float, Float, SRMGroup> readTransitions(String trfile)
@@ -231,9 +273,15 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
         SRMGroup group = peptide_group.get(peptide);
 
         if (group==null) {
-          group = new SRMGroup(peptide, tr.getFloat("NormalizedRetentionTime"), tr.getFloat("PrecursorMz"), tr.getInt("PrecursorCharge"));
-          groups.put(group.getMz(), group.getRT(), group);
-          peptide_group.put(peptide, group);
+          try
+          {
+            group = new SRMGroup(peptide, tr.getFloat("NormalizedRetentionTime"), tr.getFloat("PrecursorMz"), tr.getInt("PrecursorCharge"));
+            groups.put(group.getMz(), group.getRT(), group);
+            peptide_group.put(peptide, group);
+          }
+          catch (NullPointerException e) {
+            System.out.println();
+          }
         }
         group.addTransition(tr.getFloat("ProductMz"), tr.getFloat("LibraryIntensity"));
       }

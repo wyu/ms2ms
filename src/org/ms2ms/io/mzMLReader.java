@@ -390,14 +390,18 @@ public class mzMLReader extends mzReader
       if (++rows%100==0) System.out.print(".");
       if (rows%10000==0) System.out.print(rows+"\n");
 
+      // for debugging
+//      if (rt<50 || rt > 60) continue;
+
       MsnSpectrum ms = MsReaders.from(ss, false);
+
+      SortedMap<Double, Peak> pks = Spectra.toPeaks(ms);
 
       if (ms.getMsLevel()==1)
       {
         Collection<SRMGroup> ms1 = groups.subset(Range.closed(0f, 10000f), rt_bound);
         if (Tools.isSet(ms1))
         {
-          SortedMap<Double, Peak> pks = Spectra.toPeaks(ms);
           for (SRMGroup g : ms1) g.scanMS1(pks, rt, tol);
         }
         continue;
@@ -415,15 +419,15 @@ public class mzMLReader extends mzReader
       }
 
       // bring in the suitable SRM groups
-      Range<Float> mz_bound = Range.closed(m0-mL, m0+mR);
+      Range<Float> mz_bound = Range.closed(m0-mL, m0+mR-0.5f);
       Collection<SRMGroup> slice = groups.subset(mz_bound, rt_bound);
 
       // let's go thro each fragments
       if (slice.size()>0)
       {
-        SortedMap<Double, Peak> pks = Spectra.toPeaks(ms);
         for (SRMGroup g : slice) g.scanMS2(pks, rt, tol);
       }
+//      pks = (SortedMap )Tools.dispose(pks);
     }
     return groups;
   }
