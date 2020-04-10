@@ -1,5 +1,6 @@
 package org.ms2ms.data.ms;
 
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Range;
 import com.google.common.collect.TreeMultimap;
 import org.expasy.mzjava.core.ms.Tolerance;
@@ -12,12 +13,13 @@ import org.ms2ms.math.Points;
 import org.ms2ms.math.Stats;
 import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
+import toools.collections.Lists;
 
 import java.io.IOException;
 import java.io.Writer;
 import java.util.*;
 
-public class SRMGroup implements Ion, Comparable<SRMGroup>
+public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 {
   private String mPeptideSequence;
   private float mRT, mPrecursorMz, mDpSimilarity;
@@ -51,6 +53,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
 
   public SRMGroup setMz(  float s) { mPrecursorMz=s; return this; }
   public SRMGroup setCharge(int s) { mCharge=s; return this; }
+  public SRMGroup setSimilarity(float s) { mDpSimilarity=s; return this; }
 
   private SRMGroup addTransition(float frag, float intensity)
   {
@@ -203,8 +206,34 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
     w.write(Tools.d2s(getRT(),3)+"\t");
     w.write(Tools.d2s(getSimilarity(),3)+"\t");
   }
+  // replace the fragment mz of the transitions with random pick from all fragments
+  public SRMGroup mutate(ListMultimap<Integer, Float> frag_bank, Random rnd)
+  {
+    mPeptideSequence = getSequence()+"_DECOY";
+    Collection<Float> frags = new ArrayList<>(mSRMs.keySet());
 
-  class SRM
+    mSRMs.clear(); mSRMs = new TreeMap<>();
+    for (Float frag : frags)
+    {
+      addTransition(Lists.getRandomSubset(frag_bank.get((int )Math.round(frag*0.01)),1, rnd).get(0), 0f);
+    }
+    return this;
+  }
+
+  @Override
+  public SRMGroup clone()
+  {
+    SRMGroup cloned = new SRMGroup(getSequence(), getRT(), getMz(), getCharge());
+
+    cloned.setSimilarity(getSimilarity());
+
+    cloned.mSRMs = new TreeMap<>();
+    for (Float frag : mSRMs.keySet()) cloned.mSRMs.put(frag, mSRMs.get(frag));
+
+    return cloned;
+  }
+
+  class SRM implements Cloneable
   {
     private float mFragmentMz, mLibraryIntensity, mApex, mArea, mPkPct=0, mPkPctAll=0;
     private List<Point> mXIC;
@@ -251,6 +280,28 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>
       }
       mPkPct    = (float )(100f*inside/(inside+outside));
       mPkPctAll = (float )(100f*inside/all);
+      return this;
+    }
+
+    public SRM clone()
+    {
+      SRM cloned      = new SRM(getFragmentMz(), getLibraryIntensity());
+      cloned.mApex    = mApex; cloned.mArea = mArea; cloned.mPkPct = mPkPct; cloned.mPkPctAll = mPkPctAll;
+      cloned.mFeature = mFeature;
+
+      cloned.mXIC     = new ArrayList<>();
+      for (Point p : mXIC) cloned.mXIC.add(p);
+
+      return cloned;
+    }
+    public SRM mutate(ListMultimap<Integer, Float> frag_bank, Random rnd)
+    {
+      mApex=mArea=mPkPct=mPkPctAll = 0f;
+      mXIC.clear();
+
+      Integer idx = (int )Math.round(getFragmentMz()*0.01);
+      mFragmentMz = Lists.getRandomSubset(frag_bank.get(idx),1, rnd).get(0);
+
       return this;
     }
     @Override
