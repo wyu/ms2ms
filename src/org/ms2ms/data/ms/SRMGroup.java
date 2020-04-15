@@ -60,12 +60,12 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     mSRMs.put(frag, new SRM(frag, intensity));
     return this;
   }
-  private SRMGroup addXICPoint(float frag, float rt, float intensity)
+  private SRMGroup addXICPoint(float frag, float rt, Double intensity, Double mz, int scan)
   {
     if (intensity>0)
     {
       if (mSRMs.get(frag)==null) mSRMs.put(frag, new SRM());
-      mSRMs.get(frag).addXIC(rt, intensity);
+      mSRMs.get(frag).addXIC(rt, intensity!=null? (float )intensity.doubleValue():0f, mz!=null? (float)mz.doubleValue():0f, scan);
     }
     return this;
   }
@@ -135,7 +135,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     }
     return this;
   }
-  public SRMGroup scanMS2(SortedMap<Double, Peak> peaks, float rt, Tolerance tol)
+  public SRMGroup scanMS2(SortedMap<Double, Peak> peaks, float rt, int scan, Tolerance tol)
   {
     for (Float k : mSRMs.keySet())
     {
@@ -143,15 +143,15 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
       SortedMap<Double, Peak> pks = peaks.subMap(tol.getMin(k), tol.getMax(k));
       if (pks!=null && pks.size()>0)
-        addXICPoint(k, rt, (float )Peaks.IntensitySum(pks.values()));
+        addXICPoint(k, rt, Peaks.IntensitySum(pks.values()), Peaks.centroid(pks.values()), scan);
     }
     return this;
   }
-  public SRMGroup scanMS1(SortedMap<Double, Peak> peaks, float rt, Tolerance tol)
+  public SRMGroup scanMS1(SortedMap<Double, Peak> peaks, float rt, int scan, Tolerance tol)
   {
     SortedMap<Double, Peak> pks = peaks.subMap(tol.getMin(getMz()), tol.getMax(getMz()));
     if (pks!=null && pks.size()>0)
-      addXICPoint(-1f, rt, (float )Peaks.IntensitySum(pks.values()));
+      addXICPoint(-1f, rt, Peaks.IntensitySum(pks.values()), Peaks.centroid(pks.values()), scan);
     return this;
   }
   public static void headerXIC(Writer w) throws IOException
@@ -236,7 +236,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   class SRM implements Cloneable
   {
     private float mFragmentMz, mLibraryIntensity, mApex, mArea, mPkPct=0, mPkPctAll=0;
-    private List<Point> mXIC;
+    private List<LcMsPoint> mXIC;
     private Point mFeature;
 
     SRM()
@@ -258,10 +258,11 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     public float getPeakPct()    { return mPkPct; }
     public float getPeakPctAll() { return mPkPctAll; }
 
-    public List<Point> getXIC() { return mXIC; }
+    public List<LcMsPoint> getXIC() { return mXIC; }
     public Point getFeature() { return mFeature; }
 
-    public SRM addXIC(float rt, float ai) { if (ai>0) mXIC.add(new Point(rt,ai)); return this; }
+    public SRM addXIC(float rt, float ai) { if (ai>0) mXIC.add(new LcMsPoint(rt,ai)); return this; }
+    public SRM addXIC(float rt, float ai, float mz, int scan) { if (ai>0) mXIC.add(new LcMsPoint(rt,ai,mz,scan)); return this; }
 
     public SRM setFeature(Point s) { mFeature=s; return this; }
 
@@ -290,7 +291,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
       cloned.mFeature = mFeature;
 
       cloned.mXIC     = new ArrayList<>();
-      for (Point p : mXIC) cloned.mXIC.add(p);
+      for (LcMsPoint p : mXIC) cloned.mXIC.add(p);
 
       return cloned;
     }
@@ -351,13 +352,14 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
         // "","PrecursorMz","ProductMz","LibraryIntensity","ProteinId","PeptideSequence","ModifiedPeptideSequence","PrecursorCharge","ProductCharge","FragmentType","FragmentSeriesNumber","NormalizedRetentionTime"
         // "2261",1044.48640687972,405.176849365234,33.29616,"P62258","AAFDDAIAELDTLSEESYK","AAFDDAIAELDTLSEESYK",2,1,"b",4,92.1534957885742
-        String peptide = tr.get("ModifiedPeptideSequence")+"#"+tr.get("PrecursorCharge");
+        int z = tr.get("PrecursorCharge", 0);
+        String peptide = tr.getStr("ModifiedSequence", "ModifiedPeptideSequence")+"#"+z;
         SRMGroup group = peptide_group.get(peptide);
 
         if (group==null) {
           try
           {
-            group = new SRMGroup(peptide, tr.getFloat("NormalizedRetentionTime"), tr.getFloat("PrecursorMz"), tr.getInt("PrecursorCharge"));
+            group = new SRMGroup(peptide, tr.get("NormalizedRetentionTime", 0f), tr.getFloat("PrecursorMz"), tr.get("PrecursorCharge", 0));
             groups.put(group.getMz(), group.getRT(), group);
             peptide_group.put(peptide, group);
           }
@@ -365,7 +367,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
             System.out.println();
           }
         }
-        group.addTransition(tr.getFloat("ProductMz"), tr.getFloat("LibraryIntensity"));
+        group.addTransition(tr.getFloat("ProductMz"), tr.get("LibraryIntensity", 0f));
       }
       tr.close();
 

@@ -8,15 +8,12 @@ import org.expasy.mzjava.core.ms.peaklist.PeakList;
 import org.expasy.mzjava.core.ms.peaklist.peakfilter.CentroidFilter;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
-import org.expasy.mzjava.core.ms.spectrum.RetentionTimeDiscrete;
 import org.ms2ms.algo.Spectra;
 import org.ms2ms.data.collect.MultiTreeTable;
 import org.ms2ms.data.ms.*;
 import org.ms2ms.r.Dataframe;
 import org.ms2ms.utils.IOs;
-import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
-import uk.ac.ebi.jmzidml.model.mzidml.CvParam;
 import uk.ac.ebi.jmzml.model.mzml.Precursor;
 import uk.ac.ebi.jmzml.model.mzml.Spectrum;
 import uk.ac.ebi.jmzml.xml.io.MzMLObjectIterator;
@@ -25,7 +22,6 @@ import uk.ac.ebi.jmzml.xml.io.MzMLUnmarshaller;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.Writer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.SortedMap;
@@ -371,7 +367,7 @@ public class mzMLReader extends mzReader
     return out;
   }
   public static MultiTreeTable<Float, Float, SRMGroup> extractTransitionXICs(
-      String root, String filename, Tolerance tol, float dRT, MultiTreeTable<Float, Float, SRMGroup> groups) throws IOException
+      String root, String filename, Tolerance tol, float dRT, MultiTreeTable<Float, Float, SRMGroup> groups, float span_overlap) throws IOException
   {
     // looping through the scans
     System.out.println("Reading "+filename+"...");
@@ -390,19 +386,20 @@ public class mzMLReader extends mzReader
       if (++rows%100==0) System.out.print(".");
       if (rows%10000==0) System.out.print(rows+"\n");
 
-      // for debugging
-//      if (rt<50 || rt > 60) continue;
-
       MsnSpectrum ms = MsReaders.from(ss, false);
 
-      SortedMap<Double, Peak> pks = Spectra.toPeaks(ms);
+      SortedMap<Double, Peak> pks = Spectra.toPeaks(ms); int scan = ms.getScanNumbers().getFirst().getValue();
+
+      // for debugging
+      if (scan==5295 || scan==5293)
+        System.out.println();
 
       if (ms.getMsLevel()==1)
       {
         Collection<SRMGroup> ms1 = groups.subset(Range.closed(0f, 10000f), rt_bound);
         if (Tools.isSet(ms1))
         {
-          for (SRMGroup g : ms1) g.scanMS1(pks, rt, tol);
+          for (SRMGroup g : ms1) g.scanMS1(pks, rt, scan, tol);
         }
         continue;
       }
@@ -419,13 +416,13 @@ public class mzMLReader extends mzReader
       }
 
       // bring in the suitable SRM groups
-      Range<Float> mz_bound = Range.closed(m0-mL, m0+mR-0.5f);
+      Range<Float> mz_bound = Range.closed(m0-mL, m0+mR-span_overlap);
       Collection<SRMGroup> slice = groups.subset(mz_bound, rt_bound);
 
       // let's go thro each fragments
       if (slice.size()>0)
       {
-        for (SRMGroup g : slice) g.scanMS2(pks, rt, tol);
+        for (SRMGroup g : slice) g.scanMS2(pks, rt, scan, tol);
       }
 //      pks = (SortedMap )Tools.dispose(pks);
     }

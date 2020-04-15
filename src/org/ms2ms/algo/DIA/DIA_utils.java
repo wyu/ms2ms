@@ -19,7 +19,27 @@ public class DIA_utils
   {
 //    MultiTreeTable<Float, Float, SRMGroup> groups =  SRMGroup.readTransitions(root+tr);
 
-    groups = mzMLReader.extractTransitionXICs(root, run+".mzML", tol, rt_tol, groups);
+    groups = mzMLReader.extractTransitionXICs(root, run+".mzML", tol, rt_tol, groups, 0.5f);
+
+    FileWriter xic = new FileWriter(root+run+tag+".xic"), ftr = new FileWriter(root+run+tag+".feature");
+
+    SRMGroup.headerXIC(xic); SRMGroup.headerFeatures(ftr);
+    for (SRMGroup grp : groups.values())
+    {
+      grp.composite().centroid(5f, 0.5f).scoreSimillarity().calcFeatureExclusivity(0.25f);
+      grp.printXIC(xic).printFeatures(ftr);
+    }
+    xic.close(); ftr.close();
+
+    return groups;
+  }
+  public static MultiTreeTable<Float, Float, SRMGroup> runPRM(
+      MultiTreeTable<Float, Float, SRMGroup> groups,
+      String root, String tag, Tolerance tol, float rt_tol, String run) throws IOException
+  {
+//    MultiTreeTable<Float, Float, SRMGroup> groups =  SRMGroup.readTransitions(root+tr);
+
+    groups = mzMLReader.extractTransitionXICs(root, run+".mzML", tol, rt_tol, groups, 0f);
 
     FileWriter xic = new FileWriter(root+run+tag+".xic"), ftr = new FileWriter(root+run+tag+".feature");
 
