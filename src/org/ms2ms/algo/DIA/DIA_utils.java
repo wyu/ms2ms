@@ -4,6 +4,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.ms2ms.data.collect.MultiTreeTable;
+import org.ms2ms.data.ms.SRM;
 import org.ms2ms.data.ms.SRMGroup;
 import org.ms2ms.io.mzMLReader;
 
@@ -26,7 +27,7 @@ public class DIA_utils
     SRMGroup.headerXIC(xic); SRMGroup.headerFeatures(ftr);
     for (SRMGroup grp : groups.values())
     {
-      grp.composite().centroid(5f, 0.5f).scoreSimillarity().calcFeatureExclusivity(0.25f);
+      grp.composite().centroid(5f, 0.5f, false).scoreSimillarity().calcFeatureExclusivity(0.25f, 3);
       grp.printXIC(xic).printFeatures(ftr);
     }
     xic.close(); ftr.close();
@@ -35,8 +36,9 @@ public class DIA_utils
   }
   public static MultiTreeTable<Float, Float, SRMGroup> runPRM(
       MultiTreeTable<Float, Float, SRMGroup> groups,
-      String root, String tag, Tolerance tol, float rt_tol, String run) throws IOException
+      String run, String root, String tag, Tolerance tol, float rt_tol, float lc_width, String... peptides) throws IOException
   {
+    System.out.println(run);
 //    MultiTreeTable<Float, Float, SRMGroup> groups =  SRMGroup.readTransitions(root+tr);
 
     groups = mzMLReader.extractTransitionXICs(root, run+".mzML", tol, rt_tol, groups, 0f);
@@ -46,9 +48,18 @@ public class DIA_utils
     SRMGroup.headerXIC(xic); SRMGroup.headerFeatures(ftr);
     for (SRMGroup grp : groups.values())
     {
-      grp.composite().centroid(5f, 0.5f).scoreSimillarity().calcFeatureExclusivity(0.25f);
+      grp.impute(lc_width*0.1f).composite().centroid(5f, lc_width, false).scoreSimillarity().calcFeatureExclusivity(0.25f, 3);
       grp.printXIC(xic).printFeatures(ftr);
     }
+
+    SRM profile = SRMGroup.composite(groups.values(), peptides);
+    SRMGroup protein = new SRMGroup("Protein Summary");
+
+    protein.getSRMs().put(0f, profile);
+
+    protein.centroid(5f, lc_width, true);
+    protein.printXIC(xic).printFeatures(ftr);
+
     xic.close(); ftr.close();
 
     return groups;
