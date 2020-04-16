@@ -27,7 +27,7 @@ public class DIA_utils
     SRMGroup.headerXIC(xic); SRMGroup.headerFeatures(ftr);
     for (SRMGroup grp : groups.values())
     {
-      grp.composite().centroid(5f, 0.5f, false).scoreSimillarity().calcFeatureExclusivity(0.25f, 3);
+      grp.composite().centroid(5f, 0.5f).scoreSimillarity().calcFeatureExclusivity(0.25f, 3);
       grp.printXIC(xic).printFeatures(ftr);
     }
     xic.close(); ftr.close();
@@ -48,16 +48,13 @@ public class DIA_utils
     SRMGroup.headerXIC(xic); SRMGroup.headerFeatures(ftr);
     for (SRMGroup grp : groups.values())
     {
-      grp.impute(lc_width*0.1f).composite().centroid(5f, lc_width, false).scoreSimillarity().calcFeatureExclusivity(0.25f, 3);
+      grp.impute(lc_width*0.1f).composite().centroid(5f, lc_width).scoreSimillarity().calcFeatureExclusivity(0.25f, 3);
       grp.printXIC(xic).printFeatures(ftr);
     }
 
-    SRM profile = SRMGroup.composite(groups.values(), peptides);
-    SRMGroup protein = new SRMGroup("Protein Summary");
+    SRMGroup protein = SRMGroup.buildProteinProfile(groups.values(), true, peptides);
 
-    protein.getSRMs().put(0f, profile);
-
-    protein.centroid(5f, lc_width, true);
+    protein.centroid(5f, lc_width);
     protein.printXIC(xic).printFeatures(ftr);
 
     xic.close(); ftr.close();

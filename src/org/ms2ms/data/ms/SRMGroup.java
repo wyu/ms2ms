@@ -57,7 +57,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public String getSequence() { return mPeptideSequence; }
 
   public SRM getCompositeSRM() { return mSRMs!=null?mSRMs.get(0f):null; }
-  public SRM getCompositeProfile()
+  public SRM getCompositeProfile(boolean round2sec)
   {
     SRM cpo = getCompositeSRM();
 
@@ -67,7 +67,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
       double rt0 = cpo.getFeature().getRT();
       for (LcMsPoint p : cpo.getXIC())
       {
-        profile.addXIC((float )(p.getRT()-rt0), (float )p.getIntensity());
+        profile.addXIC(round2sec?(Math.round(60d*(p.getRT()-rt0))):(float )(p.getRT()-rt0), (float )p.getIntensity());
       }
       return profile;
     }
@@ -130,7 +130,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     for (SRM srm : mSRMs.values()) srm.impute(gap);
     return this;
   }
-  public SRMGroup centroid(float min_ri, float rt_span, boolean round2sec)
+  public SRMGroup centroid(float min_ri, float rt_span)
   {
     Point cpo = Points.centroid(mSRMs.get(0f).getXIC(), 5d, Range.closed(0d, 1000d));
     if (cpo!=null)
@@ -140,8 +140,6 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
       {
         SRM srm = mSRMs.get(frag);
         srm.setFeature(Points.centroid(srm.getXIC(), 5d, rt_range));
-        // convert to seconds
-        if (round2sec) srm.getFeature().setRT(Math.round(srm.getFeature().getRT()*60d));
       }
     }
     return this;
@@ -334,21 +332,28 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
     return null;
   }
-  public static SRM composite(Collection<SRMGroup> groups, String... peptides)
+  public static SRMGroup buildProteinProfile(Collection<SRMGroup> groups, boolean round2sec, String... peptides)
   {
+    SRMGroup protein = new SRMGroup("Protein Summary");
+
     // create the composite trace
-    double n = 0;
     TreeMultimap<Float, Double> rt_ai = TreeMultimap.create();
     for (SRMGroup group : groups)
       if (group.getCompositeSRM()!=null && Strs.isA(group.getSequence(), peptides))
       {
-        n++;
-        for (LcMsPoint pk : group.getCompositeProfile().getXIC())
+        SRM pr = group.getCompositeProfile(round2sec);
+        protein.getSRMs().put(group.getMz(), pr);
+        for (LcMsPoint pk : pr.getXIC())
           if (pk.getY()>0)
           {
+            // convert to seconds
             rt_ai.put((float )pk.getX(), Math.log10(pk.getY()));
           }
       }
+
+    double n = 0;
+    for (Float rt : rt_ai.keySet())
+      if (rt_ai.get(rt).size()>n) n = rt_ai.get(rt).size();
 
     // create the composite trace
     SRM profile = new SRM(0f, 0f);
@@ -358,7 +363,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
       float v = (float )Math.pow(10d, Stats.sum(rt_ai.get(rt))/n);
       profile.addXIC(rt, v);
     }
+    protein.getSRMs().put(0f, profile);
 
-    return profile;
+    return protein;
   }
 }
