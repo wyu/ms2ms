@@ -394,12 +394,18 @@ public class mzMLReader extends mzReader
       if (scan==5295 || scan==5293)
         System.out.println();
 
+      float ion_injection=0;
+      for (uk.ac.ebi.jmzml.model.mzml.CVParam cv : ss.getScanList().getScan().get(0).getCvParam())
+      {
+        if (cv.getAccession().equals("MS:1000927")) ion_injection = Float.parseFloat(cv.getValue());
+//        if (cv.getAccession().equals("MS:1000016")) scan_start    = Double.parseDouble(cv.getValue());
+      }
       if (ms.getMsLevel()==1)
       {
         Collection<SRMGroup> ms1 = groups.subset(Range.closed(0f, 10000f), rt_bound);
         if (Tools.isSet(ms1))
         {
-          for (SRMGroup g : ms1) g.scanMS1(pks, rt, scan, tol);
+          for (SRMGroup g : ms1) g.scanMS1(pks, rt, scan, 0, tol);
         }
         continue;
       }
@@ -422,7 +428,7 @@ public class mzMLReader extends mzReader
       // let's go thro each fragments
       if (slice.size()>0)
       {
-        for (SRMGroup g : slice) g.scanMS2(pks, rt, scan, tol);
+        for (SRMGroup g : slice) g.scanMS2(pks, rt, scan, ion_injection, tol);
       }
 //      pks = (SortedMap )Tools.dispose(pks);
     }

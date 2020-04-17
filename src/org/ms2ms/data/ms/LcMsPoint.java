@@ -1,10 +1,11 @@
 package org.ms2ms.data.ms;
 
 import org.ms2ms.data.Point;
+import org.ms2ms.utils.Tools;
 
 public class LcMsPoint extends Point
 {
-  private double  mMz=0, mApex, mArea, mAbundance;
+  private double  mMz=0, mApex, mArea, mAbundance, mFillTime;
   private int     mScan=0;
   private boolean mImputed=false;
 
@@ -26,6 +27,7 @@ public class LcMsPoint extends Point
   public double getArea()      { return mArea; }
   public double getAbundance() { return mAbundance; }
   public double getIntensity() { return getY(); }
+  public double getFillTime()  { return mFillTime; }
   public int    getScan()      { return mScan; }
   public boolean isImputed()   { return mImputed; }
 
@@ -36,5 +38,14 @@ public class LcMsPoint extends Point
   public LcMsPoint setArea(     double s) { mArea=s; return this; }
   public LcMsPoint setAbundance(double s) { mAbundance=s; return this; }
   public LcMsPoint setIntensity(double s) { setY( s); return this; }
+  public LcMsPoint setFillTime( double s) { mFillTime=s; return this; }
   public LcMsPoint isImputed(  boolean s) { mImputed=s; return this; }
+
+  @Override
+  public String toString()
+  {
+    String out = "rt:"+Tools.d2s(getRT(), 2) + ", m/z" + Tools.d2s(getMz(), 4) + "->" +
+        Tools.d2s(getIntensity(), 1) + ", " + Tools.d2s(getFillTime(), 1) + "msec";
+    return out;
+  }
 }

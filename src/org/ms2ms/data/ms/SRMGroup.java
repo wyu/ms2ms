@@ -22,7 +22,7 @@ import java.util.*;
 
 public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 {
-  private String mPeptideSequence;
+  private String mPeptideSequence, mProteinId;
   private float mRT, mPrecursorMz, mDpSimilarity;
   private int mCharge;
 
@@ -52,11 +52,13 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   @Override public float getMz()     { return mPrecursorMz; }
   @Override public float getMH()     { return 0; }
   @Override public int   getCharge() { return mCharge; }
-  public float getRT() { return mRT; }
-  public float getSimilarity() { return mDpSimilarity; }
-  public String getSequence() { return mPeptideSequence; }
 
-  public SRM getCompositeSRM() { return mSRMs!=null?mSRMs.get(0f):null; }
+  public float  getRT()           { return mRT; }
+  public float  getSimilarity()   { return mDpSimilarity; }
+  public String getSequence()     { return mPeptideSequence; }
+  public String getProteinId()    { return mProteinId; }
+  public SRM    getCompositeSRM() { return mSRMs!=null?mSRMs.get(0f):null; }
+
   public SRM getCompositeProfile(boolean round2sec)
   {
     SRM cpo = getCompositeSRM();
@@ -79,17 +81,17 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public SRMGroup setMz(  float s) { mPrecursorMz=s; return this; }
   public SRMGroup setCharge(int s) { mCharge=s; return this; }
   public SRMGroup setSimilarity(float s) { mDpSimilarity=s; return this; }
+  public SRMGroup setProteinId(String s) { mProteinId=s; return this; }
 
   private SRMGroup addTransition(float frag, float intensity)
   {
     mSRMs.put(frag, new SRM(frag, intensity));
     return this;
   }
-  private SRMGroup addXICPoint(float frag, float rt, Double intensity, Double mz, int scan)
+  private LcMsPoint addXICPoint(float frag, float rt, Double intensity, Double mz, int scan)
   {
     if (mSRMs.get(frag)==null) mSRMs.put(frag, new SRM());
-    mSRMs.get(frag).addXIC(rt, intensity!=null? (float )intensity.doubleValue():0f, mz!=null? (float)mz.doubleValue():0f, scan);
-    return this;
+    return mSRMs.get(frag).addXIC(rt, intensity!=null? (float )intensity.doubleValue():0f, mz!=null? (float)mz.doubleValue():0f, scan);
   }
 
   public SRMGroup composite()
@@ -136,10 +138,17 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     if (cpo!=null)
     {
       Range<Double> rt_range = Range.closed(cpo.getX()-rt_span, cpo.getX()+rt_span);
+      List<Point> injects = new ArrayList();
       for (Float frag : mSRMs.keySet())
       {
         SRM srm = mSRMs.get(frag);
+        injects.clear();
+        for (LcMsPoint p : srm.getXIC())
+          if (p.getIntensity()>0)
+            injects.add(new Point(p.getFillTime(), p.getIntensity()));
+
         srm.setFeature(Points.centroid(srm.getXIC(), 5d, rt_range));
+        srm.getFeature().setFillTime(Points.centroid(injects));
       }
     }
     return this;
@@ -167,7 +176,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     }
     return this;
   }
-  public SRMGroup scanMS2(SortedMap<Double, Peak> peaks, float rt, int scan, Tolerance tol)
+  public SRMGroup scanMS2(SortedMap<Double, Peak> peaks, float rt, int scan, float fill_time, Tolerance tol)
   {
     for (Float k : mSRMs.keySet())
     {
@@ -175,23 +184,23 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
       SortedMap<Double, Peak> pks = peaks.subMap(tol.getMin(k), tol.getMax(k));
       if (pks!=null && pks.size()>0)
-        addXICPoint(k, rt, Peaks.IntensitySum(pks.values()), Peaks.centroid(pks.values()), scan);
+        addXICPoint(k, rt, Peaks.IntensitySum(pks.values()), Peaks.centroid(pks.values()), scan).setFillTime(fill_time);
       else
-        addXICPoint(k, rt, 0d, 0d, scan);
+        addXICPoint(k, rt, 0d, 0d, scan).setFillTime(fill_time);
     }
     return this;
   }
-  public SRMGroup scanMS1(SortedMap<Double, Peak> peaks, float rt, int scan, Tolerance tol)
+  public SRMGroup scanMS1(SortedMap<Double, Peak> peaks, float rt, int scan, float fill_time, Tolerance tol)
   {
     SortedMap<Double, Peak> pks = peaks.subMap(tol.getMin(getMz()), tol.getMax(getMz()));
     if (pks!=null && pks.size()>0)
-      addXICPoint(-1f, rt, Peaks.IntensitySum(pks.values()), Peaks.centroid(pks.values()), scan);
+      addXICPoint(-1f, rt, Peaks.IntensitySum(pks.values()), Peaks.centroid(pks.values()), scan).setFillTime(fill_time);
     return this;
   }
   public static void headerXIC(Writer w) throws IOException
   {
     headerGroup(w);
-    w.write("FragMz\tscan\txic.rt\txic.ai\timputed\txic.mz\n");
+    w.write("FragMz\tscan\txic.rt\txic.ai\tinjection\timputed\txic.mz\n");
   }
   public SRMGroup printXIC(Writer w) throws IOException
   {
@@ -203,6 +212,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         w.write(Tools.d2s(pk.getScan(),2)     +"\t");
         w.write(Tools.d2s(pk.getRT(),3)       +"\t");
         w.write(Tools.d2s(pk.getIntensity(),2)+"\t");
+        w.write(Tools.d2s(pk.getFillTime(),2)+"\t");
         w.write(pk.isImputed()                   +"\t");
         w.write(Tools.d2s(pk.getMz(),3)       +"\n");
       }
@@ -212,7 +222,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public static void headerFeatures(Writer w) throws IOException
   {
     headerGroup(w);
-    w.write("FragMz\tNumPts\txicL\txicR\tPkEx\tPkExAll\tfeature.rt\tfeature.ai\tfeature.apex\n");
+    w.write("FragMz\tNumPts\txicL\txicR\tPkEx\tPkExAll\tfeature.rt\tfeature.ai\tinjection\tfeature.apex\n");
   }
   public void printFeatures(Writer w) throws IOException
   {
@@ -229,6 +239,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         w.write(Tools.d2s(srm.getPeakPctAll(),2)+"\t");
         w.write(Tools.d2s(srm.getFeature().getX(),3)+"\t");
         w.write(Tools.d2s(srm.getFeature().getY(),2)+"\t");
+        w.write(Tools.d2s(srm.getFeature().getFillTime(),2)+"\t");
         w.write(Tools.d2s(srm.getFeature().getApex(),2)+"\n");
       }
   }
@@ -274,8 +285,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   @Override
   public String toString()
   {
-    String out = getSequence() + ", m/z" + Tools.d2s(getMz(), 4) + ", " + Tools.d2s(getRT(), 2) + "min, dp=" +
-        Tools.d2s(getSimilarity(),2) + " ";
+    String out = (Strs.isSet(getProteinId())?(getProteinId()+"::"):"")+getSequence() + ", m/z" + Tools.d2s(getMz(), 4) + ", " +
+        Tools.d2s(getRT(), 2) + "min, dp=" + Tools.d2s(getSimilarity(),2) + " ";
 
     if (Tools.isSet(mSRMs))
       for (Float frag : mSRMs.keySet())
@@ -308,13 +319,16 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         // "","PrecursorMz","ProductMz","LibraryIntensity","ProteinId","PeptideSequence","ModifiedPeptideSequence","PrecursorCharge","ProductCharge","FragmentType","FragmentSeriesNumber","NormalizedRetentionTime"
         // "2261",1044.48640687972,405.176849365234,33.29616,"P62258","AAFDDAIAELDTLSEESYK","AAFDDAIAELDTLSEESYK",2,1,"b",4,92.1534957885742
         int z = tr.get("PrecursorCharge", 0);
-        String peptide = tr.getStr("ModifiedSequence", "ModifiedPeptideSequence")+"#"+z;
+        String peptide = tr.getStr("ModifiedSequence", "ModifiedPeptideSequence")+(z!=0?("#"+z):"");
+
         SRMGroup group = peptide_group.get(peptide);
 
         if (group==null) {
           try
           {
             group = new SRMGroup(peptide, tr.get("NormalizedRetentionTime", 0f), tr.getFloat("PrecursorMz"), tr.get("PrecursorCharge", 0));
+            if (tr.get("ProteinId")!=null) group.setProteinId(tr.get("ProteinId"));
+
             groups.put(group.getMz(), group.getRT(), group);
             peptide_group.put(peptide, group);
           }
@@ -332,9 +346,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
     return null;
   }
-  public static SRMGroup buildProteinProfile(Collection<SRMGroup> groups, boolean round2sec, String... peptides)
+  public static SRMGroup buildProteinProfile(Collection<SRMGroup> groups, String proteinid, boolean round2sec, String... peptides)
   {
-    SRMGroup protein = new SRMGroup("Protein Summary");
+    SRMGroup protein = new SRMGroup("Summary: " + proteinid);
 
     // create the composite trace
     TreeMultimap<Float, Double> rt_ai = TreeMultimap.create();

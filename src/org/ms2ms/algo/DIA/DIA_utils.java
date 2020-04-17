@@ -1,12 +1,15 @@
 package org.ms2ms.algo.DIA;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimap;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.ms2ms.data.collect.MultiTreeTable;
-import org.ms2ms.data.ms.SRM;
 import org.ms2ms.data.ms.SRMGroup;
 import org.ms2ms.io.mzMLReader;
+import org.ms2ms.utils.Strs;
+import org.ms2ms.utils.Tools;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -52,10 +55,22 @@ public class DIA_utils
       grp.printXIC(xic).printFeatures(ftr);
     }
 
-    SRMGroup protein = SRMGroup.buildProteinProfile(groups.values(), true, peptides);
+    // gather the protei/peptides
+    Multimap<String, String> proteins = HashMultimap.create();
+    if (Tools.isSet(peptides))
+      for (String s : peptides) proteins.put("unTitled", s);
 
-    protein.centroid(5f, lc_width);
-    protein.printXIC(xic).printFeatures(ftr);
+    for (SRMGroup grp : groups.values())
+      if (grp.getProteinId()!=null) proteins.put(grp.getProteinId(), grp.getSequence());
+
+    if (Tools.isSet(proteins))
+      for (String pid : proteins.keySet())
+      {
+        SRMGroup protein = SRMGroup.buildProteinProfile(groups.values(), pid, true, Strs.toStringArray(proteins.get(pid)));
+
+        protein.centroid(5f, lc_width);
+        protein.printXIC(xic).printFeatures(ftr);
+      }
 
     xic.close(); ftr.close();
 

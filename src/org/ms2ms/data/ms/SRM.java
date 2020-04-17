@@ -15,7 +15,7 @@ import java.util.Random;
 
 public class SRM implements Cloneable
 {
-  private float mFragmentMz, mLibraryIntensity, mApex, mArea, mPkPct=0, mPkPctAll=0;
+  private float mFragmentMz, mLibraryIntensity, mApex, mArea, mPkPct=0, mPkPctAll=0, mFillTime=0;
   private List<LcMsPoint> mXIC;
   private LcMsPoint mFeature;
 
@@ -37,16 +37,21 @@ public class SRM implements Cloneable
   public float getArea()       { return mArea; }
   public float getPeakPct()    { return mPkPct; }
   public float getPeakPctAll() { return mPkPctAll; }
+  public float getFillTime()   { return mFillTime; }
 
   public List<LcMsPoint> getXIC() { return mXIC; }
   public LcMsPoint getFeature() { return mFeature; }
   public LcMsPoint get(int i) { return mXIC.get(i); }
 
-  public SRM addXIC(float rt, float ai) { if (ai>0) mXIC.add(new LcMsPoint(rt,ai)); return this; }
-  public SRM addXIC(float rt, float ai, float mz, int scan) { mXIC.add(new LcMsPoint(rt,ai,mz,scan)); return this; }
+  public LcMsPoint addXIC(float rt, float ai) { if (ai>0) mXIC.add(new LcMsPoint(rt,ai)); return mXIC.get(mXIC.size()-1); }
+  public LcMsPoint addXIC(float rt, float ai, float mz, int scan)
+  {
+    mXIC.add(new LcMsPoint(rt,ai,mz,scan)); return mXIC.get(mXIC.size()-1);
+  }
 
   public SRM setFeature(Point s) { if (s!=null) mFeature = new LcMsPoint(s); return this; }
   public SRM setFeature(LcMsPoint s) { mFeature=s; return this; }
+  public SRM setFillTime(float s) { mFillTime=s; return this; }
 
   public SRM calPeakPct(double rt, double span, int apex_pts)
   {
