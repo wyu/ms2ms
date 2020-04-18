@@ -122,7 +122,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
           }
 
       float v = (float )Math.pow(10d, Stats.sum(rt_ai.get(rt))/n);
-      mSRMs.get(0f).addXIC(rt, v, 0f, rt_sn.get(rt));
+      mSRMs.get(0f).addXIC(rt, v, 0f, rt_sn.get(rt)*-1);
     }
 
     return this;
@@ -164,8 +164,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     for (SRM srm : mSRMs.values())
       if (srm.getFeature()!=null && srm.getFragmentMz()>0 && srm.getLibraryIntensity()>0)
       {
-        lib.add(        srm.getLibraryIntensity());
-        obs.add((float )srm.getFeature().getY());
+        lib.add((float )Math.sqrt(srm.getLibraryIntensity()));
+        obs.add((float )Math.sqrt(srm.getFeature().getY()));
       }
 
     mDpSimilarity = Similarity.dp(lib, obs);

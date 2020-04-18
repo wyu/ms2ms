@@ -43,7 +43,11 @@ public class SRM implements Cloneable
   public LcMsPoint getFeature() { return mFeature; }
   public LcMsPoint get(int i) { return mXIC.get(i); }
 
-  public LcMsPoint addXIC(float rt, float ai) { if (ai>0) mXIC.add(new LcMsPoint(rt,ai)); return mXIC.get(mXIC.size()-1); }
+  public LcMsPoint addXIC(float rt, float ai)
+  {
+    if (ai>0) mXIC.add(new LcMsPoint(rt,ai));
+    return mXIC.get(mXIC.size()-1);
+  }
   public LcMsPoint addXIC(float rt, float ai, float mz, int scan)
   {
     mXIC.add(new LcMsPoint(rt,ai,mz,scan)); return mXIC.get(mXIC.size()-1);
@@ -70,8 +74,8 @@ public class SRM implements Cloneable
     if (getFeature()!=null && tops.size()>apex_pts) {
       Collections.sort(tops, Ordering.natural().reversed());
       getFeature().setApex(Stats.mean(tops.subList(0, apex_pts)));
-      if (Double.isNaN(getFeature().getApex()))
-        System.out.println();
+//      if (Double.isNaN(getFeature().getApex()))
+//        System.out.println();
     }
     mPkPct    = (float )(100f*inside/(inside+outside));
     mPkPctAll = (float )(100f*inside/all);
@@ -119,7 +123,8 @@ public class SRM implements Cloneable
 
           if (ahead<mXIC.size() && get(ahead).getRT()-get(i).getRT()<=gap)
           {
-            get(i).setIntensity(get(last).getIntensity()+(get(i).getRT()-get(last).getRT()) * (get(ahead).getIntensity()-get(last).getIntensity()) / (get(ahead).getRT()-get(last).getRT()));
+            if (ahead==last) get(i).setIntensity(get(last).getIntensity()/2d);
+            else             get(i).setIntensity(get(last).getIntensity()+(get(i).getRT()-get(last).getRT()) * (get(ahead).getIntensity()-get(last).getIntensity()) / (get(ahead).getRT()-get(last).getRT()));
             get(i).isImputed(true);
           }
         }

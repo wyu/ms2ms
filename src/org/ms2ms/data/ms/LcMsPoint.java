@@ -10,10 +10,18 @@ public class LcMsPoint extends Point
   private boolean mImputed=false;
 
   public LcMsPoint() { super(); }
-  public LcMsPoint(double rt, double ai) { super(rt, ai); }
+  public LcMsPoint(double rt, double ai)
+  {
+    super(rt, ai);
+//    if (Double.isNaN(ai) || Double.isInfinite(ai) || Double.isNaN(getY()) || Double.isInfinite(getY()))
+//      System.out.println();
+  }
   public LcMsPoint(double rt, double ai, double mz, int scan)
   {
     super(rt, ai);
+//    if (Double.isNaN(ai) || Double.isInfinite(ai) || Double.isNaN(getY()) || Double.isInfinite(getY()) || (mz==0 && ai>0 && scan>0))
+//      System.out.println();
+
     mMz=mz; mScan=scan;
   }
   public LcMsPoint(Point s)
@@ -37,9 +45,14 @@ public class LcMsPoint extends Point
   public LcMsPoint setApex(     double s) { mApex=s; return this; }
   public LcMsPoint setArea(     double s) { mArea=s; return this; }
   public LcMsPoint setAbundance(double s) { mAbundance=s; return this; }
-  public LcMsPoint setIntensity(double s) { setY( s); return this; }
   public LcMsPoint setFillTime( double s) { mFillTime=s; return this; }
   public LcMsPoint isImputed(  boolean s) { mImputed=s; return this; }
+  public LcMsPoint setIntensity(double s)
+  {
+    if (Double.isNaN(s) || Double.isInfinite(s) || Double.isNaN(getY()) || Double.isInfinite(getY()))
+      System.out.println();
+    setY( s); return this;
+  }
 
   @Override
   public String toString()
