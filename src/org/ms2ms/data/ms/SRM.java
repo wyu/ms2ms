@@ -70,6 +70,8 @@ public class SRM implements Cloneable
     if (getFeature()!=null && tops.size()>apex_pts) {
       Collections.sort(tops, Ordering.natural().reversed());
       getFeature().setApex(Stats.mean(tops.subList(0, apex_pts)));
+      if (Double.isNaN(getFeature().getApex()))
+        System.out.println();
     }
     mPkPct    = (float )(100f*inside/(inside+outside));
     mPkPctAll = (float )(100f*inside/all);

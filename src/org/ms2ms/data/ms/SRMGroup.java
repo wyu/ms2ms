@@ -142,13 +142,18 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
       for (Float frag : mSRMs.keySet())
       {
         SRM srm = mSRMs.get(frag);
-        injects.clear();
-        for (LcMsPoint p : srm.getXIC())
-          if (p.getIntensity()>0)
-            injects.add(new Point(p.getFillTime(), p.getIntensity()));
-
         srm.setFeature(Points.centroid(srm.getXIC(), 5d, rt_range));
-        srm.getFeature().setFillTime(Points.centroid(injects));
+
+        if (frag>0)
+        {
+          injects.clear();
+          for (LcMsPoint p : srm.getXIC())
+            if (p.getIntensity()>0)
+              injects.add(new Point(p.getFillTime(), p.getIntensity()));
+
+          if (Tools.isSet(injects) && srm.getFeature()!=null)
+            srm.getFeature().setFillTime(Points.centroid(injects));
+        }
       }
     }
     return this;
@@ -157,7 +162,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   {
     List<Float> lib = new ArrayList<>(), obs = new ArrayList<>();
     for (SRM srm : mSRMs.values())
-      if (srm.getFeature()!=null && srm.getFragmentMz()>0)
+      if (srm.getFeature()!=null && srm.getFragmentMz()>0 && srm.getLibraryIntensity()>0)
       {
         lib.add(        srm.getLibraryIntensity());
         obs.add((float )srm.getFeature().getY());
