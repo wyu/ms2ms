@@ -25,11 +25,12 @@ public class ProteinID implements Comparable<ProteinID>, Binary
   }
 
   private Long                           mID;
-  private Double                         mBestQVal;
+  private Double                         mBestQVal, mProteoSimilary;
   private String                         mSequence, mAccession, mGene, mName;
 
   private ProteinID                      mParent  =null;
   private Collection<ProteinID>          mChildren=null;
+  private Multimap<String, SRMGroup>     mSRMGroups=null;
 
   private Multimap<String, PeptideMatch> mSeqMatch=null;
   private Table<String, Integer, PeptideFeature> mSeqChargeFeature = null;
@@ -43,12 +44,23 @@ public class ProteinID implements Comparable<ProteinID>, Binary
   public Double getBestQVal() { return mBestQVal; }
   public String getSequence() { return mSequence; }
   public String getAccession() { return mAccession; }
-  public Multimap<String, PeptideMatch> getSeqMatch() { return mSeqMatch; }
+  public Double getProteoSimilarity()   { return mProteoSimilary; }
+
+  public Multimap<String, PeptideMatch> getSeqMatch()         { return mSeqMatch; }
+  public Multimap<String, SRMGroup>     getSRMGroups()        { return mSRMGroups; }
+  public Collection<SRMGroup>           getSRMGroup(String s) { return mSRMGroups!=null?mSRMGroups.get(s):null; }
 
   public ProteinID setAccession(String s) { mAccession=s; return this; }
   public ProteinID setName(String s) { mName=s; return this; }
   public ProteinID setGene(String s) { mGene=s; return this; }
+  public ProteinID setProteoSimilarity(Double s) { mProteoSimilary=s; return this; }
 
+  public ProteinID addSRMGroup(SRMGroup g, String s)
+  {
+    if (mSRMGroups==null) mSRMGroups = HashMultimap.create();
+    mSRMGroups.put(s, g);
+    return this;
+  }
   public ProteinID updateBestQVal(Double s) { if (mBestQVal==null || (s!=null && mBestQVal>s)) mBestQVal=s; return this; }
 
   public PeptideFeature put(ProteinID pid, PeptideMatch match, String modseq, Integer charge, Double rt, Double mz)

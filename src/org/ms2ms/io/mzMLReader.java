@@ -405,7 +405,7 @@ public class mzMLReader extends mzReader
         Collection<SRMGroup> ms1 = groups.subset(Range.closed(0f, 10000f), rt_bound);
         if (Tools.isSet(ms1))
         {
-          for (SRMGroup g : ms1) g.scanMS1(pks, rt, scan, 0, tol);
+          for (SRMGroup g : ms1) g.scanMS1(pks, rt, scan, 0d, tol);
         }
         continue;
       }
@@ -428,7 +428,7 @@ public class mzMLReader extends mzReader
       // let's go thro each fragments
       if (slice.size()>0)
       {
-        for (SRMGroup g : slice) g.scanMS2(pks, rt, scan, ion_injection, tol);
+        for (SRMGroup g : slice) g.scanMS2(pks, rt, scan, (double )ion_injection, tol);
       }
 //      pks = (SortedMap )Tools.dispose(pks);
     }

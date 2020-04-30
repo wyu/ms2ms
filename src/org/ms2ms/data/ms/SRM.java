@@ -3,6 +3,7 @@ package org.ms2ms.data.ms;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Range;
+import org.ms2ms.Disposable;
 import org.ms2ms.data.Point;
 import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Tools;
@@ -13,11 +14,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-public class SRM implements Cloneable
+public class SRM implements Cloneable, Disposable
 {
   private float mFragmentMz, mLibraryIntensity, mApex, mArea, mPkPct=0, mPkPctAll=0, mFillTime=0;
   private List<LcMsPoint> mXIC;
-  private LcMsPoint mFeature;
+  private LcMsFeature mFeature;
 
   SRM()
   {
@@ -40,7 +41,7 @@ public class SRM implements Cloneable
   public float getFillTime()   { return mFillTime; }
 
   public List<LcMsPoint> getXIC() { return mXIC; }
-  public LcMsPoint getFeature() { return mFeature; }
+  public LcMsFeature getFeature() { return mFeature; }
   public LcMsPoint get(int i) { return mXIC.get(i); }
 
   public LcMsPoint addXIC(float rt, float ai)
@@ -53,8 +54,8 @@ public class SRM implements Cloneable
     mXIC.add(new LcMsPoint(rt,ai,mz,scan)); return mXIC.get(mXIC.size()-1);
   }
 
-  public SRM setFeature(Point s) { if (s!=null) mFeature = new LcMsPoint(s); return this; }
-  public SRM setFeature(LcMsPoint s) { mFeature=s; return this; }
+  public SRM setFeature(Point s) { if (s!=null) mFeature = new LcMsFeature(s); return this; }
+  public SRM setFeature(LcMsFeature s) { mFeature=s; return this; }
   public SRM setFillTime(float s) { mFillTime=s; return this; }
 
   public SRM calPeakPct(double rt, double span, int apex_pts)
@@ -140,6 +141,15 @@ public class SRM implements Cloneable
     if (mFeature!=null)        out += ", " + mFeature.toString();
 
     return out;
+  }
+
+  @Override
+  public void dispose()
+  {
+    mXIC = (List )Tools.dispose(mXIC);
+    mFeature = null;
+
+
   }
 }
 
