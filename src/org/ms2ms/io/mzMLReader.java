@@ -367,7 +367,8 @@ public class mzMLReader extends mzReader
     return out;
   }
   public static MultiTreeTable<Float, Float, SRMGroup> extractTransitionXICs(
-      String root, String filename, Tolerance tol, float dRT, MultiTreeTable<Float, Float, SRMGroup> groups, float span_overlap) throws IOException
+      String root, String filename, Tolerance tol, float dRT, MultiTreeTable<Float, Float, SRMGroup> groups,
+      float span_overlap, boolean keep_xic, boolean keep_zero) throws IOException
   {
     // looping through the scans
     System.out.println("Reading "+filename+"...");
@@ -376,7 +377,7 @@ public class mzMLReader extends mzReader
     // looping through the scans
     MzMLObjectIterator<uk.ac.ebi.jmzml.model.mzml.Spectrum> spectrumIterator = mzml.unmarshalCollectionFromXpath("/run/spectrumList/spectrum", uk.ac.ebi.jmzml.model.mzml.Spectrum.class);
 
-    int rows=0; String rowid=null;
+    int rows=0; String rowid=null; float goalpost=0f;
     while (spectrumIterator.hasNext())
     {
       Spectrum ss = spectrumIterator.next();
@@ -405,7 +406,7 @@ public class mzMLReader extends mzReader
         Collection<SRMGroup> ms1 = groups.subset(Range.closed(0f, 10000f), rt_bound);
         if (Tools.isSet(ms1))
         {
-          for (SRMGroup g : ms1) g.scanMS1(pks, rt, scan, 0d, tol);
+          for (SRMGroup g : ms1) g.scanMS1(pks, rt, scan, 0d, tol, keep_zero);
         }
         continue;
       }
@@ -428,10 +429,25 @@ public class mzMLReader extends mzReader
       // let's go thro each fragments
       if (slice.size()>0)
       {
-        for (SRMGroup g : slice) g.scanMS2(pks, rt, scan, (double )ion_injection, tol);
+        for (SRMGroup g : slice) g.scanMS2(pks, rt, scan, (double )ion_injection, tol, keep_zero);
       }
 //      pks = (SortedMap )Tools.dispose(pks);
+      if (!keep_xic && rt-goalpost>2*dRT)
+      {
+        Collection<SRMGroup> done = groups.subset(0f,10000f, goalpost, rt-dRT);
+        if (Tools.isSet(done))
+          for (SRMGroup grp : done)
+            if (Tools.isSet(grp.getSRMs()) && Tools.isSet(Tools.front(grp.getSRMs().values()).getXIC()))
+            {
+              grp.composite().centroid(0f, 0.5f).scoreSimillarity().calcFeatureExclusivity(0.25f, 3);
+              grp.disposeSRMs();
+            }
+
+        // update the goal post
+        goalpost = rt - dRT-0.05f;
+      }
     }
     return groups;
   }
+
 }

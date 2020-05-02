@@ -1,6 +1,7 @@
 package org.ms2ms.data.ms;
 
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Range;
 import org.ms2ms.Disposable;
@@ -9,10 +10,7 @@ import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Tools;
 import toools.collections.Lists;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 public class SRM implements Cloneable, Disposable
 {
@@ -107,6 +105,17 @@ public class SRM implements Cloneable, Disposable
 
     return this;
   }
+  public SRM fill(float baseline, Multimap<Float, Float> xs)
+  {
+    if (Tools.isSet(xs))
+      for (Float x : xs.get(0f))
+        if (!xs.get(getFragmentMz()).contains(x))
+          addXIC(x, baseline);
+
+    Collections.sort(getXIC());
+
+    return this;
+  }
   public SRM impute(float gap)
   {
 //      if (Math.abs(mFragmentMz-445.2769)<0.01)
@@ -142,14 +151,16 @@ public class SRM implements Cloneable, Disposable
 
     return out;
   }
-
+  public SRM disposeXIC()
+  {
+    mXIC = (List )Tools.dispose(mXIC);
+    return this;
+  }
   @Override
   public void dispose()
   {
-    mXIC = (List )Tools.dispose(mXIC);
+    disposeXIC();
     mFeature = null;
-
-
   }
 }
 

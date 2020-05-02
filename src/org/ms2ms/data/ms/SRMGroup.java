@@ -1,8 +1,6 @@
 package org.ms2ms.data.ms;
 
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Range;
-import com.google.common.collect.TreeMultimap;
+import com.google.common.collect.*;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.ms2ms.algo.Peaks;
@@ -83,17 +81,41 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public SRMGroup setSimilarity(float s) { mDpSimilarity=s; return this; }
   public SRMGroup setProteinId(String s) { mProteinId=s; return this; }
 
+  public float getSrmYield(float span)
+  {
+    // how much of the SRM were productive
+    float expected = getSRMs().keySet().size(), found=0f, rt0=getRT();
+
+    if (getSRMs().containsKey(0f)) rt0 = (float )getSRMs().get(0f).getFeature().getRT();
+    for (SRM srm : getSRMs().values())
+      if (srm.getFragmentMz()<=0f) expected--;
+      else
+      {
+        if (srm.getFeature()!=null && Math.abs(srm.getFeature().getRT()-rt0)<=span) found++;
+      }
+
+    return (100f*found/expected);
+  }
   private SRMGroup addTransition(float frag, float intensity)
   {
     mSRMs.put(frag, new SRM(frag, intensity));
     return this;
   }
-  private LcMsPoint addXICPoint(float frag, float rt, Double intensity, Double mz, int scan)
+  private LcMsPoint addXICPoint(float frag, float rt, Double intensity, Double mz, int scan, Double fill, boolean keep_zero)
   {
-    if (mSRMs.get(frag)==null) mSRMs.put(frag, new SRM());
-    return mSRMs.get(frag).addXIC(rt, intensity!=null? (float )intensity.doubleValue():0f, mz!=null? (float)mz.doubleValue():0f, scan);
+    if (keep_zero || intensity>0)
+    {
+      if (mSRMs.get(frag)==null) mSRMs.put(frag, new SRM());
+      return mSRMs.get(frag).addXIC(rt, intensity!=null? (float )intensity.doubleValue():0f, mz!=null? (float)mz.doubleValue():0f, scan).setFillTime(fill);
+    }
+    return null;
   }
-
+  public SRMGroup disposeSRMs()
+  {
+    if (Tools.isSet(mSRMs))
+      for (SRM srm : mSRMs.values()) srm.disposeXIC();
+    return this;
+  }
   public SRMGroup composite()
   {
     TreeMultimap<Float, Double> rt_ai = TreeMultimap.create();
@@ -127,6 +149,23 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
     return this;
   }
+  public SRMGroup fill(float baseline)
+  {
+    Multimap<Float, Float> Xs = TreeMultimap.create();
+    for (SRM srm : mSRMs.values())
+      if (srm.getFragmentMz()>0 && Tools.isSet(srm.getXIC()))
+        for (LcMsPoint pt : srm.getXIC())
+        {
+          Xs.put(0f,              (float )pt.getRT());
+          Xs.put(srm.getFragmentMz(), (float )pt.getRT());
+        }
+
+    for (SRM srm : mSRMs.values()) srm.fill(0f, Xs);
+
+    Xs = Tools.dispose(Xs);
+
+    return this;
+  }
   public SRMGroup impute(float gap)
   {
     for (SRM srm : mSRMs.values()) srm.impute(gap);
@@ -155,10 +194,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
             }
 
           if (Tools.isSet(injects) && srm.getFeature()!=null)
-          {
             srm.getFeature().setFillTime(Points.centroid(injects));
+          if (Tools.isSet(mzs) && srm.getFeature()!=null)
             srm.getFeature().setMz(      Points.centroid(mzs));
-          }
         }
       }
     }
@@ -187,7 +225,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     }
     return this;
   }
-  public SRMGroup scanMS2(SortedMap<Double, Peak> peaks, float rt, int scan, Double fill_time, Tolerance tol)
+  public SRMGroup scanMS2(SortedMap<Double, Peak> peaks, float rt, int scan, Double fill_time, Tolerance tol, boolean keep_zero)
   {
     for (Float k : mSRMs.keySet())
     {
@@ -195,17 +233,19 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
       SortedMap<Double, Peak> pks = peaks.subMap(tol.getMin(k), tol.getMax(k));
       if (pks!=null && pks.size()>0)
-        addXICPoint(k, rt, Peaks.IntensitySum(pks.values()), Peaks.centroid(pks.values()), scan).setFillTime(fill_time);
+        addXICPoint(k, rt, Peaks.IntensitySum(pks.values()), Peaks.centroid(pks.values()), scan, fill_time, keep_zero);
       else
-        addXICPoint(k, rt, 0d, 0d, scan).setFillTime(fill_time);
+        addXICPoint(k, rt, 0d, 0d, scan, fill_time, keep_zero);
     }
     return this;
   }
-  public SRMGroup scanMS1(SortedMap<Double, Peak> peaks, float rt, int scan, Double fill_time, Tolerance tol)
+  public SRMGroup scanMS1(SortedMap<Double, Peak> peaks, float rt, int scan, Double fill_time, Tolerance tol, boolean keep_zero)
   {
     SortedMap<Double, Peak> pks = peaks.subMap(tol.getMin(getMz()), tol.getMax(getMz()));
     if (pks!=null && pks.size()>0)
-      addXICPoint(-1f, rt, Peaks.IntensitySum(pks.values()), Peaks.centroid(pks.values()), scan).setFillTime(fill_time);
+    {
+      addXICPoint(-1f, rt, Peaks.IntensitySum(pks.values()), Peaks.centroid(pks.values()), scan, fill_time, keep_zero);
+    }
     return this;
   }
   public static void headerXIC(Writer w) throws IOException
@@ -257,7 +297,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   }
   public static void headerGroup(Writer w) throws IOException
   {
-    w.write("Peptide\tz\tPrecMz\tRT\tSimilarity\t");
+    w.write("Peptide\tz\tPrecMz\tRT\tSimilarity\tYield\t");
   }
   private void printGroup(Writer w) throws IOException
   {
@@ -266,6 +306,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     w.write(Tools.d2s(getMz(),4)+"\t");
     w.write(Tools.d2s(getRT(),3)+"\t");
     w.write(Tools.d2s(getSimilarity(),3)+"\t");
+    w.write(Tools.d2s(getSrmYield(0.5f), 2)+"\t");
   }
   // replace the fragment mz of the transitions with random pick from all fragments
   public SRMGroup mutate(ListMultimap<Integer, Float> frag_bank, Random rnd)
