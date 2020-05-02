@@ -21,7 +21,7 @@ import java.util.*;
 public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 {
   private String mPeptideSequence, mProteinId;
-  private float mRT, mPrecursorMz, mDpSimilarity;
+  private float mRT, mPrecursorMz, mDpSimilarity, mIRT;
   private int mCharge;
 
 //  private TreeMap<Float, Float> mTransitions;
@@ -52,6 +52,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   @Override public int   getCharge() { return mCharge; }
 
   public float  getRT()           { return mRT; }
+  public float  getIRT()          { return mIRT; }
   public float  getSimilarity()   { return mDpSimilarity; }
   public String getSequence()     { return mPeptideSequence; }
   public String getProteinId()    { return mProteinId; }
@@ -77,6 +78,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public Map<Float, SRM> getSRMs() { return mSRMs; }
 
   public SRMGroup setMz(  float s) { mPrecursorMz=s; return this; }
+  public SRMGroup setRT(  float s) { mRT=s; return this; }
+  public SRMGroup setIRT( float s) { mIRT=s; return this; }
+
   public SRMGroup setCharge(int s) { mCharge=s; return this; }
   public SRMGroup setSimilarity(float s) { mDpSimilarity=s; return this; }
   public SRMGroup setProteinId(String s) { mProteinId=s; return this; }
@@ -91,7 +95,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
       if (srm.getFragmentMz()<=0f) expected--;
       else
       {
-        if (srm.getFeature()!=null && Math.abs(srm.getFeature().getRT()-rt0)<=span) found++;
+        if (srm.getFeature()!=null &&
+            ((srm.getPeakBoundary()!=null && srm.getPeakBoundary().contains(srm.getFeature().getRT())) ||
+                Math.abs(srm.getFeature().getRT()-rt0)<=span)) found++;
       }
 
     return (100f*found/expected);
@@ -216,12 +222,12 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
     return this;
   }
-  public SRMGroup calcFeatureExclusivity(float span, int apex_pts)
+  public SRMGroup calcFeatureExclusivity(float span, int apex_pts, double peak_base)
   {
     if (Tools.isSet(mSRMs) && mSRMs.get(0f)!=null && mSRMs.get(0f).getFeature()!=null)
     {
       double rt = mSRMs.get(0f).getFeature().getX();
-      for (SRM srm : mSRMs.values()) srm.calPeakPct(rt, span, apex_pts);
+      for (SRM srm : mSRMs.values()) srm.calPeakPct(rt, span, apex_pts, peak_base);
     }
     return this;
   }
@@ -273,7 +279,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public static void headerFeatures(Writer w) throws IOException
   {
     headerGroup(w);
-    w.write("FragMz\tNumPts\txicL\txicR\tPkEx\tPkExAll\tfeature.rt\tfeature.ai\tinjection\tfeature.mz\tfeature.apex\n");
+    w.write("FragMz\tNumPts\txicL\txicR\tPkEx\tPkExAll\tfeature.rt\tfeature.ai\tinjection\tfeature.mz\tfeature.apex\tlower\tupper\\n");
   }
   public void printFeatures(Writer w) throws IOException
   {
@@ -292,7 +298,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         w.write(Tools.d2s(srm.getFeature().getY(),2)+"\t");
         w.write(Tools.d2s(srm.getFeature().getFillTime(),2)+"\t");
         w.write(Tools.d2s(srm.getFeature().getMz(),4)+"\t");
-        w.write(Tools.d2s(srm.getFeature().getApex(),2)+"\n");
+        w.write(Tools.d2s(srm.getFeature().getApex(),2)+"\t");
+        w.write(Tools.d2s(srm.getPeakBoundary()!=null?srm.getPeakBoundary().lowerEndpoint():0,2)+"\t");
+        w.write(Tools.d2s(srm.getPeakBoundary()!=null?srm.getPeakBoundary().upperEndpoint():0,2)+"\n");
       }
   }
   public static void headerGroup(Writer w) throws IOException
@@ -354,13 +362,13 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     return out;
   }
 
-  public static MultiTreeTable<Float, Float, SRMGroup> readTransitions(String trfile)
+  public static MultiTreeTable<Float, Float, SRMGroup> readTransitions(String trfile, BiMap<String, String> cols)
   {
     try
     {
       MultiTreeTable<Float, Float, SRMGroup> groups = new MultiTreeTable<Float, Float, SRMGroup>();
 
-      TabFile                          tr = new TabFile(trfile, ",");
+      TabFile                          tr = new TabFile(trfile, ",").setColMappings(cols);
       Map<String, SRMGroup> peptide_group = new HashMap<>();
 
       // going thro the rows
@@ -381,6 +389,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
           {
             group = new SRMGroup(peptide, tr.get("NormalizedRetentionTime", 0f), tr.getFloat("PrecursorMz"), tr.get("PrecursorCharge", 0));
             if (tr.get("ProteinId")!=null) group.setProteinId(tr.get("ProteinId"));
+            if (tr.get("iRT")!=null) group.setIRT(tr.get("iRT", 0));
 
             groups.put(group.getMz(), group.getRT(), group);
             peptide_group.put(peptide, group);
@@ -437,4 +446,50 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     protein_id.addSRMGroup(protein, "Summary");
     return protein_id;
   }
+  public static List<Peak> extractRtCal(MultiTreeTable<Float, Float, SRMGroup> landmarks,
+                                        MultiTreeTable<Float, Float, SRMGroup> lib)
+  {
+    Multimap<String, SRMGroup> pep_lib = HashMultimap.create();
+    for (SRMGroup grp : lib.values()) pep_lib.put(grp.getSequence(), grp);
+
+    List<Peak> cals = new ArrayList<>();
+    for (SRMGroup grp : landmarks.values())
+    {
+      SRM cpo = grp.getSRMs().get(0f);
+      Collection<SRMGroup> libs = pep_lib.get(grp.getSequence());
+      if (cpo!=null && Tools.isSet(libs) && cpo.getPeakPct()>=85 && cpo.getFeature().getIntensity()>10000)
+      {
+        double iRTs=0;
+        for (SRMGroup g : libs) iRTs+=g.getIRT();
+        iRTs/=libs.size();
+
+        cals.add(new Peak(iRTs, cpo.getFeature().getRT()));
+      }
+    }
+    pep_lib = Tools.dispose(pep_lib);
+    return cals;
+  }
+  public static MultiTreeTable<Float, Float, SRMGroup> calibrate(MultiTreeTable<Float, Float, SRMGroup> lib,
+                                                                 List<Peak> cals)
+  {
+    for (SRMGroup grp : lib.values())
+    {
+      Peak pk   = new Peak(grp.getIRT(), 0d);
+      int index = Collections.binarySearch(cals, pk), left, right;
+      if (index >= 0)
+      {
+        left = index; right = index;
+      }
+      else  // (-(insertion point) - 1)
+      {
+        index = -1 * index - 1;
+        left = (index > 0 ? index-1 : -1);
+        right = (index < cals.size() ? index : -1);
+      }
+      if (left==right) grp.setRT((float )cals.get(left).getIntensity());
+      else             grp.setRT((float )Peaks.interpolateForY(cals.get(left), cals.get(right), (double )grp.getIRT()).doubleValue());
+    }
+    return lib;
+  }
+
 }

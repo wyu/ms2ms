@@ -15,6 +15,8 @@ import java.util.*;
 public class SRM implements Cloneable, Disposable
 {
   private float mFragmentMz, mLibraryIntensity, mApex, mArea, mPkPct=0, mPkPctAll=0, mFillTime=0;
+  Range<Double> mPeakBoundary;
+
   private List<LcMsPoint> mXIC;
   private LcMsFeature mFeature;
 
@@ -37,6 +39,7 @@ public class SRM implements Cloneable, Disposable
   public float getPeakPct()    { return mPkPct; }
   public float getPeakPctAll() { return mPkPctAll; }
   public float getFillTime()   { return mFillTime; }
+  public Range<Double> getPeakBoundary() { return mPeakBoundary; }
 
   public List<LcMsPoint> getXIC() { return mXIC; }
   public LcMsFeature getFeature() { return mFeature; }
@@ -56,7 +59,7 @@ public class SRM implements Cloneable, Disposable
   public SRM setFeature(LcMsFeature s) { mFeature=s; return this; }
   public SRM setFillTime(float s) { mFillTime=s; return this; }
 
-  public SRM calPeakPct(double rt, double span, int apex_pts)
+  public SRM calPeakPct(double rt, double span, int apex_pts, double peak_base)
   {
     if (!Tools.isSet(getXIC())) return this;
 
@@ -64,17 +67,31 @@ public class SRM implements Cloneable, Disposable
     Range<Double> inner = Range.closed(rt-span, rt+span), outer = Range.closed(rt-2d*span, rt+2d*span);
 
     List<Double> tops = new ArrayList<>();
-    for (Point p : getXIC())
+    int apex_i=-1; double best=Float.MAX_VALUE;
+    for (int i=0; i<getXIC().size(); i++)
     {
+      Point p = get(i);
       if       (inner.contains(p.getX())) { inside+=p.getY(); tops.add(p.getY()); }
       else if (!outer.contains(p.getX())) outside+=p.getY();
       all += p.getY();
+
+      if (Math.abs(p.getX()-rt)<best) { apex_i=i; best=Math.abs(p.getX()-rt); }
     }
     if (getFeature()!=null && tops.size()>apex_pts) {
       Collections.sort(tops, Ordering.natural().reversed());
       getFeature().setApex(Stats.mean(tops.subList(0, apex_pts)));
-//      if (Double.isNaN(getFeature().getApex()))
-//        System.out.println();
+      mApex = (float )getFeature().getApex();
+    }
+    if (apex_i>0 && getFeature()!=null)
+    {
+      double cut = getFeature().getApex()*peak_base, left=0, right=0, area=0;
+      for (int i=apex_i; i>=0; i--)
+        if (get(i).getIntensity()<cut && (i<=0 || get(i-1).getIntensity()<cut)) left=get(i).getRT(); else area+=get(i).getIntensity();
+
+      for (int i=apex_i+1; i<getXIC().size(); i++)
+        if (get(i).getIntensity()<cut && (i>=getXIC().size() || get(i+1).getIntensity()<cut)) right=get(i).getRT(); else area+=get(i).getIntensity();
+
+      if (left>0 && right>left) { mPeakBoundary = Range.closed(left, right); mArea=(float )area; getFeature().setArea(area); }
     }
     mPkPct    = (float )(100f*inside/(inside+outside));
     mPkPctAll = (float )(100f*inside/all);
