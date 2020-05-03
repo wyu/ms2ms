@@ -87,20 +87,27 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
   public float getSrmYield(float span)
   {
-    // how much of the SRM were productive
-    float expected = getSRMs().keySet().size(), found=0f, rt0=getRT();
+    if (Tools.isSet(getSRMs()))
+    {
+      float expected = getSRMs().keySet().size(), found=0f, rt0=getRT();
 
-    if (getSRMs().containsKey(0f)) rt0 = (float )getSRMs().get(0f).getFeature().getRT();
-    for (SRM srm : getSRMs().values())
-      if (srm.getFragmentMz()<=0f) expected--;
-      else
+      if (getSRMs().containsKey(0f) && getSRMs().get(0f).getFeature()!=null)
       {
-        if (srm.getFeature()!=null &&
-            ((srm.getPeakBoundary()!=null && srm.getPeakBoundary().contains(srm.getFeature().getRT())) ||
-                Math.abs(srm.getFeature().getRT()-rt0)<=span)) found++;
+        rt0 = (float )getSRMs().get(0f).getFeature().getRT();
+        for (SRM srm : getSRMs().values())
+          if (srm.getFragmentMz()<=0f) expected--;
+          else
+          {
+            if (srm.getFeature()!=null &&
+                ((srm.getPeakBoundary()!=null && srm.getPeakBoundary().contains(srm.getFeature().getRT())) ||
+                    Math.abs(srm.getFeature().getRT()-rt0)<=span)) found++;
+          }
       }
 
-    return (100f*found/expected);
+      return (expected!=0?(100f*found/expected):0f);
+    }
+    // how much of the SRM were productive
+    return 0f;
   }
   private SRMGroup addTransition(float frag, float intensity)
   {
@@ -362,13 +369,13 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     return out;
   }
 
-  public static MultiTreeTable<Float, Float, SRMGroup> readTransitions(String trfile, BiMap<String, String> cols)
+  public static MultiTreeTable<Float, Float, SRMGroup> readTransitions(String trfile, String delim, Map<String, String> cols)
   {
     try
     {
-      MultiTreeTable<Float, Float, SRMGroup> groups = new MultiTreeTable<Float, Float, SRMGroup>();
+      MultiTreeTable<Float, Float, SRMGroup> groups = new MultiTreeTable<>();
 
-      TabFile                          tr = new TabFile(trfile, ",").setColMappings(cols);
+      TabFile                          tr = new TabFile(trfile, delim).setColMappings(cols);
       Map<String, SRMGroup> peptide_group = new HashMap<>();
 
       // going thro the rows
@@ -380,8 +387,13 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         // "","PrecursorMz","ProductMz","LibraryIntensity","ProteinId","PeptideSequence","ModifiedPeptideSequence","PrecursorCharge","ProductCharge","FragmentType","FragmentSeriesNumber","NormalizedRetentionTime"
         // "2261",1044.48640687972,405.176849365234,33.29616,"P62258","AAFDDAIAELDTLSEESYK","AAFDDAIAELDTLSEESYK",2,1,"b",4,92.1534957885742
         int z = tr.get("PrecursorCharge", 0);
-        String peptide = tr.getStr("ModifiedSequence", "ModifiedPeptideSequence")+(z!=0?("#"+z):"");
+        String seq = tr.getStr("ModifiedSequence", "ModifiedPeptideSequence"), peptide;
 
+        if (Strs.isSet(seq)) peptide = seq.replaceAll("_","")+(z!=0?("#"+z):"");
+        else
+        {
+          throw new RuntimeException("Peptide sequence not found in the transition list!");
+        }
         SRMGroup group = peptide_group.get(peptide);
 
         if (group==null) {
@@ -389,7 +401,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
           {
             group = new SRMGroup(peptide, tr.get("NormalizedRetentionTime", 0f), tr.getFloat("PrecursorMz"), tr.get("PrecursorCharge", 0));
             if (tr.get("ProteinId")!=null) group.setProteinId(tr.get("ProteinId"));
-            if (tr.get("iRT")!=null) group.setIRT(tr.get("iRT", 0));
+            if (tr.get("iRT")!=null) group.setIRT(tr.get("iRT", 0f));
 
             groups.put(group.getMz(), group.getRT(), group);
             peptide_group.put(peptide, group);
@@ -411,39 +423,48 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public static ProteinID buildProteinProfile(Collection<SRMGroup> groups, String proteinid, boolean round2sec, String... peptides)
   {
     ProteinID protein_id = new ProteinID(null, proteinid);
-    SRMGroup protein     = new SRMGroup("Summary: " + proteinid);
+    SRMGroup protein     = new SRMGroup("Summary of " + proteinid);
 
     // create the composite trace
     TreeMultimap<Float, Double> rt_ai = TreeMultimap.create();
     for (SRMGroup group : groups)
-      if (group.getCompositeSRM()!=null && Strs.isA(group.getSequence(), peptides))
+      if (Strs.isA(group.getSequence(), peptides))
       {
-        SRM pr = group.getCompositeProfile(round2sec);
-        protein.getSRMs().put(group.getMz(), pr);
         protein_id.addSRMGroup(group, group.getSequence());
-        for (LcMsPoint pk : pr.getXIC())
-          if (pk.getY()>0)
+        if (group.getCompositeSRM()!=null)
+        {
+          SRM pr = group.getCompositeProfile(round2sec);
+          if (pr!=null && Tools.isSet(pr.getXIC()))
           {
-            // convert to seconds
-            rt_ai.put((float )pk.getX(), Math.log10(pk.getY()));
+            protein.getSRMs().put(group.getMz(), pr);
+//            protein_id.addSRMGroup(group, group.getSequence());
+            for (LcMsPoint pk : pr.getXIC())
+              if (pk.getY()>0)
+              {
+                // convert to seconds
+                rt_ai.put((float )pk.getX(), Math.log10(pk.getY()));
+              }
           }
+        }
       }
 
-    double n = 0;
-    for (Float rt : rt_ai.keySet())
-      if (rt_ai.get(rt).size()>n) n = rt_ai.get(rt).size();
-
-    // create the composite trace
-    SRM profile = new SRM(0f, 0f);
-    for (Float rt : rt_ai.keySet())
+    if (Tools.isSet(rt_ai))
     {
-      // look for the ms1 trace
-      float v = (float )Math.pow(10d, Stats.sum(rt_ai.get(rt))/n);
-      profile.addXIC(rt, v);
-    }
-    protein.getSRMs().put(0f, profile);
+      double n = 0;
+      for (Float rt : rt_ai.keySet())
+        if (rt_ai.get(rt).size()>n) n = rt_ai.get(rt).size();
 
-    protein_id.addSRMGroup(protein, "Summary");
+      // create the composite trace
+      SRM profile = new SRM(0f, 0f);
+      for (Float rt : rt_ai.keySet())
+      {
+        // look for the ms1 trace
+        float v = (float )Math.pow(10d, Stats.sum(rt_ai.get(rt))/n);
+        profile.addXIC(rt, v);
+      }
+      protein.getSRMs().put(0f, profile);
+      protein_id.setCompositeSRMGroup(protein);
+    }
     return protein_id;
   }
   public static List<Peak> extractRtCal(MultiTreeTable<Float, Float, SRMGroup> landmarks,
@@ -467,11 +488,14 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
       }
     }
     pep_lib = Tools.dispose(pep_lib);
+
+    Collections.sort(cals);
     return cals;
   }
   public static MultiTreeTable<Float, Float, SRMGroup> calibrate(MultiTreeTable<Float, Float, SRMGroup> lib,
                                                                  List<Peak> cals)
   {
+    MultiTreeTable<Float, Float, SRMGroup> mapped = MultiTreeTable.create();
     for (SRMGroup grp : lib.values())
     {
       Peak pk   = new Peak(grp.getIRT(), 0d);
@@ -486,10 +510,22 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         left = (index > 0 ? index-1 : -1);
         right = (index < cals.size() ? index : -1);
       }
-      if (left==right) grp.setRT((float )cals.get(left).getIntensity());
-      else             grp.setRT((float )Peaks.interpolateForY(cals.get(left), cals.get(right), (double )grp.getIRT()).doubleValue());
+      if (left>=0 && right>=left && right<cals.size())
+      {
+        if (left==right) grp.setRT((float )cals.get(left).getIntensity());
+        else             grp.setRT((float )Peaks.interpolateForY(cals.get(left), cals.get(right), (double )grp.getIRT()).doubleValue());
+
+        // add the transition with the mapped RT
+        mapped.put(grp.getMz(), grp.getRT(), grp);
+      } else
+      {
+        grp.setRT(0f);
+      }
     }
-    return lib;
+    // remove the old one to save the memory
+    lib = Tools.dispose(lib);
+
+    return mapped;
   }
 
 }

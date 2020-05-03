@@ -48,7 +48,7 @@ public class SRM implements Cloneable, Disposable
   public LcMsPoint addXIC(float rt, float ai)
   {
     if (ai>0) mXIC.add(new LcMsPoint(rt,ai));
-    return mXIC.get(mXIC.size()-1);
+    return Tools.isSet(mXIC)?mXIC.get(mXIC.size()-1):null;
   }
   public LcMsPoint addXIC(float rt, float ai, float mz, int scan)
   {
@@ -85,11 +85,11 @@ public class SRM implements Cloneable, Disposable
     if (apex_i>0 && getFeature()!=null)
     {
       double cut = getFeature().getApex()*peak_base, left=0, right=0, area=0;
-      for (int i=apex_i; i>=0; i--)
-        if (get(i).getIntensity()<cut && (i<=0 || get(i-1).getIntensity()<cut)) left=get(i).getRT(); else area+=get(i).getIntensity();
+      for (int i=apex_i; i>0; i--)
+        if (get(i).getIntensity()<cut && (i<=0 || get(i-1).getIntensity()<cut)) { left=get(i).getRT(); break; } else area+=get(i).getIntensity();
 
-      for (int i=apex_i+1; i<getXIC().size(); i++)
-        if (get(i).getIntensity()<cut && (i>=getXIC().size() || get(i+1).getIntensity()<cut)) right=get(i).getRT(); else area+=get(i).getIntensity();
+      for (int i=apex_i+1; i<getXIC().size()-1; i++)
+        if (get(i).getIntensity()<cut && (i>=getXIC().size() || get(i+1).getIntensity()<cut)) { right=get(i).getRT(); break; } else area+=get(i).getIntensity();
 
       if (left>0 && right>left) { mPeakBoundary = Range.closed(left, right); mArea=(float )area; getFeature().setArea(area); }
     }
@@ -126,8 +126,7 @@ public class SRM implements Cloneable, Disposable
   {
     if (Tools.isSet(xs))
       for (Float x : xs.get(0f))
-        if (!xs.get(getFragmentMz()).contains(x))
-          addXIC(x, baseline);
+        if (!xs.get(getFragmentMz()).contains(x)) addXIC(x, baseline);
 
     Collections.sort(getXIC());
 

@@ -371,7 +371,7 @@ public class mzMLReader extends mzReader
       float span_overlap, boolean keep_xic, boolean keep_zero) throws IOException
   {
     // looping through the scans
-    System.out.println("Reading "+filename+"...");
+    System.out.println("Reading "+root+"/"+filename+"...");
 
     MzMLUnmarshaller mzml = new MzMLUnmarshaller(new File(root+"/"+filename), false, null);
     // looping through the scans

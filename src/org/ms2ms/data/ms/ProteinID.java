@@ -31,6 +31,7 @@ public class ProteinID implements Comparable<ProteinID>, Binary
   private ProteinID                      mParent  =null;
   private Collection<ProteinID>          mChildren=null;
   private Multimap<String, SRMGroup>     mSRMGroups=null;
+  private SRMGroup                       mCompositeSRMGroup=null;
 
   private Multimap<String, PeptideMatch> mSeqMatch=null;
   private Table<String, Integer, PeptideFeature> mSeqChargeFeature = null;
@@ -46,14 +47,16 @@ public class ProteinID implements Comparable<ProteinID>, Binary
   public String getAccession() { return mAccession; }
   public Double getProteoSimilarity()   { return mProteoSimilary; }
 
-  public Multimap<String, PeptideMatch> getSeqMatch()         { return mSeqMatch; }
-  public Multimap<String, SRMGroup>     getSRMGroups()        { return mSRMGroups; }
-  public Collection<SRMGroup>           getSRMGroup(String s) { return mSRMGroups!=null?mSRMGroups.get(s):null; }
+  public Multimap<String, PeptideMatch> getSeqMatch()          { return mSeqMatch; }
+  public Multimap<String, SRMGroup>     getSRMGroups()         { return mSRMGroups; }
+  public Collection<SRMGroup>           getSRMGroup(String s)  { return mSRMGroups!=null?mSRMGroups.get(s):null; }
+  public SRMGroup                       getCompositeSRMGroup() { return mCompositeSRMGroup; }
 
   public ProteinID setAccession(String s) { mAccession=s; return this; }
   public ProteinID setName(String s) { mName=s; return this; }
   public ProteinID setGene(String s) { mGene=s; return this; }
   public ProteinID setProteoSimilarity(Double s) { mProteoSimilary=s; return this; }
+  public ProteinID setCompositeSRMGroup(SRMGroup s) { mCompositeSRMGroup=s; return this; }
 
   public ProteinID addSRMGroup(SRMGroup g, String s)
   {
@@ -107,7 +110,8 @@ public class ProteinID implements Comparable<ProteinID>, Binary
   @Override
   public String toString()
   {
-    return Strs.toString(mID)+"|"+Strs.toString(mAccession)+"|"+Strs.toString(mGene)+" "+Strs.toString(mName)+", "+(mSeqMatch!=null?mSeqMatch.size():0);
+    return Strs.toString(mID)+"|"+Strs.toString(mAccession)+"|"+Strs.toString(mGene)+" "+Strs.toString(mName)+", "+
+        (mSeqMatch!=null?mSeqMatch.size():(mSRMGroups!=null?mSRMGroups.size():0)+(getProteoSimilarity()!=null?(", sim="+Tools.d2s(getProteoSimilarity(), 2)):""));
   }
 
   @Override
