@@ -64,6 +64,29 @@ public class ProteinID implements Comparable<ProteinID>, Binary
     mSRMGroups.put(s, g);
     return this;
   }
+  public int getQualifiedTransitionCounts(float min_apex, float peak_pct)
+  {
+    int counts=0;
+    if (Tools.isSet(getSRMGroups()))
+      for (SRMGroup grp : getSRMGroups().values())
+        if (Tools.isSet(grp.getSRMs()))
+          for (SRM srm : grp.getSRMs().values())
+            if (srm.getFragmentMz()>0 && srm.getFeature()!=null && srm.getApex()>=min_apex && srm.getPeakPct()>=peak_pct) counts++;
+
+    return counts;
+  }
+  public int getExpectedTransitionCounts()
+  {
+    int counts=0;
+    if (Tools.isSet(getSRMGroups()))
+      for (SRMGroup grp : getSRMGroups().values())
+        if (Tools.isSet(grp.getSRMs()))
+          for (SRM srm : grp.getSRMs().values())
+            if (srm.getFragmentMz()>0) counts++;
+
+    return counts;
+  }
+
   public ProteinID updateBestQVal(Double s) { if (mBestQVal==null || (s!=null && mBestQVal>s)) mBestQVal=s; return this; }
 
   public PeptideFeature put(ProteinID pid, PeptideMatch match, String modseq, Integer charge, Double rt, Double mz)
@@ -111,7 +134,9 @@ public class ProteinID implements Comparable<ProteinID>, Binary
   public String toString()
   {
     return Strs.toString(mID)+"|"+Strs.toString(mAccession)+"|"+Strs.toString(mGene)+" "+Strs.toString(mName)+", "+
-        (mSeqMatch!=null?mSeqMatch.size():(mSRMGroups!=null?mSRMGroups.size():0)+(getProteoSimilarity()!=null?(", sim="+Tools.d2s(getProteoSimilarity(), 2)):""));
+        (mSeqMatch!=null?mSeqMatch.size():(mSRMGroups!=null?mSRMGroups.size():0)+
+        (Tools.isSet(getSRMGroups())?(", SRM="+getQualifiedTransitionCounts(1000, 75)+"/"+getExpectedTransitionCounts()):"")+
+        (getProteoSimilarity()!=null?(", sim="+Tools.d2s(getProteoSimilarity(), 2)):""));
   }
 
   @Override
