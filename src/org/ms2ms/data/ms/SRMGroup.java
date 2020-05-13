@@ -81,6 +81,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
   public SRMGroup setMz(  float s) { mPrecursorMz=s; return this; }
   public SRMGroup setRT(  float s) { mRT=s; return this; }
+  public SRMGroup setRT( Double s) { if (s!=null) mRT=(float )s.doubleValue(); return this; }
+
   public SRMGroup setIRT( float s) { mIRT=s; return this; }
   public SRMGroup setReportedRT( float s) { mReportedRT=s; return this; }
 
@@ -393,7 +395,11 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         int z = tr.get("PrecursorCharge", 0);
         String seq = tr.getStr("ModifiedSequence", "ModifiedPeptideSequence"), peptide;
 
-        if (Strs.isSet(seq)) peptide = seq.replaceAll("_","")+(z!=0?("#"+z):"");
+        if (Strs.isSet(seq))
+        {
+          peptide = seq.replaceAll("_","");
+          if (seq.indexOf('#')<0) peptide = peptide+(z!=0?("#"+z):"");
+        }
         else
         {
           throw new RuntimeException("Peptide sequence not found in the transition list!");
@@ -498,12 +504,14 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     Collections.sort(cals);
     return cals;
   }
-  public static MultiTreeTable<Float, Float, SRMGroup> calibrate(MultiTreeTable<Float, Float, SRMGroup> lib, List<Peak> cals)
+  public static MultiTreeTable<Float, Float, SRMGroup> calibrate(MultiTreeTable<Float, Float, SRMGroup> lib, List<Peak> cals, boolean use_iRT)
   {
     MultiTreeTable<Float, Float, SRMGroup> mapped = MultiTreeTable.create();
     for (SRMGroup grp : lib.values())
     {
-      Peak pk   = new Peak(grp.getIRT(), 0d);
+      float rt0 = (use_iRT?grp.getIRT():grp.getReportedRT());
+
+      Peak pk   = new Peak(rt0, 0d);
       int index = Collections.binarySearch(cals, pk), left, right;
       if (index >= 0)
       {
@@ -519,7 +527,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
       {
         if (left==right) grp.setRT((float )cals.get(left).getIntensity());
         else
-          grp.setRT((float )Peaks.interpolateForY(cals.get(left), cals.get(right), (double )grp.getIRT()).doubleValue());
+        {
+          grp.setRT(Peaks.interpolateForY(cals.get(left), cals.get(right), (double )rt0));
+        }
 
         // add the transition with the mapped RT
         mapped.put(grp.getMz(), grp.getRT(), grp);

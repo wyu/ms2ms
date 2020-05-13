@@ -52,6 +52,7 @@ public class SRM implements Cloneable, Disposable
   }
   public LcMsPoint addXIC(float rt, float ai, float mz, int scan)
   {
+    if (mXIC==null) mXIC = new ArrayList<>();
     mXIC.add(new LcMsPoint(rt,ai,mz,scan)); return mXIC.get(mXIC.size()-1);
   }
 

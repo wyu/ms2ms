@@ -553,7 +553,19 @@ public class Peaks {
 
     return Y;
   }
+  public static <T extends Peak> List<T> outlierBySG(List<T> A, float r)
+  {
+    if (!Tools.isSet(A) || A.size()<3) return A;
 
+    List<T> B = smoothBySG5(A), T = new ArrayList<>();
+    List<Double> devi = new ArrayList<>();
+    for (int i=0; i<A.size(); i++) devi.add(A.get(i).getIntensity()-B.get(i).getIntensity());
+    double sd = Stats.stdev(devi);
+    for (int i=0; i<A.size(); i++)
+      if (Math.abs(devi.get(i))<=r*sd) T.add(A.get(i));
+
+    return T;
+  }
   //--------------------------------------------------------------------------
 
   /**
