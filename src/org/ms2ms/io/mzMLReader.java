@@ -392,8 +392,8 @@ public class mzMLReader extends mzReader
       SortedMap<Double, Peak> pks = Spectra.toPeaks(ms); int scan = ms.getScanNumbers().getFirst().getValue();
 
       // for debugging
-      if (scan==5295 || scan==5293)
-        System.out.println();
+//      if (scan==5295 || scan==5293)
+//        System.out.println();
 
       float ion_injection=0;
       for (uk.ac.ebi.jmzml.model.mzml.CVParam cv : ss.getScanList().getScan().get(0).getCvParam())

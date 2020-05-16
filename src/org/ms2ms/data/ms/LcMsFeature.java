@@ -10,6 +10,7 @@ public class LcMsFeature extends LcMsPoint
   private double mArea;
   private double mAbundance;
   private double mApex;
+  private double mInitialCentroidRt;
 
   public LcMsFeature() {};
   public LcMsFeature(double mz, double rt)
@@ -21,14 +22,13 @@ public class LcMsFeature extends LcMsPoint
   }
 
   public double getAbundance() { return mAbundance; }
+  public double getArea()      { return mArea; }
+  public double getApex()      { return mApex; }
+  public double getInitialCentroidRt()      { return mInitialCentroidRt; }
 
   public LcMsPoint setAbundance(double s) { mAbundance=s; return this; }
-
-  public double getArea()      { return mArea; }
-
   public LcMsPoint setArea(double s) { mArea=s; return this; }
-
-  public double getApex()      { return mApex; }
-
   public LcMsPoint setApex(double s) { mApex=s; return this; }
+  public LcMsFeature setInitialCentroidRt(double s) { mInitialCentroidRt=s; return this; }
+
 }
