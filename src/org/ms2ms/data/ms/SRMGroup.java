@@ -213,9 +213,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     for (SRM srm : mSRMs.values()) srm.impute(gap);
     return this;
   }
-  public SRMGroup centroid(float min_ri, float rt_span)
+  public SRMGroup centroid(double min_ri, float rt_span)
   {
-    Point cpo = Points.centroid(mSRMs.get(0f).getXIC(), 5d, Range.closed(0d, 1000d));
+    Point cpo = Points.centroid(mSRMs.get(0f).getXIC(), min_ri, Range.closed(getRT()-rt_span*2d, getRT()+2d*rt_span));
     if (cpo!=null)
     {
       Range<Double> rt_range = Range.closed(cpo.getX()-rt_span, cpo.getX()+rt_span);
@@ -223,7 +223,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
       for (Float frag : mSRMs.keySet())
       {
         SRM srm = mSRMs.get(frag);
-        srm.setFeature(Points.centroid(srm.getXIC(), 5d, rt_range));
+        srm.setFeature(Points.centroid(srm.getXIC(), min_ri, rt_range));
 
         if (frag>0)
         {

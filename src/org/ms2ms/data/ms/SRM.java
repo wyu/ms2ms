@@ -73,7 +73,11 @@ public class SRM implements Cloneable, Disposable
     for (int i=0; i<getXIC().size(); i++)
     {
       Point p = get(i);
-      if (inner.contains(p.getX())) { inside+=p.getY(); tops.add(p.getY()); }
+      if (inner.contains(p.getX()))
+      {
+        inside+=p.getY();
+        if (p.getY()>0) tops.add(p.getY());
+      }
       // change the definition on May 16, 2020. outside is sum of intensity within 'outside', instead of intensities outside of 'outside'
       if (outer.contains(p.getX()))  outside+=p.getY();
       all += p.getY();
