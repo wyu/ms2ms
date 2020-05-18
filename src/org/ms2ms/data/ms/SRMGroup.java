@@ -448,7 +448,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         int z = tr.get("PrecursorCharge", 0);
         String seq = tr.getStr("ModifiedSequence", "ModifiedPeptideSequence"), peptide;
 
-        if (!(seq.indexOf("NFDVGHVPIR")>=0 && z==2)) continue;
+//        if (!(seq.indexOf("NFDVGHVPIR")>=0 && z==2)) continue;
         if (Strs.isSet(seq))
         {
           peptide = seq.replaceAll("_","");
