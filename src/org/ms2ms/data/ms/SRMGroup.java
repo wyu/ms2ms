@@ -213,11 +213,26 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     for (SRM srm : mSRMs.values()) srm.impute(gap);
     return this;
   }
-  public SRMGroup centroid(double min_ri, float rt_span)
+  public SRMGroup centroid(double min_ri, float rt_span, float rt_width)
   {
     Point cpo = Points.centroid(mSRMs.get(0f).getXIC(), min_ri, Range.closed(getRT()-rt_span*2d, getRT()+2d*rt_span));
     if (cpo!=null)
     {
+      // check the alternative peaks by 1st derivatives
+      List<Peak> pks = mSRMs.get(0f).detectPeak();
+      if (Tools.isSet(pks))
+      {
+        double best=Double.MAX_VALUE; Peak closed2expected = null, centroid_found=null;
+        for (Peak pk : pks)
+        {
+          if (Math.abs(pk.getMz()-cpo.getX())<=rt_span/4d)   centroid_found =pk;
+          if (Math.abs(pk.getMz()-getRT())<best)           { closed2expected=pk; best=Math.abs(pk.getMz()-getRT()); }
+        }
+        if (closed2expected!=null && centroid_found!=closed2expected)
+        {
+          cpo = Points.centroid(mSRMs.get(0f).getXIC(), min_ri, Range.closed(closed2expected.getMz()-rt_width/2d, closed2expected.getMz()+rt_width/2d));
+        }
+      }
       Range<Double> rt_range = Range.closed(cpo.getX()-rt_span, cpo.getX()+rt_span);
       List<Point> injects = new ArrayList(), mzs = new ArrayList<>();
       for (Float frag : mSRMs.keySet())
@@ -448,7 +463,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         int z = tr.get("PrecursorCharge", 0);
         String seq = tr.getStr("ModifiedSequence", "ModifiedPeptideSequence"), peptide;
 
-//        if (!(seq.indexOf("NFDVGHVPIR")>=0 && z==2)) continue;
+//        if (!(seq.indexOf("NPDDITNEEYGEFYK")>=0 && z==2)) continue;
         if (Strs.isSet(seq))
         {
           peptide = seq.replaceAll("_","");

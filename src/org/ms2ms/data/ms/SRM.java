@@ -4,8 +4,11 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Range;
+import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.ms2ms.Disposable;
+import org.ms2ms.algo.Peaks;
 import org.ms2ms.data.Point;
+import org.ms2ms.math.Points;
 import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Tools;
 import toools.collections.Lists;
@@ -108,7 +111,32 @@ public class SRM implements Cloneable, Disposable
 
     return this;
   }
+  public List<Peak> detectPeak()
+  {
+    Point base = Points.basePoint(getXIC());
+    List<Point> deri = Points.deriv1stBySG5(getXIC());
+    List<Peak> pks = new ArrayList<>();
+    double deri_max=0, base_deri = base.getY()/10d;
+    if (Tools.isSet(deri))
+      for (int i=0; i<deri.size()-4; i++)
+      {
+        if (deri.get(i+2).getY()>deri_max) deri_max=deri.get(i+1).getY();
 
+        if (deri.get(i+1).getY()>=0 && deri.get(i  ).getY()>deri.get(i+1).getY() &&
+            deri.get(i+2).getY()<=0 && deri.get(i+2).getY()>deri.get(i+3).getY())
+        {
+          // the peak top is at the zero-intercept
+          Point top = Points.interpolateByY(deri.get(i+1), deri.get(i+2), 0d);
+          if (deri_max>base_deri)
+          {
+            pks.add(new Peak(top.getX(), deri_max)); deri_max=0;
+          }
+        }
+      }
+
+    deri = (List )Tools.dispose(deri);
+    return pks;
+ }
   public SRM clone()
   {
     SRM cloned      = new SRM(getFragmentMz(), getLibraryIntensity());

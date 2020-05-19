@@ -618,7 +618,6 @@ public class Peaks {
 
     return A;
   }
-
   public static <T extends Peak> Double interpolateForY(Range<T> bound, Double x) {
     if (bound == null) return null;
     return interpolateForY(bound.lowerEndpoint(), bound.upperEndpoint(), x);
