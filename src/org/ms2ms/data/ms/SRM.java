@@ -118,15 +118,16 @@ public class SRM implements Cloneable, Disposable
     List<Peak> pks = new ArrayList<>();
     double deri_max=0, base_deri = base.getY()/10d;
     if (Tools.isSet(deri))
-      for (int i=0; i<deri.size()-4; i++)
+      for (int i=0; i<deri.size()-1; i++)
       {
-        if (deri.get(i+2).getY()>deri_max) deri_max=deri.get(i+1).getY();
+        if (deri.get(i).getY()>deri_max) deri_max=deri.get(i).getY();
 
-        if (deri.get(i+1).getY()>=0 && deri.get(i  ).getY()>deri.get(i+1).getY() &&
-            deri.get(i+2).getY()<=0 && deri.get(i+2).getY()>deri.get(i+3).getY())
+//        if (deri.get(i+1).getY()>=0 && deri.get(i  ).getY()>deri.get(i+1).getY() &&
+//            deri.get(i+2).getY()<=0 && deri.get(i+2).getY()>deri.get(i+3).getY())
+        if (deri.get(i).getY()>=0 && deri.get(i+1).getY()<=0)
         {
           // the peak top is at the zero-intercept
-          Point top = Points.interpolateByY(deri.get(i+1), deri.get(i+2), 0d);
+          Point top = Points.interpolateByY(deri.get(i), deri.get(i+1), 0d);
           if (deri_max>base_deri)
           {
             pks.add(new Peak(top.getX(), deri_max)); deri_max=0;

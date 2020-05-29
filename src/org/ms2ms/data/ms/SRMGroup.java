@@ -24,6 +24,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   private String mPeptideSequence, mProteinId;
   private float mRT, mPrecursorMz, mDpSimilarity, mIRT, mReportedRT;
   private int mCharge, mQualifiedSRMs;
+  private Point mCompositeFeature0=null;
+  private List<Peak> mCompositePeaks=null;
 
 //  private TreeMap<Float, Float> mTransitions;
 //  private TreeMultimap<Float, Point> mXIC;
@@ -216,23 +218,33 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public SRMGroup centroid(double min_ri, float rt_span, float rt_width)
   {
     Point cpo = Points.centroid(mSRMs.get(0f).getXIC(), min_ri, Range.closed(getRT()-rt_span*2d, getRT()+2d*rt_span));
-    if (cpo!=null)
-    {
+    if (cpo!=null) {
       // check the alternative peaks by 1st derivatives
-      List<Peak> pks = mSRMs.get(0f).detectPeak();
-      if (Tools.isSet(pks))
-      {
-        double best=Double.MAX_VALUE; Peak closed2expected = null, centroid_found=null;
-        for (Peak pk : pks)
-        {
-          if (Math.abs(pk.getMz()-cpo.getX())<=rt_span/4d)   centroid_found =pk;
-          if (Math.abs(pk.getMz()-getRT())<best)           { closed2expected=pk; best=Math.abs(pk.getMz()-getRT()); }
+      mCompositePeaks = mSRMs.get(0f).detectPeak();
+      if (Tools.isSet(mCompositePeaks)) {
+        double best = Double.MAX_VALUE;
+        Peak closed2expected = null, centroid_found = null;
+        for (Peak pk : mCompositePeaks) {
+          if (Math.abs(pk.getMz() - cpo.getX()) <= rt_span / 4d) centroid_found = pk;
+          if (Math.abs(pk.getMz() - getRT()) < best) {
+            closed2expected = pk;
+            best = Math.abs(pk.getMz() - getRT());
+          }
         }
-        if (closed2expected!=null && centroid_found!=closed2expected)
+        if (closed2expected != null && centroid_found != closed2expected)
         {
-          cpo = Points.centroid(mSRMs.get(0f).getXIC(), min_ri, Range.closed(closed2expected.getMz()-rt_width/2d, closed2expected.getMz()+rt_width/2d));
+          mCompositeFeature0 = cpo;
+          cpo = Points.centroid(mSRMs.get(0f).getXIC(), min_ri, Range.closed(closed2expected.getMz() - rt_width / 2d, closed2expected.getMz() + rt_width / 2d));
         }
       }
+//      if (cpo==null)
+//      {
+//        System.out.println();
+//      }
+
+    }
+    if (cpo!=null)
+    {
       Range<Double> rt_range = Range.closed(cpo.getX()-rt_span, cpo.getX()+rt_span);
       List<Point> injects = new ArrayList(), mzs = new ArrayList<>();
       for (Float frag : mSRMs.keySet())
@@ -463,7 +475,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         int z = tr.get("PrecursorCharge", 0);
         String seq = tr.getStr("ModifiedSequence", "ModifiedPeptideSequence"), peptide;
 
-//        if (!(seq.indexOf("NPDDITNEEYGEFYK")>=0 && z==2)) continue;
+//        if (!(seq.indexOf("ELGTVM[Oxidation (M)]R#2")>=0 && z==2)) continue;
         if (Strs.isSet(seq))
         {
           peptide = seq.replaceAll("_","");
@@ -560,6 +572,10 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     {
       SRM cpo = grp.getSRMs().get(0f);
       Collection<SRMGroup> libs = pep_lib.get(grp.getSequence());
+//      if (cpo!=null && Tools.isSet(libs))
+//      {
+//        System.out.println(grp.getSequence()+"\t"+ cpo.getFeature().getRT() + "\t" + cpo.getPeakPct() + "\t" + cpo.getFeature().getIntensity());
+//      }
       if (cpo!=null && Tools.isSet(libs) && cpo.getPeakPct()>=min_peak_exclusivity && cpo.getFeature().getIntensity()>min_apex)
       {
         double iRTs=0, reportedRT=0;
