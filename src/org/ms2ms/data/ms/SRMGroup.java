@@ -370,7 +370,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public static void headerFeatures(Writer w) throws IOException
   {
     headerGroup(w);
-    w.write("FragMz\tNumPts\txicL\txicR\tPkEx\tPkExAll\tfeature.rt\tfeature.ai\tfeature.rt0\tinjection\tfeature.mz\tfeature.apex\tfeature.area\tlower\tupper\n");
+    w.write("FragMz\tNumPts\txicL\txicR\tPkEx\tPkExFront\tPkExAll\tfeature.rt\tfeature.ai\tfeature.rt0\tinjection\tfeature.mz\tfeature.apex\tfeature.area\tlower\tupper\n");
   }
   public void printFeatures(Writer w) throws IOException
   {
@@ -384,6 +384,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         w.write(Tools.d2s(srm.getXIC().get(0).getX(),3)+"\t");
         w.write(Tools.d2s(srm.getXIC().get(srm.getXIC().size()-1).getX(),3)+"\t");
         w.write(Tools.d2s(srm.getPeakPct(),2)+"\t");
+        w.write(Tools.d2s(srm.getPeakPctFull(),2)+"\t");
         w.write(Tools.d2s(srm.getPeakPctAll(),2)+"\t");
         w.write(Tools.d2s(srm.getFeature().getX(),3)+"\t");
         w.write(Tools.d2s(srm.getFeature().getY(),2)+"\t");
@@ -563,6 +564,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
                                         MultiTreeTable<Float, Float, SRMGroup> lib,
                                         boolean use_iRT, float min_peak_exclusivity, float min_apex)
   {
+    System.out.println("Protein\tSequence\tRT\tfeature.rt\tPkEx\tPkExFront\tfeature.apex");
+
     Multimap<String, SRMGroup> pep_lib = HashMultimap.create();
     for (SRMGroup grp : lib.values())
       pep_lib.put(grp.getSequence(), grp);
@@ -572,10 +575,10 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     {
       SRM cpo = grp.getSRMs().get(0f);
       Collection<SRMGroup> libs = pep_lib.get(grp.getSequence());
-//      if (cpo!=null && Tools.isSet(libs))
-//      {
-//        System.out.println(grp.getSequence()+"\t"+ cpo.getFeature().getRT() + "\t" + cpo.getPeakPct() + "\t" + cpo.getFeature().getIntensity());
-//      }
+      if (cpo!=null && Tools.isSet(libs))
+      {
+        System.out.println(grp.getProteinId()+"\t"+grp.getSequence()+"\t"+ grp.getRT()+"\t"+cpo.getFeature().getRT() + "\t" + cpo.getPeakPct() + "\t" + cpo.getPeakPctFull()+"\t"+cpo.getFeature().getIntensity());
+      }
       if (cpo!=null && Tools.isSet(libs) && cpo.getPeakPct()>=min_peak_exclusivity && cpo.getFeature().getIntensity()>min_apex)
       {
         double iRTs=0, reportedRT=0;

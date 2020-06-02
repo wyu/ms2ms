@@ -25,6 +25,14 @@ public class MsSettings extends Settings
   public static final MsSettings ORBITRAP_HR  = new MsSettings(HBasePeakList.SPEC_TRAP_CID, new PpmTolerance(15d), new AbsoluteTolerance(0.05d), Peaks.CID);
   public static final MsSettings ORBITRAP_HCD = new MsSettings(HBasePeakList.SPEC_TRAP_HCD, new PpmTolerance(15d), new AbsoluteTolerance(0.05d), Peaks.HCD);
 
+  public static MsSettings    ORBI = null;
+  static
+  {
+    ORBI = new MsSettings(
+    ).setFragmentTol( new OffsetPpmTolerance(15d, 0d)
+    ).setPrecursorTol(new OffsetPpmTolerance(15d, 0d));
+  }
+
   public MsSettings() { super(); properties.put(Z_FLOAT, 0); }
   public MsSettings(MsSettings s) { super(s);  }
   public MsSettings(byte[] type, Tolerance precursor, Tolerance frag, String mode)
@@ -42,4 +50,10 @@ public class MsSettings extends Settings
 
   public MsSettings setFragmentTol( Tolerance s) { properties.put(TOL_FRAG, s); return this; }
   public MsSettings setPrecursorTol(Tolerance s) { properties.put(TOL_PREC, s); return this; }
+
+  @Override
+  public MsSettings clone() throws CloneNotSupportedException
+  {
+    return (MsSettings )super.clone();
+  }
 }

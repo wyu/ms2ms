@@ -6,7 +6,6 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.Range;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.ms2ms.Disposable;
-import org.ms2ms.algo.Peaks;
 import org.ms2ms.data.Point;
 import org.ms2ms.math.Points;
 import org.ms2ms.math.Stats;
@@ -17,7 +16,7 @@ import java.util.*;
 
 public class SRM implements Cloneable, Disposable
 {
-  private float mFragmentMz, mLibraryIntensity, mApex, mArea, mPkPct=0, mPkPctAll=0, mFillTime=0;
+  private float mFragmentMz, mLibraryIntensity, mApex, mArea, mPkPct=0, mPkPctFull =0, mPkPctAll=0, mFillTime=0;
   Range<Double> mPeakBoundary;
 
   private List<LcMsPoint> mXIC;
@@ -40,6 +39,7 @@ public class SRM implements Cloneable, Disposable
   public float getApex()       { return mApex; }
   public float getArea()       { return mArea; }
   public float getPeakPct()    { return mPkPct; }
+  public float getPeakPctFull() { return mPkPctFull; }
   public float getPeakPctAll() { return mPkPctAll; }
   public float getFillTime()   { return mFillTime; }
   public Range<Double> getPeakBoundary() { return mPeakBoundary; }
@@ -68,8 +68,9 @@ public class SRM implements Cloneable, Disposable
     if (!Tools.isSet(getXIC())) return this;
 
     // change the definition on May 16, 2020. outside is now 3x of the LC peak span, instead of 2x
-    double inside=0, outside=0, all=0;
-    Range<Double> inner = Range.closed(rt-span, rt+span), outer = Range.closed(rt-3d*span, rt+3d*span);
+    double inside=0, outside=0, inside_front=0, outside_front=0, all=0;
+    Range<Double> inner = Range.closed(rt-span, rt+span), outer = Range.closed(rt-3d*span, rt+3d*span),
+            inner_front = Range.closed(rt-span, rt),        outer_front = Range.closed(rt-3d*span, rt);
 
     List<Double> tops = new ArrayList<>();
     int apex_i=-1; double best=Float.MAX_VALUE;
@@ -81,8 +82,11 @@ public class SRM implements Cloneable, Disposable
         inside+=p.getY();
         if (p.getY()>0) tops.add(p.getY());
       }
+      if (inner_front.contains(p.getX())) inside_front+=p.getY();
       // change the definition on May 16, 2020. outside is sum of intensity within 'outside', instead of intensities outside of 'outside'
-      if (outer.contains(p.getX()))  outside+=p.getY();
+      if (outer.contains(      p.getX()))  outside      +=p.getY();
+      if (outer_front.contains(p.getX()))  outside_front+=p.getY();
+
       all += p.getY();
 
       if (Math.abs(p.getX()-rt)<best) { apex_i=i; best=Math.abs(p.getX()-rt); }
@@ -105,8 +109,9 @@ public class SRM implements Cloneable, Disposable
       if (left>0 && right>left) { mPeakBoundary = Range.closed(left, right); mArea=(float )area; getFeature().setArea(area); }
     }
     // change the definition on May 16, 2020. exclusivity is now inside/outside, for local exclusivity, instead of inside_intensity / (intensity outside of 2x span)
-    mPkPct    = (float )(100f*inside/outside); // a local exclusivity (+-3x LC peak span)
-    mPkPctAll = (float )(100f*mArea/all);      // this is now a global (+-5min) exclusivity
+    mPkPctFull = (float )(100f*inside/outside); // a local exclusivity (+-3x LC peak span)
+    mPkPct     = (float )(100f*inside_front/outside_front); // a local exclusivity (+-3x LC peak span)
+    mPkPctAll  = (float )(100f*mArea/all);      // this is now a global (+-5min) exclusivity
     tops = (List )Tools.dispose(tops);
 
     return this;

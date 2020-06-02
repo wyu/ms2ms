@@ -3,6 +3,7 @@ package org.ms2ms.splib;
 import com.google.common.collect.Range;
 import org.apache.commons.math3.analysis.UnivariateFunction;
 import org.apache.commons.math3.analysis.interpolation.AkimaSplineInterpolator;
+import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 import org.apache.commons.math3.exception.OutOfRangeException;
 import org.expasy.mzjava.stats.Histogram;
 import org.ms2ms.algo.MsStats;
@@ -138,5 +139,20 @@ public class Sage extends AbstractSage
     }
 
     return buf;
+  }
+
+  @Override
+  public Sage clone() throws CloneNotSupportedException
+  {
+    Sage cloned = (Sage )super.clone();
+
+    cloned.mBound = Range.closed(mBound.lowerEndpoint(), mBound.upperEndpoint());
+    cloned.mPositives = mPositives.copy();
+    cloned.mNegatives = mNegatives.copy();
+
+    // generate the spline again
+    toTransition(false, null);
+
+    return cloned;
   }
 }
