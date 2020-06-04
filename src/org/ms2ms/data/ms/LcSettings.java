@@ -42,6 +42,9 @@ public class LcSettings extends Settings
   public LcSettings setMinPeakExclusivity(float s) { set(KY_PEAK_EXCL, s); return this; }
   public LcSettings setMinApex(           float s) { set(KY_PEAK_APEX, s); return this; }
 
+  public LcSettings toSmoothRT(         boolean s) { set(KY_SMOOTHRT, s); return this; }
+  public LcSettings useiRT(             boolean s) { set(KY_USE_IRT, s); return this; }
+
   public Settings setRt(float tol, float window)
   {
     properties.put(KY_RT_TOL,  new AbsoluteTolerance(tol));
