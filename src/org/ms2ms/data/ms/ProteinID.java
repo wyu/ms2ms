@@ -3,6 +3,9 @@ package org.ms2ms.data.ms;
 import com.google.common.collect.*;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
+import org.jgrapht.graph.DefaultWeightedEdge;
+import org.jgrapht.graph.SimpleDirectedWeightedGraph;
+import org.ms2ms.algo.Similarity;
 import org.ms2ms.data.Binary;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
@@ -10,8 +13,10 @@ import org.ms2ms.utils.Tools;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.List;
 
 /**
  * Created by yuw on 2/24/16.
@@ -27,6 +32,8 @@ public class ProteinID implements Comparable<ProteinID>, Binary
   private Long                           mID;
   private Double                         mBestQVal, mProteoSimilary;
   private String                         mSequence, mAccession, mGene, mName;
+
+  private SimpleDirectedWeightedGraph<SRM, DefaultWeightedEdge> mNetwork;
 
   private ProteinID                      mParent  =null;
   private Collection<ProteinID>          mChildren=null;
@@ -182,7 +189,26 @@ public class ProteinID implements Comparable<ProteinID>, Binary
 
     return peptide_protein;
   }
+  public ProteinID networking() {
+    if (getCompositeSRMGroup()==null || !Tools.isSet(getCompositeSRMGroup().getSRMs())) return this;
 
+    // create a new network
+    mNetwork = new SimpleDirectedWeightedGraph<>(DefaultWeightedEdge.class);
+    List<Float> traces = new ArrayList<>(getCompositeSRMGroup().getSRMs().keySet());
+
+    for (int i = 0; i < traces.size(); i++) {
+      SRM x = getCompositeSRMGroup().getSRM(traces.get(i)); mNetwork.addVertex(x);
+      for (int j = 0; j < traces.size(); j++) {
+        SRM y = getCompositeSRMGroup().getSRM(traces.get(j)); mNetwork.addVertex(y);
+        if (i != j) {
+          // calc the similarity
+          double dp = Similarity.dp_points(x.getXIC(), y.getXIC());
+          mNetwork.setEdgeWeight(mNetwork.addEdge(x, y), dp);
+        }
+      }
+    }
+    return this;
+  }
   @Override
   public void write(DataOutput ds) throws IOException
   {

@@ -5,6 +5,9 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Range;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
+import org.jgrapht.ext.CSVExporter;
+import org.jgrapht.graph.DefaultWeightedEdge;
+import org.jgrapht.graph.SimpleDirectedWeightedGraph;
 import org.ms2ms.Disposable;
 import org.ms2ms.data.Point;
 import org.ms2ms.math.Points;
@@ -12,9 +15,11 @@ import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Tools;
 import toools.collections.Lists;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.util.*;
 
-public class SRM implements Cloneable, Disposable
+public class SRM implements Cloneable, Disposable, Comparable<SRM>
 {
   private float mFragmentMz, mLibraryIntensity, mApex, mArea, mPkPct=0, mPkPctFull =0, mPkPctAll=0, mFillTime=0;
   Range<Double> mPeakBoundary;
@@ -22,13 +27,13 @@ public class SRM implements Cloneable, Disposable
   private List<LcMsPoint> mXIC;
   private LcMsFeature mFeature;
 
-  SRM()
+  public SRM()
   {
     super();
     mFragmentMz=mLibraryIntensity=0;
     mXIC = new ArrayList<>();
   }
-  SRM(float frag, float ai)
+  public SRM(float frag, float ai)
   {
     mFragmentMz=frag; mLibraryIntensity=ai;
     mXIC = new ArrayList<>();
@@ -57,6 +62,10 @@ public class SRM implements Cloneable, Disposable
   {
     if (mXIC==null) mXIC = new ArrayList<>();
     mXIC.add(new LcMsPoint(rt,ai,mz,scan)); return mXIC.get(mXIC.size()-1);
+  }
+  public LcMsPoint addXIC(double rt, double ai, double mz, int scan)
+  {
+    return addXIC((float )rt, (float )ai, (float )mz, scan);
   }
 
   public SRM setFeature(Point s) { if (s!=null) mFeature = new LcMsFeature(s); return this; }
@@ -210,6 +219,11 @@ public class SRM implements Cloneable, Disposable
 
     return out;
   }
+  public String getUID(String s)
+  {
+    return s+"_"+Tools.d2s(getFragmentMz(), 4);
+  }
+
   public SRM disposeXIC()
   {
     mXIC = (List )Tools.dispose(mXIC);
@@ -220,6 +234,47 @@ public class SRM implements Cloneable, Disposable
   {
     disposeXIC();
     mFeature = null;
+  }
+
+  @Override
+  public int compareTo(SRM o)
+  {
+    int c = Float.compare(mFragmentMz, o.mFragmentMz);
+    if (c==0 && mFeature!=null)
+    {
+      c = Double.compare(mFeature.getApex(), o.mFeature.getApex());
+    }
+    return (c);
+  }
+
+  public static void headerEdges(Writer w) throws IOException
+  {
+    w.write("Source\tTarget\tdp\n");
+  }
+  public static void printEdges(Writer w, SimpleDirectedWeightedGraph<SRM, DefaultWeightedEdge> net, String tag) throws IOException
+  {
+    CSVExporter ex = new CSVExporter();
+    ex.exportGraph(net, w);
+    if (net!=null && Tools.isSet(net.edgeSet()))
+      for (DefaultWeightedEdge e : net.edgeSet())
+      {
+        w.write(net.getEdgeSource(e).getUID(tag)+"\t");
+        w.write(net.getEdgeTarget(e).getUID(tag)+"\t");
+        w.write(Tools.d2s(net.getEdgeWeight(e),2)+"\n");
+      }
+  }
+  public static void headerNodes(Writer w) throws IOException
+  {
+    w.write("UID\tFragMz\n");
+  }
+  public static void printNodes(Writer w, SimpleDirectedWeightedGraph<SRM, DefaultWeightedEdge> net, String tag) throws IOException
+  {
+    if (net!=null && Tools.isSet(net.vertexSet()))
+      for (SRM v : net.vertexSet())
+      {
+        w.write(v.getUID(tag)+"\t");
+        w.write(Tools.d2s(v.getFragmentMz(),2)+"\n");
+      }
   }
 }
 

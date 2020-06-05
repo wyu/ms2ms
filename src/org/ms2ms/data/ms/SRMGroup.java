@@ -3,12 +3,17 @@ package org.ms2ms.data.ms;
 import com.google.common.collect.*;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
+import org.jgrapht.ext.CSVExporter;
+import org.jgrapht.graph.DefaultWeightedEdge;
+import org.jgrapht.graph.SimpleDirectedWeightedGraph;
 import org.ms2ms.algo.Peaks;
 import org.ms2ms.algo.Similarity;
 import org.ms2ms.data.Point;
 import org.ms2ms.data.collect.MultiTreeTable;
+import org.ms2ms.graph.Graphs;
 import org.ms2ms.math.Points;
 import org.ms2ms.math.Stats;
+import org.ms2ms.splib.ClusterEdge;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
@@ -31,6 +36,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 //  private TreeMultimap<Float, Point> mXIC;
 //  private TreeMap<Float, Point> mFeatures;
   private TreeMap<Float, SRM> mSRMs;
+  private SimpleDirectedWeightedGraph<SRM, DefaultWeightedEdge> mNetwork;
 
   public SRMGroup() { super(); }
   public SRMGroup(String peptide)
@@ -57,12 +63,6 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     if (c==0 && Tools.isSet(mSRMs) && Tools.isSet(o.getSRMs()))
     {
       c = Integer.compare(getSRMs().size(), o.getSRMs().size());
-//      if (c==0)
-//        for (int i=0; i<getSRMs().size(); i++)
-//        {
-//          c = Float.compare(getSRMs().get(i).getFragmentMz(), o.getSRMs().get(i).getFragmentMz());
-//          if (c!=0) return c;
-//        }
     }
     return c;
   }
@@ -83,6 +83,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public String getProteinId()    { return mProteinId; }
   public SRM    getCompositeSRM() { return mSRMs!=null?mSRMs.get(0f):null; }
 
+  public SimpleDirectedWeightedGraph<SRM, DefaultWeightedEdge> getNetwork() { return mNetwork; }
+
   public SRM getCompositeProfile(boolean round2sec)
   {
     SRM cpo = getCompositeSRM();
@@ -101,6 +103,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   }
 
   public Map<Float, SRM> getSRMs() { return mSRMs; }
+  public SRM getSRM(Float s) { return mSRMs!=null?mSRMs.get(s):null; }
 
   public SRMGroup setNumQualifiedSRMs(int s) { mQualifiedSRMs=s; return this; }
 
@@ -158,6 +161,66 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   {
     if (Tools.isSet(mSRMs))
       for (SRM srm : mSRMs.values()) srm.disposeXIC();
+    return this;
+  }
+  // shift the RT of ms1 XIC so they line up with those of ms2
+  public SRMGroup shift_ms1()
+  {
+    if (!Tools.isSet(mSRMs) || mSRMs.get(-1f)==null) return this;
+
+    TreeMultimap<Float, Double> rt_ai = TreeMultimap.create();
+    for (Float frag : mSRMs.keySet())
+      if (frag>0) // only the MS2 XIC
+        for (LcMsPoint pk : mSRMs.get(frag).getXIC())
+          if (pk.getY()>0)
+          {
+            rt_ai.put((float )pk.getX(), Math.log10(pk.getY()));
+          }
+
+    // create the composite trace
+    int ms1_start=0;
+    SRM ms1 = mSRMs.get(-1f), ms1a = ms1.clone(); ms1a.getXIC().clear();
+    for (Float rt : rt_ai.keySet())
+    {
+      // look for the ms1 trace
+      if (ms1!=null && Tools.isSet(ms1.getXIC()))
+        for (int i=ms1_start; i<ms1.getXIC().size()-1; i++)
+          if (rt>=ms1.getXIC().get(i).getX() && rt<=ms1.getXIC().get(i+1).getX())
+          {
+            ms1a.addXIC(rt.doubleValue(), 0.5*(ms1.getXIC().get(i).getY()+ms1.getXIC().get(i+1).getY()), ms1.getXIC().get(i).getMz(),
+                ms1.getXIC().get(i).getScan());
+            break;
+          }
+    }
+    mSRMs.put(-10f, ms1a);
+
+    return this;
+  }
+  public SRMGroup networking(float min_dp)
+  {
+    if (!Tools.isSet(getSRMs())) return this;
+
+    // create a new network
+    mNetwork = new SimpleDirectedWeightedGraph<>(DefaultWeightedEdge.class);
+    List<Float> traces = new ArrayList<>(getSRMs().keySet());
+    // remove the default ms1 sinceit's not sync with the ms2 on RT. We should have called shift_ms1 first to create a sync'd version @-10
+    traces.remove(-1f);
+
+    for (int i=0; i<traces.size(); i++)
+    {
+      SRM x = getSRM(traces.get(i)); mNetwork.addVertex(x);
+      for (int j=0; j<traces.size(); j++)
+      {
+        SRM y = getSRM(traces.get(j)); mNetwork.addVertex(y);
+        if (i!=j)
+        {
+          // calc the similarity
+          double dp = Similarity.dp_points(x.getXIC(), y.getXIC());
+          if (dp>=min_dp) mNetwork.setEdgeWeight(mNetwork.addEdge(x,y), dp);
+        }
+      }
+    }
+
     return this;
   }
   public SRMGroup composite()
@@ -372,7 +435,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     headerGroup(w);
     w.write("FragMz\tNumPts\txicL\txicR\tPkEx\tPkExFront\tPkExAll\tfeature.rt\tfeature.ai\tfeature.rt0\tinjection\tfeature.mz\tfeature.apex\tfeature.area\tlower\tupper\n");
   }
-  public void printFeatures(Writer w) throws IOException
+  public SRMGroup printFeatures(Writer w) throws IOException
   {
     for (Float frag : mSRMs.keySet())
       if (mSRMs.get(frag).getFeature()!=null)
@@ -396,6 +459,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         w.write(Tools.d2s(srm.getPeakBoundary()!=null?srm.getPeakBoundary().lowerEndpoint():0,2)+"\t");
         w.write(Tools.d2s(srm.getPeakBoundary()!=null?srm.getPeakBoundary().upperEndpoint():0,2)+"\n");
       }
+    return this;
   }
   public static void headerGroup(Writer w) throws IOException
   {
@@ -456,7 +520,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     return out;
   }
 
-  public static MultiTreeTable<Float, Float, SRMGroup> readTransitions(String trfile, String delim, Map<String, String> cols, boolean use_iRT)
+  public static MultiTreeTable<Float, Float, SRMGroup> readTransitions(String trfile, String delim, Map<String, String> cols, boolean use_iRT, String... protein_ids)
   {
     try
     {
@@ -477,6 +541,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         String seq = tr.getStr("ModifiedSequence", "ModifiedPeptideSequence"), peptide;
 
 //        if (!(seq.indexOf("ELGTVM[Oxidation (M)]R#2")>=0 && z==2)) continue;
+        if (Tools.isSet(protein_ids) && !Strs.hasA(tr.get("ProteinId"), 0, protein_ids)) continue;
         if (Strs.isSet(seq))
         {
           peptide = seq.replaceAll("_","");
@@ -509,7 +574,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
       return groups;
     }
-    catch (IOException e) {}
+    catch (IOException e) { e.printStackTrace(); }
 
     return null;
   }
@@ -564,7 +629,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
                                         MultiTreeTable<Float, Float, SRMGroup> lib,
                                         boolean use_iRT, float min_peak_exclusivity, float min_apex)
   {
-    System.out.println("Protein\tSequence\tRT\tfeature.rt\tPkEx\tPkExFront\tfeature.apex");
+    if (!Tools.isSet(landmarks) || !Tools.isSet(lib)) return null;
+
+//    System.out.println("Protein\tSequence\tRT\tfeature.rt\tPkEx\tPkExFront\tfeature.apex");
 
     Multimap<String, SRMGroup> pep_lib = HashMultimap.create();
     for (SRMGroup grp : lib.values())
@@ -575,10 +642,10 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     {
       SRM cpo = grp.getSRMs().get(0f);
       Collection<SRMGroup> libs = pep_lib.get(grp.getSequence());
-      if (cpo!=null && Tools.isSet(libs))
-      {
-        System.out.println(grp.getProteinId()+"\t"+grp.getSequence()+"\t"+ grp.getRT()+"\t"+cpo.getFeature().getRT() + "\t" + cpo.getPeakPct() + "\t" + cpo.getPeakPctFull()+"\t"+cpo.getFeature().getIntensity());
-      }
+//      if (cpo!=null && Tools.isSet(libs))
+//      {
+//        System.out.println(grp.getProteinId()+"\t"+grp.getSequence()+"\t"+ grp.getRT()+"\t"+cpo.getFeature().getRT() + "\t" + cpo.getPeakPct() + "\t" + cpo.getPeakPctFull()+"\t"+cpo.getFeature().getIntensity());
+//      }
       if (cpo!=null && Tools.isSet(libs) && cpo.getPeakPct()>=min_peak_exclusivity && cpo.getFeature().getIntensity()>min_apex)
       {
         double iRTs=0, reportedRT=0;
@@ -593,7 +660,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     Collections.sort(cals);
     return cals;
   }
-  public static MultiTreeTable<Float, Float, SRMGroup> calibrate(MultiTreeTable<Float, Float, SRMGroup> lib, List<Peak> cals, boolean use_iRT)
+  public static MultiTreeTable<Float, Float, SRMGroup> interpolate(MultiTreeTable<Float, Float, SRMGroup> lib, List<Peak> cals, boolean use_iRT)
   {
     MultiTreeTable<Float, Float, SRMGroup> mapped = MultiTreeTable.create();
     for (SRMGroup grp : lib.values())
@@ -634,6 +701,47 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
     return mapped;
   }
+//  public static MultiTreeTable<Float, Float, SRMGroup> fit(MultiTreeTable<Float, Float, SRMGroup> lib, List<Peak> cals, boolean use_iRT)
+//  {
+//    MultiTreeTable<Float, Float, SRMGroup> mapped = MultiTreeTable.create();
+//    for (SRMGroup grp : lib.values())
+//    {
+////      if (grp.getSequence().indexOf("AAEAAINILK")>=0)
+////        System.out.println();
+//      float rt0 = (use_iRT?grp.getIRT():grp.getReportedRT());
+//
+//      Peak pk   = new Peak(rt0, 0d);
+//      int index = Collections.binarySearch(cals, pk), left, right;
+//      if (index >= 0)
+//      {
+//        left = index; right = index;
+//      }
+//      else  // (-(insertion point) - 1)
+//      {
+//        index = -1 * index - 1;
+//        left = (index > 0 ? index-1 : -1);
+//        right = (index < cals.size() ? index : -1);
+//      }
+//      if (left>=0 && right>=left && right<cals.size())
+//      {
+//        if (left==right) grp.setRT((float )cals.get(left).getIntensity());
+//        else
+//        {
+//          grp.setRT(Peaks.interpolateForY(cals.get(left), cals.get(right), (double )rt0));
+//        }
+//
+//        // add the transition with the mapped RT
+//        mapped.put(grp.getMz(), grp.getRT(), grp);
+//      } else
+//      {
+//        grp.setRT(0f);
+//      }
+//    }
+//    // remove the old one to save the memory
+//    lib = Tools.dispose(lib);
+//
+//    return mapped;
+//  }
   // write the updated transitions as a new library
   public static void writeTransitions(Collection<SRMGroup> groups, String filename)
   {

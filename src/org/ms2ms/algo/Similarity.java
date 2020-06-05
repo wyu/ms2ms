@@ -4,6 +4,7 @@ import com.google.common.collect.*;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.core.ms.peaklist.PeakList;
+import org.ms2ms.data.Point;
 import org.ms2ms.utils.Tools;
 
 import java.util.*;
@@ -148,6 +149,20 @@ public class Similarity
       sum_a  +=   A.get(ia) * A.get(ia);
       sum_b  +=   B.get(ia) * B.get(ia);
       sum_ab +=   A.get(ia) * B.get(ia);
+    }
+    // calculating the dot-product
+    return sum_ab * sum_ab / (sum_a * sum_b);
+  }
+  public static <T extends Point> float dp_points(List<T> A, List<T> B)
+  {
+    // false if one of the spectra is empty or with diff dimension
+    if (A.isEmpty() || B.isEmpty() || A.size() != B.size()) return 0;
+
+    float dp = 0, sum_a = 0, sum_b = 0, sum_ab = 0;
+    for (int ia = 0; ia < A.size(); ia++) {
+      sum_a  +=   A.get(ia).getY() * A.get(ia).getY();
+      sum_b  +=   B.get(ia).getY() * B.get(ia).getY();
+      sum_ab +=   A.get(ia).getY() * B.get(ia).getY();
     }
     // calculating the dot-product
     return sum_ab * sum_ab / (sum_a * sum_b);
