@@ -210,6 +210,26 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
 
     return this;
   }
+  // shift the RT axis to +- around the center, then interpolate them to the new RT points
+  public SRM shift(Range<Float> xs, int steps, Float center)
+  {
+    if (center!=null)
+      for (LcMsPoint p : getXIC()) p.setRT(p.getRT()-center);
+
+    if (Tools.isSet(xs))
+    {
+      List<LcMsPoint> pts = new ArrayList<>(steps);
+      float step = (xs.upperEndpoint()-xs.lowerEndpoint())/steps;
+      for (double x=xs.lowerEndpoint(); x<=xs.upperEndpoint(); x+=step)
+      {
+        // interpolate from the existing array
+        pts.add(new LcMsPoint(Points.interpolate(getXIC(), x, false)));
+      }
+      mXIC = (List )Tools.dispose(mXIC);
+      mXIC = pts;
+    }
+    return this;
+  }
   @Override
   public String toString()
   {
@@ -253,8 +273,6 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   }
   public static void printEdges(Writer w, SimpleDirectedWeightedGraph<SRM, DefaultWeightedEdge> net, String tag) throws IOException
   {
-    CSVExporter ex = new CSVExporter();
-    ex.exportGraph(net, w);
     if (net!=null && Tools.isSet(net.edgeSet()))
       for (DefaultWeightedEdge e : net.edgeSet())
       {

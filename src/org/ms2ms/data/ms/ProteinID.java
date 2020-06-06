@@ -59,6 +59,8 @@ public class ProteinID implements Comparable<ProteinID>, Binary
   public Collection<SRMGroup>           getSRMGroup(String s)  { return mSRMGroups!=null?mSRMGroups.get(s):null; }
   public SRMGroup                       getCompositeSRMGroup() { return mCompositeSRMGroup; }
 
+  public SimpleDirectedWeightedGraph<SRM, DefaultWeightedEdge> getNetwork() { return mNetwork; }
+
   public ProteinID setAccession(String s) { mAccession=s; return this; }
   public ProteinID setName(String s) { mName=s; return this; }
   public ProteinID setGene(String s) { mGene=s; return this; }
@@ -189,7 +191,8 @@ public class ProteinID implements Comparable<ProteinID>, Binary
 
     return peptide_protein;
   }
-  public ProteinID networking() {
+  public ProteinID networking(float min_dp)
+  {
     if (getCompositeSRMGroup()==null || !Tools.isSet(getCompositeSRMGroup().getSRMs())) return this;
 
     // create a new network
@@ -203,7 +206,7 @@ public class ProteinID implements Comparable<ProteinID>, Binary
         if (i != j) {
           // calc the similarity
           double dp = Similarity.dp_points(x.getXIC(), y.getXIC());
-          mNetwork.setEdgeWeight(mNetwork.addEdge(x, y), dp);
+          if (dp>=min_dp) mNetwork.setEdgeWeight(mNetwork.addEdge(x, y), dp);
         }
       }
     }

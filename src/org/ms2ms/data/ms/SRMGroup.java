@@ -3,17 +3,14 @@ package org.ms2ms.data.ms;
 import com.google.common.collect.*;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
-import org.jgrapht.ext.CSVExporter;
 import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.SimpleDirectedWeightedGraph;
 import org.ms2ms.algo.Peaks;
 import org.ms2ms.algo.Similarity;
 import org.ms2ms.data.Point;
 import org.ms2ms.data.collect.MultiTreeTable;
-import org.ms2ms.graph.Graphs;
 import org.ms2ms.math.Points;
 import org.ms2ms.math.Stats;
-import org.ms2ms.splib.ClusterEdge;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
@@ -160,7 +157,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public SRMGroup disposeSRMs()
   {
     if (Tools.isSet(mSRMs))
-      for (SRM srm : mSRMs.values()) srm.disposeXIC();
+      for (Float frag  : mSRMs.keySet())
+        if (frag!=0) getSRM(frag).disposeXIC(); // 20200605, keep the composite alive for protein IDs
+
     return this;
   }
   // shift the RT of ms1 XIC so they line up with those of ms2
@@ -278,6 +277,10 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     for (SRM srm : mSRMs.values()) srm.impute(gap);
     return this;
   }
+  public SRMGroup centroid(LcSettings settings)
+  {
+    return centroid(settings.getBaseRI(), settings.getPeakWidth()*settings.getOuterMultiple(), settings.getPeakWidth());
+  }
   public SRMGroup centroid(double min_ri, float rt_span, float rt_width)
   {
     Point cpo = Points.centroid(mSRMs.get(0f).getXIC(), min_ri, Range.closed(getRT()-rt_span*2d, getRT()+2d*rt_span));
@@ -374,6 +377,10 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
     return this;
   }
+  public SRMGroup calcFeatureExclusivity(LcSettings settings)
+  {
+    return calcFeatureExclusivity(settings.getPeakWidth()/2f, settings.getApexPts(), settings.getBaseRI()/100d);
+  }
   public SRMGroup calcFeatureExclusivity(float span, int apex_pts, double peak_base)
   {
     if (Tools.isSet(mSRMs) && mSRMs.get(0f)!=null && mSRMs.get(0f).getFeature()!=null)
@@ -411,22 +418,48 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     headerGroup(w);
     w.write("FragMz\tscan\txic.rt\txic.ai\tinjection\timputed\txic.mz\n");
   }
-  public SRMGroup printXIC(Writer w) throws IOException
+  public static void header_xic(Writer w) throws IOException
   {
-    for (Float frag : mSRMs.keySet())
+    // xic.ai~xic.rt|FragMz
+    w.write("\"Peptide\\tFragMz\txic.rt\txic.ai\n");
+  }
+  public SRMGroup print_xic(Writer w, float... frags) throws IOException
+  {
+    if (!Tools.isSet(frags)) frags = Tools.toFloatArray(mSRMs.keySet());
+    for (Float frag : frags)
       for (LcMsPoint pk : mSRMs.get(frag).getXIC())
       {
         if (pk.getIntensity()<=0) continue;
 
-        printGroup(w);
+        w.write(getSequence()+"\t");
         w.write(Tools.d2s(frag,4)             +"\t");
-        w.write(Tools.d2s(pk.getScan(),2)     +"\t");
         w.write(Tools.d2s(pk.getRT(),3)       +"\t");
-        w.write(Tools.d2s(pk.getIntensity(),2)+"\t");
-        w.write(Tools.d2s(pk.getFillTime(),2)+"\t");
-        w.write(pk.isImputed()                   +"\t");
-        w.write(Tools.d2s(pk.getMz(),3)       +"\n");
+        w.write(Tools.d2s(pk.getIntensity(),2)+"\n");
       }
+
+    return this;
+  }
+
+  public SRMGroup printXIC(Writer w, float... frags) throws IOException
+  {
+    if (!Tools.isSet(mSRMs)) return this;
+
+    if (!Tools.isSet(frags)) frags = Tools.toFloatArray(mSRMs.keySet());
+    for (Float frag : frags)
+      if (mSRMs.get(frag)!=null && Tools.isSet(mSRMs.get(frag).getXIC()))
+        for (LcMsPoint pk : mSRMs.get(frag).getXIC())
+        {
+          if (pk.getIntensity()<=0) continue;
+
+          printGroup(w);
+          w.write(Tools.d2s(frag,4)             +"\t");
+          w.write(Tools.d2s(pk.getScan(),2)     +"\t");
+          w.write(Tools.d2s(pk.getRT(),3)       +"\t");
+          w.write(Tools.d2s(pk.getIntensity(),2)+"\t");
+          w.write(Tools.d2s(pk.getFillTime(),2)+"\t");
+          w.write(pk.isImputed()                   +"\t");
+          w.write(Tools.d2s(pk.getMz(),3)       +"\n");
+        }
 
     return this;
   }
@@ -438,9 +471,10 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public SRMGroup printFeatures(Writer w) throws IOException
   {
     for (Float frag : mSRMs.keySet())
-      if (mSRMs.get(frag).getFeature()!=null)
+      if (mSRMs.get(frag).getFeature()!=null && mSRMs.get(frag)!=null && Tools.isSet(mSRMs.get(frag).getXIC()))
       {
         SRM srm = mSRMs.get(frag);
+
         printGroup(w);
         w.write(Tools.d2s(frag,4)+"\t");
         w.write(srm.getXIC().size()+"\t");
@@ -578,10 +612,10 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
     return null;
   }
-  public static ProteinID buildProteinProfile(Collection<SRMGroup> groups, String proteinid, boolean round2sec, String... peptides)
+  public static ProteinID buildProteinProfile(Collection<SRMGroup> groups, String proteinid, String... peptides)
   {
     ProteinID protein_id = new ProteinID(null, proteinid);
-    SRMGroup protein     = new SRMGroup("Summary of " + proteinid);
+    SRMGroup protein     = new SRMGroup("Summary");
 
     // create the composite trace
     TreeMultimap<Float, Double> rt_ai = TreeMultimap.create();
@@ -591,38 +625,44 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         protein_id.addSRMGroup(group, group.getSequence());
         if (group.getCompositeSRM()!=null)
         {
-          SRM pr = group.getCompositeProfile(round2sec);
-          if (pr!=null && Tools.isSet(pr.getXIC()))
-          {
-            protein.getSRMs().put(group.getMz(), pr);
-//            protein_id.addSRMGroup(group, group.getSequence());
-            for (LcMsPoint pk : pr.getXIC())
-              if (pk.getY()>0)
-              {
-                // convert to seconds
-                rt_ai.put((float )pk.getX(), Math.log10(pk.getY()));
-              }
-          }
+          protein.getSRMs().put(group.getMz(), group.getCompositeSRM());
+//          SRM pr = group.getCompositeProfile(round2sec);
+//          if (pr!=null && Tools.isSet(pr.getXIC()))
+//          {
+//            protein.getSRMs().put(group.getMz(), pr);
+////            protein_id.addSRMGroup(group, group.getSequence());
+//            for (LcMsPoint pk : pr.getXIC())
+//              if (pk.getY()>0)
+//              {
+//                // convert to seconds
+//                rt_ai.put((float )pk.getX(), Math.log10(pk.getY()));
+//              }
+//          }
         }
       }
 
-    if (Tools.isSet(rt_ai))
+    if (Tools.isSet(protein.getSRMs()))
     {
-      double n = 0;
-      for (Float rt : rt_ai.keySet())
-        if (rt_ai.get(rt).size()>n) n = rt_ai.get(rt).size();
-
-      // create the composite trace
-      SRM profile = new SRM(0f, 0f);
-      for (Float rt : rt_ai.keySet())
-      {
-        // look for the ms1 trace
-        float v = (float )Math.pow(10d, Stats.sum(rt_ai.get(rt))/n);
-        profile.addXIC(rt, v);
-      }
-      protein.getSRMs().put(0f, profile);
+      protein.composite();
       protein_id.setCompositeSRMGroup(protein);
     }
+//    if (Tools.isSet(rt_ai))
+//    {
+//      double n = 0;
+//      for (Float rt : rt_ai.keySet())
+//        if (rt_ai.get(rt).size()>n) n = rt_ai.get(rt).size();
+//
+//      // create the composite trace
+//      SRM profile = new SRM(0f, 0f);
+//      for (Float rt : rt_ai.keySet())
+//      {
+//        // look for the ms1 trace
+//        float v = (float )Math.pow(10d, Stats.sum(rt_ai.get(rt))/n);
+//        profile.addXIC(rt, v);
+//      }
+//      protein.getSRMs().put(0f, profile);
+//      protein_id.setCompositeSRMGroup(protein);
+//    }
     return protein_id;
   }
   public static List<Peak> extractRtCal(MultiTreeTable<Float, Float, SRMGroup> landmarks,
@@ -667,34 +707,37 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     {
 //      if (grp.getSequence().indexOf("AAEAAINILK")>=0)
 //        System.out.println();
-      float rt0 = (use_iRT?grp.getIRT():grp.getReportedRT());
+//      float rt0 = (use_iRT?grp.getIRT():grp.getReportedRT());
 
-      Peak pk   = new Peak(rt0, 0d);
-      int index = Collections.binarySearch(cals, pk), left, right;
-      if (index >= 0)
-      {
-        left = index; right = index;
-      }
-      else  // (-(insertion point) - 1)
-      {
-        index = -1 * index - 1;
-        left = (index > 0 ? index-1 : -1);
-        right = (index < cals.size() ? index : -1);
-      }
-      if (left>=0 && right>=left && right<cals.size())
-      {
-        if (left==right) grp.setRT((float )cals.get(left).getIntensity());
-        else
-        {
-          grp.setRT(Peaks.interpolateForY(cals.get(left), cals.get(right), (double )rt0));
-        }
+      grp.setRT(Peaks.interpolateForY(cals, (use_iRT?grp.getIRT():grp.getReportedRT())));
+      if (!Double.isInfinite(grp.getRT())) mapped.put(grp.getMz(), grp.getRT(), grp);
 
-        // add the transition with the mapped RT
-        mapped.put(grp.getMz(), grp.getRT(), grp);
-      } else
-      {
-        grp.setRT(0f);
-      }
+//      Peak pk   = new Peak(rt0, 0d);
+//      int index = Collections.binarySearch(cals, pk), left, right;
+//      if (index >= 0)
+//      {
+//        left = index; right = index;
+//      }
+//      else  // (-(insertion point) - 1)
+//      {
+//        index = -1 * index - 1;
+//        left = (index > 0 ? index-1 : -1);
+//        right = (index < cals.size() ? index : -1);
+//      }
+//      if (left>=0 && right>=left && right<cals.size())
+//      {
+//        if (left==right) grp.setRT((float )cals.get(left).getIntensity());
+//        else
+//        {
+//          grp.setRT(Peaks.interpolateForY(cals.get(left), cals.get(right), (double )rt0));
+//        }
+//
+//        // add the transition with the mapped RT
+//        mapped.put(grp.getMz(), grp.getRT(), grp);
+//      } else
+//      {
+//        grp.setRT(0f);
+//      }
     }
     // remove the old one to save the memory
     lib = Tools.dispose(lib);

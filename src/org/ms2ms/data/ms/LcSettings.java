@@ -14,12 +14,15 @@ import org.ms2ms.utils.Settings;
 public class LcSettings extends Settings
 {
   public static final String KY_RT_TOL = "RTTol";      // likely variation
-  public static final String KY_LC_WIDTH = "Expected LC peak width";
+  public static final String KY_LC_WIDTH = "Expected LC peak width at half-height";
   public static final String KY_RT_SPAN = "RT Window";  // max variation
   public static final String KY_SMOOTHRT  = "RT smoothed";
   public static final String KY_USE_IRT  = "Use iRT";
   public static final String KY_PEAK_EXCL  = "Min peak exclusivity";
   public static final String KY_PEAK_APEX  = "Min peak apex";
+  public static final String KY_APEX_PTS  = "Min peak apex points";
+  public static final String KY_PEAK_BASE  = "Centroid bound by % apex";
+  public static final String KY_PEAK_MULTIPLE  = "outer bound as multiple of LC width";
 
   public static LcSettings nLC = null;
   static
@@ -33,6 +36,9 @@ public class LcSettings extends Settings
   public float     getPeakWidth()          { return getFloat(KY_LC_WIDTH); }
   public float     getMinPeakExclusivity() { return getFloat(KY_PEAK_EXCL); }
   public float     getMinApex()            { return getFloat(KY_PEAK_APEX); }
+  public float     getBaseRI()             { return getFloat(KY_PEAK_BASE); }
+  public float     getOuterMultiple()      { return getFloat(KY_PEAK_MULTIPLE); }
+  public int       getApexPts()            { return getInteger(KY_APEX_PTS); }
 
   public boolean toSmoothRT() { return getBoolean(KY_SMOOTHRT); }
   public boolean useiRT() { return getBoolean(KY_USE_IRT); }
@@ -41,6 +47,9 @@ public class LcSettings extends Settings
   public LcSettings setPeakWidth(         float s) { set(KY_LC_WIDTH,  s); return this; }
   public LcSettings setMinPeakExclusivity(float s) { set(KY_PEAK_EXCL, s); return this; }
   public LcSettings setMinApex(           float s) { set(KY_PEAK_APEX, s); return this; }
+  public LcSettings setBaseRI(            float s) { set(KY_PEAK_BASE, s); return this; }
+  public LcSettings setOuterMultiple(     float s) { set(KY_PEAK_MULTIPLE, s); return this; }
+  public LcSettings setApexPts(             int s) { set(KY_APEX_PTS, s); return this; }
 
   public LcSettings toSmoothRT(         boolean s) { set(KY_SMOOTHRT, s); return this; }
   public LcSettings useiRT(             boolean s) { set(KY_USE_IRT, s); return this; }

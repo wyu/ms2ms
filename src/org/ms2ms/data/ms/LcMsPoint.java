@@ -11,18 +11,14 @@ public class LcMsPoint extends Point
   private boolean mImputed=false;
 
   public LcMsPoint() { super(); }
+  public LcMsPoint(Point s) { super(s.getX(), s.getY()); }
   public LcMsPoint(double rt, double ai)
   {
     super(rt, ai);
-//    if (Double.isNaN(ai) || Double.isInfinite(ai) || Double.isNaN(getY()) || Double.isInfinite(getY()))
-//      System.out.println();
   }
   public LcMsPoint(double rt, double ai, float mz, int scan)
   {
     super(rt, ai);
-//    if (Double.isNaN(ai) || Double.isInfinite(ai) || Double.isNaN(getY()) || Double.isInfinite(getY()) || (mz==0 && ai>0 && scan>0))
-//      System.out.println();
-
     mMz=mz; mScan=scan;
   }
 
