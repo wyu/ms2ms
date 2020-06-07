@@ -23,6 +23,7 @@ public class LcSettings extends Settings
   public static final String KY_APEX_PTS  = "Min peak apex points";
   public static final String KY_PEAK_BASE  = "Centroid bound by % apex";
   public static final String KY_PEAK_MULTIPLE  = "outer bound as multiple of LC width";
+  public static final String KY_GRID_SIZE  = "grid size";
 
   public static LcSettings nLC = null;
   static
@@ -39,6 +40,7 @@ public class LcSettings extends Settings
   public float     getBaseRI()             { return getFloat(KY_PEAK_BASE); }
   public float     getOuterMultiple()      { return getFloat(KY_PEAK_MULTIPLE); }
   public int       getApexPts()            { return getInteger(KY_APEX_PTS); }
+  public int       getGridSize()           { return getInteger(KY_GRID_SIZE); }
 
   public boolean toSmoothRT() { return getBoolean(KY_SMOOTHRT); }
   public boolean useiRT() { return getBoolean(KY_USE_IRT); }
@@ -50,6 +52,7 @@ public class LcSettings extends Settings
   public LcSettings setBaseRI(            float s) { set(KY_PEAK_BASE, s); return this; }
   public LcSettings setOuterMultiple(     float s) { set(KY_PEAK_MULTIPLE, s); return this; }
   public LcSettings setApexPts(             int s) { set(KY_APEX_PTS, s); return this; }
+  public LcSettings setGridSize(            int s) { set(KY_GRID_SIZE, s); return this; }
 
   public LcSettings toSmoothRT(         boolean s) { set(KY_SMOOTHRT, s); return this; }
   public LcSettings useiRT(             boolean s) { set(KY_USE_IRT, s); return this; }

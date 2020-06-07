@@ -2,13 +2,13 @@ package org.ms2ms.data.ms;
 
 import org.jgrapht.event.GraphEdgeChangeEvent;
 import org.jgrapht.event.GraphListener;
-import org.jgrapht.ext.VertexNameProvider;
+import org.jgrapht.io.ComponentNameProvider;
 import org.ms2ms.utils.Tools;
 
 /**
  * Created by yuw on 9/16/16.
  */
-public class DoubleNameProvider<V> implements VertexNameProvider<V>
+public class DoubleNameProvider<V> implements ComponentNameProvider<V>
 {
   private int mDecimal=2;
 
@@ -29,7 +29,7 @@ public class DoubleNameProvider<V> implements VertexNameProvider<V>
    *
    * @see GraphListener#edgeAdded(GraphEdgeChangeEvent)
    */
-  @Override public String getVertexName(V vertex)
+  public String getVertexName(V vertex)
   {
     return Tools.d2s(((Double )vertex), mDecimal);
   }

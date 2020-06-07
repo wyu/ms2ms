@@ -5,7 +5,10 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Range;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
-import org.jgrapht.ext.CSVExporter;
+import org.jgrapht.Graph;
+import org.jgrapht.alg.clique.BronKerboschCliqueFinder;
+import org.jgrapht.alg.connectivity.KosarajuStrongConnectivityInspector;
+import org.jgrapht.alg.interfaces.StrongConnectivityAlgorithm;
 import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.SimpleDirectedWeightedGraph;
 import org.ms2ms.Disposable;
@@ -223,7 +226,8 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
       for (double x=xs.lowerEndpoint(); x<=xs.upperEndpoint(); x+=step)
       {
         // interpolate from the existing array
-        pts.add(new LcMsPoint(Points.interpolate(getXIC(), x, false)));
+        Point p = Points.interpolate(getXIC(), x, false);
+        if (p!=null) pts.add(new LcMsPoint(p));
       }
       mXIC = (List )Tools.dispose(mXIC);
       mXIC = pts;
@@ -293,6 +297,34 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
         w.write(v.getUID(tag)+"\t");
         w.write(Tools.d2s(v.getFragmentMz(),2)+"\n");
       }
+  }
+  public static Map<String, Object> inspectNetwork(SimpleDirectedWeightedGraph<SRM, DefaultWeightedEdge> net)
+  {
+    StrongConnectivityAlgorithm<String, DefaultWeightedEdge> scAlg =
+        new KosarajuStrongConnectivityInspector(net);
+
+    // a graph is said to be strongly connected if every vertex is reachable from every other vertex
+    List<Graph<String, DefaultWeightedEdge>> stronglyConnectedSubgraphs = scAlg.getStronglyConnectedComponents();
+
+    List<Integer> sc = new ArrayList<>(stronglyConnectedSubgraphs.size());
+
+    // prints the strongly connected components
+    for (int i = 0; i < stronglyConnectedSubgraphs.size(); i++)
+      if (stronglyConnectedSubgraphs.get(i).vertexSet().size()>1)
+        sc.add(stronglyConnectedSubgraphs.get(i).vertexSet().size());
+
+    Collections.sort(sc, Ordering.natural().reversed());
+    if (sc.size()>2)
+      System.out.print("");
+
+    Map<String, Object> props = new HashMap<>();
+    props.put("SCC: length", stronglyConnectedSubgraphs.size());
+    props.put("SCC: node size", sc.toArray(new Integer[sc.size()]));
+    props.put("Network: node size", net.vertexSet().size());
+    props.put("Network: edge size", net.edgeSet().size());
+
+//    BronKerboschCliqueFinder<SRM, DefaultWeightedEdge> clique = new BronKerboschCliqueFinder(net);
+    return props;
   }
 }
 

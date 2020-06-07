@@ -367,13 +367,13 @@ public class mzMLReader extends mzReader
     return out;
   }
   public static MultiTreeTable<Float, Float, SRMGroup> extractTransitionXICs(
-      String root, String filename, Tolerance tol, float dRT, MultiTreeTable<Float, Float, SRMGroup> groups,
+      String filename, Tolerance tol, float dRT, MultiTreeTable<Float, Float, SRMGroup> groups,
       float span_overlap, boolean keep_xic, boolean keep_zero) throws IOException
   {
     // looping through the scans
-    System.out.println("Reading "+root+"/"+filename+"...");
+    System.out.println("Reading "+filename+"...");
 
-    MzMLUnmarshaller mzml = new MzMLUnmarshaller(new File(root+"/"+filename), false, null);
+    MzMLUnmarshaller mzml = new MzMLUnmarshaller(new File(filename), false, null);
     // looping through the scans
     MzMLObjectIterator<uk.ac.ebi.jmzml.model.mzml.Spectrum> spectrumIterator = mzml.unmarshalCollectionFromXpath("/run/spectrumList/spectrum", uk.ac.ebi.jmzml.model.mzml.Spectrum.class);
 

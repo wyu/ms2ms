@@ -1,7 +1,6 @@
 package org.ms2ms.data.ms;
 
 import com.google.common.collect.*;
-import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.expasy.mzjava.proteomics.ms.ident.PeptideMatch;
 import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.SimpleDirectedWeightedGraph;
@@ -13,10 +12,8 @@ import org.ms2ms.utils.Tools;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
+import java.io.Writer;
+import java.util.*;
 
 /**
  * Created by yuw on 2/24/16.
@@ -24,7 +21,8 @@ import java.util.List;
 public class ProteinID implements Comparable<ProteinID>, Binary
 {
   public static class DistinctPeptideDesendComparator implements Comparator<ProteinID> {
-    public int compare(ProteinID o1, ProteinID o2) {
+    public int compare(ProteinID o1, ProteinID o2)
+    {
       return o1 != null && o2 != null ? Double.compare(o2.getSeqMatch().keySet().size(), o1.getSeqMatch().keySet().size()) : 0;
     }
   }
@@ -32,6 +30,7 @@ public class ProteinID implements Comparable<ProteinID>, Binary
   private Long                           mID;
   private Double                         mBestQVal, mProteoSimilary;
   private String                         mSequence, mAccession, mGene, mName;
+  private Map<String, Object>            mNetworkStats;
 
   private SimpleDirectedWeightedGraph<SRM, DefaultWeightedEdge> mNetwork;
 
@@ -198,11 +197,18 @@ public class ProteinID implements Comparable<ProteinID>, Binary
     // create a new network
     mNetwork = new SimpleDirectedWeightedGraph<>(DefaultWeightedEdge.class);
     List<Float> traces = new ArrayList<>(getCompositeSRMGroup().getSRMs().keySet());
+    traces.remove(0f);
 
     for (int i = 0; i < traces.size(); i++) {
-      SRM x = getCompositeSRMGroup().getSRM(traces.get(i)); mNetwork.addVertex(x);
+      SRM x = getCompositeSRMGroup().getSRM(traces.get(i));
+      if (!Tools.isSet(x.getXIC()) || x.getXIC().size()<5) continue;
+
+      mNetwork.addVertex(x);
       for (int j = 0; j < traces.size(); j++) {
-        SRM y = getCompositeSRMGroup().getSRM(traces.get(j)); mNetwork.addVertex(y);
+        SRM y = getCompositeSRMGroup().getSRM(traces.get(j));
+        if (!Tools.isSet(y.getXIC()) || y.getXIC().size()<5) continue;
+
+        mNetwork.addVertex(y);
         if (i != j) {
           // calc the similarity
           double dp = Similarity.dp_points(x.getXIC(), y.getXIC());
@@ -210,7 +216,25 @@ public class ProteinID implements Comparable<ProteinID>, Binary
         }
       }
     }
+    if (mNetwork!=null && Tools.isSet(mNetwork.edgeSet())) mNetworkStats = SRM.inspectNetwork(mNetwork);
+
     return this;
+  }
+  public static void headerProteinID(Writer w) throws IOException
+  {
+    w.write("Accession\tNumSRM\tsrms\tsrm.qual\tProteoSim\tNetV\tNetE\tSCC\tSCC1\n");
+  }
+  public void printProteinIDs(Writer w) throws IOException
+  {
+    w.write(getAccession()+"\t");
+    w.write((Tools.isSet(getSRMGroups())?getSRMGroups().size():0)+"\t");
+    w.write(getExpectedTransitionCounts()+"\t");
+    w.write(getQualifiedTransitionCounts(1000, 75)+"\t");
+    w.write(Tools.d2s(getProteoSimilarity(),3)+"\t");
+    w.write((mNetwork!=null?mNetwork.vertexSet().size():0)+"\t");
+    w.write((mNetwork!=null?mNetwork.edgeSet().size():0)+"\t");
+    w.write((mNetworkStats!=null?((int )mNetworkStats.get("SCC: length")):0)+"\t");
+    w.write((mNetworkStats!=null && mNetworkStats.get("SCC: node size")!=null? ((int[] )mNetworkStats.get("SCC: node size"))[0]:0)+"\n");
   }
   @Override
   public void write(DataOutput ds) throws IOException
