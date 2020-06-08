@@ -227,7 +227,9 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
       {
         // interpolate from the existing array
         Point p = Points.interpolate(getXIC(), x, false);
-        if (p!=null) pts.add(new LcMsPoint(p));
+        if (p==null) p = new Point(x, 0);
+
+        pts.add(new LcMsPoint(p));
       }
       mXIC = (List )Tools.dispose(mXIC);
       mXIC = pts;

@@ -531,7 +531,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     w.write((mNetwork!=null?mNetwork.vertexSet().size():0)+"\t");
     w.write((mNetwork!=null?mNetwork.edgeSet().size():0)+"\t");
     w.write((mNetworkStats!=null?((int )mNetworkStats.get("SCC: length")):0)+"\t");
-    w.write((mNetworkStats!=null && mNetworkStats.get("SCC: node size")!=null? ((int[] )mNetworkStats.get("SCC: node size"))[0]:0)+"\t");
+    w.write((mNetworkStats!=null && mNetworkStats.get("SCC: node size")!=null? ((Integer[] )mNetworkStats.get("SCC: node size"))[0]:0)+"\t");
   }
   // replace the fragment mz of the transitions with random pick from all fragments
   public SRMGroup mutate(ListMultimap<Integer, Float> frag_bank, Random rnd)
@@ -650,13 +650,13 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     SRMGroup protein     = new SRMGroup("Summary");
 
     // create the composite trace
-    TreeMultimap<Float, Double> rt_ai = TreeMultimap.create();
+//    TreeMultimap<Float, Double> rt_ai = TreeMultimap.create();
     Range<Float> window = Range.closed(settings.getSpan()*-1, settings.getSpan());
     for (SRMGroup group : groups)
       if (Strs.isA(group.getSequence(), peptides))
       {
         protein_id.addSRMGroup(group, group.getSequence());
-        if (group.getCompositeSRM()!=null && Tools.isSet(group.getCompositeSRM().getXIC()))
+        if (group.getCompositeSRM()!=null && Tools.isSet(group.getCompositeSRM().getXIC()) && group.getCompositeSRM().getFeature()!=null)
         {
           protein.getSRMs().put(group.getMz(), group.getCompositeSRM().shift(window, settings.getGridSize(),
               (float )group.getCompositeSRM().getFeature().getRT()));

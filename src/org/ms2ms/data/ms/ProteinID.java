@@ -234,7 +234,7 @@ public class ProteinID implements Comparable<ProteinID>, Binary
     w.write((mNetwork!=null?mNetwork.vertexSet().size():0)+"\t");
     w.write((mNetwork!=null?mNetwork.edgeSet().size():0)+"\t");
     w.write((mNetworkStats!=null?((int )mNetworkStats.get("SCC: length")):0)+"\t");
-    w.write((mNetworkStats!=null && mNetworkStats.get("SCC: node size")!=null? ((int[] )mNetworkStats.get("SCC: node size"))[0]:0)+"\n");
+    w.write((mNetworkStats!=null && mNetworkStats.get("SCC: node size")!=null? ((Integer[] )mNetworkStats.get("SCC: node size"))[0]:0)+"\n");
   }
   @Override
   public void write(DataOutput ds) throws IOException
