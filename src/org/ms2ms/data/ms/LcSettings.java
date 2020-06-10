@@ -3,6 +3,7 @@ package org.ms2ms.data.ms;
 import org.expasy.mzjava.core.ms.AbsoluteTolerance;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.ms2ms.utils.Settings;
+import org.ms2ms.utils.Strs;
 
 /**
  * Created with IntelliJ IDEA.
@@ -13,6 +14,8 @@ import org.ms2ms.utils.Settings;
  */
 public class LcSettings extends Settings
 {
+  public enum calibration  { loess, SG5, pt2 }
+
   public static final String KY_RT_TOL = "RTTol";      // likely variation
   public static final String KY_LC_WIDTH = "Expected LC peak width at half-height";
   public static final String KY_RT_SPAN = "RT Window";  // max variation
@@ -24,6 +27,8 @@ public class LcSettings extends Settings
   public static final String KY_PEAK_BASE  = "Centroid bound by % apex";
   public static final String KY_PEAK_MULTIPLE  = "outer bound as multiple of LC width";
   public static final String KY_GRID_SIZE  = "grid size";
+  public static final String KY_RTCAL  = "RT calibration method";
+  public static final String KY_BANDWIDTH  = "Loess Bandwidth";
 
   public static LcSettings nLC = null;
   static
@@ -39,8 +44,18 @@ public class LcSettings extends Settings
   public float     getMinApex()            { return getFloat(KY_PEAK_APEX); }
   public float     getBaseRI()             { return getFloat(KY_PEAK_BASE); }
   public float     getOuterMultiple()      { return getFloat(KY_PEAK_MULTIPLE); }
+  public float     getBandwidth()          { return getFloat(KY_BANDWIDTH); }
+
   public int       getApexPts()            { return getInteger(KY_APEX_PTS); }
   public int       getGridSize()           { return getInteger(KY_GRID_SIZE); }
+
+  public boolean   isCalMethod(     calibration... s)
+  {
+    for (calibration c : s)
+      if (Strs.equals(c.name(), getString(KY_RTCAL))) return true;
+
+    return false;
+  }
 
   public boolean toSmoothRT() { return getBoolean(KY_SMOOTHRT); }
   public boolean useiRT() { return getBoolean(KY_USE_IRT); }
@@ -51,8 +66,11 @@ public class LcSettings extends Settings
   public LcSettings setMinApex(           float s) { set(KY_PEAK_APEX, s); return this; }
   public LcSettings setBaseRI(            float s) { set(KY_PEAK_BASE, s); return this; }
   public LcSettings setOuterMultiple(     float s) { set(KY_PEAK_MULTIPLE, s); return this; }
+  public LcSettings setBandwidth(         float s) { set(KY_BANDWIDTH, s); return this; }
+
   public LcSettings setApexPts(             int s) { set(KY_APEX_PTS, s); return this; }
   public LcSettings setGridSize(            int s) { set(KY_GRID_SIZE, s); return this; }
+  public LcSettings setCalMethod(   calibration s) { set(KY_RTCAL, s.name()); return this; }
 
   public LcSettings toSmoothRT(         boolean s) { set(KY_SMOOTHRT, s); return this; }
   public LcSettings useiRT(             boolean s) { set(KY_USE_IRT, s); return this; }

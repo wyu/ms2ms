@@ -1,6 +1,9 @@
 package org.ms2ms.data.ms;
 
 import com.google.common.collect.*;
+import org.apache.commons.math.MathException;
+import org.apache.commons.math.analysis.interpolation.LoessInterpolator;
+import org.apache.commons.math.analysis.polynomials.PolynomialSplineFunction;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.jgrapht.graph.DefaultWeightedEdge;
@@ -20,6 +23,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.*;
+
+import static org.ms2ms.math.Stats.closed;
 
 public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 {
@@ -441,7 +446,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public static void header_xic(Writer w) throws IOException
   {
     // xic.ai~xic.rt|FragMz
-    w.write("\"Peptide\\tFragMz\txic.rt\txic.ai\n");
+    w.write("Peptide\tFragMz\txic.rt\txic.ai\txic.mz\n");
   }
   public SRMGroup print_xic(Writer w, float... frags) throws IOException
   {
@@ -454,7 +459,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         w.write(getSequence()+"\t");
         w.write(Tools.d2s(frag,4)             +"\t");
         w.write(Tools.d2s(pk.getRT(),3)       +"\t");
-        w.write(Tools.d2s(pk.getIntensity(),2)+"\n");
+        w.write(Tools.d2s(pk.getIntensity(),2)+"\t");
+        w.write(Tools.d2s(pk.getMz(),3)       +"\n");
       }
 
     return this;
@@ -739,86 +745,54 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     MultiTreeTable<Float, Float, SRMGroup> mapped = MultiTreeTable.create();
     for (SRMGroup grp : lib.values())
     {
-//      if (grp.getSequence().indexOf("AAEAAINILK")>=0)
-//        System.out.println();
-//      float rt0 = (use_iRT?grp.getIRT():grp.getReportedRT());
-
       grp.setRT(Peaks.interpolateForY(cals, (use_iRT?grp.getIRT():grp.getReportedRT())));
       if (!Double.isInfinite(grp.getRT())) mapped.put(grp.getMz(), grp.getRT(), grp);
-
-//      Peak pk   = new Peak(rt0, 0d);
-//      int index = Collections.binarySearch(cals, pk), left, right;
-//      if (index >= 0)
-//      {
-//        left = index; right = index;
-//      }
-//      else  // (-(insertion point) - 1)
-//      {
-//        index = -1 * index - 1;
-//        left = (index > 0 ? index-1 : -1);
-//        right = (index < cals.size() ? index : -1);
-//      }
-//      if (left>=0 && right>=left && right<cals.size())
-//      {
-//        if (left==right) grp.setRT((float )cals.get(left).getIntensity());
-//        else
-//        {
-//          grp.setRT(Peaks.interpolateForY(cals.get(left), cals.get(right), (double )rt0));
-//        }
-//
-//        // add the transition with the mapped RT
-//        mapped.put(grp.getMz(), grp.getRT(), grp);
-//      } else
-//      {
-//        grp.setRT(0f);
-//      }
     }
     // remove the old one to save the memory
     lib = Tools.dispose(lib);
 
     return mapped;
   }
-//  public static MultiTreeTable<Float, Float, SRMGroup> fit(MultiTreeTable<Float, Float, SRMGroup> lib, List<Peak> cals, boolean use_iRT)
-//  {
-//    MultiTreeTable<Float, Float, SRMGroup> mapped = MultiTreeTable.create();
-//    for (SRMGroup grp : lib.values())
-//    {
-////      if (grp.getSequence().indexOf("AAEAAINILK")>=0)
-////        System.out.println();
-//      float rt0 = (use_iRT?grp.getIRT():grp.getReportedRT());
-//
-//      Peak pk   = new Peak(rt0, 0d);
-//      int index = Collections.binarySearch(cals, pk), left, right;
-//      if (index >= 0)
-//      {
-//        left = index; right = index;
-//      }
-//      else  // (-(insertion point) - 1)
-//      {
-//        index = -1 * index - 1;
-//        left = (index > 0 ? index-1 : -1);
-//        right = (index < cals.size() ? index : -1);
-//      }
-//      if (left>=0 && right>=left && right<cals.size())
-//      {
-//        if (left==right) grp.setRT((float )cals.get(left).getIntensity());
-//        else
-//        {
-//          grp.setRT(Peaks.interpolateForY(cals.get(left), cals.get(right), (double )rt0));
-//        }
-//
-//        // add the transition with the mapped RT
-//        mapped.put(grp.getMz(), grp.getRT(), grp);
-//      } else
-//      {
-//        grp.setRT(0f);
-//      }
-//    }
-//    // remove the old one to save the memory
-//    lib = Tools.dispose(lib);
-//
-//    return mapped;
-//  }
+  public static MultiTreeTable<Float, Float, SRMGroup> calibrate(LcSettings setting, MultiTreeTable<Float, Float, SRMGroup> lib, List<Peak> cals, boolean use_iRT)
+  {
+    MultiTreeTable<Float, Float, SRMGroup> mapped = MultiTreeTable.create();
+    if (setting.isCalMethod(LcSettings.calibration.pt2, LcSettings.calibration.SG5))
+    {
+      // smooth the dRT/RT curve if asked
+      if (setting.toSmoothRT()) cals = Peaks.smoothBySG5(cals);
+
+      for (SRMGroup grp : lib.values())
+      {
+        grp.setRT(Peaks.interpolateForY(cals, (use_iRT?grp.getIRT():grp.getReportedRT())));
+        if (!Double.isInfinite(grp.getRT())) mapped.put(grp.getMz(), grp.getRT(), grp);
+      }
+    } else if (setting.isCalMethod(LcSettings.calibration.loess))
+    {
+      double[] xs = new double[cals.size()], ys = new double[cals.size()];
+      for (int i=0; i<cals.size(); i++) { xs[i] = cals.get(i).getMz(); ys[i] = cals.get(i).getIntensity(); }
+
+      try
+      {
+        PolynomialSplineFunction poly = new LoessInterpolator(setting.getBandwidth(), 2).interpolate(xs, ys);
+        // compute the interpolated value
+        Range<Double> bound = closed(xs);
+        for (SRMGroup grp : lib.values())
+        {
+          double x = use_iRT?grp.getIRT():grp.getReportedRT();
+          grp.setRT(bound.contains(x)?poly.value(x):0);
+          if (grp.getRT()>0) mapped.put(grp.getMz(), grp.getRT(), grp);
+        }
+      }
+      catch (MathException e)
+      {
+        throw new RuntimeException("Something is wrong with loess regression!", e);
+      }
+    }
+    // remove the old one to save the memory
+    lib = Tools.dispose(lib);
+
+    return mapped;
+  }
   // write the updated transitions as a new library
   public static void writeTransitions(Collection<SRMGroup> groups, String filename)
   {

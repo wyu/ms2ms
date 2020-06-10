@@ -656,6 +656,30 @@ public class Peaks {
     }
     return Double.NEGATIVE_INFINITY;
   }
+//  public static <T extends Peak> Double regressForY(List<T> cals, double rt0)
+//  {
+//    Peak pk   = new Peak(rt0, 0d);
+//    int index = Collections.binarySearch(cals, pk), left, right;
+//    if (index >= 0)
+//    {
+//      left = index; right = index;
+//    }
+//    else  // (-(insertion point) - 1)
+//    {
+//      index = -1 * index - 1;
+//      left = (index > 0 ? index-1 : -1);
+//      right = (index < cals.size() ? index : -1);
+//    }
+//    if (left>=0 && right>=left && right<cals.size())
+//    {
+//      if (left==right) return cals.get(left).getIntensity();
+//      else
+//      {
+//        return Peaks.interpolateForY(cals.get(left), cals.get(right), rt0);
+//      }
+//    }
+//    return Double.NEGATIVE_INFINITY;
+//  }
   public static <T extends Peak> Double interpolateForX(T t0, T t1, Double y) {
     if (t0 == null ||
         t1 == null ||

@@ -30,7 +30,8 @@ public class MsReaderTest extends TestAbstract
   @Test
   public void readFAIMSFolder() throws Exception
   {
-    String  root = "/Users/kfvf960/Downloads/mzML", out="/scans";
+//    String  root = "/Users/kfvf960/Downloads/mzML", out="/scans";
+    String  root = "/Users/kfvf960/OneDrive - AZCollaboration/TechDev/DIA/PoC_Alignment/LLOQ23_24_25";
     File[] files = new File(root).listFiles();
 
     for (File file : files)
