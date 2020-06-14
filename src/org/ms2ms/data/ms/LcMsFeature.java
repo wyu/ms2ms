@@ -10,7 +10,7 @@ public class LcMsFeature extends LcMsPoint
   private double mArea;
   private double mAbundance;
   private double mApex;
-  private double mMzStdev, mMzStdevEx;
+  private double mMzStdev=Double.NaN, mMzStdevEx=Double.NaN;
   private double mInitialCentroidRt;
 
   public LcMsFeature() {};

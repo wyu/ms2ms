@@ -157,7 +157,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     if (keep_zero || intensity>0)
     {
       if (mSRMs.get(frag)==null) mSRMs.put(frag, new SRM());
-      return mSRMs.get(frag).addXIC(rt, intensity!=null? (float )intensity.doubleValue():0f, mz!=null? (float)mz.doubleValue():0f, scan).setFillTime(fill);
+      return mSRMs.get(frag).addXIC(rt, intensity!=null? (float )intensity.doubleValue():0f,
+          mz!=null? (float)mz.doubleValue():0f, scan, 1E6*(mz-frag)/frag).setFillTime(fill);
     }
     return null;
   }
@@ -240,8 +241,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   }
   public SRMGroup composite()
   {
-    TreeMultimap<Float, Double> rt_ai = TreeMultimap.create();
+    TreeMultimap<Float, Double> rt_ai = TreeMultimap.create(), rt_pm = TreeMultimap.create();
     HashMap<Float, Integer>     rt_sn = new HashMap<>();
+
     for (Float frag : mSRMs.keySet())
       if (frag>0) // only the MS2 XIC
         for (LcMsPoint pk : mSRMs.get(frag).getXIC())
@@ -249,6 +251,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
           {
             rt_ai.put((float )pk.getX(), Math.log10(pk.getY()));
             rt_sn.put((float )pk.getX(), pk.getScan());
+            if (pk.getPPM()!=Float.NaN) rt_pm.put((float )pk.getX(), pk.getPPM());
           }
 
     // create the composite trace
@@ -266,7 +269,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
           }
 
       float v = (float )Math.pow(10d, Stats.sum(rt_ai.get(rt))/n);
-      mSRMs.get(0f).addXIC(rt, v, 0f, rt_sn.get(rt)*-1);
+      mSRMs.get(0f).addXIC(rt, v, 0f, rt_sn.get(rt)*-1, Stats.sum(rt_pm.get(rt))/n);
     }
 
     return this;
@@ -347,7 +350,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
           if (Tools.isSet(injects) && srm.getFeature()!=null)
             srm.getFeature().setFillTime(Points.centroid(injects));
           if (Tools.isSet(mzs) && srm.getFeature()!=null)
-            srm.getFeature().setMz(      Points.centroid(mzs));
+            srm.getFeature().setMz(Points.centroid(mzs), srm.getFragmentMz());
         }
       }
     }
@@ -355,58 +358,46 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   }
   public SRMGroup centroidByPeakBoundry()
   {
-    List<Point> pts = new ArrayList(), mzs = new ArrayList(), mex = new ArrayList();
+    List<Point>  pts  = new ArrayList(),   mzs = new ArrayList();
+    List<Double> devi = new ArrayList<>(), mex = new ArrayList(), devi0 = new ArrayList<>(), mex0 = new ArrayList();
     for (Float frag : mSRMs.keySet())
     {
       SRM srm = mSRMs.get(frag);
       if (srm.getFeature()!=null && Tools.isSet(srm.getPeakBoundary()))
       {
-        pts.clear(); mzs.clear(); mex.clear();
+        pts.clear(); mzs.clear(); mex.clear(); devi.clear();
         for (LcMsPoint p : srm.getXIC())
           if (p.getIntensity()>0 && srm.getPeakBoundary().contains(p.getX()))
           {
             pts.add(new Point(p.getX(),  p.getIntensity()));
             mzs.add(new Point(p.getMz(), p.getIntensity()));
+            if (frag>0) devi.add(p.getPPM());
           } else
           {
             // outside of the peak boundary
-            if (p.getMz()>0) mex.add(new Point(p.getMz(), p.getIntensity()));
+            if (p.getMz()>0 && frag>0) mex.add(p.getPPM());
           }
 
         if (Tools.isSet(pts))
         {
           srm.getFeature().setInitialCentroidRt(srm.getFeature().getX());
           srm.getFeature().setX( Points.centroid(pts));
-          srm.getFeature().setMz(Points.centroid(mzs));
-          // calc the stdev
-          if (frag!=0)
-          {
-            List<Double> devi = new ArrayList<>(mzs.size());
-
-            for (Point p : mzs) devi.add(1E6*(p.getX()-srm.getFeature().getMz())/srm.getFeature().getMz());
-            srm.getFeature().setMzStdev(Stats.stdev(devi));
-
-            devi = (List )Tools.dispose(devi);
-          }
+          srm.getFeature().setMz(Points.centroid(mzs), srm.getFragmentMz());
         }
-        if (Tools.isSet(mex))
-        {
-          Double m0 = Points.centroid(mex);
-          // calc the stdev
-          if (frag!=0 && m0!=null && m0!=0)
-          {
-            List<Double> devi = new ArrayList<>(mex.size());
-
-            for (Point p : mex) devi.add(1E6*(p.getX()-m0)/m0);
-            srm.getFeature().setMzStdevEx(Stats.stdev(devi));
-
-            devi = (List )Tools.dispose(devi);
-          }
-        }
+        // on the individual SRM
+        srm.getFeature().setMzStdev(Tools.isSet(devi) && devi.size()>2?Stats.stdev(devi):Double.NaN);
+        srm.getFeature().setMzStdevEx(Tools.isSet(mex) && mex.size()>2?Stats.stdev(mex ):Double.NaN);
+        // add them to the composite
+        devi0.addAll(devi); mex0.addAll(mex);
       }
     }
-    pts = (List )Tools.dispose(pts);
-    mzs = (List )Tools.dispose(mzs);
+    // set the composite
+    getSRM(0f).getFeature().setMzStdev(Tools.isSet(devi0) && devi0.size()>2?Stats.stdev(devi0):Double.NaN);
+    getSRM(0f).getFeature().setMzStdevEx(Tools.isSet(mex0) && mex0.size()>2?Stats.stdev(mex0 ):Double.NaN);
+
+    pts = (List )Tools.dispose(pts);  mzs  = (List )Tools.dispose(mzs);
+    devi= (List )Tools.dispose(devi); devi0= (List )Tools.dispose(devi0);
+    mex = (List )Tools.dispose(mex);  mex0 = (List )Tools.dispose(mex0);
 
     return this;
   }
@@ -463,12 +454,12 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public static void headerXIC(Writer w) throws IOException
   {
     headerGroup(w);
-    w.write("FragMz\tscan\txic.rt\txic.ai\tinjection\timputed\txic.mz\n");
+    w.write("FragMz\tscan\txic.rt\txic.ai\tinjection\timputed\txic.ppm\n");
   }
   public static void header_xic(Writer w) throws IOException
   {
     // xic.ai~xic.rt|FragMz
-    w.write("Peptide\tFragMz\txic.rt\txic.ai\txic.mz\n");
+    w.write("Peptide\tFragMz\txic.rt\txic.ai\txic.ppm\n");
   }
   public SRMGroup print_xic(Writer w, float... frags) throws IOException
   {
@@ -482,7 +473,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         w.write(Tools.d2s(frag,4)             +"\t");
         w.write(Tools.d2s(pk.getRT(),3)       +"\t");
         w.write(Tools.d2s(pk.getIntensity(),2)+"\t");
-        w.write(Tools.d2s(pk.getMz(),3)       +"\n");
+        w.write(Tools.d2s(pk.getPPM(),2)       +"\n");
       }
 
     return this;
@@ -506,7 +497,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
           w.write(Tools.d2s(pk.getIntensity(),2)+"\t");
           w.write(Tools.d2s(pk.getFillTime(),2)+"\t");
           w.write(pk.isImputed()                   +"\t");
-          w.write(Tools.d2s(pk.getMz(),3)       +"\n");
+          w.write(Tools.d2s(pk.getPPM(),2)      +"\n");
         }
 
     return this;
@@ -514,7 +505,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public static void headerFeatures(Writer w) throws IOException
   {
     headerGroup(w);
-    w.write("FragMz\tNumPts\txicL\txicR\tPkEx\tPkExFull\tPkExAll\tfeature.rt\tfeature.ai\tfeature.rt0\tinjection\tfeature.mz\tfeature.apex\tfeature.area\tppm.stdev\tppm.stdev.ex\tlower\tupper\n");
+    w.write("FragMz\tNumPts\txicL\txicR\tPkEx\tPkExFull\tPkExAll\tfeature.rt\tfeature.ai\tfeature.rt0\tinjection\tfeature.mz\tfeature.apex\tfeature.area\tfeature.ppm\tppm.stdev\tppm.stdev.ex\tlower\tupper\n");
   }
   public SRMGroup printFeatures(Writer w) throws IOException
   {
@@ -538,6 +529,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         w.write(Tools.d2s(srm.getFeature().getMz(),4)+"\t");
         w.write(Tools.d2s(srm.getFeature().getApex(),2)+"\t");
         w.write(Tools.d2s(srm.getFeature().getArea(),2)+"\t");
+        w.write(Tools.d2s(srm.getFeature().getPPM(),2)+"\t");
         w.write(Tools.d2s(srm.getFeature().getMzStdev(),2)+"\t");
         w.write(Tools.d2s(srm.getFeature().getMzStdevEx(),2)+"\t");
         w.write(Tools.d2s(srm.getPeakBoundary()!=null?srm.getPeakBoundary().lowerEndpoint():0,2)+"\t");

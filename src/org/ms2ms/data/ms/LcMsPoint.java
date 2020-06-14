@@ -5,7 +5,7 @@ import org.ms2ms.utils.Tools;
 
 public class LcMsPoint extends Point
 {
-  private float  mMz=0;
+  private float  mMz=0, mPPM=Float.NaN;
   private float  mFillTime;
   private int     mScan=0;
   private boolean mImputed=false;
@@ -16,21 +16,25 @@ public class LcMsPoint extends Point
   {
     super(rt, ai);
   }
-  public LcMsPoint(double rt, double ai, float mz, int scan)
+  public LcMsPoint(double rt, double ai, float mz, int scan, float ppm)
   {
     super(rt, ai);
-    mMz=mz; mScan=scan;
+    mMz=mz; mScan=scan; mPPM=ppm;
   }
 
   public double getMz()        { return mMz; }
   public double getRT()        { return getX(); }
+  public double getPPM()       { return mPPM; }
 
   public double getIntensity() { return getY(); }
   public double getFillTime()  { return mFillTime; }
   public int    getScan()      { return mScan; }
   public boolean isImputed()   { return mImputed; }
 
+  public LcMsPoint setPPM(      float s) { mPPM  =s;  return this; }
   public LcMsPoint setMz(       Double s) { mMz  =(s!=null?(float )s.doubleValue():0f);  return this; }
+  public LcMsPoint setMz(Double s, float f) { setMz(s); mPPM = (s!=null && f!=0)?(float )(1E6*(s-f)/f):Float.NaN;  return this; }
+
   public LcMsPoint setScan(        int s) { mScan=s;  return this; }
   public LcMsPoint setRT(       double s) { setX( s); return this; }
 

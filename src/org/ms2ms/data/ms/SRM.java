@@ -6,7 +6,6 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.Range;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.jgrapht.Graph;
-import org.jgrapht.alg.clique.BronKerboschCliqueFinder;
 import org.jgrapht.alg.connectivity.KosarajuStrongConnectivityInspector;
 import org.jgrapht.alg.interfaces.StrongConnectivityAlgorithm;
 import org.jgrapht.graph.DefaultWeightedEdge;
@@ -61,14 +60,14 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
     if (ai>0) mXIC.add(new LcMsPoint(rt,ai));
     return Tools.isSet(mXIC)?mXIC.get(mXIC.size()-1):null;
   }
-  public LcMsPoint addXIC(float rt, float ai, float mz, int scan)
+  public LcMsPoint addXIC(float rt, float ai, float mz, int scan, double ppm)
   {
     if (mXIC==null) mXIC = new ArrayList<>();
-    mXIC.add(new LcMsPoint(rt,ai,mz,scan)); return mXIC.get(mXIC.size()-1);
+    mXIC.add(new LcMsPoint(rt,ai,mz,scan, (float )ppm)); return mXIC.get(mXIC.size()-1);
   }
   public LcMsPoint addXIC(double rt, double ai, double mz, int scan)
   {
-    return addXIC((float )rt, (float )ai, (float )mz, scan);
+    return addXIC((float )rt, (float )ai, (float )mz, scan, Float.NaN);
   }
 
   public SRM setFeature(Point s) { if (s!=null) mFeature = new LcMsFeature(s); return this; }
