@@ -127,12 +127,21 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
 
     return this;
   }
-  public List<Peak> detectPeak()
+  // center = the targeted RT,
+  // span   = the span of the RT window where the peaks are expected
+  public List<Peak> detectPeak(float center, float span)
   {
-    Point base = Points.basePoint(getXIC());
+    double base_deri = 0d;
+    for (Point p : getXIC())
+      if (Math.abs(p.getX()-center)<=span && p.getY()>base_deri) { base_deri=p.getY(); }
+
+    // require the peak to be at least 10% of the base
+    base_deri /= 10d;
+
     List<Point> deri = Points.deriv1stBySG5(getXIC());
     List<Peak> pks = new ArrayList<>();
-    double deri_max=0, base_deri = base.getY()/10d;
+
+    double deri_max=0;
     if (Tools.isSet(deri))
       for (int i=0; i<deri.size()-1; i++)
       {

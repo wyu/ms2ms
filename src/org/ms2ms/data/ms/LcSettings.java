@@ -29,6 +29,7 @@ public class LcSettings extends Settings
   public static final String KY_GRID_SIZE  = "grid size";
   public static final String KY_RTCAL  = "RT calibration method";
   public static final String KY_BANDWIDTH  = "Loess Bandwidth";
+  public static final String KY_QUAN_SPAN  = "RT Window during quantitation";
 
   public static LcSettings nLC = null;
   static
@@ -45,6 +46,7 @@ public class LcSettings extends Settings
   public float     getBaseRI()             { return getFloat(KY_PEAK_BASE); }
   public float     getOuterMultiple()      { return getFloat(KY_PEAK_MULTIPLE); }
   public float     getBandwidth()          { return getFloat(KY_BANDWIDTH); }
+  public float     getQuanSpan()           { return getFloat(KY_QUAN_SPAN); }
 
   public int       getApexPts()            { return getInteger(KY_APEX_PTS); }
   public int       getGridSize()           { return getInteger(KY_GRID_SIZE); }
@@ -67,6 +69,7 @@ public class LcSettings extends Settings
   public LcSettings setBaseRI(            float s) { set(KY_PEAK_BASE, s); return this; }
   public LcSettings setOuterMultiple(     float s) { set(KY_PEAK_MULTIPLE, s); return this; }
   public LcSettings setBandwidth(         float s) { set(KY_BANDWIDTH, s); return this; }
+  public LcSettings setQuanSpan(          float s) { set(KY_QUAN_SPAN, s); return this; }
 
   public LcSettings setApexPts(             int s) { set(KY_APEX_PTS, s); return this; }
   public LcSettings setGridSize(            int s) { set(KY_GRID_SIZE, s); return this; }
