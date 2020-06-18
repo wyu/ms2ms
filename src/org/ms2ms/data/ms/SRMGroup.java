@@ -34,7 +34,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   private Map<String, Object> mNetworkStats;
 
   private Point mCompositeFeature0=null;
-  private List<Peak> mCompositePeaks=null;
+  private List<LcMsFeature> mCompositePeaks=null;
 
 //  private TreeMap<Float, Float> mTransitions;
 //  private TreeMultimap<Float, Point> mXIC;
@@ -338,10 +338,11 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     if (cpo!=null) {
       // check the alternative peaks by 1st derivatives
       mCompositePeaks = mSRMs.get(0f).detectPeak(getRT(), quan_span);
+      // determine the best peak from this XIC trace
       if (Tools.isSet(mCompositePeaks)) {
         double best = Double.MAX_VALUE;
-        Peak closed2expected = null, centroid_found = null;
-        for (Peak pk : mCompositePeaks) {
+        LcMsFeature closed2expected = null, centroid_found = null;
+        for (LcMsFeature pk : mCompositePeaks) {
           if (Math.abs(pk.getMz() - cpo.getX()) <= rt_span / 4d) centroid_found = pk;
           if (Math.abs(pk.getMz() - getRT()) < best) {
             closed2expected = pk;
@@ -385,7 +386,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   }
   public SRMGroup centroidByPeakBoundry()
   {
-    List<Point>  pts  = new ArrayList(),   mzs = new ArrayList();
+    List<Point>  pts  = new ArrayList(),   mzs = new ArrayList(), ijs = new ArrayList<>();
     List<Double> devi = new ArrayList<>(), mex = new ArrayList(), devi0 = new ArrayList<>(), mex0 = new ArrayList();
     for (Float frag : mSRMs.keySet())
     {
@@ -399,6 +400,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
             pts.add(new Point(p.getX(),  p.getIntensity()));
             mzs.add(new Point(p.getMz(), p.getIntensity()));
             if (frag>0) devi.add(p.getPPM());
+            if (frag>0 && p.getFillTime()>0) ijs.add(new Point(p.getX(), p.getFillTime()));
           } else
           {
             // outside of the peak boundary
@@ -423,6 +425,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     {
       getSRM(0f).getFeature().setMzStdev(Tools.isSet(devi0) && devi0.size()>2?Stats.stdev(devi0):Double.NaN);
       getSRM(0f).getFeature().setMzStdevEx(Tools.isSet(mex0) && mex0.size()>2?Stats.stdev(mex0 ):Double.NaN);
+      getSRM(0f).getFeature().setFillTime(Tools.isSet(ijs) ? Points.centroid(ijs):Double.NaN);
     }
     else
     {

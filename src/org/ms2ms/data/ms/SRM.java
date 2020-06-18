@@ -129,7 +129,7 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   }
   // center = the targeted RT,
   // span   = the span of the RT window where the peaks are expected
-  public List<Peak> detectPeak(float center, float span)
+  public List<LcMsFeature> detectPeak(float center, float span)
   {
     double base_deri = 0d;
     for (Point p : getXIC())
@@ -139,7 +139,12 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
     base_deri /= 10d;
 
     List<Point> deri = Points.deriv1stBySG5(getXIC());
-    List<Peak> pks = new ArrayList<>();
+    List<LcMsFeature> pks = new ArrayList<>();
+
+    // figure out the background level
+    List<Double> ys = Points.toYs(deri);
+    Collections.sort(ys);
+    double cutoff = ys.get((int )(ys.size()*0.25));
 
     double deri_max=0;
     if (Tools.isSet(deri))
@@ -147,20 +152,21 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
       {
         if (deri.get(i).getY()>deri_max) deri_max=deri.get(i).getY();
 
-//        if (deri.get(i+1).getY()>=0 && deri.get(i  ).getY()>deri.get(i+1).getY() &&
-//            deri.get(i+2).getY()<=0 && deri.get(i+2).getY()>deri.get(i+3).getY())
         if (deri.get(i).getY()>=0 && deri.get(i+1).getY()<=0)
         {
           // the peak top is at the zero-intercept
           Point top = Points.interpolateByY(deri.get(i), deri.get(i+1), 0d);
-          if (deri_max>base_deri)
+          if (deri_max>cutoff)
           {
-            pks.add(new Peak(top.getX(), deri_max)); deri_max=0;
+            pks.add(new LcMsFeature(top.getX(), top.getY(), deri_max));
+            deri_max=0;
           }
         }
       }
 
     deri = (List )Tools.dispose(deri);
+      ys = (List )Tools.dispose(ys);
+
     return pks;
  }
   public SRM clone()
