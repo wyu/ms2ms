@@ -33,8 +33,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   private int mCharge, mQualifiedSRMs;
   private Map<String, Object> mNetworkStats;
 
-  private Point mCompositeFeature0=null;
-  private List<LcMsFeature> mCompositePeaks=null;
+  private LcMsFeature mCompositePeak=null, mCompositeFeature=null;
 
 //  private TreeMap<Float, Float> mTransitions;
 //  private TreeMultimap<Float, Point> mXIC;
@@ -85,13 +84,13 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public float  getSimilarity()   { return mDpSimilarity; }
   public String getSequence()     { return mPeptideSequence; }
   public String getProteinId()    { return mProteinId; }
-  public SRM    getCompositeSRM() { return mSRMs!=null?mSRMs.get(0f):null; }
+  public SRM getComposite() { return mSRMs!=null?mSRMs.get(0f):null; }
 
   public SimpleDirectedWeightedGraph<SRM, DefaultWeightedEdge> getNetwork() { return mNetwork; }
 
   public SRM getCompositeProfile(boolean round2sec)
   {
-    SRM cpo = getCompositeSRM();
+    SRM cpo = getComposite();
 
     if (cpo!=null && Tools.isSet(cpo.getXIC()) && cpo.getFeature()!=null)
     {
@@ -330,46 +329,86 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   }
   public SRMGroup centroid(LcSettings settings)
   {
-    return centroid(settings.getBaseRI(), settings.getPeakWidth()*settings.getOuterMultiple(), settings.getPeakWidth(), settings.getQuanSpan());
+    return centroid(settings.getPeakWidth(), settings.getQuanSpan(), settings.getMinSNR(), settings.getBaseRI());
   }
-  public SRMGroup centroid(double min_ri, float rt_span, float rt_width, float quan_span)
+  public SRMGroup centroid(float rt_width, float quan_span, float minSNR, float min_ri)
   {
-    Point cpo = Points.centroid(mSRMs.get(0f).getXIC(), min_ri, Range.closed(getRT()-rt_span*2d, getRT()+2d*rt_span));
-    if (cpo!=null) {
-      // check the alternative peaks by 1st derivatives
-      mCompositePeaks = mSRMs.get(0f).detectPeak(getRT(), quan_span);
-      // determine the best peak from this XIC trace
-      if (Tools.isSet(mCompositePeaks)) {
-        double best = Double.MAX_VALUE;
-        LcMsFeature closed2expected = null, centroid_found = null;
-        for (LcMsFeature pk : mCompositePeaks) {
-          if (Math.abs(pk.getMz() - cpo.getX()) <= rt_span / 4d) centroid_found = pk;
-          if (Math.abs(pk.getMz() - getRT()) < best) {
-            closed2expected = pk;
-            best = Math.abs(pk.getMz() - getRT());
-          }
-        }
-        if (closed2expected != null && centroid_found != closed2expected)
-        {
-          mCompositeFeature0 = cpo;
-          cpo = Points.centroid(mSRMs.get(0f).getXIC(), min_ri, Range.closed(closed2expected.getMz() - rt_width / 2d, closed2expected.getMz() + rt_width / 2d));
-        }
+    // nothing to do without a composite!
+    if (getComposite()==null) return this;
+
+    // check the alternative peaks by 1st derivatives
+    getComposite().detectPeak(getRT(), quan_span);
+    if (mSRMs.get(-1f)!=null) mSRMs.get(-1f).detectPeak(getRT(), quan_span);
+
+    double outer_span   = ((Tools.back(getComposite().getXIC()).getRT()-Tools.front(getComposite().getXIC()).getRT())-rt_width)/2f;
+    Range<Double> inner = Range.closed(getRT()-(double )quan_span, getRT()+ (double )quan_span),
+                 outer  = Range.closed(getRT()-outer_span, getRT()+outer_span);
+
+    // setup the MS1 list
+    SortedMap<Double, LcMsFeature> rt_ms1 = new TreeMap<>();
+    if (Tools.isSet(getSRM(-1f).getPeaks()))
+      for (LcMsFeature p : getSRM(-1f).getPeaks())
+        if (inner.contains(p.getX()) && p.getSNR()>=minSNR) rt_ms1.put(p.getX(), p);
+
+    // determine the best peak from this XIC trace
+    LcMsFeature selected=null;
+    if (!Tools.isSet(getComposite().getPeaks()))
+    {
+      // nothing!!
+      System.out.print("");
+    }
+    else if (getComposite().getPeaks().size()==1) selected = getComposite().getPeaks().get(0);
+    else
+    {
+      LcMsFeature highest_unbound = null;
+      List<LcMsFeature> inbounds = new ArrayList<>();
+      for (int i=0; i<getComposite().getPeaks().size()-1; i++)
+      {
+        LcMsFeature pk = getComposite().getPeaks().get(i);
+        if (inner.contains(pk.getX())) inbounds.add(pk);
+        if (pk.getY()/getComposite().getPeaks().get(i+1).getY()>=minSNR) break;
+      }
+      for (LcMsFeature pk : getComposite().getPeaks())
+        if (!inner.contains(pk.getX()) && outer.contains(pk.getX())) { highest_unbound = pk; break; }
+
+      if (Tools.isSet(inbounds))
+      {
+        if (inbounds.size()==1) { selected = inbounds.get(0); selected.wasBasedOn(LcMsFeature.criteria.snr); }
+        else if (inbounds.size()>1 && Tools.isSet(rt_ms1))
+          for (LcMsFeature pk : inbounds)
+            if (Tools.isSet(rt_ms1.subMap(pk.getX()-rt_width/5, pk.getX()+rt_width/5)))
+            { selected=pk; selected.wasBasedOn(LcMsFeature.criteria.ms1); break; }
+      }
+      if (selected==null) { selected = highest_unbound; selected.wasBasedOn(LcMsFeature.criteria.outer); }
+      if (selected!=null)
+      {
+        selected.setApexRT(selected.getX()).setAbundance(selected.getY());
+        getComposite().setFeature(selected);
+        // determine the peak boundary
+        getComposite().setPeakBoundary(getComposite().getFeature(), min_ri);
+        // propagate to the individual transition using the same peak boundary
+        centroidTransitions(getComposite().getFeature(), getComposite().getPeakBoundary());
       }
     }
+    return this;
+  }
+  private SRMGroup centroidTransitions(LcMsFeature cpo, Range<Double> rt_range)
+  {
+    // propagate the features to each transition once the composite feature is determined
     if (cpo!=null)
     {
-      Range<Double> rt_range = Range.closed(cpo.getX()-rt_span, cpo.getX()+rt_span);
       List<Point> injects = new ArrayList(), mzs = new ArrayList<>();
       for (Float frag : mSRMs.keySet())
       {
         SRM srm = mSRMs.get(frag);
-        srm.setFeature(Points.centroid(srm.getXIC(), min_ri, rt_range));
+
+        srm.updateFeature(Points.centroid(srm.getXIC(), 0d, rt_range));
 
         if (frag>0)
         {
           injects.clear();  mzs.clear();
           for (LcMsPoint p : srm.getXIC())
-            if (p.getIntensity()>0)
+            if (p.getIntensity()>0 && rt_range.contains(p.getRT()))
             {
               injects.add(new Point(p.getFillTime(), p.getIntensity()));
               mzs.add(    new Point(p.getMz(), p.getIntensity()));
@@ -381,51 +420,66 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
             srm.getFeature().setMz(Points.centroid(mzs), srm.getFragmentMz());
         }
       }
+      injects = (List )Tools.dispose(injects); mzs = (List )Tools.dispose(mzs);
     }
     return this;
   }
-  public SRMGroup centroidByPeakBoundry()
+  public SRMGroup centroidByPeakBoundry(float min_ri)
   {
-    List<Point>  pts  = new ArrayList(),   mzs = new ArrayList(), ijs = new ArrayList<>();
+    if (getSequence().equals("PLPPAAIESPAVAAPAYSR#2"))
+      System.out.print("");
+
+    Range<Double> boundary = getComposite().getPeakBoundary();
+
+    if (!Tools.isSet(boundary))
+      return this;
+
+    List<Point>  pts  = new ArrayList(),   mzs = new ArrayList();
     List<Double> devi = new ArrayList<>(), mex = new ArrayList(), devi0 = new ArrayList<>(), mex0 = new ArrayList();
+    Map<Double, Double> rt_ij = new TreeMap<>();
     for (Float frag : mSRMs.keySet())
     {
       SRM srm = mSRMs.get(frag);
-      if (srm.getFeature()!=null && Tools.isSet(srm.getPeakBoundary()))
-      {
-        pts.clear(); mzs.clear(); mex.clear(); devi.clear();
-        for (LcMsPoint p : srm.getXIC())
-          if (p.getIntensity()>0 && srm.getPeakBoundary().contains(p.getX()))
-          {
-            pts.add(new Point(p.getX(),  p.getIntensity()));
-            mzs.add(new Point(p.getMz(), p.getIntensity()));
-            if (frag>0) devi.add(p.getPPM());
-            if (frag>0 && p.getFillTime()>0) ijs.add(new Point(p.getX(), p.getFillTime()));
-          } else
-          {
-            // outside of the peak boundary
-            if (p.getMz()>0 && frag>0) mex.add(p.getPPM());
-          }
-
-        if (Tools.isSet(pts))
+      if (srm.getFeature()==null) srm.setFeature(new LcMsFeature());
+      // look for the peak properties
+      pts.clear(); mzs.clear(); mex.clear(); devi.clear();
+      for (LcMsPoint p : srm.getXIC())
+        if (p.getIntensity()>0 && boundary.contains(p.getX()))
         {
-          srm.getFeature().setInitialCentroidRt(srm.getFeature().getX());
-          srm.getFeature().setX( Points.centroid(pts));
-          srm.getFeature().setMz(Points.centroid(mzs), srm.getFragmentMz());
+          pts.add(new Point(p.getX(),  p.getIntensity()));
+          mzs.add(new Point(p.getMz(), p.getIntensity()));
+          if (frag>0) devi.add(p.getPPM());
+          if (frag>0 && p.getFillTime()>0) rt_ij.put(p.getX(), p.getFillTime());
+        } else
+        {
+          // outside of the peak boundary
+          if (p.getMz()>0 && frag>0) mex.add(p.getPPM());
         }
-        // on the individual SRM
-        srm.getFeature().setMzStdev(Tools.isSet(devi) && devi.size()>2?Stats.stdev(devi):Double.NaN);
-        srm.getFeature().setMzStdevEx(Tools.isSet(mex) && mex.size()>2?Stats.stdev(mex ):Double.NaN);
-        // add them to the composite
-        devi0.addAll(devi); mex0.addAll(mex);
+
+      if (Tools.isSet(pts))
+      {
+        srm.getFeature().setInitialCentroidRt(srm.getFeature().getX());
+        srm.getFeature().setX( Points.centroid(pts));
+        srm.getFeature().setMz(Points.centroid(mzs), srm.getFragmentMz());
       }
+      // on the individual SRM
+      srm.getFeature().setMzStdev(Tools.isSet(devi) && devi.size()>2?Stats.stdev(devi):Double.NaN);
+      srm.getFeature().setMzStdevEx(Tools.isSet(mex) && mex.size()>2?Stats.stdev(mex ):Double.NaN);
+      // add them to the composite
+      devi0.addAll(devi); mex0.addAll(mex);
     }
     // set the composite
-    if (getSRM(0f)!=null && getSRM(0f).getFeature()!=null)
+    if (getComposite()!=null && getComposite().getFeature()!=null)
     {
-      getSRM(0f).getFeature().setMzStdev(Tools.isSet(devi0) && devi0.size()>2?Stats.stdev(devi0):Double.NaN);
-      getSRM(0f).getFeature().setMzStdevEx(Tools.isSet(mex0) && mex0.size()>2?Stats.stdev(mex0 ):Double.NaN);
-      getSRM(0f).getFeature().setFillTime(Tools.isSet(ijs) ? Points.centroid(ijs):Double.NaN);
+      getComposite().getFeature().setMzStdev(  Tools.isSet(devi0) && devi0.size()>2?Stats.stdev(devi0):Double.NaN);
+      getComposite().getFeature().setMzStdevEx(Tools.isSet(mex0) && mex0.size()>2?Stats.stdev(mex0 ):Double.NaN);
+
+      List<Point>  ijs = new ArrayList<>();
+      for (LcMsPoint p : getComposite().getXIC())
+        if (rt_ij.containsKey(p.getRT())) ijs.add(new Point(rt_ij.get(p.getRT()), p.getIntensity()));
+
+      getComposite().getFeature().setFillTime(Tools.isSet(ijs) ? Points.centroid(ijs):Double.NaN);
+      ijs = (List )Tools.dispose(ijs);
     }
     else
     {
@@ -435,6 +489,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     pts = (List )Tools.dispose(pts);  mzs  = (List )Tools.dispose(mzs);
     devi= (List )Tools.dispose(devi); devi0= (List )Tools.dispose(devi0);
     mex = (List )Tools.dispose(mex);  mex0 = (List )Tools.dispose(mex0);
+    rt_ij = (Map )Tools.dispose(rt_ij);
 
     return this;
   }
@@ -454,17 +509,29 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   }
   public SRMGroup calcFeatureExclusivity(LcSettings settings)
   {
-    return calcFeatureExclusivity(settings.getPeakWidth()/2f, settings.getApexPts(), settings.getBaseRI()/100d);
+    return calcFeatureExclusivity(settings.getQuanSpan(), settings.getApexPts());
   }
-  public SRMGroup calcFeatureExclusivity(float span, int apex_pts, double peak_base)
+  public SRMGroup calcFeatureExclusivity(float quan_span, int apex_pts)
   {
     if (Tools.isSet(mSRMs) && mSRMs.get(0f)!=null && mSRMs.get(0f).getFeature()!=null)
     {
+      if (getSequence().equals("PLPPAAIESPAVAAPAYSR#2"))
+        System.out.print("");
+
       double rt = mSRMs.get(0f).getFeature().getX();
-      for (SRM srm : mSRMs.values()) srm.calPeakPct(rt, span, apex_pts, peak_base);
+      for (SRM srm : mSRMs.values())
+        srm.calPeakExclusivity(rt, quan_span, apex_pts);
     }
     return this;
   }
+//  public SRMGroup setPeakBoundary(double peak_base)
+//  {
+//    if (Tools.isSet(mSRMs) && getComposite()!=null && getComposite().getFeature()!=null)
+//      for (SRM srm : mSRMs.values())
+//        srm.setPeakBoundary(srm.getFeature(), peak_base);
+//
+//    return this;
+//  }
   public SRMGroup scanMS2(SortedMap<Double, Peak> peaks, float rt, int scan, Double fill_time, Tolerance tol, boolean keep_zero)
   {
     for (Float k : mSRMs.keySet())
@@ -472,7 +539,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
       if (k<=0) continue;
 
       SortedMap<Double, Peak> pks = peaks.subMap(tol.getMin(k), tol.getMax(k));
-      if (pks!=null && pks.size()>0)
+      if (pks!=null && !pks.isEmpty())
         addXICPoint(k, rt, Peaks.IntensitySum(pks.values()), Peaks.centroid(pks.values()), scan, fill_time, keep_zero);
       else
         addXICPoint(k, rt, 0d, 0d, scan, fill_time, keep_zero);
@@ -498,25 +565,24 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     // xic.ai~xic.rt|FragMz
     w.write("Peptide\tFragMz\txic.rt\txic.ai\txic.ppm\n");
   }
-  public SRMGroup print_xic(Writer w, float... frags) throws IOException
+  public SRMGroup print_xic(Writer w, boolean keep_zero, float... frags) throws IOException
   {
     if (!Tools.isSet(frags)) frags = Tools.toFloatArray(mSRMs.keySet());
     for (Float frag : frags)
       for (LcMsPoint pk : mSRMs.get(frag).getXIC())
-      {
-        if (pk.getIntensity()<=0) continue;
-
-        w.write(getSequence()+"\t");
-        w.write(Tools.d2s(frag,4)             +"\t");
-        w.write(Tools.d2s(pk.getRT(),3)       +"\t");
-        w.write(Tools.d2s(pk.getIntensity(),2)+"\t");
-        w.write(Tools.d2s(pk.getPPM(),2)       +"\n");
-      }
+        if (keep_zero || pk.getIntensity()>0)
+        {
+          w.write(getSequence()+"\t");
+          w.write(frag             +"\t");
+          w.write(pk.getRT()       +"\t");
+          w.write(pk.getIntensity()+"\t");
+          w.write(pk.getPPM()      +"\n");
+        }
 
     return this;
   }
 
-  public SRMGroup printXIC(Writer w, float... frags) throws IOException
+  public SRMGroup printXIC(Writer w, boolean keep_zero, float... frags) throws IOException
   {
     if (!Tools.isSet(mSRMs)) return this;
 
@@ -524,29 +590,27 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     for (Float frag : frags)
       if (mSRMs.get(frag)!=null && Tools.isSet(mSRMs.get(frag).getXIC()))
         for (LcMsPoint pk : mSRMs.get(frag).getXIC())
-        {
-          if (pk.getIntensity()<=0) continue;
-
-//          printGroup(w);
-          w.write(getSequence()+"\t");
-          w.write(getCharge()+"\t");
-          w.write(Tools.d2s(getMz(),4)+"\t");
-          w.write(Tools.d2s(getRT(),3)+"\t");
-          w.write(Tools.d2s(frag,4)             +"\t");
-          w.write(Tools.d2s(pk.getScan(),2)     +"\t");
-          w.write(Tools.d2s(pk.getRT(),3)       +"\t");
-          w.write(Tools.d2s(pk.getIntensity(),2)+"\t");
-          w.write(Tools.d2s(pk.getFillTime(),2)+"\t");
-          w.write(pk.isImputed()                   +"\t");
-          w.write(Tools.d2s(pk.getPPM(),2)      +"\n");
-        }
+          if (keep_zero || pk.getIntensity()>0)
+          {
+            w.write(getSequence()+"\t");
+            w.write(getCharge()+"\t");
+            w.write(Tools.d2s(getMz(),4)+"\t");
+            w.write(Tools.d2s(getRT(),3)+"\t");
+            w.write(Tools.d2s(frag,4)             +"\t");
+            w.write(Tools.d2s(pk.getScan(),2)     +"\t");
+            w.write(Tools.d2s(pk.getRT(),3)       +"\t");
+            w.write(Tools.d2s(pk.getIntensity(),2)+"\t");
+            w.write(Tools.d2s(pk.getFillTime(),2)+"\t");
+            w.write(pk.isImputed()                   +"\t");
+            w.write(Tools.d2s(pk.getPPM(),2)      +"\n");
+          }
 
     return this;
   }
   public static void headerFeatures(Writer w) throws IOException
   {
     headerGroup(w);
-    w.write("FragMz\tNumPts\txicL\txicR\tPkEx\tPkExFull\tPkExAll\tfeature.rt\tfeature.ai\tfeature.rt0\tinjection\tfeature.mz\tfeature.apex\tfeature.area\tfeature.ppm\tppm.stdev\tppm.stdev.ex\tlower\tupper\n");
+    w.write("FragMz\tNumPts\txicL\txicR\tPkEx\tPkExAll\tfeature.rt\tfeature.ai\tfeature.rt0\tinjection\tfeature.mz\tfeature.apex\tfeature.area\tfeature.ppm\tfeature.snr\tppm.stdev\tppm.stdev.ex\tlower\tupper\n");
   }
   public SRMGroup printFeatures(Writer w) throws IOException
   {
@@ -561,7 +625,6 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         w.write(Tools.d2s(srm.getXIC().get(0).getX(),3)+"\t");
         w.write(Tools.d2s(srm.getXIC().get(srm.getXIC().size()-1).getX(),3)+"\t");
         w.write(Tools.d2s(srm.getPeakPct(),2)+"\t");
-        w.write(Tools.d2s(srm.getPeakPctFull(),2)+"\t");
         w.write(Tools.d2s(srm.getPeakPctAll(),2)+"\t");
         w.write(Tools.d2s(srm.getFeature().getX(),3)+"\t");
         w.write(Tools.d2s(srm.getFeature().getY(),2)+"\t");
@@ -571,6 +634,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         w.write(Tools.d2s(srm.getFeature().getApex(),2)+"\t");
         w.write(Tools.d2s(srm.getFeature().getArea(),2)+"\t");
         w.write(Tools.d2s(srm.getFeature().getPPM(),2)+"\t");
+        w.write(Tools.d2s(srm.getFeature().getSNR(),2)+"\t");
         w.write(Tools.d2s(srm.getFeature().getMzStdev(),2)+"\t");
         w.write(Tools.d2s(srm.getFeature().getMzStdevEx(),2)+"\t");
         w.write(Tools.d2s(srm.getPeakBoundary()!=null?srm.getPeakBoundary().lowerEndpoint():0,2)+"\t");
@@ -718,22 +782,10 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
       if (Strs.isA(group.getSequence(), peptides))
       {
         protein_id.addSRMGroup(group, group.getSequence());
-        if (group.getCompositeSRM()!=null && Tools.isSet(group.getCompositeSRM().getXIC()) && group.getCompositeSRM().getFeature()!=null)
+        if (group.getComposite()!=null && Tools.isSet(group.getComposite().getXIC()) && group.getComposite().getFeature()!=null)
         {
-          protein.getSRMs().put(group.getMz(), group.getCompositeSRM().shift(window, settings.getGridSize(),
-              (float )group.getCompositeSRM().getFeature().getRT()));
-//          SRM pr = group.getCompositeProfile(round2sec);
-//          if (pr!=null && Tools.isSet(pr.getXIC()))
-//          {
-//            protein.getSRMs().put(group.getMz(), pr);
-////            protein_id.addSRMGroup(group, group.getSequence());
-//            for (LcMsPoint pk : pr.getXIC())
-//              if (pk.getY()>0)
-//              {
-//                // convert to seconds
-//                rt_ai.put((float )pk.getX(), Math.log10(pk.getY()));
-//              }
-//          }
+          protein.getSRMs().put(group.getMz(), group.getComposite().shift(window, settings.getGridSize(),
+              (float )group.getComposite().getFeature().getRT()));
         }
       }
 
@@ -763,11 +815,12 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   }
   public static List<Peak> extractRtCal(MultiTreeTable<Float, Float, SRMGroup> landmarks,
                                         MultiTreeTable<Float, Float, SRMGroup> lib,
-                                        boolean use_iRT, float min_peak_exclusivity, float min_apex)
+                                        boolean use_iRT, float min_peak_exclusivity, float min_apex, Writer w) throws IOException
   {
     if (!Tools.isSet(landmarks) || !Tools.isSet(lib)) return null;
 
 //    System.out.println("Protein\tSequence\tRT\tfeature.rt\tPkEx\tPkExFront\tfeature.apex");
+    if (w!=null) w.write("Protein\tPeptide\trtA\trtB\n");
 
     Multimap<String, SRMGroup> pep_lib = HashMultimap.create();
     for (SRMGroup grp : lib.values())
@@ -778,20 +831,22 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     {
       SRM cpo = grp.getSRMs().get(0f);
       Collection<SRMGroup> libs = pep_lib.get(grp.getSequence());
-//      if (cpo!=null && Tools.isSet(libs))
-//      {
-//        System.out.println(grp.getProteinId()+"\t"+grp.getSequence()+"\t"+ grp.getRT()+"\t"+cpo.getFeature().getRT() + "\t" + cpo.getPeakPct() + "\t" + cpo.getPeakPctFull()+"\t"+cpo.getFeature().getIntensity());
-//      }
       if (cpo!=null && Tools.isSet(libs) && cpo.getPeakPct()>=min_peak_exclusivity && cpo.getFeature().getIntensity()>min_apex)
       {
         double iRTs=0, reportedRT=0;
         for (SRMGroup g : libs) { iRTs+=g.getIRT(); reportedRT+=g.getReportedRT(); }
         iRTs/=libs.size(); reportedRT/=libs.size();
 
-        cals.add(new Peak((use_iRT?iRTs:reportedRT), cpo.getFeature().getRT()));
+        Peak p = new Peak((use_iRT?iRTs:reportedRT), cpo.getFeature().getRT());
+        cals.add(p);
+        if (w!=null)
+        {
+          w.write(grp.getProteinId()+"\t"+grp.getSequence()+"\t" + p.getMz()+"\t"+p.getIntensity()+"\n");
+        }
       }
     }
     pep_lib = Tools.dispose(pep_lib);
+    if (w!=null) w.close();
 
     Collections.sort(cals);
     return cals;
@@ -856,7 +911,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     {
       FileWriter tr = new FileWriter(filename);
 
-      tr.write("ProteinId\tModifiedPeptideSequence\tNormalizedRetentionTime\tPrecursorMz\tPrecursorCharge\tiRT\tProductMz\tLibraryIntensity\tReportedRT\tReportedApex\n");
+      tr.write("ProteinId\tModifiedPeptideSequence\tNormalizedRetentionTime\tPrecursorMz\tPrecursorCharge\tiRT\tProductMz\tLibraryIntensity\tReportedRT\n");
       for (SRMGroup grp : groups)
         for (SRM srm : grp.getSRMs().values())
         {
@@ -870,8 +925,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
           tr.write(grp.getIRT()              +"\t"); // iRT
           tr.write(srm.getFragmentMz()       +"\t"); // ProductMz
           tr.write(srm.getLibraryIntensity() +"\t"); // LibraryIntensity
-          tr.write(grp.getRT()               +"\t"); // ReportedRT
-          tr.write(srm.getApex()             +"\n"); // ReportedRT
+          tr.write(grp.getRT()               +"\n"); // ReportedRT
         }
 
       tr.close();

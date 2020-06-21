@@ -341,10 +341,11 @@ public class MsReaders
       }
 
     if (mzs!=null && ais!=null && mzs.length==ais.length && mzs.length>0)
+    {
+      spec.ensureCapacity(mzs.length);
       for (int i=0; i<mzs.length; i++)
-      {
         spec.add(mzs[i].doubleValue(), ais[i].doubleValue());
-      }
+    }
 
     return spec;
   }

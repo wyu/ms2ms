@@ -23,11 +23,12 @@ import java.util.*;
 
 public class SRM implements Cloneable, Disposable, Comparable<SRM>
 {
-  private float mFragmentMz, mLibraryIntensity, mApex, mArea, mPkPct=0, mPkPctFull =0, mPkPctAll=0, mFillTime=0;
+  private float mFragmentMz, mLibraryIntensity, mPkPct=0, mPkPctAll=0, mBackground;
   Range<Double> mPeakBoundary;
 
   private List<LcMsPoint> mXIC;
   private LcMsFeature mFeature;
+  private List<LcMsFeature> mPeaks=null;
 
   public SRM()
   {
@@ -43,13 +44,17 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
 
   public float getFragmentMz() { return mFragmentMz; }
   public float getLibraryIntensity() { return mLibraryIntensity; }
-  public float getApex()       { return mApex; }
-  public float getArea()       { return mArea; }
+//  public float getApex()       { return mApex; }
+//  public float getArea()       { return mArea; }
+  public float getBackground()        { return mBackground; }
+//  public float getSNR(float apex)        { return mBackground!=0?apex/mBackground:0f; }
+
   public float getPeakPct()    { return mPkPct; }
-  public float getPeakPctFull() { return mPkPctFull; }
   public float getPeakPctAll() { return mPkPctAll; }
-  public float getFillTime()   { return mFillTime; }
+//  public float getFillTime()   { return mFillTime; }
+//  public float getSNR() { return getBackground()>0 && getFeature()!=null ? (float )getFeature().getApex()/getBackground():0f; }
   public Range<Double> getPeakBoundary() { return mPeakBoundary; }
+  public List<LcMsFeature> getPeaks() { return mPeaks; }
 
   public List<LcMsPoint> getXIC() { return mXIC; }
   public LcMsFeature getFeature() { return mFeature; }
@@ -69,110 +74,143 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   {
     return addXIC((float )rt, (float )ai, (float )mz, scan, Float.NaN);
   }
-
-  public SRM setFeature(Point s) { if (s!=null) mFeature = new LcMsFeature(s); return this; }
-  public SRM setFeature(LcMsFeature s) { mFeature=s; return this; }
-  public SRM setFillTime(float s) { mFillTime=s; return this; }
-
-  public SRM calPeakPct(double rt, double span, int apex_pts, double peak_base)
+  public SRM updateFeature(Point s)
   {
-    if (!Tools.isSet(getXIC())) return this;
+    if      (mFeature==null && s!=null) mFeature = new LcMsFeature(s);
+    else if (mFeature!=null && s!=null) mFeature.set(s);
+    return this;
+  }
+
+//  public SRM setFeature(Point s) { if (s!=null) mFeature = new LcMsFeature(s); return this; }
+  public SRM setFeature(LcMsFeature s) { mFeature=s; return this; }
+//  public SRM setFillTime(float s) { mFillTime=s; return this; }
+  public SRM setBackground(float s) { mBackground=s; return this; }
+
+  public SRM calPeakExclusivity(double rt, double quan_span, int apex_pts)
+  {
+    if (!Tools.isSet(getXIC()) || !Tools.isSet(getPeakBoundary())) return this;
 
     // change the definition on May 16, 2020. outside is now 3x of the LC peak span, instead of 2x
-    double inside=0, outside=0, inside_front=0, outside_front=0, all=0;
-    Range<Double> inner = Range.closed(rt-span, rt+span), outer = Range.closed(rt-3d*span, rt+3d*span),
-            inner_front = Range.closed(rt-span, rt),        outer_front = Range.closed(rt-3d*span, rt);
+    double inside_front=0, outside_front=0, all=0;
+    Range<Double> inner_front = Range.closed(getPeakBoundary().lowerEndpoint(), rt),
+                  outer_front = Range.closed(getPeakBoundary().lowerEndpoint()-quan_span, rt);
 
     List<Double> tops = new ArrayList<>();
-    int apex_i=-1; double best=Float.MAX_VALUE;
+    double best=Float.MAX_VALUE;
     for (int i=0; i<getXIC().size(); i++)
     {
       Point p = get(i);
-      if (inner.contains(p.getX()))
-      {
-        inside+=p.getY();
-        if (p.getY()>0) tops.add(p.getY());
-      }
       if (inner_front.contains(p.getX())) inside_front+=p.getY();
       // change the definition on May 16, 2020. outside is sum of intensity within 'outside', instead of intensities outside of 'outside'
-      if (outer.contains(      p.getX()))  outside      +=p.getY();
       if (outer_front.contains(p.getX()))  outside_front+=p.getY();
 
       all += p.getY();
 
-      if (Math.abs(p.getX()-rt)<best) { apex_i=i; best=Math.abs(p.getX()-rt); }
+      if (Math.abs(p.getX()-rt)<best) { best=Math.abs(p.getX()-rt); }
     }
     if (getFeature()!=null && Tools.isSet(tops)) {
       Collections.sort(tops, Ordering.natural().reversed());
       // OK with SRM with fewer points
       getFeature().setApex(Stats.mean(tops.subList(0, Math.min(tops.size(), apex_pts))));
-      mApex = (float )getFeature().getApex();
+//      mApex = (float )getFeature().getApex();
     }
-    if (apex_i>0 && getFeature()!=null && getFeature().getApex()>0)
-    {
-      double cut = getFeature().getApex()*peak_base, left=0, right=0, area=0;
-      for (int i=apex_i; i>0; i--)
-        if (get(i).getIntensity()<cut && (i<=0 || get(i-1).getIntensity()<cut)) { left=get(i).getRT(); break; } else area+=get(i).getIntensity();
-
-      for (int i=apex_i+1; i<getXIC().size()-1; i++)
-        if (get(i).getIntensity()<cut && (i>=getXIC().size() || get(i+1).getIntensity()<cut)) { right=get(i).getRT(); break; } else area+=get(i).getIntensity();
-
-      if (left>0 && right>left) { mPeakBoundary = Range.closed(left, right); mArea=(float )area; getFeature().setArea(area); }
-    }
+//    if (apex_i>0 && getFeature()!=null && getFeature().getApex()>0)
+//    {
+//      double cut = getFeature().getApex()*peak_base, left=0, right=0, area=0;
+//      for (int i=apex_i; i>0; i--)
+//        if (get(i).getIntensity()<cut && (i<=0 || get(i-1).getIntensity()<cut)) { left=get(i).getRT(); break; } else area+=get(i).getIntensity();
+//
+//      for (int i=apex_i+1; i<getXIC().size()-1; i++)
+//        if (get(i).getIntensity()<cut && (i>=getXIC().size() || get(i+1).getIntensity()<cut)) { right=get(i).getRT(); break; } else area+=get(i).getIntensity();
+//
+//      if (left>0 && right>left) { mPeakBoundary = Range.closed(left, right); getFeature().setArea(area); }
+//    }
     // change the definition on May 16, 2020. exclusivity is now inside/outside, for local exclusivity, instead of inside_intensity / (intensity outside of 2x span)
-    mPkPctFull = (float )(100f*inside/outside); // a local exclusivity (+-3x LC peak span)
     mPkPct     = (float )(100f*inside_front/outside_front); // a local exclusivity (+-3x LC peak span)
-    mPkPctAll  = (float )(100f*mArea/all);      // this is now a global (+-5min) exclusivity
+    mPkPctAll  = (float )(100f*getFeature().getArea()/all);      // this is now a global (+-5min) exclusivity
     tops = (List )Tools.dispose(tops);
 
     return this;
+  }
+  public LcMsFeature setPeakBoundary(LcMsFeature lead, double peak_base)
+  {
+    if (lead!=null && lead.getY()>0 && lead.getApexPos()>=0)
+    {
+      double cut = getFeature().getY()*peak_base/100d, left=0, right=0, area=0;
+      for (int i=lead.getApexPos(); i>0; i--)
+        if (get(i).getIntensity()<cut && (i<=0 || get(i-1).getIntensity()<cut)) { left=get(i).getRT(); break; } else area+=get(i).getIntensity();
+
+      for (int i=lead.getApexPos()+1; i<getXIC().size()-1; i++)
+        if (get(i).getIntensity()<cut && (i>=getXIC().size() || get(i+1).getIntensity()<cut)) { right=get(i).getRT(); break; } else area+=get(i).getIntensity();
+
+      if (left>0 && right>left) { mPeakBoundary = Range.closed(left, right); lead.setArea(area); }
+    }
+    return lead;
   }
   // center = the targeted RT,
   // span   = the span of the RT window where the peaks are expected
   public List<LcMsFeature> detectPeak(float center, float span)
   {
-    double base_deri = 0d;
-    for (Point p : getXIC())
-      if (Math.abs(p.getX()-center)<=span && p.getY()>base_deri) { base_deri=p.getY(); }
+//    double base_deri = 0d;
+//    for (Point p : getXIC())
+//      if (Math.abs(p.getX()-center)<=span && p.getY()>base_deri) { base_deri=p.getY(); }
+//
+//    // require the peak to be at least 10% of the base
+//    base_deri /= 10d;
+//
+    List<Point>      deri = Points.deriv1stBySG5(getXIC());
+    mPeaks = new ArrayList<>();
 
-    // require the peak to be at least 10% of the base
-    base_deri /= 10d;
+    if (Tools.isSet(deri) && deri.size()>2)
+    {
+      // figure out the background level
+      List<Double> ys = Points.toYs(deri);
 
-    List<Point> deri = Points.deriv1stBySG5(getXIC());
-    List<LcMsFeature> pks = new ArrayList<>();
+      Collections.sort(ys, Ordering.natural().reversed());
+      double cutoff = ys.get((int )(ys.size()*0.25));
 
-    // figure out the background level
-    List<Double> ys = Points.toYs(deri);
-    Collections.sort(ys);
-    double cutoff = ys.get((int )(ys.size()*0.25));
-
-    double deri_max=0;
-    if (Tools.isSet(deri))
-      for (int i=0; i<deri.size()-1; i++)
-      {
-        if (deri.get(i).getY()>deri_max) deri_max=deri.get(i).getY();
-
-        if (deri.get(i).getY()>=0 && deri.get(i+1).getY()<=0)
+      double deri_max=0;
+      if (Tools.isSet(deri))
+        for (int i=0; i<deri.size()-1; i++)
         {
-          // the peak top is at the zero-intercept
-          Point top = Points.interpolateByY(deri.get(i), deri.get(i+1), 0d);
-          if (deri_max>cutoff)
+          if (deri.get(i).getY()>deri_max) deri_max=deri.get(i).getY();
+
+          if (deri.get(i).getY()>=0 && deri.get(i+1).getY()<=0)
           {
-            pks.add(new LcMsFeature(top.getX(), top.getY(), deri_max));
-            deri_max=0;
+            // the peak top is at the zero-intercept
+            Point top = Points.interpolateByY(deri.get(i), deri.get(i+1), 0d);
+            Point apx = Points.interpolate(getXIC().get(i+2), getXIC().get(i+3), top.getX());
+
+            if (deri_max>cutoff)
+            {
+              mPeaks.add(new LcMsFeature(top.getX(), apx.getY(), deri_max).setApexPos(i+2));
+              deri_max=0;
+            }
           }
         }
+      ys = (List )Tools.dispose(ys);
+      // calculate the SNR
+      if (mPeaks.size()>1)
+      {
+        int mid = Math.round(mPeaks.size()/2);
+        Collections.sort(mPeaks, new Point.IntensityDesendComparator());
+        // figor out the background level
+        double background = Points.sumY(mPeaks.subList(mid, mPeaks.size()))/(mPeaks.size()-mid);
+        for (LcMsFeature p : mPeaks) p.setSNR(p.getY()/background);
       }
+    }
+    else
+      System.out.println();
 
     deri = (List )Tools.dispose(deri);
-      ys = (List )Tools.dispose(ys);
 
-    return pks;
+    return mPeaks;
  }
   public SRM clone()
   {
     SRM cloned      = new SRM(getFragmentMz(), getLibraryIntensity());
-    cloned.mApex    = mApex; cloned.mArea = mArea; cloned.mPkPct = mPkPct; cloned.mPkPctAll = mPkPctAll;
+//    cloned.mApex    = mApex; cloned.mArea = mArea;
+    cloned.mPkPct = mPkPct; cloned.mPkPctAll = mPkPctAll;
     cloned.mFeature = mFeature;
 
     cloned.mXIC     = new ArrayList<>();
@@ -182,7 +220,8 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   }
   public SRM mutate(ListMultimap<Integer, Float> frag_bank, Random rnd)
   {
-    mApex=mArea=mPkPct=mPkPctAll = 0f;
+//    mApex=mArea=0f;
+    mPkPct=mPkPctAll = 0f;
     mXIC.clear();
 
     Integer idx = (int )Math.round(getFragmentMz()*0.01);

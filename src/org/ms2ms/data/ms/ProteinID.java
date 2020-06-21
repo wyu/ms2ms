@@ -79,7 +79,7 @@ public class ProteinID implements Comparable<ProteinID>, Binary
       for (SRMGroup grp : getSRMGroups().values())
         if (Tools.isSet(grp.getSRMs()))
           for (SRM srm : grp.getSRMs().values())
-            if (srm.getFragmentMz()>0 && srm.getFeature()!=null && srm.getApex()>=min_apex && srm.getPeakPct()>=peak_pct) counts++;
+            if (srm.getFragmentMz()>0 && srm.getFeature()!=null && srm.getFeature().getApex()>=min_apex && srm.getPeakPct()>=peak_pct) counts++;
 
     return counts;
   }
