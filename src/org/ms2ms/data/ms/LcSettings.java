@@ -30,6 +30,7 @@ public class LcSettings extends Settings
   public static final String KY_RTCAL  = "RT calibration method";
   public static final String KY_BANDWIDTH  = "Loess Bandwidth";
   public static final String KY_QUAN_SPAN  = "RT Window during quantitation";
+  public static final String KY_QUAN_OFFSET  = "RT offset during quantitation";
   public static final String KY_SNR  = "min SNR to qualify";
 
   public static LcSettings nLC = null;
@@ -48,6 +49,7 @@ public class LcSettings extends Settings
   public float     getOuterMultiple()      { return getFloat(KY_PEAK_MULTIPLE); }
   public float     getBandwidth()          { return getFloat(KY_BANDWIDTH); }
   public float     getQuanSpan()           { return getFloat(KY_QUAN_SPAN); }
+  public float     getQuanOffset()         { return getFloat(KY_QUAN_OFFSET, 0f); }
   public float     getMinSNR()             { return getFloat(KY_SNR); }
 
   public int       getApexPts()            { return getInteger(KY_APEX_PTS); }
@@ -72,6 +74,7 @@ public class LcSettings extends Settings
   public LcSettings setOuterMultiple(     float s) { set(KY_PEAK_MULTIPLE, s); return this; }
   public LcSettings setBandwidth(         float s) { set(KY_BANDWIDTH, s); return this; }
   public LcSettings setQuanSpan(          float s) { set(KY_QUAN_SPAN, s); return this; }
+  public LcSettings setQuanOffset(        float s) { set(KY_QUAN_OFFSET, s); return this; }
   public LcSettings setMinSNR(            float s) { set(KY_SNR, s); return this; }
 
   public LcSettings setApexPts(             int s) { set(KY_APEX_PTS, s); return this; }

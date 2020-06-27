@@ -11,6 +11,7 @@ import org.ms2ms.utils.Tools;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -88,6 +89,8 @@ abstract public class App
   protected void processCommandLine(String args[])
   {
     System.out.println(getAppTitle());
+
+    if (mParameters==null) mParameters = new Property();
 
     mParameters.setProperty(CMD_LINE, Strs.toString(args, " "));
     for (int i = 0; i < args.length; i++)

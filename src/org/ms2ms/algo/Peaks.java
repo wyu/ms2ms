@@ -1,6 +1,7 @@
 package org.ms2ms.algo;
 
 import com.google.common.collect.*;
+import org.apache.commons.math3.fitting.WeightedObservedPoint;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.DoublePeakList;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
@@ -17,6 +18,7 @@ import org.ms2ms.data.collect.TreeListMultimap;
 import org.ms2ms.data.ms.FragmentEntry;
 import org.ms2ms.data.ms.IsoEnvelope;
 import org.ms2ms.data.ms.PeakMatch;
+import org.ms2ms.math.Fitted;
 import org.ms2ms.math.Points;
 import org.ms2ms.math.Stats;
 import org.ms2ms.mzjava.AnnotatedPeak;
@@ -632,7 +634,7 @@ public class Peaks {
 
     return (t0.getIntensity() + (t1.getIntensity() - t0.getIntensity()) * (x - t0.getMz()) / (t1.getMz() - t0.getMz()));
   }
-  public static <T extends Peak> Double interpolateForY(List<T> cals, double rt0)
+  public static <T extends Peak> Double estimateForY(List<T> cals, double rt0)
   {
     Peak pk   = new Peak(rt0, 0d);
     int index = Collections.binarySearch(cals, pk), left, right;
@@ -653,6 +655,24 @@ public class Peaks {
       {
         return Peaks.interpolateForY(cals.get(left), cals.get(right), rt0);
       }
+    }
+    else if (left==-1)
+    {
+      List<WeightedObservedPoint> pts = new ArrayList<>(3);
+      for (int i=0; i<3; i++)
+        pts.add(new WeightedObservedPoint(1d, cals.get(i).getMz(), cals.get(i).getIntensity()));
+
+      Fitted fit = new Fitted().fit(1, pts);
+      if (fit!=null) return fit.polynomial(rt0);
+    }
+    else if (right==-1)
+    {
+      List<WeightedObservedPoint> pts = new ArrayList<>(3);
+      for (int i=cals.size()-3; i<cals.size(); i++)
+        pts.add(new WeightedObservedPoint(1d, cals.get(i).getMz(), cals.get(i).getIntensity()));
+
+      Fitted fit = new Fitted().fit(1, pts);
+      if (fit!=null) return fit.polynomial(rt0);
     }
     return Double.NEGATIVE_INFINITY;
   }

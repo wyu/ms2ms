@@ -29,7 +29,7 @@ import static org.ms2ms.math.Stats.closed;
 public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 {
   private String mPeptideSequence, mProteinId;
-  private float mRT, mPrecursorMz, mDpSimilarity, mIRT, mReportedRT, mNetworkNiche;
+  private float mRT, mRtOffset, mPrecursorMz, mDpSimilarity, mIRT, mReportedRT, mNetworkNiche;
   private int mCharge, mQualifiedSRMs;
   private Map<String, Object> mNetworkStats;
 
@@ -47,6 +47,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     super();
     mPeptideSequence = peptide;
     mSRMs            = new TreeMap<>();
+    mRtOffset=0;
   }
   public SRMGroup(String peptide, float rt, float mz, int z)
   {
@@ -54,7 +55,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     mPeptideSequence = peptide;
     mSRMs            = new TreeMap<>();
 
-    mRT=rt; mPrecursorMz=mz; mCharge=z;
+    mRT=rt; mPrecursorMz=mz; mCharge=z; mRtOffset=0;
   }
 
   @Override public int compareTo(SRMGroup o)
@@ -80,6 +81,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
   public float  getRT()           { return mRT; }
   public float  getIRT()          { return mIRT; }
+  public float  getRtOffset()     { return mRtOffset; }
   public float  getReportedRT()   { return mReportedRT; }
   public float  getSimilarity()   { return mDpSimilarity; }
   public String getSequence()     { return mPeptideSequence; }
@@ -115,6 +117,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public SRMGroup setRT( Double s) { if (s!=null) mRT=(float )s.doubleValue(); return this; }
 
   public SRMGroup setIRT( float s) { mIRT=s; return this; }
+  public SRMGroup setRtOffset(float s) { mRtOffset=s; return this; }
   public SRMGroup setReportedRT( float s) { mReportedRT=s; return this; }
 
   public SRMGroup setCharge(int s) { mCharge=s; return this; }
@@ -176,7 +179,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
     TreeMultimap<Float, Double> rt_ai = TreeMultimap.create();
     for (Float frag : mSRMs.keySet())
-      if (frag>0) // only the MS2 XIC
+      if (frag>0 && mSRMs.get(frag)!=null && mSRMs.get(frag).getXIC()!=null) // only the MS2 XIC
         for (LcMsPoint pk : mSRMs.get(frag).getXIC())
           if (pk.getY()>0)
           {
@@ -244,7 +247,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     HashMap<Float, Integer>     rt_sn = new HashMap<>();
 
     for (Float frag : mSRMs.keySet())
-      if (frag>0) // only the MS2 XIC
+      if (frag>0 && mSRMs.get(frag)!=null && mSRMs.get(frag).getXIC()!=null) // only the MS2 XIC
         for (LcMsPoint pk : mSRMs.get(frag).getXIC())
         {
           if (pk.getY()>0)
@@ -329,26 +332,36 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   }
   public SRMGroup centroid(LcSettings settings)
   {
-    return centroid(settings.getPeakWidth(), settings.getQuanSpan(), settings.getMinSNR(), settings.getBaseRI());
+    return centroid(settings.getPeakWidth(), settings.getQuanSpan(), settings.getQuanOffset(), settings.getMinSNR(), settings.getBaseRI());
   }
-  public SRMGroup centroid(float rt_width, float quan_span, float minSNR, float min_ri)
+  public SRMGroup centroid(float rt_width, float quan_span, float quant_offset, float minSNR, float min_ri)
   {
     // nothing to do without a composite!
-    if (getComposite()==null) return this;
+    if (getComposite()==null || !Tools.isSet(getComposite().getXIC())) return this;
 
+//    if (Strs.isA(getSequence(), "WPPEDEISKPEVPEDVDLDLKK#4","LMYEHELEQLR#2","VLVLGDSGVGK#2","FEFFEGLLFEGR#2"))
+//    if (Strs.isA(getSequence(), "FLNSFASMHR#3","TNPPLIQEKPAK#3","TQSPC[Carbamidomethyl (C)]FGDDDPAKK#3"))
+//    if (Strs.isA(getSequence(), "EFSHIAFLTIK#3","DLFDSM[Oxidation (M)]DK#2","VADEGSFTC[Carbamidomethyl (C)]FVSIR#2","DGLLPTGLGQR#2","LIPGC[Carbamidomethyl (C)]EVILATPYGR#2"))
+    if (Strs.isA(getSequence(), "﻿NSLIQMTILNLLPR#2","HSTSGTDEGEDGDEPDDGSNDVVDLLPR#3","M[Oxidation (M)]GPGAASGGERPNLK#2","SYNPFDDDGEDEGAR#2","M[Oxidation (M)]QHNLEQQIQAR#2","LADVDKDGLLDDEEFALANHLIK#3"))
+      System.out.print("");
     // check the alternative peaks by 1st derivatives
     getComposite().detectPeak(getRT(), quan_span);
     if (mSRMs.get(-1f)!=null) mSRMs.get(-1f).detectPeak(getRT(), quan_span);
 
     double outer_span   = ((Tools.back(getComposite().getXIC()).getRT()-Tools.front(getComposite().getXIC()).getRT())-rt_width)/2f;
-    Range<Double> inner = Range.closed(getRT()-(double )quan_span, getRT()+ (double )quan_span),
-                 outer  = Range.closed(getRT()-outer_span, getRT()+outer_span);
+
+    if (outer_span<=0) return this;
+
+    double rt0 = getRT()+quant_offset;
+    Range<Double> inner = Range.closed(rt0-quan_span,  rt0+quan_span),
+                 suburb = Range.closed(rt0-quan_span*1.5,  rt0+quan_span*1.5),
+                 outer  = Range.closed(rt0-outer_span, rt0+outer_span);
 
     // setup the MS1 list
     SortedMap<Double, LcMsFeature> rt_ms1 = new TreeMap<>();
-    if (Tools.isSet(getSRM(-1f).getPeaks()))
+    if (getSRM(-1f)!=null && Tools.isSet(getSRM(-1f).getPeaks()))
       for (LcMsFeature p : getSRM(-1f).getPeaks())
-        if (inner.contains(p.getX()) && p.getSNR()>=minSNR) rt_ms1.put(p.getX(), p);
+        if (inner.contains(p.getX())) rt_ms1.put(p.getX(), p);
 
     // determine the best peak from this XIC trace
     LcMsFeature selected=null;
@@ -360,75 +373,120 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     else if (getComposite().getPeaks().size()==1) selected = getComposite().getPeaks().get(0);
     else
     {
-      LcMsFeature highest_unbound = null;
-      List<LcMsFeature> inbounds = new ArrayList<>();
-      for (int i=0; i<getComposite().getPeaks().size()-1; i++)
+      LcMsFeature highest_unbound = null, highest_burb=null;
+      List<LcMsFeature> inbounds = new ArrayList<>(), tops = new ArrayList<>();
+      for (LcMsFeature pk : getComposite().getPeaks())
+      {
+        if (highest_unbound==null && !suburb.contains(pk.getX()) && outer.contains(pk.getX())) highest_unbound = pk;
+        if (highest_burb   ==null && !inner.contains(pk.getX()) && suburb.contains(pk.getX())) highest_burb = pk;
+        if (inner.contains(pk.getX())) inbounds.add(pk);
+      }
+
+      for (int i=0; i<inbounds.size()-1; i++)
       {
         LcMsFeature pk = getComposite().getPeaks().get(i);
-        if (inner.contains(pk.getX())) inbounds.add(pk);
-        if (pk.getY()/getComposite().getPeaks().get(i+1).getY()>=minSNR) break;
+        if (inner.contains(pk.getX())) tops.add(pk);
+        if (pk.getArea()/getComposite().getPeaks().get(i+1).getArea()>=minSNR) break;
       }
-      for (LcMsFeature pk : getComposite().getPeaks())
-        if (!inner.contains(pk.getX()) && outer.contains(pk.getX())) { highest_unbound = pk; break; }
+      // a single good hit is a good one!
+      if (tops.size()==0 && inbounds.size()>0) tops.add(inbounds.get(0));
 
-      if (Tools.isSet(inbounds))
+      if (Tools.isSet(tops))
       {
-        if (inbounds.size()==1) { selected = inbounds.get(0); selected.wasBasedOn(LcMsFeature.criteria.snr); }
-        else if (inbounds.size()>1 && Tools.isSet(rt_ms1))
-          for (LcMsFeature pk : inbounds)
-            if (Tools.isSet(rt_ms1.subMap(pk.getX()-rt_width/5, pk.getX()+rt_width/5)))
+        // only check the MS1 if the top two are too close in snr
+        if (tops.size()>1 && tops.get(0).getSNR()<tops.get(1).getSNR()*1.5f && Tools.isSet(rt_ms1))
+        {
+          for (LcMsFeature pk : tops)
+            if (hasMS1(rt_ms1, pk.getX(), rt_width/2f, 0f))
             { selected=pk; selected.wasBasedOn(LcMsFeature.criteria.ms1); break; }
+        }
+        if (selected==null) { selected = tops.get(0); selected.wasBasedOn(LcMsFeature.criteria.snr); }
       }
-      if (selected==null) { selected = highest_unbound; selected.wasBasedOn(LcMsFeature.criteria.outer); }
-      if (selected!=null)
+      // don;t worry about the burb if the unbound one is obviously better
+      if (highest_burb!=null && highest_unbound!=null &&
+          highest_burb.getSNR()<highest_unbound.getSNR()/10) highest_burb=null;
+
+      // only expand outside of the quan window if supported by the MS1
+      if (highest_unbound!=null && !hasMS1(rt_ms1, highest_unbound.getX(), rt_width/2f, 3f)) highest_unbound=null;
+      if (highest_burb   !=null && !hasMS1(rt_ms1, highest_burb.getX(),    rt_width/2f, 3f)) highest_burb   =null;
+
+      if (highest_burb!=null && (selected==null || selected.getY()*3f<highest_burb.getY()))
       {
-        selected.setApexRT(selected.getX()).setAbundance(selected.getY());
-        getComposite().setFeature(selected);
-        // determine the peak boundary
-        getComposite().setPeakBoundary(getComposite().getFeature(), min_ri);
-        // propagate to the individual transition using the same peak boundary
-        centroidTransitions(getComposite().getFeature(), getComposite().getPeakBoundary());
+        selected = highest_burb; selected.wasBasedOn(LcMsFeature.criteria.suburb);
       }
+      else if (highest_unbound!=null && (selected==null || selected.getY()*10f<highest_unbound.getY()))
+      {
+        selected = highest_unbound; selected.wasBasedOn(LcMsFeature.criteria.outer);
+      }
+      // grabt the top one from within the quan span. Have to qualify the feature later on
+      if (selected==null && Tools.isSet(tops)) selected = tops.get(0);
+
+      // check for likely problem
+      if (Tools.isSet(inbounds) && selected!=inbounds.get(0) &&
+          inbounds.get(0).getSNR()>selected.getSNR()*10)
+        System.out.print("");
+
+      inbounds = (List )Tools.dispose(inbounds); tops = (List )Tools.dispose(tops);
     }
+    if (selected!=null)
+    {
+      selected.setApexRT(selected.getX()).setAbundance(selected.getY());
+      getComposite().setFeature(selected);
+      // determine the peak boundary
+      getComposite().setPeakBoundary(getComposite().getFeature(), min_ri);
+      // propagate to the individual transition using the same peak boundary
+      centroidTransitions(getComposite().getFeature(), getComposite().getPeakBoundary());
+    }
+
     return this;
+  }
+  private boolean hasMS1(SortedMap<Double, LcMsFeature> rt_ms1, double rt, float rt_tol, float snr)
+  {
+    Map<Double, LcMsFeature> slice = rt_ms1.subMap(rt-rt_tol/2d, rt+rt_tol/2d);
+    if (snr>0 && Tools.isSet(slice))
+    {
+      int n=0;
+      for (LcMsFeature F : slice.values()) if (F.getSNR()>=snr) n++;
+      return (n>0);
+    }
+    return Tools.isSet(slice);
   }
   private SRMGroup centroidTransitions(LcMsFeature cpo, Range<Double> rt_range)
   {
+    if (cpo==null || !Tools.isSet(rt_range))
+      return this;
     // propagate the features to each transition once the composite feature is determined
-    if (cpo!=null)
+    List<Point> injects = new ArrayList(), mzs = new ArrayList<>();
+    for (Float frag : mSRMs.keySet())
     {
-      List<Point> injects = new ArrayList(), mzs = new ArrayList<>();
-      for (Float frag : mSRMs.keySet())
+      SRM srm = mSRMs.get(frag);
+
+      srm.updateFeature(Points.centroid(srm.getXIC(), 0d, rt_range));
+
+      if (frag>0)
       {
-        SRM srm = mSRMs.get(frag);
+        injects.clear();  mzs.clear();
+        for (LcMsPoint p : srm.getXIC())
+          if (p.getIntensity()>0 && rt_range.contains(p.getRT()))
+          {
+            injects.add(new Point(p.getFillTime(), p.getIntensity()));
+            mzs.add(    new Point(p.getMz(), p.getIntensity()));
+          }
 
-        srm.updateFeature(Points.centroid(srm.getXIC(), 0d, rt_range));
-
-        if (frag>0)
-        {
-          injects.clear();  mzs.clear();
-          for (LcMsPoint p : srm.getXIC())
-            if (p.getIntensity()>0 && rt_range.contains(p.getRT()))
-            {
-              injects.add(new Point(p.getFillTime(), p.getIntensity()));
-              mzs.add(    new Point(p.getMz(), p.getIntensity()));
-            }
-
-          if (Tools.isSet(injects) && srm.getFeature()!=null)
-            srm.getFeature().setFillTime(Points.centroid(injects));
-          if (Tools.isSet(mzs) && srm.getFeature()!=null)
-            srm.getFeature().setMz(Points.centroid(mzs), srm.getFragmentMz());
-        }
+        if (Tools.isSet(injects) && srm.getFeature()!=null)
+          srm.getFeature().setFillTime(Points.centroid(injects));
+        if (Tools.isSet(mzs) && srm.getFeature()!=null)
+          srm.getFeature().setMz(Points.centroid(mzs), srm.getFragmentMz());
       }
-      injects = (List )Tools.dispose(injects); mzs = (List )Tools.dispose(mzs);
     }
+    injects = (List )Tools.dispose(injects); mzs = (List )Tools.dispose(mzs);
+
     return this;
   }
-  public SRMGroup centroidByPeakBoundry(float min_ri)
+  public SRMGroup centroidByPeakBoundry(int apex_pts)
   {
-    if (getSequence().equals("PLPPAAIESPAVAAPAYSR#2"))
-      System.out.print("");
-
+//    if (getSequence().equals("TITLEVEPSDTIENVK#2"))
+//      System.out.print("");
     Range<Double> boundary = getComposite().getPeakBoundary();
 
     if (!Tools.isSet(boundary))
@@ -437,6 +495,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     List<Point>  pts  = new ArrayList(),   mzs = new ArrayList();
     List<Double> devi = new ArrayList<>(), mex = new ArrayList(), devi0 = new ArrayList<>(), mex0 = new ArrayList();
     Map<Double, Double> rt_ij = new TreeMap<>();
+    List<Double> tops = new ArrayList<>();
+
     for (Float frag : mSRMs.keySet())
     {
       SRM srm = mSRMs.get(frag);
@@ -448,6 +508,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         {
           pts.add(new Point(p.getX(),  p.getIntensity()));
           mzs.add(new Point(p.getMz(), p.getIntensity()));
+          if (frag==0f) tops.add(p.getIntensity());
           if (frag>0) devi.add(p.getPPM());
           if (frag>0 && p.getFillTime()>0) rt_ij.put(p.getX(), p.getFillTime());
         } else
@@ -461,6 +522,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         srm.getFeature().setInitialCentroidRt(srm.getFeature().getX());
         srm.getFeature().setX( Points.centroid(pts));
         srm.getFeature().setMz(Points.centroid(mzs), srm.getFragmentMz());
+        srm.getFeature().setArea(Points.sumY(pts));
       }
       // on the individual SRM
       srm.getFeature().setMzStdev(Tools.isSet(devi) && devi.size()>2?Stats.stdev(devi):Double.NaN);
@@ -471,8 +533,17 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     // set the composite
     if (getComposite()!=null && getComposite().getFeature()!=null)
     {
+      getComposite().getFeature().setPPM(Tools.isSet(devi0) && devi0.size()>2?(float )Stats.mean(devi0):Float.NaN);
       getComposite().getFeature().setMzStdev(  Tools.isSet(devi0) && devi0.size()>2?Stats.stdev(devi0):Double.NaN);
       getComposite().getFeature().setMzStdevEx(Tools.isSet(mex0) && mex0.size()>2?Stats.stdev(mex0 ):Double.NaN);
+
+      if (Tools.isSet(tops)) {
+        Collections.sort(tops, Ordering.natural().reversed());
+        // OK with SRM with fewer points
+        getComposite().getFeature().setApex(Stats.mean(tops.subList(0, Math.min(tops.size(), apex_pts))));
+//      mApex = (float )getFeature().getApex();
+      }
+
 
       List<Point>  ijs = new ArrayList<>();
       for (LcMsPoint p : getComposite().getXIC())
@@ -515,12 +586,12 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   {
     if (Tools.isSet(mSRMs) && mSRMs.get(0f)!=null && mSRMs.get(0f).getFeature()!=null)
     {
-      if (getSequence().equals("PLPPAAIESPAVAAPAYSR#2"))
-        System.out.print("");
+//      if (getSequence().equals("NFDVGHVPIR#2"))
+//        System.out.print("");
 
       double rt = mSRMs.get(0f).getFeature().getX();
       for (SRM srm : mSRMs.values())
-        srm.calPeakExclusivity(rt, quan_span, apex_pts);
+        srm.calPeakExclusivity(rt, quan_span, getComposite().getPeakBoundary());
     }
     return this;
   }
@@ -569,15 +640,16 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   {
     if (!Tools.isSet(frags)) frags = Tools.toFloatArray(mSRMs.keySet());
     for (Float frag : frags)
-      for (LcMsPoint pk : mSRMs.get(frag).getXIC())
-        if (keep_zero || pk.getIntensity()>0)
-        {
-          w.write(getSequence()+"\t");
-          w.write(frag             +"\t");
-          w.write(pk.getRT()       +"\t");
-          w.write(pk.getIntensity()+"\t");
-          w.write(pk.getPPM()      +"\n");
-        }
+      if (mSRMs!=null && mSRMs.get(frag)!=null && mSRMs.get(frag).getXIC()!=null)
+        for (LcMsPoint pk : mSRMs.get(frag).getXIC())
+          if (keep_zero || pk.getIntensity()>0)
+          {
+            w.write(getSequence()+"\t");
+            w.write(frag             +"\t");
+            w.write(pk.getRT()       +"\t");
+            w.write(pk.getIntensity()+"\t");
+            w.write(pk.getPPM()      +"\n");
+          }
 
     return this;
   }
@@ -610,7 +682,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public static void headerFeatures(Writer w) throws IOException
   {
     headerGroup(w);
-    w.write("FragMz\tNumPts\txicL\txicR\tPkEx\tPkExAll\tfeature.rt\tfeature.ai\tfeature.rt0\tinjection\tfeature.mz\tfeature.apex\tfeature.area\tfeature.ppm\tfeature.snr\tppm.stdev\tppm.stdev.ex\tlower\tupper\n");
+    w.write("FragMz\tNumPts\tPkEx\tPkExAll\tfeature.rt\tfeature.ai\tinjection\tfeature.apex\tfeature.area\tfeature.ppm\tfeature.snr\tppm.stdev\tppm.stdev.ex\trule\tinbound.snr\tlower\tupper\n");
   }
   public SRMGroup printFeatures(Writer w) throws IOException
   {
@@ -622,21 +694,19 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         printGroup(w);
         w.write(Tools.d2s(frag,4)+"\t");
         w.write(srm.getXIC().size()+"\t");
-        w.write(Tools.d2s(srm.getXIC().get(0).getX(),3)+"\t");
-        w.write(Tools.d2s(srm.getXIC().get(srm.getXIC().size()-1).getX(),3)+"\t");
         w.write(Tools.d2s(srm.getPeakPct(),2)+"\t");
         w.write(Tools.d2s(srm.getPeakPctAll(),2)+"\t");
         w.write(Tools.d2s(srm.getFeature().getX(),3)+"\t");
         w.write(Tools.d2s(srm.getFeature().getY(),2)+"\t");
-        w.write(Tools.d2s(srm.getFeature().getInitialCentroidRt(),3)+"\t");
         w.write(Tools.d2s(srm.getFeature().getFillTime(),2)+"\t");
-        w.write(Tools.d2s(srm.getFeature().getMz(),4)+"\t");
         w.write(Tools.d2s(srm.getFeature().getApex(),2)+"\t");
         w.write(Tools.d2s(srm.getFeature().getArea(),2)+"\t");
         w.write(Tools.d2s(srm.getFeature().getPPM(),2)+"\t");
         w.write(Tools.d2s(srm.getFeature().getSNR(),2)+"\t");
         w.write(Tools.d2s(srm.getFeature().getMzStdev(),2)+"\t");
         w.write(Tools.d2s(srm.getFeature().getMzStdevEx(),2)+"\t");
+        w.write(srm.getFeature().wasBasedOn()+"\t");
+        w.write((Tools.isSet(srm.getPeaks())?Tools.d2s(srm.getPeaks().get(0).getSNR(),2):"")+"\t");
         w.write(Tools.d2s(srm.getPeakBoundary()!=null?srm.getPeakBoundary().lowerEndpoint():0,2)+"\t");
         w.write(Tools.d2s(srm.getPeakBoundary()!=null?srm.getPeakBoundary().upperEndpoint():0,2)+"\n");
       }
@@ -644,7 +714,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   }
   public static void headerGroup(Writer w) throws IOException
   {
-    w.write("Peptide\tz\tPrecMz\tRT\tSimilarity\tYield\tNetV\tNetE\tSCC\tSCC1\t");
+    w.write("Peptide\tz\tPrecMz\tRT\toffset\tSimilarity\tYield\tNetV\tNetE\tSCC\tSCC1\t");
   }
   private void printGroup(Writer w) throws IOException
   {
@@ -652,6 +722,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     w.write(getCharge()+"\t");
     w.write(Tools.d2s(getMz(),4)+"\t");
     w.write(Tools.d2s(getRT(),3)+"\t");
+    w.write(Tools.d2s(getRtOffset(),2)+"\t");
     w.write(Tools.d2s(getSimilarity(),3)+"\t");
     w.write(Tools.d2s(calcSrmYield(0.5f), 2)+"\t");
     w.write((mNetwork!=null?mNetwork.vertexSet().size():0)+"\t");
@@ -678,6 +749,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   {
     SRMGroup cloned = new SRMGroup(getSequence(), getRT(), getMz(), getCharge());
 
+    cloned.setRtOffset(getRtOffset());
     cloned.setSimilarity(getSimilarity());
 
     cloned.mSRMs = new TreeMap<>();
@@ -757,12 +829,13 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
             peptide_group.put(peptide, group);
           }
           catch (NullPointerException e) {
-            System.out.println();
+            System.out.print("!");
           }
         }
         group.addTransition(tr.getFloat("ProductMz"), tr.get("LibraryIntensity", 0f));
       }
       tr.close();
+      System.out.println();
 
       return groups;
     }
@@ -831,7 +904,10 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     {
       SRM cpo = grp.getSRMs().get(0f);
       Collection<SRMGroup> libs = pep_lib.get(grp.getSequence());
-      if (cpo!=null && Tools.isSet(libs) && cpo.getPeakPct()>=min_peak_exclusivity && cpo.getFeature().getIntensity()>min_apex)
+      if (cpo!=null && Tools.isSet(libs) &&
+          // need both the local and global check to ensure the quality of the calibrants. WYU 20200625
+          cpo.getPeakPct()>=min_peak_exclusivity && cpo.getPeakPctAll()>=min_peak_exclusivity &&
+          cpo.getFeature().getIntensity()>min_apex)
       {
         double iRTs=0, reportedRT=0;
         for (SRMGroup g : libs) { iRTs+=g.getIRT(); reportedRT+=g.getReportedRT(); }
@@ -856,7 +932,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     MultiTreeTable<Float, Float, SRMGroup> mapped = MultiTreeTable.create();
     for (SRMGroup grp : lib.values())
     {
-      grp.setRT(Peaks.interpolateForY(cals, (use_iRT?grp.getIRT():grp.getReportedRT())));
+      grp.setRT(Peaks.estimateForY(cals, (use_iRT?grp.getIRT():grp.getReportedRT())));
       if (!Double.isInfinite(grp.getRT())) mapped.put(grp.getMz(), grp.getRT(), grp);
     }
     // remove the old one to save the memory
@@ -874,7 +950,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
       for (SRMGroup grp : lib.values())
       {
-        grp.setRT(Peaks.interpolateForY(cals, (use_iRT?grp.getIRT():grp.getReportedRT())));
+        grp.setRT(Peaks.estimateForY(cals, (use_iRT?grp.getIRT():grp.getReportedRT())));
         if (!Double.isInfinite(grp.getRT())) mapped.put(grp.getMz(), grp.getRT(), grp);
       }
     } else if (setting.isCalMethod(LcSettings.calibration.loess))

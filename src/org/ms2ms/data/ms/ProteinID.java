@@ -190,7 +190,7 @@ public class ProteinID implements Comparable<ProteinID>, Binary
 
     return peptide_protein;
   }
-  public ProteinID networking(float min_dp)
+  public ProteinID networking(float min_dp, double span)
   {
     if (getCompositeSRMGroup()==null || !Tools.isSet(getCompositeSRMGroup().getSRMs())) return this;
 
@@ -199,6 +199,7 @@ public class ProteinID implements Comparable<ProteinID>, Binary
     List<Float> traces = new ArrayList<>(getCompositeSRMGroup().getSRMs().keySet());
     traces.remove(0f);
 
+    Range<Double> range = Range.closed(span*-1, span);
     for (int i = 0; i < traces.size(); i++) {
       SRM x = getCompositeSRMGroup().getSRM(traces.get(i));
       if (!Tools.isSet(x.getXIC()) || x.getXIC().size()<5) continue;
@@ -211,7 +212,7 @@ public class ProteinID implements Comparable<ProteinID>, Binary
         mNetwork.addVertex(y);
         if (i != j) {
           // calc the similarity
-          double dp = Similarity.dp_points(x.getXIC(), y.getXIC());
+          double dp = Similarity.dp_points(x.getXIC(), y.getXIC(), range);
           if (dp>=min_dp) mNetwork.setEdgeWeight(mNetwork.addEdge(x, y), dp);
         }
       }

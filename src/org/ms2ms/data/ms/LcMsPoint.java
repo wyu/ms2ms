@@ -3,6 +3,8 @@ package org.ms2ms.data.ms;
 import org.ms2ms.data.Point;
 import org.ms2ms.utils.Tools;
 
+import java.util.Collection;
+
 public class LcMsPoint extends Point
 {
   private float  mMz=0, mPPM=Float.NaN;
@@ -46,12 +48,22 @@ public class LcMsPoint extends Point
       System.out.println();
     setY( s); return this;
   }
+  public static <T extends LcMsPoint> Double sumY(Collection<T> data)
+  {
+    if (data==null) return null;
+
+    double sum = 0d;
+    for (T xy : data) sum += xy.getY();
+
+    return sum;
+  }
+
 
   @Override
   public String toString()
   {
-    String out = "rt:"+Tools.d2s(getRT(), 2) + ", m/z" + Tools.d2s(getMz(), 4) + "->" +
-        Tools.d2s(getIntensity(), 1) + ", " + Tools.d2s(getFillTime(), 1) + "msec";
+    String out = "rt "+Tools.d2s(getRT(), 2) + ", m/z " + Tools.d2s(getMz(), 4) + "," +
+        Tools.d2s(getIntensity(), 1) + "," + Tools.d2s(getFillTime(), 1) + " msec";
     return out;
   }
 }

@@ -167,6 +167,24 @@ public class Similarity
     // calculating the dot-product
     return sum_ab * sum_ab / (sum_a * sum_b);
   }
+  public static <T extends Point> float dp_points(List<T> A, List<T> B, Range<Double> range)
+  {
+    // false if one of the spectra is empty or with diff dimension
+    if (A.isEmpty() || B.isEmpty() || A.size() != B.size()) return 0;
+
+    float dp = 0, sum_a = 0, sum_b = 0, sum_ab = 0;
+    for (int ia = 0; ia < A.size(); ia++)
+      if (range.contains(A.get(ia).getX()) && range.contains(B.get(ia).getX()))
+      {
+        sum_a  +=   A.get(ia).getY() * A.get(ia).getY();
+        sum_b  +=   B.get(ia).getY() * B.get(ia).getY();
+        sum_ab +=   A.get(ia).getY() * B.get(ia).getY();
+      }
+
+    // calculating the dot-product
+    return sum_ab * sum_ab / (sum_a * sum_b);
+  }
+
   public static double dp(Map<Double,Double> A, Map<Double,Double> B, boolean sqrted)
   {
     // false if one of the spectra is empty or with diff dimension
