@@ -4,7 +4,6 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Range;
-import org.expasy.mzjava.core.ms.peaklist.Peak;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.KosarajuStrongConnectivityInspector;
 import org.jgrapht.alg.interfaces.StrongConnectivityAlgorithm;
@@ -13,7 +12,7 @@ import org.jgrapht.graph.SimpleDirectedWeightedGraph;
 import org.ms2ms.Disposable;
 import org.ms2ms.data.Point;
 import org.ms2ms.math.Points;
-import org.ms2ms.math.Stats;
+import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
 import toools.collections.Lists;
 
@@ -23,11 +22,12 @@ import java.util.*;
 
 public class SRM implements Cloneable, Disposable, Comparable<SRM>
 {
-  private float mFragmentMz, mLibraryIntensity, mPkPct=0, mPkPctAll=0, mBackground;
+  private int mIsotope=0, mSizeNonzero=0;
+  private float mFragmentMz, mLibraryIntensity, mPkPct=0, mPkPctAll=0, mBackground, mPeaksArea;
   Range<Double> mPeakBoundary;
 
   private List<LcMsPoint> mXIC;
-  private LcMsFeature mFeature;
+  private LcMsFeature mFeature, mMostSimilar;
   private List<LcMsFeature> mPeaks=null;
 
   public SRM()
@@ -42,10 +42,13 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
     mXIC = new ArrayList<>();
   }
 
+  public int getIsotope() { return mIsotope; }
+  public int getXicSize() { return mSizeNonzero; }
   public float getFragmentMz() { return mFragmentMz; }
   public float getLibraryIntensity() { return mLibraryIntensity; }
+
 //  public float getApex()       { return mApex; }
-//  public float getArea()       { return mArea; }
+  public float getPeaksArea()       { return mPeaksArea; }
   public float getBackground()        { return mBackground; }
 //  public float getSNR(float apex)        { return mBackground!=0?apex/mBackground:0f; }
 
@@ -58,6 +61,8 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
 
   public List<LcMsPoint> getXIC() { return mXIC; }
   public LcMsFeature getFeature() { return mFeature; }
+  public LcMsFeature getMostSimilar() { return mMostSimilar; }
+
   public LcMsPoint get(int i) { return mXIC.get(i); }
 
   public LcMsPoint addXIC(float rt, float ai)
@@ -85,7 +90,7 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   public SRM setFeature(LcMsFeature s) { mFeature=s; return this; }
 //  public SRM setFillTime(float s) { mFillTime=s; return this; }
   public SRM setBackground(float s) { mBackground=s; return this; }
-
+  public SRM setIsotope(int s) { mIsotope=s; return this; }
   public SRM calPeakExclusivity(double rt, double quan_span, Range<Double> boundary)
   {
     if (!Tools.isSet(getXIC()) || !Tools.isSet(boundary)) return this;
@@ -127,14 +132,18 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
 
     return this;
   }
-  public LcMsFeature setPeakBoundary(LcMsFeature lead, double peak_base)
+  public LcMsFeature setPeakBoundary(LcMsFeature lead, double peak_base, float lc_width)
   {
     if (lead!=null && lead.getY()>0 && lead.getApexPos()>=0)
     {
-      double cut = getFeature().getY()*peak_base/100d, left=0, right=0, area=0;
+      double cut = getFeature().getY()*peak_base/100d, left=0, right=0, area=0, r0 = lead.getX();
       for (int i=lead.getApexPos(); i>0; i--)
       {
-        if (get(i).getIntensity()<cut && (i<=0 || get(i-1).getIntensity()<cut)) { left=get(i).getRT(); break; }
+        // no more than a full expected LC peak width, effectively 2x the expected
+        if (r0-get(i).getX()>lc_width || (get(i).getIntensity()<cut && (i<=0 || get(i-1).getIntensity()<cut)))
+        {
+          left=get(i).getRT(); break;
+        }
         else if (i==1)
         {
           area+=get(i).getIntensity()+get(i-1).getIntensity(); left=get(0).getRT(); break;
@@ -144,7 +153,11 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
 
       for (int i=lead.getApexPos()+1; i<getXIC().size()-1; i++)
       {
-        if (get(i).getIntensity()<cut && (i>=getXIC().size() || get(i+1).getIntensity()<cut)) { right=get(i).getRT(); break; }
+        // no more than a full expected LC peak width, effectively 2x the expected
+        if (get(i).getX()-r0>lc_width || (get(i).getIntensity()<cut && (i>=getXIC().size() || get(i+1).getIntensity()<cut)))
+        {
+          right=get(i).getRT(); break;
+        }
         else if (i==getXIC().size()-2)
         {
           area+=get(i).getIntensity()+get(i+1).getIntensity(); right=get(i+1).getRT(); break;
@@ -177,11 +190,16 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
       Collections.sort(ys, Ordering.natural().reversed());
       double cutoff = ys.get((int )(ys.size()*0.25));
 
-      double deri_max=0; int pos_deri_max=-1;
+      double deri_max=0, deri_min= Double.MAX_VALUE; int pos_deri_max=-1; LcMsFeature lastF=null;
       if (Tools.isSet(deri))
         for (int i=0; i<deri.size()-1; i++)
         {
-          if (deri.get(i).getY()>deri_max) { deri_max=deri.get(i).getY(); pos_deri_max=i; }
+          if      (deri.get(i).getY()>deri_max) { deri_max=deri.get(i).getY(); pos_deri_max=i; }
+          else if (deri.get(i).getY()<deri_min)
+          {
+            deri_min=deri.get(i).getY();
+            if (lastF!=null && i+2<mXIC.size()) lastF.setUpper(get(i+2).getX());
+          }
 
           if (deri.get(i).getY()>=0 && deri.get(i+1).getY()<=0)
           {
@@ -193,8 +211,11 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
             {
               double area = LcMsPoint.sumY(getXIC().subList(pos_deri_max+2, i+3));
               if (area>0)
-                mPeaks.add(new LcMsFeature(top.getX(), apx.getY(), deri_max).setApexPos(i+2
-                  ).setPointWidth(i+1-pos_deri_max).setArea(area));
+              {
+                lastF = new LcMsFeature(top.getX(), apx.getY(), deri_max).setApexPos(i+2
+                ).setPointWidth(i+1-pos_deri_max).setArea(area).setLower(get(pos_deri_max+2).getX());
+                mPeaks.add(lastF);
+              }
               deri_max=0;
             }
           }
@@ -204,10 +225,19 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
       if (mPeaks.size()>1)
       {
         int mid = Math.round(mPeaks.size()/2);
+        Collections.sort(mPeaks, new LcMsFeature.SimilarityDesendComparator());
+        mMostSimilar = mPeaks.get(0);
         Collections.sort(mPeaks, new LcMsFeature.AreaDesendComparator());
         // figor out the background level
         double background = LcMsFeature.sumArea(mPeaks.subList(mid, mPeaks.size()))/(mPeaks.size()-mid);
-        for (LcMsFeature p : mPeaks) p.setSNR(p.getArea()/background);
+        // set the total peak area
+        mPeaksArea = 0f;
+        for (LcMsFeature p : mPeaks)
+        {
+          p.setSNR(p.getArea()/background);
+          mPeaksArea+=p.getArea();
+        }
+        for (LcMsFeature p : mPeaks) p.setExclusivity(100f*p.getArea()/mPeaksArea);
       }
     }
 //    else
@@ -245,6 +275,7 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
     if (Tools.isSet(xs))
     {
       if (mXIC==null) mXIC = new ArrayList<>();
+      mSizeNonzero = mXIC.size();
       for (Float x : xs.get(0f))
         // need to bypass the non-zero check in addXIC
         if (!xs.get(getFragmentMz()).contains(x)) mXIC.add(new LcMsPoint(x,baseline));
@@ -307,8 +338,9 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   public String toString()
   {
     String out = "";
-    if (Tools.isSet(getXIC())) out = "xic="+getXIC().size();
-    if (mFeature!=null)        out += ", " + mFeature.toString();
+    if (getIsotope()>0)        Strs.extend(out, getIsotope()+"", "iso ");
+    if (Tools.isSet(getXIC())) Strs.extend(out,getXIC().size()+"", ", xic ");
+    if (mFeature!=null)        Strs.extend(out,  mFeature.toString(), ", ");
 
     return out;
   }
