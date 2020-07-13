@@ -254,8 +254,12 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
     cloned.mPkPct = mPkPct; cloned.mPkPctAll = mPkPctAll;
     cloned.mFeature = mFeature;
 
-    cloned.mXIC     = new ArrayList<>();
-    for (LcMsPoint p : mXIC) cloned.mXIC.add(p);
+    if (Tools.isSet(mXIC))
+    {
+      cloned.mXIC     = new ArrayList<>();
+      for (LcMsPoint p : mXIC)
+        if (p!=null) cloned.mXIC.add(p);
+    }
 
     return cloned;
   }
@@ -338,7 +342,7 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   public String toString()
   {
     String out = "";
-    if (getIsotope()>0)        Strs.extend(out, getIsotope()+"", "iso ");
+//    if (getIsotope()>0)        Strs.extend(out, getIsotope()+"", "iso ");
     if (Tools.isSet(getXIC())) Strs.extend(out,getXIC().size()+"", ", xic ");
     if (mFeature!=null)        Strs.extend(out,  mFeature.toString(), ", ");
 

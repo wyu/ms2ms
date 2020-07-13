@@ -13,7 +13,7 @@ import java.util.List;
  */
 public class LcMsFeature extends LcMsPoint
 {
-  public enum criteria { snr, ms1, inbound, suburb, outer, top }
+  public enum criteria { snr, dp, ms1, dpms1, inbound, suburb, outer, top }
 
   private boolean mInMS1=false;
   private int    mApexPos, mPointWidth;

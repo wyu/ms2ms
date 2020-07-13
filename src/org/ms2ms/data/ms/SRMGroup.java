@@ -336,9 +336,10 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     for (SRM srm : mSRMs.values()) srm.impute(gap);
     return this;
   }
-  public SRMGroup centroid(LcSettings settings)
+  public SRMGroup centroid(LcSettings settings, float min_dp)
   {
-    return centroid(settings.getPeakWidth(), settings.getQuanSpan(), settings.getQuanOffset(), settings.getMinSNR(), settings.getBaseRI());
+    return centroid(settings.getPeakWidth(), settings.getQuanSpan(), settings.getQuanOffset(),
+        settings.getMinSNR(), settings.getBaseRI(), settings.getMinPeakExclusivity(), min_dp);
   }
   public SRMGroup detectPeaks(float quan_span)
   {
@@ -383,7 +384,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     lib = (List )Tools.dispose(lib); obs = (List )Tools.dispose(obs);
     return this;
   }
-  public SRMGroup centroid(float rt_width, float quan_span, float quant_offset, float minSNR, float min_ri)
+  public SRMGroup centroid(float rt_width, float quan_span, float quant_offset, float minSNR,
+                           float min_ri, float min_pkex, float min_dp)
   {
     // nothing to do without a composite!
     if (getComposite()==null || !Tools.isSet(getComposite().getXIC())) return this;
@@ -391,8 +393,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 //    if (Strs.isA(getSequence(), "WPPEDEISKPEVPEDVDLDLKK#4","LMYEHELEQLR#2","VLVLGDSGVGK#2","FEFFEGLLFEGR#2"))
 //    if (Strs.isA(getSequence(), "FLNSFASMHR#3","TNPPLIQEKPAK#3","TQSPC[Carbamidomethyl (C)]FGDDDPAKK#3"))
 //    if (Strs.isA(getSequence(), "EFSHIAFLTIK#3","DLFDSM[Oxidation (M)]DK#2","VADEGSFTC[Carbamidomethyl (C)]FVSIR#2","DGLLPTGLGQR#2","LIPGC[Carbamidomethyl (C)]EVILATPYGR#2"))
-    if (Strs.isA(getSequence(), "AADFIDQALAQK#2"))
-      System.out.print("");
+//    if (Strs.isA(getSequence(), "AADFIDQALAQK#2"))
+//      System.out.print("");
 //    // check the alternative peaks by 1st derivatives
 //    getComposite().detectPeak(getRT(), quan_span);
 //    if (getMS1()!=null) getMS1().detectPeak(getRT(), quan_span);
@@ -405,7 +407,6 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
     double rt0 = getRT()+quant_offset;
     Range<Double> inner = Range.closed(rt0-quan_span,  rt0+quan_span),
-                 suburb = Range.closed(rt0-quan_span*1.5,  rt0+quan_span*1.5),
                  outer  = Range.closed(rt0-outer_span, rt0+outer_span);
 
     // setup the MS1 list
@@ -428,12 +429,11 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     else if (getComposite().getPeaks().size()==1) selected = getComposite().getPeaks().get(0);
     else
     {
-      LcMsFeature highest_unbound = null, highest_burb=null;
+      LcMsFeature highest_unbound = null;
       List<LcMsFeature> inbounds = new ArrayList<>(), tops = new ArrayList<>();
       for (LcMsFeature pk : getComposite().getPeaks())
       {
-        if (highest_unbound==null && !suburb.contains(pk.getX()) && outer.contains(pk.getX())) highest_unbound = pk;
-        if (highest_burb   ==null && !inner.contains(pk.getX()) && suburb.contains(pk.getX())) highest_burb = pk;
+        if (highest_unbound==null && outer.contains(pk.getX())) highest_unbound = pk;
         if (inner.contains(pk.getX())) inbounds.add(pk);
       }
 
@@ -455,30 +455,29 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
             if (hasMS1(rt_ms1, pk.getX(), rt_width/2f, 0f))
             { selected=pk; selected.wasBasedOn(LcMsFeature.criteria.ms1); break; }
         }
-        if (selected==null) { selected = tops.get(0); selected.wasBasedOn(LcMsFeature.criteria.snr); }
+        if (selected==null) { selected = tops.get(0).wasBasedOn(LcMsFeature.criteria.snr); }
       }
-      // don;t worry about the burb if the unbound one is obviously better
-      if (highest_burb!=null && highest_unbound!=null &&
-          highest_burb.getSNR()<highest_unbound.getSNR()/10) highest_burb=null;
-
+      if (selected!=null && selected.getExclusivity()<min_pkex && Tools.isSet(inbounds))
+      {
+        Collections.sort(inbounds, new LcMsFeature.SimilarityDesendComparator());
+        selected = inbounds.get(0).wasBasedOn(LcMsFeature.criteria.dp);
+        if (!selected.inMS1() && inbounds.size()>1 && inbounds.get(1).inMS1() &&
+            inbounds.get(1).getY()>selected.getY()/2 && inbounds.get(1).getSimilarity()>min_dp)
+        {
+          selected = inbounds.get(1).wasBasedOn(LcMsFeature.criteria.dpms1);
+        }
+      }
       // only expand outside of the quan window if supported by the MS1
       if (highest_unbound!=null &&
           !hasMS1(rt_ms1, highest_unbound.getX(), rt_width/2f, 3f) &&
           (highest_unbound.getSimilarity()<0.5 || highest_unbound.getExclusivity()<50)) highest_unbound=null;
-      if (highest_burb   !=null &&
-          !hasMS1(rt_ms1, highest_burb.getX(),    rt_width/2f, 3f) &&
-          (highest_burb.getSimilarity()<0.5 || highest_burb.getExclusivity()<50)) highest_burb   =null;
 
-      if (highest_burb!=null && (selected==null || selected.getY()*3f<highest_burb.getY()))
+      if (highest_unbound!=null && (selected==null || selected.getY()*10f<highest_unbound.getY()))
       {
-        selected = highest_burb; selected.wasBasedOn(LcMsFeature.criteria.suburb);
-      }
-      else if (highest_unbound!=null && (selected==null || selected.getY()*10f<highest_unbound.getY()))
-      {
-        selected = highest_unbound; selected.wasBasedOn(LcMsFeature.criteria.outer);
+        selected = highest_unbound.wasBasedOn(LcMsFeature.criteria.outer);
       }
       // grabt the top one from within the quan span. Have to qualify the feature later on
-      if (selected==null && Tools.isSet(tops)) selected = tops.get(0);
+      if (selected==null && Tools.isSet(tops)) selected = tops.get(0).wasBasedOn(LcMsFeature.criteria.snr);
 
       // check for likely problem
       if (Tools.isSet(inbounds) && selected!=inbounds.get(0) &&
@@ -1038,7 +1037,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     if (setting.isCalMethod(LcSettings.calibration.pt2, LcSettings.calibration.SG5))
     {
       // smooth the dRT/RT curve if asked
-      if (setting.toSmoothRT()) cals = Peaks.smoothBySG5(cals);
+      if (setting.isCalMethod(LcSettings.calibration.SG5)) cals = Peaks.smoothBySG5(cals);
 
       for (SRMGroup grp : lib.values())
       {

@@ -368,7 +368,7 @@ public class mzMLReader extends mzReader
   }
   public static MultiTreeTable<Float, Float, SRMGroup> extractTransitionXICs(
       String filename, Tolerance tol, float dRT, MultiTreeTable<Float, Float, SRMGroup> groups,
-      float span_overlap, boolean keep_xic, boolean keep_zero) throws IOException
+      MultiTreeTable<Float, Float, SRMGroup> landmarks, float span_overlap, boolean keep_xic, boolean keep_zero) throws IOException
   {
     // looping through the scans
     System.out.println("Reading "+filename+"...");
@@ -403,11 +403,13 @@ public class mzMLReader extends mzReader
       }
       if (ms.getMsLevel()==1)
       {
-        Collection<SRMGroup> ms1 = groups.subset(Range.closed(0f, 10000f), rt_bound);
-        if (Tools.isSet(ms1))
-        {
-          for (SRMGroup g : ms1) g.scanMS1(pks, rt, scan, 0d, tol, keep_zero);
-        }
+        groups    = scanMS1(groups,    pks, rt_bound, rt, scan, tol, keep_zero);
+        landmarks = scanMS1(landmarks, pks, rt_bound, rt, scan, tol, keep_zero);
+//        Collection<SRMGroup> ms1 = groups.subset(Range.closed(0f, 10000f), rt_bound);
+//        if (Tools.isSet(ms1))
+//        {
+//          for (SRMGroup g : ms1) g.scanMS1(pks, rt, scan, 0d, tol, keep_zero);
+//        }
         continue;
       }
 
@@ -424,13 +426,16 @@ public class mzMLReader extends mzReader
 
       // bring in the suitable SRM groups
       Range<Float> mz_bound = Range.closed(m0-mL+span_overlap, m0+mR-span_overlap);
-      Collection<SRMGroup> slice = groups.subset(mz_bound, rt_bound);
 
-      // let's go thro each fragments
-      if (slice.size()>0)
-      {
-        for (SRMGroup g : slice) g.scanMS2(pks, rt, scan, (double )ion_injection, tol, keep_zero);
-      }
+      groups    = scanMS2(groups,    pks, rt_bound, mz_bound, rt, ion_injection, scan, tol, keep_zero);
+      landmarks = scanMS2(landmarks, pks, rt_bound, mz_bound, rt, ion_injection, scan, tol, keep_zero);
+//      Collection<SRMGroup> slice = groups.subset(mz_bound, rt_bound);
+//
+//      // let's go thro each fragments
+//      if (slice.size()>0)
+//      {
+//        for (SRMGroup g : slice) g.scanMS2(pks, rt, scan, (double )ion_injection, tol, keep_zero);
+//      }
 //      pks = (SortedMap )Tools.dispose(pks);
       if (!keep_xic && rt-goalpost>2*dRT)
       {
@@ -439,7 +444,7 @@ public class mzMLReader extends mzReader
           for (SRMGroup grp : done)
             if (Tools.isSet(grp.getSRMs()) && Tools.isSet(Tools.front(grp.getSRMs().values()).getXIC()))
             {
-              grp.composite(0).centroid(0.15f, 5f, 0f, 3, 5).scoreSimillarity().calcFeatureExclusivity(1.5f, 3);
+              grp.composite(0).centroid(0.15f, 5f, 0f, 3, 5, 50f, 0.5f).scoreSimillarity().calcFeatureExclusivity(1.5f, 3);
               grp.disposeSRMs();
             }
 
@@ -450,4 +455,36 @@ public class mzMLReader extends mzReader
     return groups;
   }
 
+  public static MultiTreeTable<Float, Float, SRMGroup> scanMS1(
+      MultiTreeTable<Float, Float, SRMGroup> groups,  SortedMap<Double, Peak> pks,
+      Range<Float> rt_bound, float rt, int scan, Tolerance tol, boolean keep_zero)
+  {
+    if (groups!=null)
+    {
+      Collection<SRMGroup> ms1 = groups.subset(Range.closed(0f, 10000f), rt_bound);
+      if (Tools.isSet(ms1))
+      {
+        for (SRMGroup g : ms1) g.scanMS1(pks, rt, scan, 0d, tol, keep_zero);
+      }
+    }
+
+    return groups;
+  }
+  public static MultiTreeTable<Float, Float, SRMGroup> scanMS2(
+      MultiTreeTable<Float, Float, SRMGroup> groups,  SortedMap<Double, Peak> pks,
+      Range<Float> rt_bound, Range<Float> mz_bound, float rt, float ion_injection,
+      int scan, Tolerance tol, boolean keep_zero)
+  {
+    if (groups!=null)
+    {
+      Collection<SRMGroup> slice = groups.subset(mz_bound, rt_bound);
+
+      // let's go thro each fragments
+      if (slice.size()>0)
+      {
+        for (SRMGroup g : slice) g.scanMS2(pks, rt, scan, (double )ion_injection, tol, keep_zero);
+      }
+    }
+    return groups;
+  }
 }
