@@ -16,7 +16,7 @@ public class LcMsFeature extends LcMsPoint
   public enum criteria { snr, dp, ms1, dpms1, inbound, suburb, outer, top }
 
   private boolean mInMS1=false;
-  private int    mApexPos, mPointWidth;
+  private int    mApexPos, mPointWidth, mPresentN;
   private double mArea, mApexRT, mLower, mUpper;
   private double mAbundance;
   private double mApex, mDeriv1st, mSNR;
@@ -64,6 +64,7 @@ public class LcMsFeature extends LcMsPoint
   public double getApexRT()    { return mApexRT; }
   public int    getApexPos()   { return mApexPos; }
   public int    getPointWidth() { return mPointWidth; }
+  public int    isPresentIn()   { return mPresentN; }
   public double getSNR()        { return mSNR; }
   public double getSimilarity() { return mSimilarity; }
   public double getExclusivity() { return mExclusivity; }
@@ -76,6 +77,7 @@ public class LcMsFeature extends LcMsPoint
   public double getInitialCentroidRt()      { return mInitialCentroidRt; }
   public criteria wasBasedOn() { return mPeakSelection; }
 
+  public LcMsFeature isPresentIn(int s) { mPresentN=s; return this; }
   public LcMsFeature setApexPos(int s) { mApexPos=s; return this; }
   public LcMsFeature setPointWidth(int s) { mPointWidth=s; return this; }
   public LcMsPoint setAbundance(double s) { mAbundance=s; return this; }
@@ -96,6 +98,11 @@ public class LcMsFeature extends LcMsPoint
 
   public LcMsFeature inMS1(boolean s) { mInMS1=s; return this; }
 
+  public boolean isBetterThan(LcMsFeature selected, float apexR, float dpD, int presentD)
+  {
+    // has to be better all around
+    return (getY()>selected.getY()*apexR && getSimilarity()>selected.getSimilarity()+dpD && isPresentIn()>selected.isPresentIn()+presentD);
+  }
   public static Double sumArea(Collection<LcMsFeature> data)
   {
     if (data==null) return null;

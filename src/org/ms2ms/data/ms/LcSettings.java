@@ -32,6 +32,7 @@ public class LcSettings extends Settings
   public static final String KY_QUAN_SPAN  = "RT Window during quantitation";
   public static final String KY_QUAN_OFFSET  = "RT offset during quantitation";
   public static final String KY_SNR  = "min SNR to qualify";
+  public static final String KY_OUTSIDER  = "outsider OK";
 
   public static LcSettings nLC = null;
   static
@@ -54,6 +55,7 @@ public class LcSettings extends Settings
 
   public int       getApexPts()            { return getInteger(KY_APEX_PTS); }
   public int       getGridSize()           { return getInteger(KY_GRID_SIZE); }
+  public boolean   isOutsiderOK()          { return getBoolean(KY_OUTSIDER); }
 
   public boolean   isCalMethod(     calibration... s)
   {
@@ -76,7 +78,7 @@ public class LcSettings extends Settings
   public LcSettings setQuanSpan(          float s) { set(KY_QUAN_SPAN, s); return this; }
   public LcSettings setQuanOffset(        float s) { set(KY_QUAN_OFFSET, s); return this; }
   public LcSettings setMinSNR(            float s) { set(KY_SNR, s); return this; }
-
+  public LcSettings isOutsiderOK(       boolean s) { set(KY_OUTSIDER, s); return this; }
   public LcSettings setApexPts(             int s) { set(KY_APEX_PTS, s); return this; }
   public LcSettings setGridSize(            int s) { set(KY_GRID_SIZE, s); return this; }
   public LcSettings setCalMethod(   calibration s) { set(KY_RTCAL, s.name()); return this; }

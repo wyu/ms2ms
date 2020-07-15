@@ -444,7 +444,7 @@ public class mzMLReader extends mzReader
           for (SRMGroup grp : done)
             if (Tools.isSet(grp.getSRMs()) && Tools.isSet(Tools.front(grp.getSRMs().values()).getXIC()))
             {
-              grp.composite(0).centroid(0.15f, 5f, 0f, 3, 5, 50f, 0.5f).scoreSimillarity().calcFeatureExclusivity(1.5f, 3);
+              grp.composite(0).centroid(0.15f, 5f, 0f, 3, 5, 50f, 0.5f, true).scoreSimillarity().calcFeatureExclusivity(1.5f, 3);
               grp.disposeSRMs();
             }
 

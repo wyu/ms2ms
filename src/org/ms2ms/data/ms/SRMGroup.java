@@ -339,7 +339,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public SRMGroup centroid(LcSettings settings, float min_dp)
   {
     return centroid(settings.getPeakWidth(), settings.getQuanSpan(), settings.getQuanOffset(),
-        settings.getMinSNR(), settings.getBaseRI(), settings.getMinPeakExclusivity(), min_dp);
+        settings.getMinSNR(), settings.getBaseRI(), settings.getMinPeakExclusivity(), min_dp, settings.isOutsiderOK());
   }
   public SRMGroup detectPeaks(float quan_span)
   {
@@ -369,15 +369,16 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
       for (LcMsFeature F : getSRM(max_isotope).getPeaks())
       {
-        obs.clear();
+        obs.clear(); int N=0;
         for (SRM srm : mSRMs.values())
           if (srm.getFragmentMz()>0 && srm.getIsotope()<=max_isotope)
           {
             Map<Double, Double> slice = frag_rt_ai.row(srm.getFragmentMz()).subMap(F.getX()-rt_tol, F.getX()+rt_tol);
             obs.add(Tools.isSet(slice)?(float )Math.sqrt(Stats.sum(slice.values())):0f);
+            if (Tools.isSet(slice)) N++;
           }
 
-        F.setSimilarity(Similarity.dp(lib, obs));
+        F.setSimilarity(Similarity.dp(lib, obs)).isPresentIn(N);
       }
       Tools.dispose(frag_rt_ai); frag_rt_ai = null;
     }
@@ -385,7 +386,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     return this;
   }
   public SRMGroup centroid(float rt_width, float quan_span, float quant_offset, float minSNR,
-                           float min_ri, float min_pkex, float min_dp)
+                           float min_ri, float min_pkex, float min_dp, boolean outside_permitted)
   {
     // nothing to do without a composite!
     if (getComposite()==null || !Tools.isSet(getComposite().getXIC())) return this;
@@ -472,7 +473,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
           !hasMS1(rt_ms1, highest_unbound.getX(), rt_width/2f, 3f) &&
           (highest_unbound.getSimilarity()<0.5 || highest_unbound.getExclusivity()<50)) highest_unbound=null;
 
-      if (highest_unbound!=null && (selected==null || selected.getY()*10f<highest_unbound.getY()))
+      // be extra careful about the outside assignment
+      if ( outside_permitted && highest_unbound!=null &&
+          (selected==null || highest_unbound.isBetterThan(selected, 10f, 0.15f, 2)))
       {
         selected = highest_unbound.wasBasedOn(LcMsFeature.criteria.outer);
       }
@@ -480,9 +483,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
       if (selected==null && Tools.isSet(tops)) selected = tops.get(0).wasBasedOn(LcMsFeature.criteria.snr);
 
       // check for likely problem
-      if (Tools.isSet(inbounds) && selected!=inbounds.get(0) &&
-          inbounds.get(0).getSNR()>selected.getSNR()*10)
-        System.out.print("");
+//      if (Tools.isSet(inbounds) && selected!=inbounds.get(0) &&
+//          inbounds.get(0).getSNR()>selected.getSNR()*10)
+//        System.out.print("");
 
       inbounds = (List )Tools.dispose(inbounds); tops = (List )Tools.dispose(tops);
     }
