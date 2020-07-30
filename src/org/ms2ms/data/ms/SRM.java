@@ -4,6 +4,7 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Range;
+import com.sun.org.apache.xpath.internal.objects.XBoolean;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.KosarajuStrongConnectivityInspector;
 import org.jgrapht.alg.interfaces.StrongConnectivityAlgorithm;
@@ -22,8 +23,10 @@ import java.util.*;
 
 public class SRM implements Cloneable, Disposable, Comparable<SRM>
 {
+  private SRMGroup.IsoLable mIsotopeLabel = SRMGroup.IsoLable.L;
+
   private int mIsotope=0, mSizeNonzero=0;
-  private float mFragmentMz, mLibraryIntensity, mPkPct=0, mPkPctAll=0, mBackground, mPeaksArea;
+  private float mFragmentMz, mLibraryIntensity, mPkPct=0, mPkPctAll=0, mBackground, mPeaksArea, mPrecursorMzOffset=0f;
   Range<Double> mPeakBoundary;
 
   private List<LcMsPoint> mXIC;
@@ -42,10 +45,13 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
     mXIC = new ArrayList<>();
   }
 
+  public SRMGroup.IsoLable getIsotopeLabel() { return mIsotopeLabel; }
+  public boolean isIsotopeLabel(SRMGroup.IsoLable s) { return Tools.equals(s, mIsotopeLabel); }
   public int getIsotope() { return mIsotope; }
   public int getXicSize() { return mSizeNonzero; }
   public float getFragmentMz() { return mFragmentMz; }
   public float getLibraryIntensity() { return mLibraryIntensity; }
+  public float getPrecursorMzOffset() { return mPrecursorMzOffset; }
 
 //  public float getApex()       { return mApex; }
   public float getPeaksArea()       { return mPeaksArea; }
@@ -87,10 +93,12 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   }
 
 //  public SRM setFeature(Point s) { if (s!=null) mFeature = new LcMsFeature(s); return this; }
+  public SRM setIsotopeLabel(SRMGroup.IsoLable s) { mIsotopeLabel=s; return this; }
   public SRM setFeature(LcMsFeature s) { mFeature=s; return this; }
 //  public SRM setFillTime(float s) { mFillTime=s; return this; }
   public SRM setBackground(float s) { mBackground=s; return this; }
   public SRM setIsotope(int s) { mIsotope=s; return this; }
+  public SRM setPrecursorMzOffset(float s) { mPrecursorMzOffset=s; return this; }
   public SRM calPeakExclusivity(double rt, double quan_span, Range<Double> boundary)
   {
     if (!Tools.isSet(getXIC()) || !Tools.isSet(boundary)) return this;

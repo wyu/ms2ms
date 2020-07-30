@@ -28,6 +28,8 @@ import static org.ms2ms.math.Stats.closed;
 
 public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 {
+  public enum IsoLable { H, L }
+
   private String mPeptideSequence, mProteinId;
   private float mRT, mRtOffset, mPrecursorMz, mDpSimilarity, mIRT, mReportedRT, mNetworkNiche;
   private int mCharge, mQualifiedSRMs;
@@ -35,9 +37,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
   private LcMsFeature mCompositePeak=null, mCompositeFeature=null;
 
-//  private TreeMap<Float, Float> mTransitions;
-//  private TreeMultimap<Float, Point> mXIC;
-//  private TreeMap<Float, Point> mFeatures;
+  // isotopically label standard
+  private Table<String, IsoLable, SRM> mTransitionSRMs;
+
   private TreeMap<Float, SRM> mSRMs;
   private SimpleDirectedWeightedGraph<SRM, DefaultWeightedEdge> mNetwork;
 
@@ -151,10 +153,10 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     // how much of the SRM were productive
     return 0f;
   }
-  private SRMGroup addTransition(float frag, float intensity, int c13)
+  private SRM addTransition(float frag, float intensity, int c13)
   {
     mSRMs.put(frag, new SRM(frag, intensity).setIsotope(c13));
-    return this;
+    return mSRMs.get(frag);
   }
   private LcMsPoint addXICPoint(float frag, float rt, Double intensity, Double mz, int scan, Double fill, boolean keep_zero)
   {
@@ -687,6 +689,30 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     }
     return this;
   }
+  public SRMGroup setupAssay()
+  {
+    if (mTransitionSRMs ==null) mTransitionSRMs = HashBasedTable.create();
+
+    // order the SRM by their FragMz
+    List<Float> frags = new ArrayList<>(getSRMs().keySet()); Collections.sort(frags);
+    for (int i=0; i<frags.size(); i++)
+      if (getSRM(frags.get(i)).isIsotopeLabel(IsoLable.L))
+      {
+        // setup the channel
+        String channel = Tools.d2s(frags.get(i), 4);
+        mTransitionSRMs.put(channel, IsoLable.L, getSRM(frags.get(i)));
+        // look for the heavy counterpart
+        for (int j=i+1; j<frags.size(); j++)
+          if (getSRM(frags.get(j)).isIsotopeLabel(IsoLable.H))
+          {
+            mTransitionSRMs.put(channel, IsoLable.H, getSRM(frags.get(j)));
+            break;
+          }
+      }
+    frags = (List )Tools.dispose(frags);
+
+    return this;
+  }
   public static void headerXIC(Writer w) throws IOException
   {
 //    headerGroup(w);
@@ -868,6 +894,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     return out;
   }
 
+//  PrecursorMz	ProductMz	ModifiedSequence	Isotope	NormalizedRetentionTime	ProteinId	LibraryIntensity
+//  866.480002	1323.679073	VLPVGDEVVGIVGYTSK	light	29.94	NT5E	2134440
+//  870.487102	1331.693272	VLPVGDEVVGIVGYTSK	heavy	29.94	NT5E	33145262
   public static MultiTreeTable<Float, Float, SRMGroup> readTransitions(String trfile, String delim, Map<String, String> cols, boolean use_iRT, boolean c13, String... protein_ids)
   {
     try
@@ -919,7 +948,10 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         float frag_mz = tr.getFloat("ProductMz"), frag_ai = tr.get("LibraryIntensity", 0f),
                frag_z = tr.get("ProductCharge", 1f);
 
-        group.addTransition(frag_mz, frag_ai, 0);
+        SRM srm = group.addTransition(frag_mz, frag_ai, 0);
+        if      ("light".equalsIgnoreCase(tr.get("Isotope"))) srm.setIsotopeLabel(IsoLable.L);
+        else if ("heavy".equalsIgnoreCase(tr.get("Isotope"))) srm.setIsotopeLabel(IsoLable.H);
+
         if (c13 && frag_mz > tr.getFloat("PrecursorMz"))
         {
           // y = 4.362E-04*Mass - 2.345E-03R² = 0.9998
