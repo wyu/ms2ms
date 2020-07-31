@@ -25,11 +25,11 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   private SRMGroup.IsoLable mIsotopeLabel = SRMGroup.IsoLable.L;
 
   private int mIsotope=0, mSizeNonzero=0;
-  private float mFragmentMz, mLibraryIntensity, mPkPct=0, mPkPctAll=0, mBackground, mPeaksArea, mPrecursorMz=0f;
-  Range<Double> mPeakBoundary;
+  private float mFragmentMz, mLibraryIntensity, mPkPct=0, mPkPctAll=0, mBackground=0f, mPeaksArea=0f, mPrecursorMz=0f;
+  Range<Double> mPeakBoundary=null;
 
   private List<LcMsPoint> mXIC;
-  private LcMsFeature mFeature, mMostSimilar;
+  private LcMsFeature mFeature=null, mMostSimilar=null;
   private List<LcMsFeature> mPeaks=null;
 
   public SRM()
@@ -256,10 +256,18 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
  }
   public SRM clone()
   {
-    SRM cloned      = new SRM(getFragmentMz(), getLibraryIntensity());
-//    cloned.mApex    = mApex; cloned.mArea = mArea;
+    SRM cloned = new SRM(getFragmentMz(), getLibraryIntensity());
+
+    cloned.mIsotopeLabel = mIsotopeLabel;
+    cloned.mIsotope = mIsotope; cloned.mSizeNonzero = mSizeNonzero;
+    cloned.mBackground = mBackground; cloned.mPeaksArea = mPeaksArea; cloned.mPrecursorMz = mPrecursorMz;
     cloned.mPkPct = mPkPct; cloned.mPkPctAll = mPkPctAll;
-    cloned.mFeature = mFeature;
+
+    if (mPeakBoundary!=null) cloned.mPeakBoundary = Range.closed(mPeakBoundary.lowerEndpoint(), mPeakBoundary.upperEndpoint());
+    if (mFeature!=null) cloned.mFeature = new LcMsFeature(mFeature);
+    if (mMostSimilar!=null) cloned.mMostSimilar = new LcMsFeature(mMostSimilar);
+
+    if (Tools.isSet(mPeaks)) cloned.mPeaks = new ArrayList<>(mPeaks);
 
     if (Tools.isSet(mXIC))
     {
