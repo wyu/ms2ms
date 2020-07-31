@@ -48,7 +48,8 @@ public class LcMsFeature extends LcMsPoint
     super();
     if (Tools.isSet(pts))
     {
-      setX(Points.centroid(pts)).setY(Points.basePoint(pts).getY());
+      setX(Points.centroid(pts));
+      if (Points.basePoint(pts)!=null) setY(Points.basePoint(pts).getY());
       setArea(Points.sumY(pts));
     }
   }

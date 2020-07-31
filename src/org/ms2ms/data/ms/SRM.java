@@ -4,7 +4,6 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Range;
-import com.sun.org.apache.xpath.internal.objects.XBoolean;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.KosarajuStrongConnectivityInspector;
 import org.jgrapht.alg.interfaces.StrongConnectivityAlgorithm;
@@ -26,7 +25,7 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   private SRMGroup.IsoLable mIsotopeLabel = SRMGroup.IsoLable.L;
 
   private int mIsotope=0, mSizeNonzero=0;
-  private float mFragmentMz, mLibraryIntensity, mPkPct=0, mPkPctAll=0, mBackground, mPeaksArea, mPrecursorMzOffset=0f;
+  private float mFragmentMz, mLibraryIntensity, mPkPct=0, mPkPctAll=0, mBackground, mPeaksArea, mPrecursorMz=0f;
   Range<Double> mPeakBoundary;
 
   private List<LcMsPoint> mXIC;
@@ -51,7 +50,7 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   public int getXicSize() { return mSizeNonzero; }
   public float getFragmentMz() { return mFragmentMz; }
   public float getLibraryIntensity() { return mLibraryIntensity; }
-  public float getPrecursorMzOffset() { return mPrecursorMzOffset; }
+  public float getPrecursorMz() { return mPrecursorMz; }
 
 //  public float getApex()       { return mApex; }
   public float getPeaksArea()       { return mPeaksArea; }
@@ -98,7 +97,7 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
 //  public SRM setFillTime(float s) { mFillTime=s; return this; }
   public SRM setBackground(float s) { mBackground=s; return this; }
   public SRM setIsotope(int s) { mIsotope=s; return this; }
-  public SRM setPrecursorMzOffset(float s) { mPrecursorMzOffset=s; return this; }
+  public SRM setPrecursorMz(float s) { mPrecursorMz =s; return this; }
   public SRM calPeakExclusivity(double rt, double quan_span, Range<Double> boundary)
   {
     if (!Tools.isSet(getXIC()) || !Tools.isSet(boundary)) return this;

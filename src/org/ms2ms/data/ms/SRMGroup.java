@@ -33,6 +33,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   private String mPeptideSequence, mProteinId;
   private float mRT, mRtOffset, mPrecursorMz, mDpSimilarity, mIRT, mReportedRT, mNetworkNiche;
   private int mCharge, mQualifiedSRMs;
+  private IsoLable mCurrIsoLabel = IsoLable.L;
   private Map<String, Object> mNetworkStats;
 
   private LcMsFeature mCompositePeak=null, mCompositeFeature=null;
@@ -77,6 +78,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   @Override public float getMH()     { return 0; }
   @Override public int   getCharge() { return mCharge; }
 
+  public IsoLable getCurrIsoLabel() { return mCurrIsoLabel; }
   public int    getNumQualifiedSRMs() { return mQualifiedSRMs; }
 
   public float  getRT(boolean iRT) { return iRT?mIRT:mRT; }
@@ -115,7 +117,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public SRM getSRM(Float s) { return mSRMs!=null?mSRMs.get(s):null; }
 
   public SRMGroup setNumQualifiedSRMs(int s) { mQualifiedSRMs=s; return this; }
-
+  public SRMGroup setCurrIsoLabel(IsoLable s) { mCurrIsoLabel=s; return this; }
   public SRMGroup setMz(  float s) { mPrecursorMz=s; return this; }
   public SRMGroup setRT(  float s) { mRT=s; return this; }
   public SRMGroup setRT( Double s) { if (s!=null) mRT=(float )s.doubleValue(); return this; }
@@ -255,8 +257,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     HashMap<Float, Integer>     rt_sn = new HashMap<>();
 
     for (Float frag : mSRMs.keySet())
-      if (frag>0 && mSRMs.get(frag)!=null && mSRMs.get(frag).getIsotope()>=max_c13 && mSRMs.get(frag).getXIC()!=null) // only the MS2 XIC
-        for (LcMsPoint pk : mSRMs.get(frag).getXIC())
+      if (frag>0 && getSRM(frag)!=null && getSRM(frag).isIsotopeLabel(getCurrIsoLabel()) && getSRM(frag).getIsotope()>=max_c13 && getSRM(frag).getXIC()!=null) // only the MS2 XIC
+        for (LcMsPoint pk : getSRM(frag).getXIC())
         {
           if (pk.getY()>0)
           {
@@ -563,6 +565,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     for (Float frag : mSRMs.keySet())
     {
       SRM srm = mSRMs.get(frag);
+      // only working on the current isotope label
+      if (!srm.isIsotopeLabel(getCurrIsoLabel())) continue;
+
       if (srm.getFeature()==null) srm.setFeature(new LcMsFeature());
       // look for the peak properties
       pts.clear(); mzs.clear(); mex.clear(); devi.clear();
@@ -607,7 +612,6 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 //      mApex = (float )getFeature().getApex();
       }
 
-
       List<Point>  ijs = new ArrayList<>();
       for (LcMsPoint p : getComposite().getXIC())
         if (rt_ij.containsKey(p.getRT())) ijs.add(new Point(rt_ij.get(p.getRT()), p.getIntensity()));
@@ -649,23 +653,12 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   {
     if (Tools.isSet(mSRMs) && mSRMs.get(0f)!=null && mSRMs.get(0f).getFeature()!=null)
     {
-//      if (getSequence().equals("NFDVGHVPIR#2"))
-//        System.out.print("");
-
       double rt = mSRMs.get(0f).getFeature().getX();
       for (SRM srm : mSRMs.values())
-        srm.calPeakExclusivity(rt, quan_span, getComposite().getPeakBoundary());
+        if (srm.isIsotopeLabel(getCurrIsoLabel())) srm.calPeakExclusivity(rt, quan_span, getComposite().getPeakBoundary());
     }
     return this;
   }
-//  public SRMGroup setPeakBoundary(double peak_base)
-//  {
-//    if (Tools.isSet(mSRMs) && getComposite()!=null && getComposite().getFeature()!=null)
-//      for (SRM srm : mSRMs.values())
-//        srm.setPeakBoundary(srm.getFeature(), peak_base);
-//
-//    return this;
-//  }
   public SRMGroup scanMS2(SortedMap<Double, Peak> peaks, float rt, int scan, Double fill_time, Tolerance tol, boolean keep_zero)
   {
     for (Float k : mSRMs.keySet())
@@ -698,6 +691,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     for (int i=0; i<frags.size(); i++)
       if (getSRM(frags.get(i)).isIsotopeLabel(IsoLable.L))
       {
+        // update the precursor m/z for the group
+        setMz(getSRM(frags.get(i)).getPrecursorMz());
         // setup the channel
         String channel = Tools.d2s(frags.get(i), 4);
         mTransitionSRMs.put(channel, IsoLable.L, getSRM(frags.get(i)));
@@ -948,7 +943,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         float frag_mz = tr.getFloat("ProductMz"), frag_ai = tr.get("LibraryIntensity", 0f),
                frag_z = tr.get("ProductCharge", 1f);
 
-        SRM srm = group.addTransition(frag_mz, frag_ai, 0);
+        SRM srm = group.addTransition(frag_mz, frag_ai, 0).setPrecursorMz(tr.getFloat("PrecursorMz"));
         if      ("light".equalsIgnoreCase(tr.get("Isotope"))) srm.setIsotopeLabel(IsoLable.L);
         else if ("heavy".equalsIgnoreCase(tr.get("Isotope"))) srm.setIsotopeLabel(IsoLable.H);
 
