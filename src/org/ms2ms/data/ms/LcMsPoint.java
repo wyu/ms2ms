@@ -3,6 +3,8 @@ package org.ms2ms.data.ms;
 import org.ms2ms.data.Point;
 import org.ms2ms.utils.Tools;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.util.Collection;
 
 public class LcMsPoint extends Point
@@ -57,7 +59,15 @@ public class LcMsPoint extends Point
 
     return sum;
   }
-
+  public void printXIC(Writer w) throws IOException
+  {
+    w.write(Tools.d2s(getScan(),2)     +"\t");
+    w.write(Tools.d2s(getRT(),3)       +"\t");
+    w.write(Tools.d2s(getIntensity(),2)+"\t");
+    w.write(Tools.d2s(getFillTime(),2)+"\t");
+    w.write(isImputed()                   +"\t");
+    w.write(Tools.d2s(getPPM(),2)      +"\n");
+  }
 
   @Override
   public String toString()

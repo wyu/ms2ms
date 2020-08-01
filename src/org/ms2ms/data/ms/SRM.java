@@ -24,6 +24,8 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
 {
   private SRMGroup.IsoLable mIsotopeLabel = SRMGroup.IsoLable.L;
 
+  private boolean mIsStronglyConnected=false;
+
   private int mIsotope=0, mSizeNonzero=0;
   private float mFragmentMz, mLibraryIntensity, mPkPct=0, mPkPctAll=0, mBackground=0f, mPeaksArea=0f, mPrecursorMz=0f;
   Range<Double> mPeakBoundary=null;
@@ -45,6 +47,8 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   }
 
   public SRMGroup.IsoLable getIsotopeLabel() { return mIsotopeLabel; }
+
+  public boolean isStronglyConnected() { return mIsStronglyConnected; }
   public boolean isIsotopeLabel(SRMGroup.IsoLable s) { return Tools.equals(s, mIsotopeLabel); }
   public int getIsotope() { return mIsotope; }
   public int getXicSize() { return mSizeNonzero; }
@@ -94,7 +98,11 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
 //  public SRM setFeature(Point s) { if (s!=null) mFeature = new LcMsFeature(s); return this; }
   public SRM setIsotopeLabel(SRMGroup.IsoLable s) { mIsotopeLabel=s; return this; }
   public SRM setFeature(LcMsFeature s) { mFeature=s; return this; }
-//  public SRM setFillTime(float s) { mFillTime=s; return this; }
+  public SRM setPeakBoundary(Range<Double> s) { mPeakBoundary=s!=null?Range.closed(s.lowerEndpoint(), s.upperEndpoint()):null; return this; }
+
+  public SRM isStronglyConnected(boolean s) { mIsStronglyConnected = s; return this; }
+
+  //  public SRM setFillTime(float s) { mFillTime=s; return this; }
   public SRM setBackground(float s) { mBackground=s; return this; }
   public SRM setIsotope(int s) { mIsotope=s; return this; }
   public SRM setPrecursorMz(float s) { mPrecursorMz =s; return this; }
@@ -405,6 +413,62 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
         w.write(Tools.d2s(net.getEdgeWeight(e),2)+"\n");
       }
   }
+  public static void headerFeatures(Writer w) throws IOException
+  {
+    w.write("isoL\tiso\tNumPts\tPkEx\tPkExAll\tsc\tfeature.rt\tfeature.ai\tinjection\tfeature.apex\tfeature.area\tfeature.ppm\tfeature.snr\tppm.stdev\tppm.stdev.ex\trule\tinbound.snr\tlower\tupper");
+  }
+  public static void headerAssayFeatures(Writer w, SRMGroup.IsoLable assay) throws IOException
+  {
+    String H = assay.toString();
+    w.write(H+".PkExAll\t"+H+".sc\t"+H+".rt\t"+H+".ai\t"+H+".inj\t"+H+".apex\t"+H+".area\t"+H+".ppm\t"+H+".snr");
+  }
+  public void printFeature(Writer w) throws IOException
+  {
+    w.write(getIsotopeLabel()+"\t");
+    w.write(getIsotope()+"\t");
+    w.write(getXicSize()+"\t");
+    w.write(Tools.d2s(getPeakPct(),2)+"\t");
+    w.write(Tools.d2s(getPeakPctAll(),2)+"\t");
+    w.write(isStronglyConnected()+"\t");
+
+    w.write(Tools.d2s(getFeature().getX(),3)+"\t");
+    w.write(Tools.d2s(getFeature().getY(),2)+"\t");
+    w.write(Tools.d2s(getFeature().getFillTime(),2)+"\t");
+    w.write(Tools.d2s(getFeature().getApex(),2)+"\t");
+    w.write(Tools.d2s(getFeature().getArea(),2)+"\t");
+    w.write(Tools.d2s(getFeature().getPPM(),2)+"\t");
+    w.write(Tools.d2s(getFeature().getSNR(),2)+"\t");
+    w.write(Tools.d2s(getFeature().getMzStdev(),2)+"\t");
+    w.write(Tools.d2s(getFeature().getMzStdevEx(),2)+"\t");
+    w.write(getFeature().wasBasedOn()+"\t");
+    w.write((Tools.isSet(getPeaks())?Tools.d2s(getPeaks().get(0).getSNR(),2):"")+"\t");
+    w.write(Tools.d2s(getPeakBoundary()!=null?getPeakBoundary().lowerEndpoint():0,2)+"\t");
+    w.write(Tools.d2s(getPeakBoundary()!=null?getPeakBoundary().upperEndpoint():0,2));
+  }
+  public void printKeyFeatures(Writer w) throws IOException
+  {
+    w.write(Tools.d2s(getPeakPctAll(),2)+"\t");
+    w.write(isStronglyConnected()+"\t");
+
+    if (getFeature()!=null)
+    {
+      w.write(Tools.d2s(getFeature().getX(),3)+"\t");
+      w.write(Tools.d2s(getFeature().getY(),2)+"\t");
+      w.write(Tools.d2s(getFeature().getFillTime(),2)+"\t");
+      w.write(Tools.d2s(getFeature().getApex(),2)+"\t");
+      w.write(Tools.d2s(getFeature().getArea(),2)+"\t");
+      w.write(Tools.d2s(getFeature().getPPM(),2)+"\t");
+      w.write(Tools.d2s(getFeature().getSNR(),2));
+    }
+    else
+    {
+      w.write("\t\t\t\t\t\t");
+    }
+  }
+  public static void printKeyBlanks(Writer w) throws IOException
+  {
+    w.write("\t\t\t\t\t\t\t");
+  }
   public static void headerNodes(Writer w) throws IOException
   {
     w.write("UID\tFragMz\n");
@@ -420,18 +484,23 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   }
   public static Map<String, Object> inspectNetwork(SimpleDirectedWeightedGraph<SRM, DefaultWeightedEdge> net)
   {
-    StrongConnectivityAlgorithm<String, DefaultWeightedEdge> scAlg =
+    StrongConnectivityAlgorithm<SRM, DefaultWeightedEdge> scAlg =
         new KosarajuStrongConnectivityInspector(net);
 
     // a graph is said to be strongly connected if every vertex is reachable from every other vertex
-    List<Graph<String, DefaultWeightedEdge>> stronglyConnectedSubgraphs = scAlg.getStronglyConnectedComponents();
+    List<Graph<SRM, DefaultWeightedEdge>> stronglyConnectedSubgraphs = scAlg.getStronglyConnectedComponents();
 
     List<Integer> sc = new ArrayList<>(stronglyConnectedSubgraphs.size());
 
     // prints the strongly connected components
     for (int i = 0; i < stronglyConnectedSubgraphs.size(); i++)
       if (stronglyConnectedSubgraphs.get(i).vertexSet().size()>1)
+      {
         sc.add(stronglyConnectedSubgraphs.get(i).vertexSet().size());
+        if (i==0)
+          for (SRM srm : stronglyConnectedSubgraphs.get(i).vertexSet())
+            srm.isStronglyConnected(true);
+      }
 
     Collections.sort(sc, Ordering.natural().reversed());
     if (sc.size()>2)

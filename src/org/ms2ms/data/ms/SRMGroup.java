@@ -30,10 +30,12 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 {
   public enum IsoLable { H, L }
 
+  public static IsoLable sCtrlIsoLabel=IsoLable.L, sAssayIsoLabel=IsoLable.H;
+
   private String mPeptideSequence, mProteinId;
   private float mRT, mRtOffset, mPrecursorMz, mDpSimilarity, mIRT, mReportedRT, mNetworkNiche;
   private int mCharge, mQualifiedSRMs;
-  private IsoLable mCurrIsoLabel = IsoLable.L;
+  private IsoLable mCurrIsoLabel=IsoLable.L;
   private Map<String, Object> mNetworkStats;
 
   private LcMsFeature mCompositePeak=null, mCompositeFeature=null;
@@ -79,6 +81,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   @Override public int   getCharge() { return mCharge; }
 
   public IsoLable getCurrIsoLabel() { return mCurrIsoLabel; }
+//  public IsoLable getCtrlIsoLabel() { return mCtrlIsoLabel; }
   public int    getNumQualifiedSRMs() { return mQualifiedSRMs; }
 
   public float  getRT(boolean iRT) { return iRT?mIRT:mRT; }
@@ -93,6 +96,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public SRM getComposite() { return mSRMs!=null?mSRMs.get(0f):null; }
   public SRM getMS1() { return mSRMs!=null?mSRMs.get(-1f):null; }
   public SRM getCompositeC13() { return mSRMs!=null?mSRMs.get(1f):null; }
+
+  public Table<String, IsoLable, SRM> getTransitionSRMs() { return mTransitionSRMs; }
 
   public SimpleDirectedWeightedGraph<SRM, DefaultWeightedEdge> getNetwork() { return mNetwork; }
 
@@ -118,6 +123,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
   public SRMGroup setNumQualifiedSRMs(int s) { mQualifiedSRMs=s; return this; }
   public SRMGroup setCurrIsoLabel(IsoLable s) { mCurrIsoLabel=s; return this; }
+//  public SRMGroup setCitrlIsoLabel(IsoLable s) { mCtrlIsoLabel=s; return this; }
+
   public SRMGroup setMz(  float s) { mPrecursorMz=s; return this; }
   public SRMGroup setRT(  float s) { mRT=s; return this; }
   public SRMGroup setRT( Double s) { if (s!=null) mRT=(float )s.doubleValue(); return this; }
@@ -129,6 +136,13 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public SRMGroup setCharge(int s) { mCharge=s; return this; }
   public SRMGroup setSimilarity(float s) { mDpSimilarity=s; return this; }
   public SRMGroup setProteinId(String s) { mProteinId=s; return this; }
+
+  public SRMGroup addTransitionSRM(String tr, IsoLable isoL, SRM srm)
+  {
+     if (mTransitionSRMs==null) mTransitionSRMs = HashBasedTable.create();
+     mTransitionSRMs.put(tr, isoL, srm);
+     return this;
+  }
 
   public float calcSrmYield(float span)
   {
@@ -219,7 +233,15 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
     // create a new network
     mNetwork = new SimpleDirectedWeightedGraph<>(DefaultWeightedEdge.class);
-    List<Float> traces = new ArrayList<>(getSRMs().keySet());
+    // only use the current isoLabel
+    List<Float> traces = new ArrayList<>();
+    if (getCurrIsoLabel()!=null)
+    {
+      for (Float fr : getSRMs().keySet())
+        if (getSRM(fr).isIsotopeLabel(getCurrIsoLabel())) traces.add(fr);
+    } else {
+      traces.addAll(getSRMs().keySet());
+    }
     // remove the default ms1 sinceit's not sync with the ms2 on RT. We should have called shift_ms1 first to
     // a sync'd version to replace the existing one @-1
     traces.remove(-1f);
@@ -550,8 +572,6 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   }
   public SRMGroup centroidByPeakBoundry(int apex_pts)
   {
-//    if (getSequence().equals("TITLEVEPSDTIENVK#2"))
-//      System.out.print("");
     Range<Double> boundary = getComposite().getPeakBoundary();
 
     if (!Tools.isSet(boundary))
@@ -568,6 +588,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
       // only working on the current isotope label
       if (!srm.isIsotopeLabel(getCurrIsoLabel())) continue;
 
+      srm.setPeakBoundary(boundary);
       if (srm.getFeature()==null) srm.setFeature(new LcMsFeature());
       // look for the peak properties
       pts.clear(); mzs.clear(); mex.clear(); devi.clear();
@@ -616,7 +637,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
       for (LcMsPoint p : getComposite().getXIC())
         if (rt_ij.containsKey(p.getRT())) ijs.add(new Point(rt_ij.get(p.getRT()), p.getIntensity()));
 
-      getComposite().getFeature().setFillTime(Tools.isSet(ijs) ? Points.centroid(ijs):Double.NaN);
+      if (getComposite()!=null && getComposite().getFeature()!=null)
+        getComposite().getFeature().setFillTime(Tools.isSet(ijs) ? Points.centroid(ijs):Double.NaN);
+
       ijs = (List )Tools.dispose(ijs);
     }
     else
@@ -711,12 +734,18 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public static void headerXIC(Writer w) throws IOException
   {
 //    headerGroup(w);
-    w.write("Peptide\tz\tPrecMz\tRT\tFragMz\tscan\txic.rt\txic.ai\tinjection\timputed\txic.ppm\n");
+    w.write("Peptide\tz\tPrecMz\tRT\tFragMz\tisoL\tscan\txic.rt\txic.ai\tinjection\timputed\txic.ppm\n");
   }
   public static void header_xic(Writer w) throws IOException
   {
     // xic.ai~xic.rt|FragMz
-    w.write("Peptide\tFragMz\txic.rt\txic.ai\txic.ppm\n");
+    w.write("Peptide\tFragMz\tisoL\txic.rt\txic.ai\txic.ppm\n");
+  }
+  public static void headerAssayXIC(Writer w, IsoLable assay) throws IOException
+  {
+    // xic.ai~xic.rt|FragMz
+    String H = assay.toString();
+    w.write("Peptide\tFragMz\txic.rt\txic.ai\txic.ppm\t"+H+".rt\t"+H+".ai\t"+H+".ppm\n");
   }
   public SRMGroup print_xic(Writer w, boolean keep_zero, float... frags) throws IOException
   {
@@ -728,11 +757,30 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
           {
             w.write(getSequence()+"\t");
             w.write(frag             +"\t");
+            w.write(getSRM(frag).getIsotopeLabel() +"\t");
             w.write(pk.getRT()       +"\t");
             w.write(pk.getIntensity()+"\t");
             w.write(pk.getPPM()      +"\n");
           }
 
+    return this;
+  }
+  public SRMGroup print_assay_xic(Writer w, boolean keep_zero) throws IOException
+  {
+    if (!Tools.isSet(mTransitionSRMs)) return this;
+    for (String tr : mTransitionSRMs.rowKeySet())
+    {
+      for (IsoLable isoL : mTransitionSRMs.row(tr).keySet())
+        for (LcMsPoint pk : mTransitionSRMs.get(tr, isoL).getXIC())
+        {
+          w.write(getSequence()+"\t");
+          w.write(tr             +"\t");
+          w.write(isoL +"\t");
+          w.write(pk.getRT()       +"\t");
+          w.write(pk.getIntensity()+"\t");
+          w.write(pk.getPPM()      +"\n");
+        }
+    }
     return this;
   }
 
@@ -742,30 +790,63 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
     if (!Tools.isSet(frags)) frags = Tools.toFloatArray(mSRMs.keySet());
     for (Float frag : frags)
-      if (mSRMs.get(frag)!=null && Tools.isSet(mSRMs.get(frag).getXIC()))
-        for (LcMsPoint pk : mSRMs.get(frag).getXIC())
+      if (getSRM(frag)!=null && Tools.isSet(getSRM(frag).getXIC()))
+        for (LcMsPoint pk : getSRM(frag).getXIC())
           if (keep_zero || pk.getIntensity()>0)
           {
             w.write(getSequence()+"\t");
             w.write(getCharge()+"\t");
             w.write(Tools.d2s(getMz(),4)+"\t");
             w.write(Tools.d2s(getRT(),3)+"\t");
-            w.write(Tools.d2s(frag,4)             +"\t");
-            w.write(Tools.d2s(pk.getScan(),2)     +"\t");
-            w.write(Tools.d2s(pk.getRT(),3)       +"\t");
-            w.write(Tools.d2s(pk.getIntensity(),2)+"\t");
-            w.write(Tools.d2s(pk.getFillTime(),2)+"\t");
-            w.write(pk.isImputed()                   +"\t");
-            w.write(Tools.d2s(pk.getPPM(),2)      +"\n");
+            w.write(Tools.d2s(frag,4) +"\t");
+            w.write(getSRM(frag).getIsotopeLabel() +"\t");
+            pk.printXIC(w);
+//            w.write(Tools.d2s(pk.getScan(),2)     +"\t");
+//            w.write(Tools.d2s(pk.getRT(),3)       +"\t");
+//            w.write(Tools.d2s(pk.getIntensity(),2)+"\t");
+//            w.write(Tools.d2s(pk.getFillTime(),2)+"\t");
+//            w.write(pk.isImputed()                   +"\t");
+//            w.write(Tools.d2s(pk.getPPM(),2)      +"\n");
           }
 
+    return this;
+  }
+  public SRMGroup printAssayXIC(Writer w, boolean keep_zero) throws IOException
+  {
+    if (!Tools.isSet(mTransitionSRMs)) return this;
+    for (String tr : mTransitionSRMs.rowKeySet())
+    {
+      SRM ctrl = mTransitionSRMs.get(tr, sCtrlIsoLabel), assay = mTransitionSRMs.get(tr, sAssayIsoLabel);
+      if (ctrl.getXIC().size()==assay.getXIC().size())
+        for (int i=0; i< ctrl.getXIC().size(); i++)
+        {
+          LcMsPoint C = ctrl.get(i), A = assay.get(i);
+          w.write(getSequence()+"\t");
+          w.write(tr             +"\t");
+          w.write(C.getRT()       +"\t");
+          w.write(C.getIntensity()+"\t");
+          w.write(C.getPPM()      +"\t");
+          w.write(A.getRT()       +"\t");
+          w.write(A.getIntensity()+"\t");
+          w.write(A.getPPM()      +"\n");
+       }
+    }
     return this;
   }
   public static void headerFeatures(Writer w) throws IOException
   {
     headerGroup(w);
-    w.write("FragMz\tiso\tNumPts\tPkEx\tPkExAll\tfeature.rt\tfeature.ai\tinjection\tfeature.apex\tfeature.area\tfeature.ppm\tfeature.snr\tppm.stdev\tppm.stdev.ex\trule\tinbound.snr\tlower\tupper\n");
+    w.write("FragMz\t"); SRM.headerFeatures(w); w.write("\n");
   }
+  public static void headerAssayFeatures(Writer w, IsoLable assay) throws IOException
+  {
+    headerGroup(w);
+    w.write("FragMz\t"); SRM.headerFeatures(w); w.write("\t");
+
+    if (assay!=null) SRM.headerAssayFeatures(w, assay);
+    w.write("\n");
+  }
+
   public static void headerPeaks(Writer w) throws IOException
   {
     headerGroup(w);
@@ -797,26 +878,47 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
         printGroup(w);
         w.write(Tools.d2s(frag,4)+"\t");
-        w.write(srm.getIsotope()+"\t");
-        w.write(srm.getXicSize()+"\t");
-        w.write(Tools.d2s(srm.getPeakPct(),2)+"\t");
-        w.write(Tools.d2s(srm.getPeakPctAll(),2)+"\t");
-        w.write(Tools.d2s(srm.getFeature().getX(),3)+"\t");
-        w.write(Tools.d2s(srm.getFeature().getY(),2)+"\t");
-        w.write(Tools.d2s(srm.getFeature().getFillTime(),2)+"\t");
-        w.write(Tools.d2s(srm.getFeature().getApex(),2)+"\t");
-        w.write(Tools.d2s(srm.getFeature().getArea(),2)+"\t");
-        w.write(Tools.d2s(srm.getFeature().getPPM(),2)+"\t");
-        w.write(Tools.d2s(srm.getFeature().getSNR(),2)+"\t");
-        w.write(Tools.d2s(srm.getFeature().getMzStdev(),2)+"\t");
-        w.write(Tools.d2s(srm.getFeature().getMzStdevEx(),2)+"\t");
-        w.write(srm.getFeature().wasBasedOn()+"\t");
-        w.write((Tools.isSet(srm.getPeaks())?Tools.d2s(srm.getPeaks().get(0).getSNR(),2):"")+"\t");
-        w.write(Tools.d2s(srm.getPeakBoundary()!=null?srm.getPeakBoundary().lowerEndpoint():0,2)+"\t");
-        w.write(Tools.d2s(srm.getPeakBoundary()!=null?srm.getPeakBoundary().upperEndpoint():0,2)+"\n");
+        srm.printFeature(w); w.write("\n");
+//        w.write(srm.getIsotope()+"\t");
+//        w.write(srm.getXicSize()+"\t");
+//        w.write(Tools.d2s(srm.getPeakPct(),2)+"\t");
+//        w.write(Tools.d2s(srm.getPeakPctAll(),2)+"\t");
+//        w.write(Tools.d2s(srm.getFeature().getX(),3)+"\t");
+//        w.write(Tools.d2s(srm.getFeature().getY(),2)+"\t");
+//        w.write(Tools.d2s(srm.getFeature().getFillTime(),2)+"\t");
+//        w.write(Tools.d2s(srm.getFeature().getApex(),2)+"\t");
+//        w.write(Tools.d2s(srm.getFeature().getArea(),2)+"\t");
+//        w.write(Tools.d2s(srm.getFeature().getPPM(),2)+"\t");
+//        w.write(Tools.d2s(srm.getFeature().getSNR(),2)+"\t");
+//        w.write(Tools.d2s(srm.getFeature().getMzStdev(),2)+"\t");
+//        w.write(Tools.d2s(srm.getFeature().getMzStdevEx(),2)+"\t");
+//        w.write(srm.getFeature().wasBasedOn()+"\t");
+//        w.write((Tools.isSet(srm.getPeaks())?Tools.d2s(srm.getPeaks().get(0).getSNR(),2):"")+"\t");
+//        w.write(Tools.d2s(srm.getPeakBoundary()!=null?srm.getPeakBoundary().lowerEndpoint():0,2)+"\t");
+//        w.write(Tools.d2s(srm.getPeakBoundary()!=null?srm.getPeakBoundary().upperEndpoint():0,2)+"\n");
       }
     return this;
   }
+  // for tthe PRM assay
+  public SRMGroup printAssayFeatures(Writer w) throws IOException
+  {
+    if (!Tools.isSet(mTransitionSRMs)) return this;
+
+    for (String tr : mTransitionSRMs.rowKeySet())
+      if (mTransitionSRMs.get(tr, sCtrlIsoLabel)!=null)
+      {
+        // let's build the ratio
+        SRM ctrl = mTransitionSRMs.get(tr, sCtrlIsoLabel), assay = mTransitionSRMs.get(tr, sAssayIsoLabel);
+
+        printGroup(       w); w.write(tr+"\t");
+        ctrl.printFeature(w); w.write("\t");
+        // print out the other channel
+        if (assay!=null) assay.printKeyFeatures(w); else SRM.printKeyBlanks(w);
+        w.write("\n");
+      }
+    return this;
+  }
+
   public static void headerGroup(Writer w) throws IOException
   {
     w.write("Peptide\tz\tPrecMz\tRT\toffset\tSimilarity\tYield\tNetV\tNetE\tSCC\tSCC1\t");
@@ -988,25 +1090,21 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
       protein.composite(0);
       protein_id.setCompositeSRMGroup(protein);
     }
-//    if (Tools.isSet(rt_ai))
-//    {
-//      double n = 0;
-//      for (Float rt : rt_ai.keySet())
-//        if (rt_ai.get(rt).size()>n) n = rt_ai.get(rt).size();
-//
-//      // create the composite trace
-//      SRM profile = new SRM(0f, 0f);
-//      for (Float rt : rt_ai.keySet())
-//      {
-//        // look for the ms1 trace
-//        float v = (float )Math.pow(10d, Stats.sum(rt_ai.get(rt))/n);
-//        profile.addXIC(rt, v);
-//      }
-//      protein.getSRMs().put(0f, profile);
-//      protein_id.setCompositeSRMGroup(protein);
-//    }
     return protein_id;
   }
+  public static ProteinID buildProteinAssay(LcSettings settings, Collection<SRMGroup> groups, String proteinid)
+  {
+    ProteinID protein_id = new ProteinID(null, proteinid);
+    SRMGroup protein     = new SRMGroup("Summary");
+
+    if (Tools.isSet(protein.getSRMs()))
+    {
+      protein.composite(0);
+      protein_id.setCompositeSRMGroup(protein);
+    }
+    return protein_id;
+  }
+
   public static List<Peak> extractRtCal(MultiTreeTable<Float, Float, SRMGroup> landmarks,
                                         MultiTreeTable<Float, Float, SRMGroup> lib,
                                         boolean use_iRT, float min_peak_exclusivity, float min_apex, Writer w) throws IOException
