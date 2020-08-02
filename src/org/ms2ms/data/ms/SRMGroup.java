@@ -193,6 +193,19 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
     return this;
   }
+  public SRMGroup shift(int steps)
+  {
+    double m0=Float.MAX_VALUE, m1=Float.MAX_VALUE*-1;
+    for (SRM srm : getSRMs().values())
+    {
+      if (Tools.front(srm.getXIC()).getX()<m0) m0 = Tools.front(srm.getXIC()).getX();
+      if (Tools.back( srm.getXIC()).getX()>m1) m1 = Tools.back( srm.getXIC()).getX();
+    }
+    Range<Float> xs = Range.closed((float )m0, (float )m1);
+    for (SRM srm : getSRMs().values()) srm.shift(xs, steps, null);
+
+    return this;
+  }
   // shift the RT of ms1 XIC so they line up with those of ms2
   public SRMGroup shift_ms1()
   {
@@ -280,8 +293,10 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     HashMap<Float, Integer>     rt_sn = new HashMap<>();
 
     for (Float frag : mSRMs.keySet())
-      if (frag>0 && getSRM(frag)!=null && getSRM(frag).isIsotopeLabel(getCurrIsoLabel()) && getSRM(frag).getIsotope()>=max_c13 && getSRM(frag).getXIC()!=null) // only the MS2 XIC
-        for (LcMsPoint pk : getSRM(frag).getXIC())
+    {
+      SRM srm = getSRM(frag);
+      if (frag>0 && srm!=null && srm.isIsotopeLabel(getCurrIsoLabel()) && srm.getIsotope()>=max_c13 && srm.getXIC()!=null) // only the MS2 XIC
+        for (LcMsPoint pk : srm.getXIC())
         {
           if (pk.getY()>0)
           {
@@ -291,6 +306,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
           }
           rt_ai0.put((float )pk.getX(), pk.getY());
         }
+    }
 
     // create the composite trace
     double n = mSRMs.size(); int ms1_start=0;
@@ -922,10 +938,11 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
   public static void headerGroup(Writer w) throws IOException
   {
-    w.write("Peptide\tz\tPrecMz\tRT\toffset\tSimilarity\tYield\tNetV\tNetE\tSCC\tSCC1\t");
+    w.write("Protein\tPeptide\tz\tPrecMz\tRT\toffset\tSimilarity\tYield\tNetV\tNetE\tSCC\tSCC1\t");
   }
   private void printGroup(Writer w) throws IOException
   {
+    w.write(getProteinId()+"\t");
     w.write(getSequence()+"\t");
     w.write(getCharge()+"\t");
     w.write(Tools.d2s(getMz(),4)+"\t");
