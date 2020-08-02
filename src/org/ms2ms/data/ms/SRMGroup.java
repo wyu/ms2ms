@@ -136,6 +136,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public SRMGroup setCharge(int s) { mCharge=s; return this; }
   public SRMGroup setSimilarity(float s) { mDpSimilarity=s; return this; }
   public SRMGroup setProteinId(String s) { mProteinId=s; return this; }
+  public SRMGroup setSequence(String s) { mPeptideSequence=s; return this; }
 
   public SRMGroup addTransitionSRM(String tr, IsoLable isoL, SRM srm)
   {
@@ -638,7 +639,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         if (rt_ij.containsKey(p.getRT())) ijs.add(new Point(rt_ij.get(p.getRT()), p.getIntensity()));
 
       if (getComposite()!=null && getComposite().getFeature()!=null)
-        getComposite().getFeature().setFillTime(Tools.isSet(ijs) ? Points.centroid(ijs):Double.NaN);
+        getComposite().getFeature().setFillTime(Tools.isSet(ijs) ? Points.centroid(ijs):null);
 
       ijs = (List )Tools.dispose(ijs);
     }
@@ -1020,6 +1021,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         {
           peptide = seq.replaceAll("_","");
           if (seq.indexOf('#')<0) peptide = peptide+(z!=0?("#"+z):"");
+          if (Strs.isSet(tr.get("Isotope"))) peptide = peptide + "@" + tr.get("Isotope");
         }
         else
         {

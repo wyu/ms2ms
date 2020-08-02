@@ -431,16 +431,22 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
     w.write(Tools.d2s(getPeakPctAll(),2)+"\t");
     w.write(isStronglyConnected()+"\t");
 
-    w.write(Tools.d2s(getFeature().getX(),3)+"\t");
-    w.write(Tools.d2s(getFeature().getY(),2)+"\t");
-    w.write(Tools.d2s(getFeature().getFillTime(),2)+"\t");
-    w.write(Tools.d2s(getFeature().getApex(),2)+"\t");
-    w.write(Tools.d2s(getFeature().getArea(),2)+"\t");
-    w.write(Tools.d2s(getFeature().getPPM(),2)+"\t");
-    w.write(Tools.d2s(getFeature().getSNR(),2)+"\t");
-    w.write(Tools.d2s(getFeature().getMzStdev(),2)+"\t");
-    w.write(Tools.d2s(getFeature().getMzStdevEx(),2)+"\t");
-    w.write(getFeature().wasBasedOn()+"\t");
+    if (getFeature()!=null)
+    {
+      w.write(Tools.d2s(getFeature().getX(),3)+"\t");
+      w.write(Tools.d2s(getFeature().getY(),2)+"\t");
+      w.write(Tools.d2s(getFeature().getFillTime(),2)+"\t");
+      w.write(Tools.d2s(getFeature().getApex(),2)+"\t");
+      w.write(Tools.d2s(getFeature().getArea(),2)+"\t");
+      w.write(Tools.d2s(getFeature().getPPM(),2)+"\t");
+      w.write(Tools.d2s(getFeature().getSNR(),2)+"\t");
+      w.write(Tools.d2s(getFeature().getMzStdev(),2)+"\t");
+      w.write(Tools.d2s(getFeature().getMzStdevEx(),2)+"\t");
+      w.write(getFeature().wasBasedOn()+"\t");
+    } else
+    {
+      w.write("\t\t\t\t\t\t\t\t\t\t");
+    }
     w.write((Tools.isSet(getPeaks())?Tools.d2s(getPeaks().get(0).getSNR(),2):"")+"\t");
     w.write(Tools.d2s(getPeakBoundary()!=null?getPeakBoundary().lowerEndpoint():0,2)+"\t");
     w.write(Tools.d2s(getPeakBoundary()!=null?getPeakBoundary().upperEndpoint():0,2));
