@@ -8,7 +8,6 @@ import org.expasy.mzjava.core.ms.spectrum.LibPeakAnnotation;
 import org.expasy.mzjava.core.ms.spectrum.MsnSpectrum;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTime;
 import org.expasy.mzjava.core.ms.spectrum.RetentionTimeList;
-import org.ms2ms.data.collect.ImmutableNavigableMap;
 import org.ms2ms.data.ms.IsoEnvelope;
 import org.ms2ms.data.ms.OffsetPpmTolerance;
 import org.ms2ms.data.ms.PeakMatch;
@@ -426,6 +425,22 @@ public class Spectra
 
     PeakList merged = As[0].copy(new PurgingPeakProcessor());
     merged.clear(); merged.addPeaks(Peaks.consolidate(out, tol, 0));
+
+    return merged;
+  }
+  public static PeakList composite(Tolerance tol, Collection<MsnSpectrum> As)
+  {
+    if (!Tools.isSet(As)) return null;
+
+    PeakList first = Tools.front(As), out = first.copy(new PurgingPeakProcessor());
+
+    for (PeakList A : As) if (A!=first) out.addPeaks(A);
+
+    PeakList merged = first.copy(new PurgingPeakProcessor());
+
+    PeakList prelim = Peaks.composite(out, tol);
+
+    merged.clear(); merged.addPeaks(Peaks.composite(prelim, tol));
 
     return merged;
   }

@@ -23,6 +23,7 @@ import org.ms2ms.math.Points;
 import org.ms2ms.math.Stats;
 import org.ms2ms.mzjava.AnnotatedPeak;
 import org.ms2ms.mzjava.IsotopePeakAnnotation;
+import org.ms2ms.mzjava.MergePeakAnnotation;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
@@ -673,6 +674,7 @@ public class Peaks {
 
       Fitted fit = new Fitted().fit(1, pts);
       if (fit!=null) return fit.polynomial(rt0);
+      System.out.print("");
     }
     return Double.NEGATIVE_INFINITY;
   }
@@ -967,7 +969,47 @@ public class Peaks {
   public static boolean match(TreeListMultimap<Double, FragmentEntry> indices, Range<Double> mz) {
     return Tools.isSet(mz) ? indices.containsKey(mz.lowerEndpoint(), mz.upperEndpoint()) : false;
   }
+  // a new implementation on 20200804
+  public static PeakList composite(PeakList peaks, Tolerance tol)
+  {
+    if (peaks == null || peaks.size() < 2) return peaks;
 
+    Collection<Point> pts = new ArrayList<>();
+    Collection<Peak> news = new ArrayList<>();
+    Multimap<Integer, PeakAnnotation> pa = HashMultimap.create();
+    for (int i = 0; i < peaks.size(); i++)
+    {
+      double min = tol.getMin(peaks.getMz(i)), max = tol.getMax(peaks.getMz(i)); // from lower to upper
+      pts.clear();
+      for (int j = i + 1; j < peaks.size(); j++)
+      {
+        if (j < peaks.size() && peaks.getMz(j)>=min && peaks.getMz(j)<=max)
+        {
+          pts.add(new Point(peaks.getMz(j), peaks.getIntensity(j)));
+          peaks.setIntensityAt(-1d, j);
+          if (peaks.getAnnotations(j) != null) pa.putAll(i, peaks.getAnnotations(j));
+        } else break;
+      }
+      // require a min number of peaks
+      pts.add(new Point(peaks.getMz(i), peaks.getIntensity(i)));
+      if (peaks.getAnnotations(i) != null) pa.putAll(i, peaks.getAnnotations(i));
+
+      peaks.setIntensityAt(-1d, i);
+      news.add(new Peak(Points.centroid(pts), Points.sumY(pts), pts.size()));
+    }
+    peaks.clear();
+    if (Tools.isSet(news))
+      for (Peak xy : news)
+        peaks.add(xy.getMz(), xy.getIntensity(), new MergePeakAnnotation(xy.getCharge()));
+
+    // dispose the intermediate objects
+    pts =(Collection )Tools.dispose(pts);
+    news=(Collection )Tools.dispose(news);
+    pa=(Multimap )Tools.dispose(pa);
+
+    // keeping just the peaks with positive intensities
+    return peaks.copy(new PurgingPeakProcessor());
+  }
   public static PeakList consolidate(PeakList peaks, Tolerance tol, int min_pks)
   {
     if (peaks == null || peaks.size() < 2) return peaks;

@@ -1,5 +1,7 @@
 package org.ms2ms.io;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import org.expasy.mzjava.core.io.ms.spectrum.MgfWriter;
 import org.expasy.mzjava.core.ms.Tolerance;
@@ -22,9 +24,7 @@ import uk.ac.ebi.jmzml.xml.io.MzMLUnmarshaller;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.SortedMap;
+import java.util.*;
 
 /**
  * Deprecated! Use jmzml reader instead
@@ -443,6 +443,64 @@ public class mzMLReader extends mzReader
       }
     }
     return groups;
+  }
+  // extract the average MS/MS over the boundary of XIC features
+  public static Map<String, MsnSpectrum> extractMS2ForFeatures(
+      String filename, MultiTreeTable<Float, Float, SRMGroup> groups, Tolerance tol) throws IOException
+  {
+    // looping through the scans
+    System.out.println("Reading "+filename+"...");
+
+    MzMLUnmarshaller mzml = new MzMLUnmarshaller(new File(filename), false, null);
+    // looping through the scans
+    MzMLObjectIterator<uk.ac.ebi.jmzml.model.mzml.Spectrum> spectrumIterator = mzml.unmarshalCollectionFromXpath("/run/spectrumList/spectrum", uk.ac.ebi.jmzml.model.mzml.Spectrum.class);
+
+    int rows=0;
+    Multimap<String, MsnSpectrum> ms_groups = HashMultimap.create();
+    Map<String, MsnSpectrum> composites = new TreeMap<>();
+
+    while (spectrumIterator.hasNext())
+    {
+      Spectrum ss = spectrumIterator.next();
+      float    rt = MsIO.getDouble(ss.getScanList().getScan().get(0).getCvParam(), "MS:1000016").floatValue();
+
+      if (++rows%100==0) System.out.print(".");
+      if (rows%10000==0) System.out.print(rows+"\n");
+
+      MsnSpectrum ms = MsReaders.from(ss, false);
+
+      float m0=0f, mL=0f, mR=0f;
+      for (Precursor prec : ss.getPrecursorList().getPrecursor())
+      {
+        for (uk.ac.ebi.jmzml.model.mzml.CVParam cv : prec.getIsolationWindow().getCvParam())
+        {
+          if (cv.getAccession().equals("MS:1000827")) m0 = Float.parseFloat(cv.getValue());
+          if (cv.getAccession().equals("MS:1000828")) mL = Float.parseFloat(cv.getValue());
+          if (cv.getAccession().equals("MS:1000829")) mR = Float.parseFloat(cv.getValue());
+        }
+      }
+
+      // bring in the suitable SRM groups
+      Collection<SRMGroup> slice = groups.subset(m0-mL, m0+mR, rt-5f, rt+5f);
+      if (Tools.isSet(slice))
+        for (SRMGroup g : slice)
+        {
+          Range<Double> R = null;
+          for (SRM srm : g.getSRMs().values())
+            if (srm!=null && srm.getPeakBoundary()!=null && Tools.isSet(srm.getPeakBoundary()))
+            {
+              R = srm.getPeakBoundary(); break;
+            }
+          if (R!=null && R.contains((double )rt)) ms_groups.put(g.getSequence()+"@mz"+g.getMz(), ms);
+        }
+    }
+    if (Tools.isSet(ms_groups))
+      for (String p : ms_groups.keySet())
+      {
+        composites.put(p, (MsnSpectrum )Spectra.composite(tol, ms_groups.get(p)));
+      }
+
+    return composites;
   }
 
   public static MultiTreeTable<Float, Float, SRMGroup> scanMS1(
