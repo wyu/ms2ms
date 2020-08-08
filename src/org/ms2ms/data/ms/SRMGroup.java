@@ -19,6 +19,7 @@ import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
 import toools.collections.Lists;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
@@ -1014,8 +1015,13 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 //  870.487102	1331.693272	VLPVGDEVVGIVGYTSK	heavy	29.94	NT5E	33145262
   public static MultiTreeTable<Float, Float, SRMGroup> readTransitions(String trfile, String delim, Map<String, String> cols, boolean use_iRT, boolean c13, String... protein_ids)
   {
+    if (!new File(trfile).exists()) return null;
+
     try
     {
+      // try a few possibilities if the delimiter is not set
+      if (!Strs.isSet(delim)) delim = TabFile.guessDelim(trfile, '\t', ',', ';')+"";
+
       MultiTreeTable<Float, Float, SRMGroup> groups = new MultiTreeTable<>();
 
       TabFile                          tr = new TabFile(trfile, delim).setColMappings(cols);
