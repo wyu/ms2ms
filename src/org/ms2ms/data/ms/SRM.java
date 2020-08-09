@@ -525,7 +525,7 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
       w.write(Tools.d2s(getFeature().getArea(),2)+"\t");
       w.write(Tools.d2s(getFeature().getPPM(),2)+"\t");
       w.write(Tools.d2s(getFeature().getSNR(),2)+"\t");
-      w.write(Tools.d2s(getFeature().getRatio2Ctrl(),2));
+      w.write(getFeature().getRatio2Ctrl()+"");
     }
     else
     {

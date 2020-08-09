@@ -29,6 +29,7 @@ import org.ms2ms.utils.TabFile;
 import org.ms2ms.utils.Tools;
 
 import java.io.IOException;
+import java.io.Writer;
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -976,26 +977,31 @@ public class Peaks {
 
     Collection<Point> pts = new ArrayList<>();
     Collection<Peak> news = new ArrayList<>();
-    Multimap<Integer, PeakAnnotation> pa = HashMultimap.create();
+//    Multimap<Integer, PeakAnnotation> pa = HashMultimap.create();
     for (int i = 0; i < peaks.size(); i++)
     {
+      // skip the peaks that're merged already
+      if (peaks.getIntensity(i)<=0) continue;
+
       double min = tol.getMin(peaks.getMz(i)), max = tol.getMax(peaks.getMz(i)); // from lower to upper
-      pts.clear();
+      pts.clear(); int merge_cnt=getMergeCounts(peaks, i);
       for (int j = i + 1; j < peaks.size(); j++)
       {
-        if (j < peaks.size() && peaks.getMz(j)>=min && peaks.getMz(j)<=max)
+        // not picking out the merged peaks
+        if (j < peaks.size() && peaks.getIntensity(j)>0 && peaks.getMz(j)>=min && peaks.getMz(j)<=max)
         {
           pts.add(new Point(peaks.getMz(j), peaks.getIntensity(j)));
-          peaks.setIntensityAt(-1d, j);
-          if (peaks.getAnnotations(j) != null) pa.putAll(i, peaks.getAnnotations(j));
+          // flag the peak
+          peaks.setIntensityAt(-1d, j); merge_cnt += getMergeCounts(peaks, j);
+//          if (peaks.getAnnotations(j) != null) pa.putAll(i, peaks.getAnnotations(j));
         } else break;
       }
       // require a min number of peaks
       pts.add(new Point(peaks.getMz(i), peaks.getIntensity(i)));
-      if (peaks.getAnnotations(i) != null) pa.putAll(i, peaks.getAnnotations(i));
+//      if (peaks.getAnnotations(i) != null) pa.putAll(i, peaks.getAnnotations(i));
 
       peaks.setIntensityAt(-1d, i);
-      news.add(new Peak(Points.centroid(pts), Points.sumY(pts), pts.size()));
+      news.add(new Peak(Points.centroid(pts), Points.sumY(pts), merge_cnt));
     }
     peaks.clear();
     if (Tools.isSet(news))
@@ -1005,10 +1011,30 @@ public class Peaks {
     // dispose the intermediate objects
     pts =(Collection )Tools.dispose(pts);
     news=(Collection )Tools.dispose(news);
-    pa=(Multimap )Tools.dispose(pa);
+//    pa=(Multimap )Tools.dispose(pa);
 
     // keeping just the peaks with positive intensities
     return peaks.copy(new PurgingPeakProcessor());
+  }
+  public static void headerCompositePeak(Writer w) throws IOException
+  {
+    w.write("Key\tmz\tai\tmerged\n");
+  }
+  public static void printCompositePeak(Writer w, PeakList peaks, int idx, String key) throws IOException
+  {
+    w.write(key+"\t"+peaks.getMz(idx)+"\t"+peaks.getIntensity(idx)+"\t"+getMergeCounts(peaks, idx)+"\n");
+  }
+  public static int getMergeCounts(PeakList pks, int idx)
+  {
+    int cnt=0;
+    if (pks!=null && idx<pks.size() && Tools.isSet(pks.getAnnotations(idx)))
+      for (Object pa : pks.getAnnotations(idx))
+        if (pa instanceof MergePeakAnnotation) cnt += ((MergePeakAnnotation) pa).getMergeCounts();
+
+    // has at least ONE spectrum even if the annotation is missing
+    if (cnt==0 && pks!=null && idx<pks.size()) cnt=1;
+
+    return cnt;
   }
   public static PeakList consolidate(PeakList peaks, Tolerance tol, int min_pks)
   {

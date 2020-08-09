@@ -497,7 +497,9 @@ public class mzMLReader extends mzReader
     if (Tools.isSet(ms_groups))
       for (String p : ms_groups.keySet())
       {
-        composites.put(p, (MsnSpectrum )Spectra.composite(tol, ms_groups.get(p)));
+        MsnSpectrum ms = (MsnSpectrum )Spectra.composite(tol, ms_groups.get(p));
+        ms.setSpectrumIndex(ms_groups.get(p).size());
+        composites.put(p, ms);
       }
 
     return composites;

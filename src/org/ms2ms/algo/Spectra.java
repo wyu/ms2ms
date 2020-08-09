@@ -441,7 +441,6 @@ public class Spectra
     PeakList prelim = Peaks.composite(out, tol);
 
     merged.clear(); merged.addPeaks(Peaks.composite(prelim, tol));
-
     return merged;
   }
   public static double deviation(Tolerance tol, SortedMap<Double, PeakMatch> As, PeakList B)
