@@ -4,6 +4,7 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Range;
+import org.apache.commons.math3.fitting.WeightedObservedPoint;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.KosarajuStrongConnectivityInspector;
 import org.jgrapht.alg.interfaces.StrongConnectivityAlgorithm;
@@ -11,6 +12,7 @@ import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.SimpleDirectedWeightedGraph;
 import org.ms2ms.Disposable;
 import org.ms2ms.data.Point;
+import org.ms2ms.math.Fitted;
 import org.ms2ms.math.Points;
 import org.ms2ms.utils.Strs;
 import org.ms2ms.utils.Tools;
@@ -18,6 +20,7 @@ import toools.collections.Lists;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.DoubleBuffer;
 import java.util.*;
 
 public class SRM implements Cloneable, Disposable, Comparable<SRM>
@@ -338,6 +341,63 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
 
     return this;
   }
+  // return the estimate ratio to the control chennel by template fitting
+  public double ratio2control(SRM ctrl, float edge)
+  {
+    if (ctrl==null || !Tools.isSet(ctrl.getXIC()) || !Tools.isSet(getXIC())) return 0f;
+
+//    List<WeightedObservedPoint> pts = new ArrayList<>();
+    List<Point> pts = new ArrayList<>();
+
+//    System.out.println("\nlogAssay\tlogCtrl\tweight\tRT\tAssay\tCtrl");
+//    if (ctrl.getPeakBoundary()==null)
+//      System.out.println("");
+//
+    double r1=0d, r2=0, diff=0d, n=0d,
+        rtL=ctrl.getPeakBoundary()!=null?ctrl.getPeakBoundary().lowerEndpoint()-edge:0d,
+        rtR=ctrl.getPeakBoundary()!=null?ctrl.getPeakBoundary().upperEndpoint()+edge:Double.MAX_VALUE;
+    for (int i=0; i<getXIC().size(); i++)
+      if (ctrl.get(i).getX()>=rtL && ctrl.get(i).getX()<=rtR && get(i).getIntensity()>0 && ctrl.get(i).getIntensity()>0)
+      {
+        r1 +=      get(i).getIntensity();
+        r2 += ctrl.get(i).getIntensity();
+
+        diff += Math.log10(get(i).getIntensity())-Math.log10(ctrl.get(i).getIntensity()); n++;
+        pts.add(new Point(Math.log10(get(i).getIntensity()), Math.log10(ctrl.get(i).getIntensity())));
+//        WeightedObservedPoint pt = new WeightedObservedPoint(Math.sqrt(ctrl.get(i).getIntensity()), Math.log10(get(i).getIntensity()), Math.log10(ctrl.get(i).getIntensity()));
+////        pts.add(pt);
+//        System.out.println(pt.getX()+"\t"+pt.getY()+"\t"+pt.getWeight()+"\t"+get(i).getX()+"\t"+get(i).getIntensity()+"\t"+ctrl.get(i).getIntensity());
+      }
+
+//    System.out.println("\nRT\tAssay\tCtrl");
+//    for (int i=0; i<getXIC().size(); i++)
+//      if (get(i).getIntensity()>0 || ctrl.get(i).getIntensity()>0)
+//      {
+//        System.out.println(get(i).getX()+"\t"+get(i).getIntensity()+"\t"+ctrl.get(i).getIntensity());
+//      }
+
+    if (n>3)
+    {
+      diff /=n;
+      List<Point> errs = new ArrayList<>();
+      for (double k=-2; k<2; k+=0.1)
+      {
+        double err2=0;
+        for (Point pt : pts)
+        {
+          err2 += Math.abs(pt.getY()+diff+k-pt.getX());
+        }
+        errs.add(new Point(diff-k, 100d/err2));
+      }
+      double dif = Points.centroid(errs);
+      return (Math.pow(10, dif));
+//      Collections.sort(pts);
+//      return Math.pow(10d, Points.centroid(pts));
+    }
+    else if (n==0) return 0d;
+
+    return r1/r2;
+  }
   // shift the RT axis to +- around the center, then interpolate them to the new RT points
   public SRM shift(Range<Float> xs, int steps, Float center)
   {
@@ -420,7 +480,7 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   public static void headerAssayFeatures(Writer w, SRMGroup.IsoLable assay) throws IOException
   {
     String H = assay.toString();
-    w.write(H+".PkExAll\t"+H+".sc\t"+H+".rt\t"+H+".ai\t"+H+".inj\t"+H+".apex\t"+H+".area\t"+H+".ppm\t"+H+".snr");
+    w.write(H+".PkExAll\t"+H+".sc\t"+H+".rt\t"+H+".ai\t"+H+".inj\t"+H+".apex\t"+H+".area\t"+H+".ppm\t"+H+".snr\t"+H+".r");
   }
   public void printFeature(Writer w) throws IOException
   {
@@ -464,16 +524,17 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
       w.write(Tools.d2s(getFeature().getApex(),2)+"\t");
       w.write(Tools.d2s(getFeature().getArea(),2)+"\t");
       w.write(Tools.d2s(getFeature().getPPM(),2)+"\t");
-      w.write(Tools.d2s(getFeature().getSNR(),2));
+      w.write(Tools.d2s(getFeature().getSNR(),2)+"\t");
+      w.write(Tools.d2s(getFeature().getRatio2Ctrl(),2));
     }
     else
     {
-      w.write("\t\t\t\t\t\t");
+      w.write("\t\t\t\t\t\t\t");
     }
   }
   public static void printKeyBlanks(Writer w) throws IOException
   {
-    w.write("\t\t\t\t\t\t\t");
+    w.write("\t\t\t\t\t\t\t\t");
   }
   public static void headerNodes(Writer w) throws IOException
   {

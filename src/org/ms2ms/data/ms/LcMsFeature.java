@@ -17,7 +17,7 @@ public class LcMsFeature extends LcMsPoint
 
   private boolean mInMS1=false;
   private int    mApexPos, mPointWidth, mPresentN;
-  private double mArea, mApexRT, mLower, mUpper;
+  private double mArea, mApexRT, mLower, mUpper, mRatio2Ctrl;
   private double mAbundance;
   private double mApex, mDeriv1st, mSNR;
   private double mMzStdev=Double.NaN, mMzStdevEx=Double.NaN;
@@ -61,6 +61,7 @@ public class LcMsFeature extends LcMsPoint
 
   public double getAbundance() { return mAbundance; }
   public double getArea()      { return mArea; }
+  public double getRatio2Ctrl() { return mRatio2Ctrl; }
   public double getApex()      { return mApex; }
   public double getApexRT()    { return mApexRT; }
   public int    getApexPos()   { return mApexPos; }
@@ -83,6 +84,8 @@ public class LcMsFeature extends LcMsPoint
   public LcMsFeature setPointWidth(int s) { mPointWidth=s; return this; }
   public LcMsPoint setAbundance(double s) { mAbundance=s; return this; }
   public LcMsFeature setArea(double s) { mArea=s; return this; }
+  public LcMsPoint setRatio2Ctrl(double s) { mRatio2Ctrl=s; return this; }
+
   public LcMsPoint setApex(double s) { mApex=s; return this; }
 //  public LcMsPoint setMz(double s) { mMz=s; return this; }
   public LcMsPoint setMzStdev(double s) { mMzStdev=s; return this; }

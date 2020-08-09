@@ -588,6 +588,21 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
     return this;
   }
+  public SRMGroup ratio2control(float edge)
+  {
+    if (Tools.isSet(getTransitionSRMs()))
+      for (String row : getTransitionSRMs().rowKeySet())
+      {
+        SRM assay = getTransitionSRMs().get(row, sAssayIsoLabel), ctrl = getTransitionSRMs().get(row, sCtrlIsoLabel);
+        if (assay!=null && ctrl!=null && assay.getFeature()!=null)
+        {
+          double r = assay.ratio2control(ctrl, edge);
+          assay.getFeature().setRatio2Ctrl(r);
+        }
+      }
+
+    return this;
+  }
   public SRMGroup centroidByPeakBoundry(int apex_pts)
   {
     Range<Double> boundary = getComposite().getPeakBoundary();
