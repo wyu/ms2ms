@@ -1,11 +1,14 @@
 package org.ms2ms.data.ms;
 
+import com.google.common.collect.Range;
 import org.ms2ms.data.Point;
+import org.ms2ms.math.Points;
 import org.ms2ms.utils.Tools;
 
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Collection;
+import java.util.List;
 
 public class LcMsPoint extends Point
 {
@@ -67,6 +70,44 @@ public class LcMsPoint extends Point
     w.write(Tools.d2s(getFillTime(),2)+"\t");
     w.write(isImputed()                   +"\t");
     w.write(Tools.d2s(getPPM(),2)      +"\n");
+  }
+  public static LcMsPoint interpolate(List<LcMsPoint> ps, Double x, boolean ignore_zero)
+  {
+    Range<LcMsPoint> range = Points.boundry(new LcMsPoint(x, 0d), ps, ignore_zero);
+    if (range!=null)
+      return interpolate(range.lowerEndpoint(), range.upperEndpoint(), x);
+
+    return null;
+  }
+  public static LcMsPoint interpolate(LcMsPoint p1, LcMsPoint p2, Double x)
+  {
+    LcMsPoint xy = new LcMsPoint(x, 0d);
+
+    if     ((p1 != null && p2 == null) || (p1 == null && p2 != null)) xy = null; // undefined situation, WYU 081209
+    else if (p1 != null && p2 != null && p2.getX() - p1.getX() != 0)
+    {
+      Double k0 = (p2.getX() - p1.getX()),
+              k = (p2.getY()        - p1.getY())        / k0,
+            fil = (p2.getFillTime() - p1.getFillTime()) / k0,
+            ppm = (p2.getPPM()      - p1.getPPM())      / k0,
+             mz = (p2.getMz()       - p1.getMz())       / k0,
+           scan = (p2.getScan()     - p1.getScan())     / k0;
+
+      xy.setY(       p1.getY()        + (x - p1.getX()) * k);
+      xy.setFillTime(p1.getFillTime() + (x - p1.getX()) * fil);
+      xy.setMz(      p1.getMz()       + (x - p1.getX()) * mz);
+      xy.setPPM((float          )(p1.getPPM()  + (x - p1.getX()) * ppm));
+      xy.setScan((int )Math.round(p1.getScan() + (x - p1.getX()) * scan));
+    }
+    else if (p1 != null && p2 != null && p2.getX() == p1.getX())
+    {
+      xy.setY(       0.5d*(p1.getY() + p2.getY()));
+      xy.setFillTime(0.5d*(p1.getFillTime() + p2.getFillTime()));
+      xy.setMz(      0.5d*(p1.getMz() + p2.getMz()));
+      xy.setPPM((float          )(0.5f*(p1.getPPM()  + p2.getPPM())));
+      xy.setScan((int )Math.round(0.5f*(p1.getScan() + p2.getScan())));
+    }
+    return xy;
   }
 
   @Override

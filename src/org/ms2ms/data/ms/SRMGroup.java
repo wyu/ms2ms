@@ -32,6 +32,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public enum IsoLable { H, L }
 
   public static IsoLable sCtrlIsoLabel=IsoLable.L, sAssayIsoLabel=IsoLable.H;
+  public static int sC13=1;
 
   private String mPeptideSequence, mProteinId;
   private float mRT, mRtOffset, mPrecursorMz, mDpSimilarity, mIRT, mReportedRT, mNetworkNiche;
@@ -283,6 +284,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         }
       }
     }
+//    if ("FPELNYQLK".equals(getSequence()))
+//      System.out.println("");
     if (mNetwork!=null && Tools.isSet(mNetwork.edgeSet())) mNetworkStats = SRM.inspectNetwork(mNetwork);
 
     return this;
@@ -293,10 +296,13 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     TreeMultimap<Float, Double> rt_ai = TreeMultimap.create(), rt_ai0 = TreeMultimap.create(), rt_pm = TreeMultimap.create();
     HashMap<Float, Integer>     rt_sn = new HashMap<>();
 
+    double n = 0;
     for (Float frag : mSRMs.keySet())
     {
       SRM srm = getSRM(frag);
-      if (frag>0 && srm!=null && srm.isIsotopeLabel(getCurrIsoLabel()) && srm.getIsotope()>=max_c13 && srm.getXIC()!=null) // only the MS2 XIC
+      if (frag>0 && srm!=null && srm.isIsotopeLabel(getCurrIsoLabel()) && srm.getIsotope()<=max_c13 && srm.getXIC()!=null) // only the MS2 XIC
+      {
+        n++;
         for (LcMsPoint pk : srm.getXIC())
         {
           if (pk.getY()>0)
@@ -307,11 +313,11 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
           }
           rt_ai0.put((float )pk.getX(), pk.getY());
         }
+      }
     }
 
     // create the composite trace
-    double n = mSRMs.size(); int ms1_start=0;
-    SRM ms1 = mSRMs.get(-1f);
+    int ms1_start=0; SRM ms1 = mSRMs.get(-1f);
     mSRMs.put((float )max_c13, new SRM(0f, 0f));
     for (Float rt : rt_ai0.keySet())
     {
@@ -588,7 +594,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
     return this;
   }
-  public SRMGroup ratio2control(float edge)
+  public SRMGroup ratio2control(float edge, Float std_fmols)
   {
     if (Tools.isSet(getTransitionSRMs()))
       for (String row : getTransitionSRMs().rowKeySet())
@@ -596,8 +602,12 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         SRM assay = getTransitionSRMs().get(row, sAssayIsoLabel), ctrl = getTransitionSRMs().get(row, sCtrlIsoLabel);
         if (assay!=null && ctrl!=null && assay.getFeature()!=null)
         {
-          double r = assay.ratio2control(ctrl, edge);
-          assay.getFeature().setRatio2Ctrl(r);
+          double[] rs = assay.ratio2control(ctrl, edge);
+          assay.getFeature().setRatio2Ctrl(rs[0]);
+          assay.getFeature().setDelta2Ctrl(rs[1]);
+
+          if (ctrl.getFeature()!=null && std_fmols!=null && std_fmols>0)
+            assay.getFeature().setFmols(std_fmols * assay.getFeature().getArea() / ctrl.getFeature().getArea());
         }
       }
 
@@ -743,20 +753,23 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     if (mTransitionSRMs ==null) mTransitionSRMs = HashBasedTable.create();
 
     // order the SRM by their FragMz
-    List<Float> frags = new ArrayList<>(getSRMs().keySet()); Collections.sort(frags);
+    List<Float> frags = new ArrayList<>(getSRMs().keySet()); HashSet<Float> removed = new HashSet<>(); Collections.sort(frags);
     for (int i=0; i<frags.size(); i++)
-      if (getSRM(frags.get(i)).isIsotopeLabel(IsoLable.L))
+      if (!removed.contains(frags.get(i)) && getSRM(frags.get(i)).isIsotopeLabel(IsoLable.L))
       {
         // update the precursor m/z for the group
-        setMz(getSRM(frags.get(i)).getPrecursorMz());
+        float prec_mz = getSRM(frags.get(i)).getPrecursorMz();
+        if (prec_mz>0 && (getMz()==0 || prec_mz<getMz())) setMz(prec_mz);
         // setup the channel
         String channel = Tools.d2s(frags.get(i), 4);
         mTransitionSRMs.put(channel, IsoLable.L, getSRM(frags.get(i)));
         // look for the heavy counterpart
         for (int j=i+1; j<frags.size(); j++)
-          if (getSRM(frags.get(j)).isIsotopeLabel(IsoLable.H))
+          if (!removed.contains(frags.get(j)) &&
+              getSRM(frags.get(j)).isIsotopeLabel(IsoLable.H) &&
+              getSRM(frags.get(j)).getIsotope()==getSRM(frags.get(i)).getIsotope())
           {
-            mTransitionSRMs.put(channel, IsoLable.H, getSRM(frags.get(j)));
+            mTransitionSRMs.put(channel, IsoLable.H, getSRM(frags.get(j))); removed.add(frags.get(j));
             break;
           }
       }
@@ -1089,12 +1102,14 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         if      ("light".equalsIgnoreCase(tr.get("Isotope"))) srm.setIsotopeLabel(IsoLable.L);
         else if ("heavy".equalsIgnoreCase(tr.get("Isotope"))) srm.setIsotopeLabel(IsoLable.H);
 
-        if (c13 && frag_mz > tr.getFloat("PrecursorMz"))
+        if (c13 /*&& frag_mz > tr.getFloat("PrecursorMz")*/)
         {
           // y = 4.362E-04*Mass - 2.345E-03R² = 0.9998
-          group.addTransition(
-              frag_mz+1.0047f/frag_z,
-              frag_ai * (4.362E-04f*((frag_mz-1.000783f)*frag_z) - 2.345E-03f), 1);
+          for (int i13=1; i13<=sC13; i13++)
+            group.addTransition(
+              frag_mz + i13*1.0047f/frag_z,
+              frag_ai * (4.362E-04f*((frag_mz-1.000783f)*frag_z) - 2.345E-03f), i13
+            ).setIsotopeLabel(srm.getIsotopeLabel());
         }
       }
       tr.close();

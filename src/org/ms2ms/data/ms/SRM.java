@@ -29,7 +29,7 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
 
   private boolean mIsStronglyConnected=false;
 
-  private int mIsotope=0, mSizeNonzero=0;
+  private int mIsotope=0, mSizeNonzero=0, mNumEdges=0;
   private float mFragmentMz, mLibraryIntensity, mPkPct=0, mPkPctAll=0, mBackground=0f, mPeaksArea=0f, mPrecursorMz=0f;
   Range<Double> mPeakBoundary=null;
 
@@ -55,6 +55,8 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   public boolean isIsotopeLabel(SRMGroup.IsoLable s) { return Tools.equals(s, mIsotopeLabel); }
   public int getIsotope() { return mIsotope; }
   public int getXicSize() { return mSizeNonzero; }
+  public int getNumEdges() { return mNumEdges; }
+
   public float getFragmentMz() { return mFragmentMz; }
   public float getLibraryIntensity() { return mLibraryIntensity; }
   public float getPrecursorMz() { return mPrecursorMz; }
@@ -107,6 +109,7 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
 
   //  public SRM setFillTime(float s) { mFillTime=s; return this; }
   public SRM setBackground(float s) { mBackground=s; return this; }
+  public SRM setNumEdges(int s) { mNumEdges=s; return this; }
   public SRM setIsotope(int s) { mIsotope=s; return this; }
   public SRM setPrecursorMz(float s) { mPrecursorMz =s; return this; }
   public SRM calPeakExclusivity(double rt, double quan_span, Range<Double> boundary)
@@ -342,12 +345,12 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
     return this;
   }
   // return the estimate ratio to the control chennel by template fitting
-  public double ratio2control(SRM ctrl, float edge)
+  public double[] ratio2control(SRM ctrl, float edge)
   {
-    if (ctrl==null || !Tools.isSet(ctrl.getXIC()) || !Tools.isSet(getXIC())) return 0f;
+    if (ctrl==null || !Tools.isSet(ctrl.getXIC()) || !Tools.isSet(getXIC())) return new double[] {0d, 0d};
 
 //    List<WeightedObservedPoint> pts = new ArrayList<>();
-    List<Point> pts = new ArrayList<>();
+    List<Point> pts = new ArrayList<>(), ptt = new ArrayList<>();
 
 //    System.out.println("\nlogAssay\tlogCtrl\tweight\tRT\tAssay\tCtrl");
 //    if (ctrl.getPeakBoundary()==null)
@@ -364,6 +367,8 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
 
         diff += Math.log10(get(i).getIntensity())-Math.log10(ctrl.get(i).getIntensity()); n++;
         pts.add(new Point(Math.log10(get(i).getIntensity()), Math.log10(ctrl.get(i).getIntensity())));
+        ptt.add(new Point(Math.log10(get(i).getIntensity())-Math.log10(ctrl.get(i).getIntensity()), Math.sqrt(ctrl.get(i).getIntensity())));
+
 //        WeightedObservedPoint pt = new WeightedObservedPoint(Math.sqrt(ctrl.get(i).getIntensity()), Math.log10(get(i).getIntensity()), Math.log10(ctrl.get(i).getIntensity()));
 ////        pts.add(pt);
 //        System.out.println(pt.getX()+"\t"+pt.getY()+"\t"+pt.getWeight()+"\t"+get(i).getX()+"\t"+get(i).getIntensity()+"\t"+ctrl.get(i).getIntensity());
@@ -389,14 +394,16 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
         }
         errs.add(new Point(diff-k, 100d/err2));
       }
-      double dif = Points.centroid(errs);
-      return (Math.pow(10, dif));
-//      Collections.sort(pts);
-//      return Math.pow(10d, Points.centroid(pts));
+      Collections.sort(ptt);
+      double dif = Points.centroid(errs), difw = Points.centroid(ptt);
+      return (new double[] {
+          ctrl.getFeature().getArea()*Math.pow(10, dif),
+          ctrl.getFeature().getArea()*Math.pow(10, diff),
+          ctrl.getFeature().getArea()*Math.pow(10, difw)});
     }
-    else if (n==0) return 0d;
+    else if (n==0) return new double[] {0d, 0d};
 
-    return r1/r2;
+    return new double[] {r1/r2, r1/r2};
   }
   // shift the RT axis to +- around the center, then interpolate them to the new RT points
   public SRM shift(Range<Float> xs, int steps, Float center)
@@ -411,10 +418,11 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
       for (double x=xs.lowerEndpoint(); x<=xs.upperEndpoint(); x+=step)
       {
         // interpolate from the existing array
-        Point p = Points.interpolate(getXIC(), x, false);
-        if (p==null) p = new Point(x, 0);
+//        Point p = Points.interpolate(getXIC(), x, false);
+        LcMsPoint p = LcMsPoint.interpolate(getXIC(), x, true);
+        if (p==null) p = new LcMsPoint(x, 0);
 
-        pts.add(new LcMsPoint(p));
+        pts.add(p);
       }
       mXIC = (List )Tools.dispose(mXIC);
       mXIC = pts;
@@ -475,12 +483,12 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   }
   public static void headerFeatures(Writer w) throws IOException
   {
-    w.write("isoL\tiso\tNumPts\tPkEx\tPkExAll\tsc\tfeature.rt\tfeature.ai\tinjection\tfeature.apex\tfeature.area\tfeature.ppm\tfeature.snr\tppm.stdev\tppm.stdev.ex\trule\tinbound.snr\tlower\tupper");
+    w.write("isoL\tiso\tNumPts\tPkEx\tPkExAll\tsc\tedge\tfeature.rt\tfeature.ai\tinjection\tfeature.apex\tfeature.area\tfeature.ppm\tfeature.snr\tppm.stdev\tppm.stdev.ex\trule\tinbound.snr\tlower\tupper");
   }
   public static void headerAssayFeatures(Writer w, SRMGroup.IsoLable assay) throws IOException
   {
     String H = assay.toString();
-    w.write(H+".PkExAll\t"+H+".sc\t"+H+".rt\t"+H+".ai\t"+H+".inj\t"+H+".apex\t"+H+".area\t"+H+".ppm\t"+H+".snr\t"+H+".r");
+    w.write(H+".PkExAll\t"+H+".sc\t"+H+".edge\t"+H+".rt\t"+H+".ai\t"+H+".inj\t"+H+".apex\t"+H+".area\t"+H+".ppm\t"+H+".snr\t"+H+".r\t"+H+".delta\t"+H+".fmol");
   }
   public void printFeature(Writer w) throws IOException
   {
@@ -490,6 +498,7 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
     w.write(Tools.d2s(getPeakPct(),2)+"\t");
     w.write(Tools.d2s(getPeakPctAll(),2)+"\t");
     w.write(isStronglyConnected()+"\t");
+    w.write(getNumEdges()+"\t");
 
     if (getFeature()!=null)
     {
@@ -515,6 +524,7 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   {
     w.write(Tools.d2s(getPeakPctAll(),2)+"\t");
     w.write(isStronglyConnected()+"\t");
+    w.write(getNumEdges()+"\t");
 
     if (getFeature()!=null)
     {
@@ -525,16 +535,18 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
       w.write(Tools.d2s(getFeature().getArea(),2)+"\t");
       w.write(Tools.d2s(getFeature().getPPM(),2)+"\t");
       w.write(Tools.d2s(getFeature().getSNR(),2)+"\t");
-      w.write(getFeature().getRatio2Ctrl()+"");
+      w.write(getFeature().getRatio2Ctrl()+"\t");
+      w.write(getFeature().getDelta2Ctrl()+"\t");
+      w.write(getFeature().getFmols()+"");
     }
     else
     {
-      w.write("\t\t\t\t\t\t\t");
+      w.write("\t\t\t\t\t\t\t\t\t");
     }
   }
   public static void printKeyBlanks(Writer w) throws IOException
   {
-    w.write("\t\t\t\t\t\t\t\t");
+    w.write("\t\t\t\t\t\t\t\t\t\t");
   }
   public static void headerNodes(Writer w) throws IOException
   {
@@ -551,6 +563,12 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   }
   public static Map<String, Object> inspectNetwork(SimpleDirectedWeightedGraph<SRM, DefaultWeightedEdge> net)
   {
+    Map<String, Object> props = new HashMap<>();
+
+    // count the edges from the nodes
+    for (SRM v : net.vertexSet())
+      v.setNumEdges(net.edgesOf(v).size());
+
     StrongConnectivityAlgorithm<SRM, DefaultWeightedEdge> scAlg =
         new KosarajuStrongConnectivityInspector(net);
 
@@ -560,20 +578,26 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
     List<Integer> sc = new ArrayList<>(stronglyConnectedSubgraphs.size());
 
     // prints the strongly connected components
+    int n=0;
     for (int i = 0; i < stronglyConnectedSubgraphs.size(); i++)
       if (stronglyConnectedSubgraphs.get(i).vertexSet().size()>1)
       {
         sc.add(stronglyConnectedSubgraphs.get(i).vertexSet().size());
-        if (i==0)
-          for (SRM srm : stronglyConnectedSubgraphs.get(i).vertexSet())
-            srm.isStronglyConnected(true);
+        if (stronglyConnectedSubgraphs.get(i).vertexSet().size()>n)
+        {
+          props.put("SCG", stronglyConnectedSubgraphs.get(i));
+          n = stronglyConnectedSubgraphs.get(i).vertexSet().size();
+        }
       }
 
-    Collections.sort(sc, Ordering.natural().reversed());
-    if (sc.size()>2)
-      System.out.print("");
+    if (props.get("SCG")!=null)
+      for (SRM srm : ((Graph<SRM, DefaultWeightedEdge> )props.get("SCG")).vertexSet())
+        srm.isStronglyConnected(true);
 
-    Map<String, Object> props = new HashMap<>();
+    Collections.sort(sc, Ordering.natural().reversed());
+//    if (sc.size()>2)
+//      System.out.print("");
+
     props.put("SCC: length", stronglyConnectedSubgraphs.size());
     props.put("SCC: node size", sc.toArray(new Integer[sc.size()]));
     props.put("Network: node size", net.vertexSet().size());
