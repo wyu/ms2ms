@@ -1043,6 +1043,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 //  870.487102	1331.693272	VLPVGDEVVGIVGYTSK	heavy	29.94	NT5E	33145262
   public static MultiTreeTable<Float, Float, SRMGroup> readTransitions(String trfile, String delim, Map<String, String> cols, boolean use_iRT, boolean c13, String... protein_ids)
   {
+    System.out.println("\nReading the transition list from "+trfile+"...");
     if (!new File(trfile).exists()) return null;
 
     try

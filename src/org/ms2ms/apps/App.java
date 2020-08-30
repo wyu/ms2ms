@@ -122,6 +122,9 @@ abstract public class App
       else if (args[i].equals("-o") || args[i].equals("-outfile"))
       {
         mOutfileRoot = args[i+1];
+        // ensure the present of the out dir
+        File fd = new File(mOutfileRoot);
+        if (!fd.exists()) fd.mkdir();
       }
       else if (args[i].equals("-cfg") || args[i].equals("-config"))
       {
@@ -265,11 +268,11 @@ abstract public class App
   {
     try
     {
-      System.out.println("Reading the configuration: " + exRoot(cfgname));
+      System.out.println("Reading the configuration: " + cfgname);
       BufferedReader cfg = null;
       try
       {
-        cfg = new BufferedReader(new InputStreamReader(new FileInputStream(exRoot(cfgname))));
+        cfg = new BufferedReader(new InputStreamReader(new FileInputStream(cfgname)));
         while (cfg.ready())
         {
           String line = cfg.readLine().trim();
@@ -279,7 +282,7 @@ abstract public class App
           if (line.indexOf(":")>0) addParamKey(Strs.split(line, ':', true));
           else                     addProperty(Strs.split(line, '=', true));
         }
-        addProperty("cfg.file",getWorkingRoot()+cfgname);
+        addProperty("cfg.file",cfgname);
       }
       finally {
         if (cfg!=null) cfg.close();
@@ -293,7 +296,7 @@ abstract public class App
   }
   protected void writeParams()
   {
-    IOs.save(exRoot((Strs.isSet(getOutFile())?getOutFile()+"/":""))+mMode.replaceAll("\\,","_")+".param", showParams());
+    IOs.save((Strs.isSet(getOutFile())?getOutFile()+"/":"")+mMode.replaceAll("\\,","_")+".param", showParams());
   }
   protected void logn()         { log("\n"); }
   protected void logn(String s) { log(s+"\n"); }
