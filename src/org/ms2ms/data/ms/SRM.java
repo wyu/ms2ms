@@ -29,8 +29,9 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
 
   private boolean mIsStronglyConnected=false;
 
-  private int mIsotope=0, mSizeNonzero=0, mNumEdges=0;
+  private int mIsotope=0, mSizeNonzero=0, mNumEdges=0, mCharge;
   private float mFragmentMz, mLibraryIntensity, mPkPct=0, mPkPctAll=0, mBackground=0f, mPeaksArea=0f, mPrecursorMz=0f;
+  private String mFragmentType;
   Range<Double> mPeakBoundary=null;
 
   private List<LcMsPoint> mXIC;
@@ -56,6 +57,9 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   public int getIsotope() { return mIsotope; }
   public int getXicSize() { return mSizeNonzero; }
   public int getNumEdges() { return mNumEdges; }
+  public int getCharge() { return mCharge; }
+
+  public String getFragmentType() { return mFragmentType; }
 
   public float getFragmentMz() { return mFragmentMz; }
   public float getLibraryIntensity() { return mLibraryIntensity; }
@@ -105,11 +109,14 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   public SRM setFeature(LcMsFeature s) { mFeature=s; return this; }
   public SRM setPeakBoundary(Range<Double> s) { mPeakBoundary=s!=null?Range.closed(s.lowerEndpoint(), s.upperEndpoint()):null; return this; }
 
+  public SRM setFragmentType(String s) { if (Strs.isSet(s)) { mFragmentType=s; } return this; }
+
   public SRM isStronglyConnected(boolean s) { mIsStronglyConnected = s; return this; }
 
   //  public SRM setFillTime(float s) { mFillTime=s; return this; }
   public SRM setBackground(float s) { mBackground=s; return this; }
   public SRM setNumEdges(int s) { mNumEdges=s; return this; }
+  public SRM setCharge(int s) { mCharge=s; return this; }
   public SRM setIsotope(int s) { mIsotope=s; return this; }
   public SRM setPrecursorMz(float s) { mPrecursorMz =s; return this; }
   public SRM calPeakExclusivity(double rt, double quan_span, Range<Double> boundary)
@@ -432,16 +439,18 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   @Override
   public String toString()
   {
-    String out = "";
+    String out = getIsotopeLabel().toString();
+
+    out = Strs.extend(out, Strs.isSet(getFragmentType())?getFragmentType():("m/z"+Tools.d2s(getFragmentMz(), 3)), ",");
 //    if (getIsotope()>0)        Strs.extend(out, getIsotope()+"", "iso ");
-    if (Tools.isSet(getXIC())) Strs.extend(out,getXIC().size()+"", ", xic ");
-    if (mFeature!=null)        Strs.extend(out,  mFeature.toString(), ", ");
+    if (Tools.isSet(getXIC())) out = Strs.extend(out,getXIC().size()+"", ", xic ");
+    if (mFeature!=null)        out = Strs.extend(out,  mFeature.toString(), ", ");
 
     return out;
   }
   public String getUID(String s)
   {
-    return s+"_"+Tools.d2s(getFragmentMz(), 4);
+    return s+"_"+Tools.d2s(getFragmentMz(), 4)+"_"+getFragmentType();
   }
 
   public SRM disposeXIC()

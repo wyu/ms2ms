@@ -748,6 +748,46 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     }
     return this;
   }
+  public SRMGroup setupAssay(SRMGroup heavy)
+  {
+    if (mTransitionSRMs ==null) mTransitionSRMs = HashBasedTable.create();
+
+    if ("HLNDDVVK#2".equalsIgnoreCase(getSequence()))
+      System.out.println();
+    // arrange the incoming group by the frag type/charge
+    Map<String, SRM> Hs = new HashMap<>();
+    for (SRM srm : heavy.getSRMs().values()) Hs.put(srm.getFragmentType()+"z"+srm.getCharge(), srm);
+
+    // go over the L/H pairs
+    Set<Float> frags = new HashSet<>(getSRMs().keySet()), removed = new HashSet<>();
+    for (Float frag : frags)
+      // double check the isoLabel
+      if (!removed.contains(frag) && getSRM(frag).isIsotopeLabel(IsoLable.L))
+      {
+        // update the precursor m/z for the group
+        float prec_mz = getSRM(frag).getPrecursorMz();
+        if (prec_mz>0 && (getMz()==0 || prec_mz<getMz())) setMz(prec_mz);
+        // setup the channel
+        String channel = Tools.d2s(frag, 4);
+        mTransitionSRMs.put(channel, IsoLable.L, getSRM(frag));
+        // look for the heavy counterpart
+        SRM label = Hs.get(getSRM(frag).getFragmentType()+"z"+getSRM(frag).getCharge());
+        if (label!=null && label.isIsotopeLabel(IsoLable.H) &&
+            label.getIsotope()==getSRM(frag).getIsotope())
+        {
+          mTransitionSRMs.put(channel, IsoLable.H, getSRM(frag));
+          Float f1 = label.getFragmentMz();
+          // occasionally the heavy fragment may have the same fragment m/z value
+          if (mSRMs.containsKey(f1)) f1+=0.0001f;
+          mSRMs.put(f1, label);
+        }
+      }
+    removed = (HashSet )Tools.dispose(removed);
+    Hs      = Tools.dispose(Hs);
+
+    return this;
+  }
+  // deprecated as it has no consideration for the fragment type. WYU::20200912
   public SRMGroup setupAssay()
   {
     if (mTransitionSRMs ==null) mTransitionSRMs = HashBasedTable.create();
@@ -1038,9 +1078,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     return out;
   }
 
-//  PrecursorMz	ProductMz	ModifiedSequence	Isotope	NormalizedRetentionTime	ProteinId	LibraryIntensity
-//  866.480002	1323.679073	VLPVGDEVVGIVGYTSK	light	29.94	NT5E	2134440
-//  870.487102	1331.693272	VLPVGDEVVGIVGYTSK	heavy	29.94	NT5E	33145262
+// "Gene","Sequence","PrecursorMz","Isotope","ProductMz","ModifiedSequence","NormalizedRetentionTime","LibraryIntensity","Protein","z","FragType","FragZ","Peptide"
+// "ABCB1","VVSQEEIVR",529.795663,"light",645.356616,"VVSQEEIVR_light",8.1,2373026,"sp|P08183|MDR1_HUMAN",2,"y5",1,"VVSQEEIVR"
+// "ABCB1","VVSQEEIVR",529.795663,"light",773.415194,"VVSQEEIVR_light",8.1,1414562,"sp|P08183|MDR1_HUMAN",2,"y6",1,"VVSQEEIVR"
   public static MultiTreeTable<Float, Float, SRMGroup> readTransitions(String trfile, String delim, Map<String, String> cols, boolean use_iRT, boolean c13, String... protein_ids)
   {
     System.out.println("\nReading the transition list from "+trfile+"...");
@@ -1065,7 +1105,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         // "","PrecursorMz","ProductMz","LibraryIntensity","ProteinId","PeptideSequence","ModifiedPeptideSequence","PrecursorCharge","ProductCharge","FragmentType","FragmentSeriesNumber","NormalizedRetentionTime"
         // "2261",1044.48640687972,405.176849365234,33.29616,"P62258","AAFDDAIAELDTLSEESYK","AAFDDAIAELDTLSEESYK",2,1,"b",4,92.1534957885742
         int z = tr.get("PrecursorCharge", 0);
-        String seq = tr.getStr("ModifiedSequence", "ModifiedPeptideSequence"), peptide;
+        String seq = tr.getStr("Peptide","ModifiedSequence", "ModifiedPeptideSequence"), peptide;
 
 //        if (!(seq.indexOf("ELGTVM[Oxidation (M)]R#2")>=0 && z==2)) continue;
         if (Tools.isSet(protein_ids) && !Strs.hasA(tr.get("ProteinId"), 0, protein_ids)) continue;
@@ -1097,19 +1137,21 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
           }
         }
         float frag_mz = tr.getFloat("ProductMz"), frag_ai = tr.get("LibraryIntensity", 0f),
-               frag_z = tr.get("ProductCharge", 1f);
+            frag_z = tr.get("ProductCharge", 1f);
 
         SRM srm = group.addTransition(frag_mz, frag_ai, 0).setPrecursorMz(tr.getFloat("PrecursorMz"));
         if      ("light".equalsIgnoreCase(tr.get("Isotope"))) srm.setIsotopeLabel(IsoLable.L);
         else if ("heavy".equalsIgnoreCase(tr.get("Isotope"))) srm.setIsotopeLabel(IsoLable.H);
+
+        srm.setFragmentType(tr.get("FragType")).setCharge(tr.get("FragZ", 0));
 
         if (c13 /*&& frag_mz > tr.getFloat("PrecursorMz")*/)
         {
           // y = 4.362E-04*Mass - 2.345E-03R² = 0.9998
           for (int i13=1; i13<=sC13; i13++)
             group.addTransition(
-              frag_mz + i13*1.0047f/frag_z,
-              frag_ai * (4.362E-04f*((frag_mz-1.000783f)*frag_z) - 2.345E-03f), i13
+                frag_mz + i13*1.0047f/frag_z,
+                frag_ai * (4.362E-04f*((frag_mz-1.000783f)*frag_z) - 2.345E-03f), i13
             ).setIsotopeLabel(srm.getIsotopeLabel());
         }
       }

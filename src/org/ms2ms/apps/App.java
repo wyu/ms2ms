@@ -27,7 +27,7 @@ abstract public class App
   public static final String KEY_THREAD   = "thread";
   public static final String KEY_WORKING  = "w";
   public static final String KEY_OUT      = "o";
-//  public static final String MODE_EXEC    = "x";
+  public static final String MODE_EXEC    = "mode";
   public static final String CFG_FILE     = "cfg.file";
   public static final String CMD_LINE     = "cmdline";
 
@@ -121,10 +121,8 @@ abstract public class App
       }
       else if (args[i].equals("-o") || args[i].equals("-outfile"))
       {
-        mOutfileRoot = args[i+1];
         // ensure the present of the out dir
-        File fd = new File(mOutfileRoot);
-        if (!fd.exists()) fd.mkdir();
+        mOutfileRoot = ensureFolder(args[i+1]);
       }
       else if (args[i].equals("-cfg") || args[i].equals("-config"))
       {
@@ -174,7 +172,11 @@ abstract public class App
     for (String key : sParamKeys.keySet())
       if (Strs.equalsIgnoreCase(vals[0], key) || Strs.equalsIgnoreCase(vals[0], sParamKeys.get(key)))
       {
-        mParameters.setProperty(key, vals[1]);
+        String val = Strs.dequotes(vals[1], '"');
+        if (    KEY_OUT.equalsIgnoreCase(key)) mOutfileRoot=ensureFolder(val);
+        if (KEY_WORKING.equalsIgnoreCase(key)) mWorkingRoot=val;
+        if (  MODE_EXEC.equalsIgnoreCase(key)) mMode       =val;
+        mParameters.setProperty(key, val);
       }
   }
 
@@ -279,8 +281,8 @@ abstract public class App
           // ignore the comments
           if (line.indexOf("//")==0 || line.indexOf("#")==0) continue;
 
-          if (line.indexOf(":")>0) addParamKey(Strs.split(line, ':', true));
-          else                     addProperty(Strs.split(line, '=', true));
+          if (line.indexOf(" : ")>0) addParamKey(Strs.split(line, ':', true));
+          else                       addProperty(Strs.split(line, '=', true));
         }
         addProperty("cfg.file",cfgname);
       }
@@ -314,7 +316,13 @@ abstract public class App
     }
     catch (Exception e) { System.out.print(s); }
   }
+  protected String ensureFolder(String path)
+  {
+    File f = new File(path);
+    if (!(f.exists())) f.mkdir();
 
+    return (path);
+  }
 //  protected Config option(Config config, String usage, String[] args, int i, String... tags)
 //  {
 //    if (args[i].charAt(0)=='-' && Tools.isSet(args) && args.length>i+1 && Tools.isA(args[i], tags))
