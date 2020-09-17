@@ -197,15 +197,23 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   }
   public SRMGroup shift(int steps)
   {
+    if (!Tools.isSet(getSRMs())) return this;
+
     double m0=Float.MAX_VALUE, m1=Float.MAX_VALUE*-1;
     for (SRM srm : getSRMs().values())
-    {
-      if (Tools.front(srm.getXIC()).getX()<m0) m0 = Tools.front(srm.getXIC()).getX();
-      if (Tools.back( srm.getXIC()).getX()>m1) m1 = Tools.back( srm.getXIC()).getX();
-    }
-    Range<Float> xs = Range.closed((float )m0, (float )m1);
-    for (SRM srm : getSRMs().values()) srm.shift(xs, steps, null);
+      if (Tools.isSet(srm.getXIC()))
+      {
+        if (Tools.front(srm.getXIC()).getX()<m0) m0 = Tools.front(srm.getXIC()).getX();
+        if (Tools.back( srm.getXIC()).getX()>m1) m1 = Tools.back( srm.getXIC()).getX();
+      }
 
+    if (m1>m0)
+    {
+      Range<Float> xs = Range.closed((float )m0, (float )m1);
+      for (SRM srm : getSRMs().values())
+        if (srm!=null && Tools.isSet(srm.getXIC()))
+          srm.shift(xs, steps, null);
+    }
     return this;
   }
   // shift the RT of ms1 XIC so they line up with those of ms2
