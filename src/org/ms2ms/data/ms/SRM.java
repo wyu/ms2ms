@@ -424,9 +424,9 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
       float step = (xs.upperEndpoint()-xs.lowerEndpoint())/steps;
       for (double x=xs.lowerEndpoint(); x<=xs.upperEndpoint(); x+=step)
       {
-        // interpolate from the existing array
+        // interpolate from the existing array. DO NOT ignore the zero! the interpolation would be wrong
 //        Point p = Points.interpolate(getXIC(), x, false);
-        LcMsPoint p = LcMsPoint.interpolate(getXIC(), x, true);
+        LcMsPoint p = LcMsPoint.interpolate(getXIC(), x, false);
         if (p==null) p = new LcMsPoint(x, 0);
 
         pts.add(p);

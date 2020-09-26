@@ -3,6 +3,7 @@ package org.ms2ms.data.ms;
 import com.google.common.collect.Range;
 import org.ms2ms.data.Point;
 import org.ms2ms.math.Points;
+import org.ms2ms.math.Stats;
 import org.ms2ms.utils.Tools;
 
 import java.io.IOException;
@@ -38,9 +39,20 @@ public class LcMsPoint extends Point
   public int    getScan()      { return mScan; }
   public boolean isImputed()   { return mImputed; }
 
-  public LcMsPoint setPPM(      float s) { mPPM  =s;  return this; }
+  public LcMsPoint setPPM(      float s)
+  {
+//    if (Math.abs(s)>1000)
+//      System.out.println();
+    mPPM  =s;  return this;
+  }
   public LcMsPoint setMz(       Double s) { mMz  =(s!=null?(float )s.doubleValue():0f);  return this; }
-  public LcMsPoint setMz(Double s, float f) { setMz(s); mPPM = (s!=null && f!=0)?(float )(1E6*(s-f)/f):Float.NaN;  return this; }
+  public LcMsPoint setMz(Double s, float f)
+  {
+    setMz(s);
+    mPPM = (s!=null && s!=0 && f!=0)?(float )(1E6*(s-f)/f):Float.NaN;
+//    if (Math.abs(mPPM)>1000)
+//      System.out.println();
+    return this; }
 
   public LcMsPoint setScan(        int s) { mScan=s;  return this; }
   public LcMsPoint setRT(       double s) { setX( s); return this; }
@@ -86,18 +98,26 @@ public class LcMsPoint extends Point
     if     ((p1 != null && p2 == null) || (p1 == null && p2 != null)) xy = null; // undefined situation, WYU 081209
     else if (p1 != null && p2 != null && p2.getX() - p1.getX() != 0)
     {
-      Double k0 = (p2.getX() - p1.getX()),
-              k = (p2.getY()        - p1.getY())        / k0,
-            fil = (p2.getFillTime() - p1.getFillTime()) / k0,
-            ppm = (p2.getPPM()      - p1.getPPM())      / k0,
-             mz = (p2.getMz()       - p1.getMz())       / k0,
-           scan = (p2.getScan()     - p1.getScan())     / k0;
+      // zero intensity as 'true' zero
+      xy.setY(          Stats.interpolate(p1.getX(), p2.getX(), p1.getY(), p2.getY(), x));
+      // zero or out of bound as NA
+      xy.setFillTime(   Stats.interpolate(p1.getX(), p2.getX(), Tools.nonzero(p1.getFillTime()), Tools.nonzero(p2.getFillTime()), x));
+      xy.setMz(         Stats.interpolate(p1.getX(), p2.getX(), Tools.nonzero(p1.getMz()), Tools.nonzero(p2.getMz()), x));
+      xy.setPPM((float )Stats.interpolate(p1.getX(), p2.getX(), Tools.nonzero(p1.getPPM(), -100,100), Tools.nonzero(p2.getPPM(), -100,100), x));
+      xy.setScan(       Stats.closeTo(p1.getX(), p2.getX(), p1.getScan(), p2.getScan(), x));
 
-      xy.setY(       p1.getY()        + (x - p1.getX()) * k);
-      xy.setFillTime(p1.getFillTime() + (x - p1.getX()) * fil);
-      xy.setMz(      p1.getMz()       + (x - p1.getX()) * mz);
-      xy.setPPM((float          )(p1.getPPM()  + (x - p1.getX()) * ppm));
-      xy.setScan((int )Math.round(p1.getScan() + (x - p1.getX()) * scan));
+//      Double k0 = (p2.getX() - p1.getX()),
+//              k = (p2.getY()        - p1.getY())        / k0,
+//            fil = (p2.getFillTime() - p1.getFillTime()) / k0,
+//            ppm =  (p2.getPPM()-p1.getPPM())/ k0,
+//             mz = (p2.getMz()       - p1.getMz())       / k0,
+//           scan = (p2.getScan()     - p1.getScan())     / k0;
+//
+//      xy.setY(       p1.getY()        + (x - p1.getX()) * k);
+//      xy.setFillTime(p1.getFillTime() + (x - p1.getX()) * fil);
+//      xy.setMz(      p1.getMz()       + (x - p1.getX()) * mz);
+//      xy.setPPM((float          )(p1.getPPM()  + (x - p1.getX()) * ppm));
+//      xy.setScan((int )Math.round(p1.getScan() + (x - p1.getX()) * scan));
     }
     else if (p1 != null && p2 != null && p2.getX() == p1.getX())
     {
@@ -113,8 +133,12 @@ public class LcMsPoint extends Point
   @Override
   public String toString()
   {
-    String out = "rt "+Tools.d2s(getRT(), 2) + ", m/z " + Tools.d2s(getMz(), 4) + "," +
-        Tools.d2s(getIntensity(), 1) + "," + Tools.d2s(getFillTime(), 1) + " msec";
+    String out = "rt="+Tools.d2s(getRT(), 2) +  "," + Tools.d2s(getFillTime(), 1) + " msec, #"+getScan();
+
+    if (!Double.isNaN(getMz()) && getMz()>0) out += (", m/z " + Tools.d2s(getMz(), 4));
+    if (!Double.isNaN(getPPM()))             out += (", "+Tools.d2s(getPPM(),1)+" ppm");
+    if (getIntensity()>0)                    out += (", ai=" + Tools.d2s(getIntensity(), 1));
+
     return out;
   }
 }

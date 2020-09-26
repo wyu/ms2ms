@@ -31,7 +31,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 {
   public enum IsoLable { H, L }
 
-  public static IsoLable sCtrlIsoLabel=IsoLable.L, sAssayIsoLabel=IsoLable.H;
+  public static IsoLable sCtrlIsoLabel, sAssayIsoLabel;
   public static int sC13=1;
 
   private String mPeptideSequence, mProteinId;
@@ -182,8 +182,10 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     if (keep_zero || intensity>0)
     {
       if (mSRMs.get(frag)==null) mSRMs.put(frag, new SRM());
+//      if (intensity>0 && mz<100)
+//        System.out.println();
       return mSRMs.get(frag).addXIC(rt, intensity!=null? (float )intensity.doubleValue():0f,
-          mz!=null? (float)mz.doubleValue():0f, scan, 1E6*(mz-frag)/frag).setFillTime(fill);
+          mz!=null? (float)mz.doubleValue():Float.NaN, scan, (mz>0&&frag>0)?1E6*(mz-frag)/frag:Double.NaN).setFillTime(fill);
     }
     return null;
   }
@@ -783,7 +785,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         if (label!=null && label.isIsotopeLabel(IsoLable.H) &&
             label.getIsotope()==getSRM(frag).getIsotope())
         {
-          mTransitionSRMs.put(channel, IsoLable.H, getSRM(frag));
+          mTransitionSRMs.put(channel, IsoLable.H, label);
           Float f1 = label.getFragmentMz();
           // occasionally the heavy fragment may have the same fragment m/z value
           if (mSRMs.containsKey(f1)) f1+=0.0001f;
