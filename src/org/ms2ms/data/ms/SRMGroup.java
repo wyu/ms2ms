@@ -34,7 +34,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public static IsoLable sCtrlIsoLabel, sAssayIsoLabel;
   public static int sC13=1;
 
-  private String mPeptideSequence, mProteinId;
+  private String mPeptideSequence, mProteinId, mGeneSymbol;
   private float mRT, mRtOffset, mPrecursorMz, mDpSimilarity, mIRT, mReportedRT, mNetworkNiche;
   private int mCharge, mQualifiedSRMs;
   private IsoLable mCurrIsoLabel=IsoLable.L;
@@ -95,6 +95,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public float  getSimilarity()   { return mDpSimilarity; }
   public String getSequence()     { return mPeptideSequence; }
   public String getProteinId()    { return mProteinId; }
+  public String getGeneSymbol()    { return mGeneSymbol; }
   public SRM getComposite() { return mSRMs!=null?mSRMs.get(0f):null; }
   public SRM getMS1() { return mSRMs!=null?mSRMs.get(-1f):null; }
   public SRM getCompositeC13() { return mSRMs!=null?mSRMs.get(1f):null; }
@@ -138,6 +139,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public SRMGroup setCharge(int s) { mCharge=s; return this; }
   public SRMGroup setSimilarity(float s) { mDpSimilarity=s; return this; }
   public SRMGroup setProteinId(String s) { mProteinId=s; return this; }
+  public SRMGroup setGeneSymbol(String s) { mGeneSymbol=s; return this; }
+
   public SRMGroup setSequence(String s) { mPeptideSequence=s; return this; }
 
   public SRMGroup addTransitionSRM(String tr, IsoLable isoL, SRM srm)
@@ -835,7 +838,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public static void header_xic(Writer w) throws IOException
   {
     // xic.ai~xic.rt|FragMz
-    w.write("Peptide\tFragMz\tisoL\txic.rt\txic.ai\txic.ppm\n");
+    w.write("Peptide\tFragMz\tz\tisoL\txic.rt\txic.ai\txic.ppm\n");
   }
   public static void headerAssayXIC(Writer w, IsoLable assay) throws IOException
   {
@@ -853,6 +856,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
           {
             w.write(getSequence()+"\t");
             w.write(frag             +"\t");
+            w.write(getCharge()      +"\t");
             w.write(getSRM(frag).getIsotopeLabel() +"\t");
             w.write(pk.getRT()       +"\t");
             w.write(pk.getIntensity()+"\t");
@@ -871,6 +875,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         {
           w.write(getSequence()+"\t");
           w.write(tr             +"\t");
+          w.write(getCharge()      +"\t");
           w.write(isoL +"\t");
           w.write(pk.getRT()       +"\t");
           w.write(pk.getIntensity()+"\t");
@@ -1017,11 +1022,12 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
   public static void headerGroup(Writer w) throws IOException
   {
-    w.write("Protein\tPeptide\tz\tPrecMz\tRT\toffset\tSimilarity\tYield\tNetV\tNetE\tSCC\tSCC1\t");
+    w.write("Protein\tGene\tPeptide\tz\tPrecMz\tRT\toffset\tSimilarity\tYield\tNetV\tNetE\tSCC\tSCC1\t");
   }
   private void printGroup(Writer w) throws IOException
   {
     w.write(getProteinId()+"\t");
+    w.write(getGeneSymbol()+"\t");
     w.write(getSequence()+"\t");
     w.write(getCharge()+"\t");
     w.write(Tools.d2s(getMz(),4)+"\t");
@@ -1135,8 +1141,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
           try
           {
             group = new SRMGroup(peptide, tr.get("NormalizedRetentionTime", 0f), tr.getFloat("PrecursorMz"), tr.get("PrecursorCharge", 0));
-            if (tr.get("ProteinId")!=null) group.setProteinId(tr.get("ProteinId"));
-            if (tr.get("iRT")!=null) group.setIRT(tr.get("iRT", 0f));
+            if (tr.get("ProteinId") !=null) group.setProteinId( tr.get("ProteinId"));
+            if (tr.get("Gene")      !=null) group.setGeneSymbol(tr.get("Gene"));
+            if (tr.get("iRT")       !=null) group.setIRT(       tr.get("iRT", 0f));
             if (tr.get("ReportedRT")!=null) group.setReportedRT(tr.get("ReportedRT", 0f));
 
             groups.put(group.getMz(), group.getRT(use_iRT), group);

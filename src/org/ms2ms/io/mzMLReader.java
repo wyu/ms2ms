@@ -469,6 +469,8 @@ public class mzMLReader extends mzReader
 
       MsnSpectrum ms = MsReaders.from(ss, false);
 
+      if (ms.getMsLevel()<2) continue;
+
       float m0=0f, mL=0f, mR=0f;
       for (Precursor prec : ss.getPrecursorList().getPrecursor())
       {
