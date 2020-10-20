@@ -26,6 +26,7 @@ abstract public class App
   public static final String KEY_TEST     = "test";
   public static final String KEY_THREAD   = "thread";
   public static final String KEY_WORKING  = "w";
+  public static final String KEY_IN       = "i";
   public static final String KEY_OUT      = "o";
   public static final String MODE_EXEC    = "mode";
   public static final String CFG_FILE     = "cfg.file";
@@ -34,7 +35,7 @@ abstract public class App
   protected static BiMap<String, String> sParamKeys;
 
   protected Property                 mParameters;
-  protected String                   mOutfileRoot, mWorkingRoot, mMode;
+  protected String                   mOutfileRoot, mWorkingRoot, mMode, mInfileRoot;
   protected boolean                  mVerbose;
   protected List<String>             mUsages;
   protected Config                   mConfig = ConfigFactory.load();
@@ -123,6 +124,11 @@ abstract public class App
       {
         // ensure the present of the out dir
         mOutfileRoot = ensureFolder(args[i+1]);
+      }
+      else if (args[i].equals("-i") || args[i].equals("-infile"))
+      {
+        // ensure the present of the out dir
+        mInfileRoot = ensureFolder(args[i+1]);
       }
       else if (args[i].equals("-cfg") || args[i].equals("-config"))
       {
@@ -319,7 +325,7 @@ abstract public class App
   protected String ensureFolder(String path)
   {
     File f = new File(path);
-    if (!(f.exists())) f.mkdir();
+    if (!(f.exists())) f.mkdirs();
 
     return (path);
   }

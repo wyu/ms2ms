@@ -367,7 +367,7 @@ public class mzMLReader extends mzReader
     return out;
   }
   public static MultiTreeTable<Float, Float, SRMGroup> extractTransitionXICs(
-      String filename, Tolerance tol, float dRT, MultiTreeTable<Float, Float, SRMGroup> groups,
+      String filename, Tolerance tol, Tolerance precursor_tol, float dRT, MultiTreeTable<Float, Float, SRMGroup> groups,
       MultiTreeTable<Float, Float, SRMGroup> landmarks, float span_overlap, boolean keep_xic, boolean keep_zero) throws IOException
   {
     // looping through the scans
@@ -384,8 +384,8 @@ public class mzMLReader extends mzReader
       float    rt = MsIO.getDouble(ss.getScanList().getScan().get(0).getCvParam(), "MS:1000016").floatValue();
       Range<Float> rt_bound = Range.closed(rt-dRT, rt+dRT);
 
-      if (++rows%100==0) System.out.print(".");
-      if (rows%10000==0) System.out.print(rows+"\n");
+      if (++rows%500==0) System.out.print(".");
+      if (rows%50000==0) System.out.print(rows+"\n");
 
       MsnSpectrum ms = MsReaders.from(ss, false);
 
@@ -405,13 +405,17 @@ public class mzMLReader extends mzReader
 
       float m0=0f, mL=0f, mR=0f;
       for (Precursor prec : ss.getPrecursorList().getPrecursor())
-      {
         for (uk.ac.ebi.jmzml.model.mzml.CVParam cv : prec.getIsolationWindow().getCvParam())
         {
           if (cv.getAccession().equals("MS:1000827")) m0 = Float.parseFloat(cv.getValue());
           if (cv.getAccession().equals("MS:1000828")) mL = Float.parseFloat(cv.getValue());
           if (cv.getAccession().equals("MS:1000829")) mR = Float.parseFloat(cv.getValue());
         }
+
+      if (precursor_tol!=null)
+      {
+        // over-write the isolation windowm
+        mL = m0-(float )precursor_tol.getMin(m0); mR = (float )precursor_tol.getMax(m0)-m0;
       }
 
       // bring in the suitable SRM groups
