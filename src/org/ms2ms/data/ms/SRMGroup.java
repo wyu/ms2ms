@@ -304,7 +304,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     return this;
   }
   // c13 isotope to be included, 1: c12+c13, 0:c12 only
-  public SRMGroup composite(int max_c13)
+  public SRMGroup composite(int max_c13, boolean include_ms1, boolean is_sum)
   {
     TreeMultimap<Float, Double> rt_ai = TreeMultimap.create(), rt_ai0 = TreeMultimap.create(), rt_pm = TreeMultimap.create();
     HashMap<Float, Integer>     rt_sn = new HashMap<>();
@@ -320,7 +320,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         {
           if (pk.getY()>0)
           {
-            rt_ai.put((float )pk.getX(), Math.log10(pk.getY()));
+            rt_ai.put((float )pk.getX(), is_sum?pk.getY():Math.log10(pk.getY()));
             rt_sn.put((float )pk.getX(), pk.getScan());
             if (pk.getPPM()!=Float.NaN) rt_pm.put((float )pk.getX(), pk.getPPM());
           }
@@ -330,7 +330,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     }
 
     // create the composite trace
-    int ms1_start=0; SRM ms1 = mSRMs.get(-1f);
+    int ms1_start=0; SRM ms1 = include_ms1?mSRMs.get(-1f):null;
     mSRMs.put((float )max_c13, new SRM(0f, 0f));
     for (Float rt : rt_ai0.keySet())
     {
@@ -342,10 +342,12 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
           for (int i=ms1_start; i<ms1.getXIC().size()-1; i++)
             if (rt>=ms1.getXIC().get(i).getX() && rt<=ms1.getXIC().get(i+1).getX())
             {
-              rt_ai.put(rt, Math.log10(0.5*(ms1.getXIC().get(i).getY()+ms1.getXIC().get(i+1).getY()))); ms1_start=i+1; break;
+              double y = 0.5*(ms1.getXIC().get(i).getY()+ms1.getXIC().get(i+1).getY());
+              rt_ai.put(rt, is_sum?y:Math.log10(y)); ms1_start=i+1; break;
             }
 
-        v    = (float )Math.pow(10d, Stats.sum(rt_ai.get(rt))/n);
+        double y = Stats.sum(rt_ai.get(rt))/n;
+        v    = (float )(is_sum?y:Math.pow(10d, y));
         scan = rt_sn.get(rt)*-1;
         ppm  = Stats.sum(rt_pm.get(rt))/n;
       }
@@ -765,8 +767,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   {
     if (mTransitionSRMs ==null) mTransitionSRMs = HashBasedTable.create();
 
-    if ("HLNDDVVK#2".equalsIgnoreCase(getSequence()))
-      System.out.println();
+//    if ("HLNDDVVK#2".equalsIgnoreCase(getSequence()))
+//      System.out.println();
     // arrange the incoming group by the frag type/charge
     Map<String, SRM> Hs = new HashMap<>();
     for (SRM srm : heavy.getSRMs().values()) Hs.put(srm.getFragmentType()+"z"+srm.getCharge(), srm);
@@ -1202,7 +1204,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
     if (Tools.isSet(protein.getSRMs()))
     {
-      protein.composite(0);
+      protein.composite(0, true, false);
       protein_id.setCompositeSRMGroup(protein);
     }
     return protein_id;
@@ -1214,7 +1216,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
     if (Tools.isSet(protein.getSRMs()))
     {
-      protein.composite(0);
+      protein.composite(0, true, false);
       protein_id.setCompositeSRMGroup(protein);
     }
     return protein_id;

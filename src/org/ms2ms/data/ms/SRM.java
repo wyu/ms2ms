@@ -70,6 +70,12 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   public float getBackground()        { return mBackground; }
 //  public float getSNR(float apex)        { return mBackground!=0?apex/mBackground:0f; }
 
+  public double getXICBase()
+  {
+    if (Tools.isSet(getXIC())) return Points.basePoint(getXIC()).getY();
+    return 1d;
+  }
+
   public float getPeakPct()    { return mPkPct; }
   public float getPeakPctAll() { return mPkPctAll; }
 //  public float getFillTime()   { return mFillTime; }
@@ -356,13 +362,8 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   {
     if (ctrl==null || !Tools.isSet(ctrl.getXIC()) || !Tools.isSet(getXIC())) return new double[] {0d, 0d};
 
-//    List<WeightedObservedPoint> pts = new ArrayList<>();
     List<Point> pts = new ArrayList<>(), ptt = new ArrayList<>();
 
-//    System.out.println("\nlogAssay\tlogCtrl\tweight\tRT\tAssay\tCtrl");
-//    if (ctrl.getPeakBoundary()==null)
-//      System.out.println("");
-//
     double r1=0d, r2=0, diff=0d, n=0d,
         rtL=ctrl.getPeakBoundary()!=null?ctrl.getPeakBoundary().lowerEndpoint()-edge:0d,
         rtR=ctrl.getPeakBoundary()!=null?ctrl.getPeakBoundary().upperEndpoint()+edge:Double.MAX_VALUE;
@@ -375,20 +376,9 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
         diff += Math.log10(get(i).getIntensity())-Math.log10(ctrl.get(i).getIntensity()); n++;
         pts.add(new Point(Math.log10(get(i).getIntensity()), Math.log10(ctrl.get(i).getIntensity())));
         ptt.add(new Point(Math.log10(get(i).getIntensity())-Math.log10(ctrl.get(i).getIntensity()), Math.sqrt(ctrl.get(i).getIntensity())));
-
-//        WeightedObservedPoint pt = new WeightedObservedPoint(Math.sqrt(ctrl.get(i).getIntensity()), Math.log10(get(i).getIntensity()), Math.log10(ctrl.get(i).getIntensity()));
-////        pts.add(pt);
-//        System.out.println(pt.getX()+"\t"+pt.getY()+"\t"+pt.getWeight()+"\t"+get(i).getX()+"\t"+get(i).getIntensity()+"\t"+ctrl.get(i).getIntensity());
       }
 
-//    System.out.println("\nRT\tAssay\tCtrl");
-//    for (int i=0; i<getXIC().size(); i++)
-//      if (get(i).getIntensity()>0 || ctrl.get(i).getIntensity()>0)
-//      {
-//        System.out.println(get(i).getX()+"\t"+get(i).getIntensity()+"\t"+ctrl.get(i).getIntensity());
-//      }
-
-    if (n>3)
+    if (n>3 && ctrl.getFeature()!=null)
     {
       diff /=n;
       List<Point> errs = new ArrayList<>();
