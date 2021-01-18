@@ -34,7 +34,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public static IsoLable sCtrlIsoLabel, sAssayIsoLabel;
   public static int sC13=1;
 
-  private String mPeptideSequence, mProteinId, mGeneSymbol;
+  private String mPeptideSequence, mProteinId, mGeneSymbol, mBackbone;
   private float mRT, mRtOffset, mPrecursorMz, mDpSimilarity, mIRT, mReportedRT, mNetworkNiche;
   private int mCharge, mQualifiedSRMs;
   private IsoLable mCurrIsoLabel=IsoLable.L;
@@ -95,7 +95,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public float  getSimilarity()   { return mDpSimilarity; }
   public String getSequence()     { return mPeptideSequence; }
   public String getProteinId()    { return mProteinId; }
-  public String getGeneSymbol()    { return mGeneSymbol; }
+  public String getGeneSymbol()   { return mGeneSymbol; }
+  public String getBackbone()     { return mBackbone; }
   public SRM getComposite() { return mSRMs!=null?mSRMs.get(0f):null; }
   public SRM getMS1() { return mSRMs!=null?mSRMs.get(-1f):null; }
   public SRM getCompositeC13() { return mSRMs!=null?mSRMs.get(1f):null; }
@@ -132,16 +133,16 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public SRMGroup setRT(  float s) { mRT=s; return this; }
   public SRMGroup setRT( Double s) { if (s!=null) mRT=(float )s.doubleValue(); return this; }
 
-  public SRMGroup setIRT( float s) { mIRT=s; return this; }
-  public SRMGroup setRtOffset(float s) { mRtOffset=s; return this; }
+  public SRMGroup setIRT(        float s) { mIRT=s; return this; }
+  public SRMGroup setRtOffset(   float s) { mRtOffset=s; return this; }
   public SRMGroup setReportedRT( float s) { mReportedRT=s; return this; }
 
-  public SRMGroup setCharge(int s) { mCharge=s; return this; }
-  public SRMGroup setSimilarity(float s) { mDpSimilarity=s; return this; }
-  public SRMGroup setProteinId(String s) { mProteinId=s; return this; }
-  public SRMGroup setGeneSymbol(String s) { mGeneSymbol=s; return this; }
-
-  public SRMGroup setSequence(String s) { mPeptideSequence=s; return this; }
+  public SRMGroup setCharge(       int s) { mCharge      =s; return this; }
+  public SRMGroup setSimilarity( float s) { mDpSimilarity=s; return this; }
+  public SRMGroup setProteinId( String s) { mProteinId   =s; return this; }
+  public SRMGroup setGeneSymbol(String s) { mGeneSymbol  =s; return this; }
+  public SRMGroup setBackbone(  String s) { mBackbone    =s; return this; }
+  public SRMGroup setSequence(  String s) { mPeptideSequence=s; return this; }
 
   public SRMGroup addTransitionSRM(String tr, IsoLable isoL, SRM srm)
   {
@@ -802,6 +803,43 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
     return this;
   }
+  // "y","b","y-17/18","b-17/18","p"
+  public SRMGroup addFragments(Map<Float, String> frags, IsoLable iso, int minN, float maxMz, String... ions)
+  {
+    setSequence(getBackbone()+"@"+(iso.equals(IsoLable.H)?"heavy":"light"));
+
+    String iontype="-"; int len=0,z=1;
+    for (Float frag : frags.keySet())
+    {
+      String tag = frags.get(frag); iontype="i"; len=0; z=1; String[] items = tag.split("-"), zs=items[0].split("`");
+      // parse the ion label
+      if (zs.length>1) z=Integer.valueOf(zs[1]);
+      if ("abyz".indexOf(tag.substring(0,1))>=0)
+      {
+//        if (zs[0].length()<2)
+//          System.out.println();
+        iontype=tag.substring(0,1); len=Integer.valueOf(zs[0].substring(1));
+      } else
+      {
+        if (items[0].indexOf('P')==0) iontype="p";
+      }
+      if (items.length>1 && Strs.isA(items[1], "17","18")) iontype+="-17/18";
+      for (String ion : ions)
+      {
+        if (iontype.equalsIgnoreCase(ion) && len>=minN && frag<=maxMz)
+        {
+          // add the valid fragment
+          SRM srm = addTransition(frag, 0f, 0).setPrecursorMz(getMz());
+          srm.setIsotopeLabel(iso).setFragmentType(tag).setCharge(z);
+        }
+      }
+      // update the precursor
+      if (iontype.equals("y") && len==getBackbone().length())
+        setMz(Peaks.MH2Mz(frag, getCharge()));
+    }
+
+    return this;
+  }
   // deprecated as it has no consideration for the fragment type. WYU::20200912
   public SRMGroup setupAssay()
   {
@@ -1061,8 +1099,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   {
     SRMGroup cloned = new SRMGroup(getSequence(), getRT(), getMz(), getCharge());
 
-    cloned.setRtOffset(getRtOffset());
+    cloned.setRtOffset(  getRtOffset());
     cloned.setSimilarity(getSimilarity());
+    cloned.setBackbone(  getBackbone());
 
     cloned.mSRMs = new TreeMap<>();
     for (Float frag : mSRMs.keySet()) cloned.mSRMs.put(frag, mSRMs.get(frag));
@@ -1082,21 +1121,34 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
       for (Float frag : mSRMs.keySet())
         if (Tools.isSet(mSRMs.get(frag).getXIC())) N++;
 
-//      for (Float frag : mSRMs.keySet())
-//      {
-//        if (!Tools.isSet(mSRMs.get(frag).getXIC())) continue;
-//
-//        if (frag==-1f) out += ("ms1$"); else if (frag==0f) out += ("cpo$"); else  out += (Tools.d2s(frag, 3)+"$");
-//
-//        out += (mSRMs.get(frag).getXIC().size()+";");
-//      }
       return out+", N=" + N + " ";
     }
 
-    return out;
+    return getCurrIsoLabel().toString()+":"+out;
   }
 
-// "Gene","Sequence","PrecursorMz","Isotope","ProductMz","ModifiedSequence","NormalizedRetentionTime","LibraryIntensity","Protein","z","FragType","FragZ","Peptide"
+  public static void printTransitions(MultiTreeTable<Float, Float, SRMGroup> trlib, String trfile) throws IOException
+  {
+    if (!Tools.isSet(trlib)) return;
+
+    System.out.println("\nWriting the transition list to "+trfile+"...");
+
+    Writer w = new FileWriter(trfile);
+
+    w.write("ProteinId\tGene\tPeptide\tPrecursorMz\tPrecursorCharge\"ReportedRT\tIsotope\tNormalizedRetentionTime\t");
+    w.write("iRT\tProductMz\tFragZ\tFragType\tLibraryIntensity\n");
+    for (SRMGroup group : trlib.values())
+      if (Tools.isSet(group.getSRMs()))
+        for (SRM srm : group.getSRMs().values())
+        {
+          w.write(group.getProteinId()+"\t"+group.getGeneSymbol()+"\t"+group.getBackbone()+"\t"+group.getCharge()+"\t");
+          w.write(group.getReportedRT()+"\t"+(group.getCurrIsoLabel().equals(IsoLable.H)?"heavy":"light")+"\t"+group.getRT()+"\t"+group.getIRT()+"\t");
+          w.write(srm.getFragmentMz()+"\t"+srm.getCharge()+"\t"+srm.getFragmentType()+"\t"+srm.getLibraryIntensity()+"\n");
+        }
+
+    return;
+  }
+  // "Gene","Sequence","PrecursorMz","Isotope","ProductMz","ModifiedSequence","NormalizedRetentionTime","LibraryIntensity","Protein","z","FragType","FragZ","Peptide"
 // "ABCB1","VVSQEEIVR",529.795663,"light",645.356616,"VVSQEEIVR_light",8.1,2373026,"sp|P08183|MDR1_HUMAN",2,"y5",1,"VVSQEEIVR"
 // "ABCB1","VVSQEEIVR",529.795663,"light",773.415194,"VVSQEEIVR_light",8.1,1414562,"sp|P08183|MDR1_HUMAN",2,"y6",1,"VVSQEEIVR"
   public static MultiTreeTable<Float, Float, SRMGroup> readTransitions(String trfile, String delim, Map<String, String> cols, boolean use_iRT, boolean c13, String... protein_ids)
@@ -1147,6 +1199,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
             if (tr.get("Gene")      !=null) group.setGeneSymbol(tr.get("Gene"));
             if (tr.get("iRT")       !=null) group.setIRT(       tr.get("iRT", 0f));
             if (tr.get("ReportedRT")!=null) group.setReportedRT(tr.get("ReportedRT", 0f));
+
+            group.setBackbone(seq.split("_")[0].replaceAll("\\[\\+57\\]|\\[CAM\\]", ""));
 
             groups.put(group.getMz(), group.getRT(use_iRT), group);
             peptide_group.put(peptide, group);

@@ -12,7 +12,7 @@ import java.util.*;
 //
 public class ResidueBase implements Cloneable
 {
-  public static ResidueBase REDUCED, CIM, TMT10;
+  public static ResidueBase REDUCED, CIM, TMT10, SIL;
   public static Map<Character, Double> sVarCharMods=null;
   public static Collection<Double> sProtNTmods;
 
@@ -37,6 +37,7 @@ public class ResidueBase implements Cloneable
     REDUCED = new ResidueBase(); REDUCED.init("reduced");
     CIM     = new ResidueBase();     CIM.init("LFQ");
     TMT10   = new ResidueBase();   TMT10.initTMT();
+    SIL     = new ResidueBase();     SIL.init("heavyRK");
   }
 
   private Map<Character, Float> mAADic;

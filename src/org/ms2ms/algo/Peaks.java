@@ -310,9 +310,8 @@ public class Peaks {
     return 1E6 * (m1 - m0) / m0;
   }
 
-  public static double MH2Mz(double mh, int z) {
-    return (mh + 1.007825 * (z - 1)) / (double) z;
-  }
+  public static double MH2Mz(double mh, int z) { return (mh + 1.007825d * (z - 1)) / (double) z; }
+  public static float  MH2Mz(float  mh, int z) { return (mh + 1.007825f * (z - 1)) / (float) z; }
 
   /**
    * makeup a peaklist using string shorthand

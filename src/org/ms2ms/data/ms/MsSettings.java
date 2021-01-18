@@ -16,6 +16,7 @@ public class MsSettings extends Settings
 {
   public static final String TOL_PREC  = "PrecTol";
   public static final String TOL_FRAG  = "FragTol";
+  public static final String RP_FRAG  = "FragRP200";
   public static final String ISOLATION_PREC  = "Precursor isolation";
   public static final String FRAG_MODE = "FragMode";
   public static final String Z_FLOAT    = "Zfloat";
@@ -47,9 +48,11 @@ public class MsSettings extends Settings
   public Tolerance getPrecursorIsolation()  { return properties!=null?(Tolerance )properties.get(ISOLATION_PREC):null; }
   public Tolerance getFragmentTol()  { return properties!=null?(Tolerance )properties.get(TOL_FRAG):null; }
   public String    getFragMode()     { return getString(FRAG_MODE); }
+  public float getResolvingPower4Fragment()  { return properties!=null?(Float )properties.get(RP_FRAG):null; }
 
   public MsSettings setFragmentTol( Tolerance s) { properties.put(TOL_FRAG, s); return this; }
   public MsSettings setPrecursorTol(Tolerance s) { properties.put(TOL_PREC, s); return this; }
+  public MsSettings setResolvingPower4Fragment(float s) { properties.put(RP_FRAG, s); return this; }
 
   @Override
   public MsSettings clone() throws CloneNotSupportedException

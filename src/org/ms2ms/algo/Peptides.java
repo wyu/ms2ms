@@ -26,10 +26,11 @@ import java.util.*;
 public class Peptides
 {
   public static final double C   = 12.00;
-  public static final double C13 = 1.003355d;
+  public static final double C13 = 13.00335483d;
   public static final double H   = 1.007825;
   public static final Double O   = 15.994915;
   public static final double N   = 14.003074;
+  public static final double N15 = 15.00010897d;
   public static final double S   = 31.972072;
   public static final double H2O = 2d*H+O;
   public static final double NH3 = N+3d*H;
@@ -195,6 +196,15 @@ public class Peptides
 
       return ImmutableMap.copyOf(map);
     }
+    else if ("heavyRK".equalsIgnoreCase(fixed))
+    {
+      // SIL peptides contain a heavy arginine (U-13C6; U-15N4) or heavy lysine (U-13C6; U-15N2)
+      TreeMap<Character, Float> map = new TreeMap<>(AAsBuilder.build());
+      map.put('R', (float )(map.get('R')+6*(C13-C)+4*(N15-N)));
+      map.put('K', (float )(map.get('K')+6*(C13-C)+2*(N15-N)));
+
+      return ImmutableMap.copyOf(map);
+    }
     return ImmutableMap.copyOf(new TreeMap<>(AAsBuilder.build()));
   }
   // calculate the MH value of the key defined by the positions (left, right, inclusive) onto the 'sequence'
@@ -304,13 +314,19 @@ public class Peptides
       y+=AAs[Y]+dMy;
       b+=AAs[B]+dMb;
 
+      // add the terminal mods. 20210118, WYU
+      if (i==peptide.length-1)
+      {
+        y+=ntMod; b+=ctMod;
+      }
+
       if ("RKQN".indexOf(Y)>=0) y_17++;
       if ("STED".indexOf(Y)>=0) y_18++;
       if ("RKQN".indexOf(B)>=0) b_17++;
       if ("STED".indexOf(B)>=0) b_18++;
 
-      zy = "KR".indexOf(Y)>=0?10:("H".indexOf(Y)>=0?5:0);
-      zb = "KR".indexOf(B)>=0?10:("H".indexOf(B)>=0?5:0);
+      zy += "KR".indexOf(Y)>=0?10:("H".indexOf(Y)>=0?5:1);
+      zb += "KR".indexOf(B)>=0?10:("H".indexOf(B)>=0?5:1);
 
       if (sModCharge!=null)
       {
@@ -320,18 +336,28 @@ public class Peptides
         if (Tools.isSet(slice)) zb += Stats.sumFloats(slice.values())*10f;
       }
 
-      Tools.put(frags, (float) y, "y"+(i+1),      minMH);
-      Tools.put(frags, (float)(y-NH3), "z"+(i+1), minMH);
-      Tools.put(frags, (float )b,      "b"+(i+1), minMH);
-      Tools.put(frags, (float) (b-CO), "a"+(i+1), minMH);
+      frags = putFragment(frags,      y,    "y"+(i+1), zy>=20?maxZ:2, minMH);
+      frags = putFragment(frags, y-NH3,"z"+(i+1), zy>=20?maxZ:2, minMH);
+      frags = putFragment(frags,      b,    "b"+(i+1), zb>=20?maxZ:2, minMH);
+      frags = putFragment(frags, b-CO, "a"+(i+1), zb>=20?maxZ:2, minMH);
 
-      // multiply-charged?
-      if (zy>=20 && maxZ>2) Tools.put(frags, (float) (y+H)/2f, "y"+(i+1)+"z2", minMH);
-      if (zb>=20 && maxZ>2) Tools.put(frags, (float) (b+H)/2f, "b"+(i+1)+"z2", minMH);
+      if (y_17>0) frags = putFragment(frags,y-NH3, "y"+(i+1)+"-17", zy>=20?maxZ:2, minMH);
+      if (b_18>0) frags = putFragment(frags,b-H2O, "b"+(i+1)+"-18", zb>=20?maxZ:2, minMH);
 
-      // any neutral loss?
-      if (y_17>0) Tools.put(frags, (float) (y-NH3), "y"+(i+1)+"-17", minMH);
-      if (b_18>0) Tools.put(frags, (float) (b-H2O), "b"+(i+1)+"-18", minMH);
+//      Tools.put(frags, (float) y, "y"+(i+1),      minMH);
+//      Tools.put(frags, (float)(y-NH3), "z"+(i+1), minMH);
+//      Tools.put(frags, (float )b,      "b"+(i+1), minMH);
+//      Tools.put(frags, (float) (b-CO), "a"+(i+1), minMH);
+//
+//      // multiply-charged?
+//      if (zy>=20 && maxZ>2)
+//        for (int z=2; z<maxZ; z++) Tools.put(frags, (float) (y+H)/(float )z, "y"+(i+1)+"`"+z, minMH);
+//      if (zb>=20 && maxZ>2)
+//        for (int z=2; z<maxZ; z++) Tools.put(frags, (float) (b+H)/(float )z, "b"+(i+1)+"`"+z, minMH);
+
+//      // any neutral loss?
+//      if (y_17>0) Tools.put(frags, (float) (y-NH3), "y"+(i+1)+"-17", minMH);
+//      if (b_18>0) Tools.put(frags, (float) (b-H2O), "b"+(i+1)+"-18", minMH);
 
       // get the internal ions
       if (i>0)
@@ -347,6 +373,13 @@ public class Peptides
         }
       }
     }
+    return frags;
+  }
+  public static Map<Float, String> putFragment(Map<Float, String> frags, double mh, String tag, int maxZ, float minMH)
+  {
+    for (int z=1; z<maxZ; z++)
+      Tools.put(frags, (float) (mh+H*(z-1))/(float )z, tag+(z>1?("`"+z):""), minMH);
+
     return frags;
   }
   // generate the predicted fragments of the key.
