@@ -297,7 +297,7 @@ public class Peptides
 
   // generate the predicted fragments of the key.
   public static Map<Float, String> toFragments(char[] peptide, Map<Integer, Double> mods, double ntMod, double ctMod,
-                                               float[] AAs, Float minMH, SortedMap<Double, Float> sModCharge, int maxZ)
+                                               float[] AAs, Float minMH, SortedMap<Double, Float> sModCharge, int maxZ, int maxInternal)
   {
     if (peptide==null || peptide.length==0) return null;
 
@@ -363,7 +363,7 @@ public class Peptides
       if (i>0)
       {
         Float internal=(float )H, intn28=null;
-        for (int k=2; k<5; k++)
+        for (int k=2; k<maxInternal; k++)
         {
           if (i+k>=peptide.length) break;
           // calculate the expected mass

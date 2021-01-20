@@ -178,6 +178,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   }
   private SRM addTransition(float frag, float intensity, int c13)
   {
+    if (mSRMs==null) mSRMs = new TreeMap<>();
     mSRMs.put(frag, new SRM(frag, intensity).setIsotope(c13));
     return mSRMs.get(frag);
   }
@@ -768,8 +769,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   {
     if (mTransitionSRMs ==null) mTransitionSRMs = HashBasedTable.create();
 
-//    if ("HLNDDVVK#2".equalsIgnoreCase(getSequence()))
-//      System.out.println();
+    if ("FVVIQNEDLGPASPLDSTFYR".equalsIgnoreCase(getSequence()))
+      System.out.println();
     // arrange the incoming group by the frag type/charge
     Map<String, SRM> Hs = new HashMap<>();
     for (SRM srm : heavy.getSRMs().values()) Hs.put(srm.getFragmentType()+"z"+srm.getCharge(), srm);
@@ -811,65 +812,66 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     String iontype="-"; int len=0,z=1;
     for (Float frag : frags.keySet())
     {
-      String tag = frags.get(frag); iontype="i"; len=0; z=1; String[] items = tag.split("-"), zs=items[0].split("`");
+      String tag = frags.get(frag); iontype="i"; len=0; z=1; String[] zs=tag.split("`"), items = zs[0].split("-");
       // parse the ion label
       if (zs.length>1) z=Integer.valueOf(zs[1]);
       if ("abyz".indexOf(tag.substring(0,1))>=0)
       {
-//        if (zs[0].length()<2)
-//          System.out.println();
-        iontype=tag.substring(0,1); len=Integer.valueOf(zs[0].substring(1));
-      } else
-      {
-        if (items[0].indexOf('P')==0) iontype="p";
+        iontype=tag.substring(0,1); len=Integer.valueOf(items[0].substring(1));
       }
-      if (items.length>1 && Strs.isA(items[1], "17","18")) iontype+="-17/18";
-      for (String ion : ions)
+      else if (items[0].indexOf('P')==0)
       {
+        iontype="p"; len = items[0].length();
+      }
+      if (items.length>1)
+        if (Strs.isA(items[1], "17","18")) iontype+="-17/18"; else iontype+=items[1];
+
+      for (String ion : ions)
         if (iontype.equalsIgnoreCase(ion) && len>=minN && frag<=maxMz)
         {
           // add the valid fragment
-          SRM srm = addTransition(frag, 0f, 0).setPrecursorMz(getMz());
+          SRM srm = addTransition(frag, 0f, 0);
           srm.setIsotopeLabel(iso).setFragmentType(tag).setCharge(z);
         }
-      }
+
       // update the precursor
-      if (iontype.equals("y") && len==getBackbone().length())
-        setMz(Peaks.MH2Mz(frag, getCharge()));
+      if (iontype.equals("y") && len==getBackbone().length()) setMz(Peaks.MH2Mz(frag, getCharge()));
     }
+    // update the precursor m/z of the fragments
+    for (SRM srm : getSRMs().values()) srm.setPrecursorMz(getMz());
 
     return this;
   }
-  // deprecated as it has no consideration for the fragment type. WYU::20200912
-  public SRMGroup setupAssay()
-  {
-    if (mTransitionSRMs ==null) mTransitionSRMs = HashBasedTable.create();
-
-    // order the SRM by their FragMz
-    List<Float> frags = new ArrayList<>(getSRMs().keySet()); HashSet<Float> removed = new HashSet<>(); Collections.sort(frags);
-    for (int i=0; i<frags.size(); i++)
-      if (!removed.contains(frags.get(i)) && getSRM(frags.get(i)).isIsotopeLabel(IsoLable.L))
-      {
-        // update the precursor m/z for the group
-        float prec_mz = getSRM(frags.get(i)).getPrecursorMz();
-        if (prec_mz>0 && (getMz()==0 || prec_mz<getMz())) setMz(prec_mz);
-        // setup the channel
-        String channel = Tools.d2s(frags.get(i), 4);
-        mTransitionSRMs.put(channel, IsoLable.L, getSRM(frags.get(i)));
-        // look for the heavy counterpart
-        for (int j=i+1; j<frags.size(); j++)
-          if (!removed.contains(frags.get(j)) &&
-              getSRM(frags.get(j)).isIsotopeLabel(IsoLable.H) &&
-              getSRM(frags.get(j)).getIsotope()==getSRM(frags.get(i)).getIsotope())
-          {
-            mTransitionSRMs.put(channel, IsoLable.H, getSRM(frags.get(j))); removed.add(frags.get(j));
-            break;
-          }
-      }
-    frags = (List )Tools.dispose(frags);
-
-    return this;
-  }
+//  // deprecated as it has no consideration for the fragment type. WYU::20200912
+//  public SRMGroup setupAssay()
+//  {
+//    if (mTransitionSRMs ==null) mTransitionSRMs = HashBasedTable.create();
+//
+//    // order the SRM by their FragMz
+//    List<Float> frags = new ArrayList<>(getSRMs().keySet()); HashSet<Float> removed = new HashSet<>(); Collections.sort(frags);
+//    for (int i=0; i<frags.size(); i++)
+//      if (!removed.contains(frags.get(i)) && getSRM(frags.get(i)).isIsotopeLabel(IsoLable.L))
+//      {
+//        // update the precursor m/z for the group
+//        float prec_mz = getSRM(frags.get(i)).getPrecursorMz();
+//        if (prec_mz>0 && (getMz()==0 || prec_mz<getMz())) setMz(prec_mz);
+//        // setup the channel
+//        String channel = Tools.d2s(frags.get(i), 4);
+//        mTransitionSRMs.put(channel, IsoLable.L, getSRM(frags.get(i)));
+//        // look for the heavy counterpart
+//        for (int j=i+1; j<frags.size(); j++)
+//          if (!removed.contains(frags.get(j)) &&
+//              getSRM(frags.get(j)).isIsotopeLabel(IsoLable.H) &&
+//              getSRM(frags.get(j)).getIsotope()==getSRM(frags.get(i)).getIsotope())
+//          {
+//            mTransitionSRMs.put(channel, IsoLable.H, getSRM(frags.get(j))); removed.add(frags.get(j));
+//            break;
+//          }
+//      }
+//    frags = (List )Tools.dispose(frags);
+//
+//    return this;
+//  }
   public static void headerXIC(Writer w) throws IOException
   {
 //    headerGroup(w);
@@ -1099,9 +1101,14 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   {
     SRMGroup cloned = new SRMGroup(getSequence(), getRT(), getMz(), getCharge());
 
-    cloned.setRtOffset(  getRtOffset());
-    cloned.setSimilarity(getSimilarity());
-    cloned.setBackbone(  getBackbone());
+    cloned.setRtOffset(    getRtOffset());
+    cloned.setSimilarity(  getSimilarity());
+    cloned.setBackbone(    getBackbone());
+    cloned.setGeneSymbol(  getGeneSymbol());
+    cloned.setProteinId(   getProteinId());
+    cloned.setRtOffset(    getRtOffset());
+    cloned.setReportedRT(  getReportedRT());
+    cloned.setCurrIsoLabel(getCurrIsoLabel());
 
     cloned.mSRMs = new TreeMap<>();
     for (Float frag : mSRMs.keySet()) cloned.mSRMs.put(frag, mSRMs.get(frag));
@@ -1127,7 +1134,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     return getCurrIsoLabel().toString()+":"+out;
   }
 
-  public static void printTransitions(MultiTreeTable<Float, Float, SRMGroup> trlib, String trfile) throws IOException
+  public static void writeTransitions(MultiTreeTable<Float, Float, SRMGroup> trlib, String trfile) throws IOException
   {
     if (!Tools.isSet(trlib)) return;
 
@@ -1136,13 +1143,13 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     Writer w = new FileWriter(trfile);
 
     w.write("ProteinId\tGene\tPeptide\tPrecursorMz\tPrecursorCharge\"ReportedRT\tIsotope\tNormalizedRetentionTime\t");
-    w.write("iRT\tProductMz\tFragZ\tFragType\tLibraryIntensity\n");
+    w.write("ProductMz\tFragZ\tFragType\tLibraryIntensity\n");
     for (SRMGroup group : trlib.values())
       if (Tools.isSet(group.getSRMs()))
         for (SRM srm : group.getSRMs().values())
         {
           w.write(group.getProteinId()+"\t"+group.getGeneSymbol()+"\t"+group.getBackbone()+"\t"+group.getCharge()+"\t");
-          w.write(group.getReportedRT()+"\t"+(group.getCurrIsoLabel().equals(IsoLable.H)?"heavy":"light")+"\t"+group.getRT()+"\t"+group.getIRT()+"\t");
+          w.write(group.getReportedRT()+"\t"+(group.getCurrIsoLabel().equals(IsoLable.H)?"heavy":"light")+"\t"+group.getRT()+"\t");
           w.write(srm.getFragmentMz()+"\t"+srm.getCharge()+"\t"+srm.getFragmentType()+"\t"+srm.getLibraryIntensity()+"\n");
         }
 
