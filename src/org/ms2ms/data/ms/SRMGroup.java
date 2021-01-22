@@ -34,7 +34,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public static IsoLable sCtrlIsoLabel, sAssayIsoLabel;
   public static int sC13=1;
 
-  private String mPeptideSequence, mProteinId, mGeneSymbol, mBackbone;
+  private String mPeptideSequence, mProteinId, mGeneSymbol, mBackbone, mSIL; // 6C1N@6
   private float mRT, mRtOffset, mPrecursorMz, mDpSimilarity, mIRT, mReportedRT, mNetworkNiche;
   private int mCharge, mQualifiedSRMs;
   private IsoLable mCurrIsoLabel=IsoLable.L;
@@ -97,6 +97,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public String getProteinId()    { return mProteinId; }
   public String getGeneSymbol()   { return mGeneSymbol; }
   public String getBackbone()     { return mBackbone; }
+  public String getIsotopeTag()   { return mSIL; }
+
   public SRM getComposite() { return mSRMs!=null?mSRMs.get(0f):null; }
   public SRM getMS1() { return mSRMs!=null?mSRMs.get(-1f):null; }
   public SRM getCompositeC13() { return mSRMs!=null?mSRMs.get(1f):null; }
@@ -143,6 +145,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public SRMGroup setGeneSymbol(String s) { mGeneSymbol  =s; return this; }
   public SRMGroup setBackbone(  String s) { mBackbone    =s; return this; }
   public SRMGroup setSequence(  String s) { mPeptideSequence=s; return this; }
+  public SRMGroup setIsotopeTag(String s) { mSIL         =s; return this; }
 
   public SRMGroup addTransitionSRM(String tr, IsoLable isoL, SRM srm)
   {
@@ -1142,14 +1145,17 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
     Writer w = new FileWriter(trfile);
 
-    w.write("ProteinId\tGene\tPeptide\tPrecursorMz\tPrecursorCharge\"ReportedRT\tIsotope\tNormalizedRetentionTime\t");
+    w.write("ProteinId\tGene\tPeptide\tPrecursorMz\tPrecursorCharge\tSequence\tModifiedSequence\t");
+    w.write("Protein\tReportedRT\tIsotope\tNormalizedRetentionTime\t");
     w.write("ProductMz\tFragZ\tFragType\tLibraryIntensity\n");
     for (SRMGroup group : trlib.values())
       if (Tools.isSet(group.getSRMs()))
         for (SRM srm : group.getSRMs().values())
         {
-          w.write(group.getProteinId()+"\t"+group.getGeneSymbol()+"\t"+group.getBackbone()+"\t"+group.getCharge()+"\t");
-          w.write(group.getReportedRT()+"\t"+(group.getCurrIsoLabel().equals(IsoLable.H)?"heavy":"light")+"\t"+group.getRT()+"\t");
+          String iso_tag = (group.getCurrIsoLabel().equals(IsoLable.H)?"heavy":"light");
+          w.write(group.getProteinId()+"\t"+group.getGeneSymbol()+"\t"+group.getBackbone()+"\t"+group.getMz()+"\t"+group.getCharge()+"\t");
+          w.write(group.getBackbone()+"\t"+iso_tag+"\t"+group.getSequence()+"_"+iso_tag+"\t"+group.getProteinId());
+          w.write(group.getReportedRT()+"\t"+iso_tag+"\t"+group.getRT()+"\t");
           w.write(srm.getFragmentMz()+"\t"+srm.getCharge()+"\t"+srm.getFragmentType()+"\t"+srm.getLibraryIntensity()+"\n");
         }
 

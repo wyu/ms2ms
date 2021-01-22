@@ -27,31 +27,34 @@ public class Peptides
 {
   public static final double C   = 12.00;
   public static final double C13 = 13.00335483d;
-  public static final double H   = 1.007825;
-  public static final Double O   = 15.994915;
+  public static final double H   = 1.007825035d;
+  public static final Double O   = 15.99491463d;
   public static final double N   = 14.003074;
   public static final double N15 = 15.00010897d;
-  public static final double S   = 31.972072;
+  public static final double S   = 31.9720707;
   public static final double H2O = 2d*H+O;
   public static final double NH3 = N+3d*H;
-  public static final double Ac = 2*C+2d*H+O;
-  public static final double Me = C+2d*H;
-  public static final double NH3_LOSS = (N+3d*H)*-1d;
+  public static final double Ac  = 2*C+2d*H+O;
+  public static final double Me  = C+2d*H;
   public static final double CO  = C+O;
   public static final double OH  = H+O;
-  public static final double C2H4O = C*2+H*4+O;
+
+  public static final double NH3_LOSS = (N+3d*H)*-1d;
+  public static final double C2H4O    = C*2+H*4+O;
+  public static final double proton   = 1.00727646688d;
 
   public static final Double TMT10_LOSS = -229.162932d;
   public static final Double TMT10      = 229.162932d;
   public static final Double N2D        = 0.984016d;
 
+  // https://proteomicsresource.washington.edu/protocols06/masses.php#:~:text=The%20amino%20acid%20masses%20are,elemental%20masses%20are%20from%20Unimod.
   static final ImmutableMap.Builder<Character, Float> AAsBuilder =
       new ImmutableMap.Builder<Character, Float>()
-          .put('G',57.02146f  ).put('A', 71.03711f).put('S', 87.03203f).put('P', 97.05276f).put('V', 99.06841f)
-          .put('T', 101.04768f).put('I', 113.08406f).put('L', 113.08406f).put('N', 114.04293f).put('D', 115.02694f)
-          .put('Q', 128.05858f).put('E', 129.04259f).put('M', 131.04049f).put('H', 137.05891f).put('F', 147.06841f)
-          .put('R', 156.10111f).put('C', 160.03065f).put('Y', 163.06333f).put('W', 186.07931f).put('K', 128.09496f)
-          .put('U', 150.95363f).put('J', 113.08406f).put('^', 0f).put('$', 17.00273f); // N/C-terminal mod
+          .put('G',57.021463735f).put('A', 71.037113805f).put('S', 87.032028435f).put('P', 97.052763875f).put('V', 99.068413945f)
+          .put('T', 101.047678505f).put('I', 113.084064015f).put('L', 113.084064015f).put('N', 114.042927470f).put('D', 115.026943065f)
+          .put('Q', 128.058577540f).put('E', 129.042593135f).put('M', 131.040484645f).put('H', 137.058911875f).put('F', 147.068413945f)
+          .put('R', 156.101111050f).put('C', 160.030648505f).put('Y', 163.063328575f).put('W', 186.079312980f).put('K', 128.094963050f)
+          .put('U', 150.95363f).put('J', 113.08406f).put('^', 0f).put('$', (float )(O+H)); // N/C-terminal mod
 
   static final double[] rc = new double[]
       {
@@ -212,11 +215,9 @@ public class Peptides
   {
     left = Math.max(0, left); right = Math.min(sequence.length, right);
 
-    double y=AAs['$']+AAs['^']+2*1.007825;
+    double y=AAs['$']+AAs['^']+H+proton;
     for (int c=right; c>=left; c--)
     {
-//      if (right>sequence.length || sequence[c]>AAs.length)
-//        System.out.print("");
       y+=AAs[sequence[c]];
     }
 
@@ -229,7 +230,7 @@ public class Peptides
   public static double calcMH(char[] sequence, int left, int right, Map<Character, Float> AAs)
   {
 //    double y=AAs.get('$')+2* 1.00783;
-    double y=AAs.get('$')+AAs.get('^')+2*1.007825;
+    double y=AAs.get('$')+AAs.get('^')+H+proton;
     for (int c=right; c>=left; c--) y+=AAs.get(sequence[c]);
 
     return y;
@@ -237,13 +238,13 @@ public class Peptides
   public static double calcValidatedMH(char[] sequence, int left, int right, Map<Character, Float> AAs)
   {
 //    double y=AAs.get('$')+2* 1.00783;
-    double y=AAs.get('$')+AAs.get('^')+2*1.007825;
+    double y=AAs.get('$')+AAs.get('^')+H+proton;
     for (int c=right; c>=left; c--)
       if (AAs.get(sequence[c])!=null) y+=AAs.get(sequence[c]);
 
     return y;
   }
-  public static double calcMH(double mz, int z) { return (mz*z-(z-1)*H); }
+  public static double calcMH(double mz, int z) { return (mz*z-(z-1)*proton); }
   public static double calcMH(Peak p) { return calcMH(p.getMz(), p.getCharge()); }
   public static int numTryptic(String peptide)
   {
@@ -301,7 +302,7 @@ public class Peptides
   {
     if (peptide==null || peptide.length==0) return null;
 
-    double b=(AAs['^']+H)+ntMod, y=(AAs['$']+2*H)+ctMod, a=b-CO,z=y-NH3;
+    double b=(AAs['^']+proton)+ntMod, y=(AAs['$']+H+proton)+ctMod, a=b-CO,z=y-NH3;
 
     Map<Float, String> frags = new TreeMap<>(); int y_18=0, y_17=0, b_18=0, b_17=0, zy=5, zb=0;
     for (int i=0; i<peptide.length; i++)
@@ -387,7 +388,7 @@ public class Peptides
   {
     if (peptide==null || peptide.length==0) return null;
 
-    Float   y  = (AAs['$']+2*1.007825f);
+    Float   y  = (float )(AAs['$']+H+proton);
     float[] ys = new float[peptide.length];
     for (int i=0; i<peptide.length; i++)
     {
@@ -415,7 +416,7 @@ public class Peptides
   {
     if (peptide==null || peptide.length==0) return null;
 
-    float   b  = (AAs['^']+1.007825f);
+    float   b  = (float )(AAs['^']+proton);
     float[] bs = new float[peptide.length];
     for (int i=0; i<peptide.length; i++)
     {
