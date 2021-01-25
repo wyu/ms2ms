@@ -1154,7 +1154,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         {
           String iso_tag = (group.getCurrIsoLabel().equals(IsoLable.H)?"heavy":"light");
           w.write(group.getProteinId()+"\t"+group.getGeneSymbol()+"\t"+group.getBackbone()+"\t"+group.getMz()+"\t"+group.getCharge()+"\t");
-          w.write(group.getBackbone()+"\t"+iso_tag+"\t"+group.getSequence()+"_"+iso_tag+"\t"+group.getProteinId());
+          w.write(group.getBackbone()+"\t"+group.getSequence()+"\t"+group.getProteinId()+"\t");
           w.write(group.getReportedRT()+"\t"+iso_tag+"\t"+group.getRT()+"\t");
           w.write(srm.getFragmentMz()+"\t"+srm.getCharge()+"\t"+srm.getFragmentType()+"\t"+srm.getLibraryIntensity()+"\n");
         }
@@ -1188,7 +1188,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         // "","PrecursorMz","ProductMz","LibraryIntensity","ProteinId","PeptideSequence","ModifiedPeptideSequence","PrecursorCharge","ProductCharge","FragmentType","FragmentSeriesNumber","NormalizedRetentionTime"
         // "2261",1044.48640687972,405.176849365234,33.29616,"P62258","AAFDDAIAELDTLSEESYK","AAFDDAIAELDTLSEESYK",2,1,"b",4,92.1534957885742
         int z = tr.get("PrecursorCharge", 0);
-        String seq = tr.getStr("Peptide","ModifiedSequence", "ModifiedPeptideSequence"), peptide;
+        String seq = tr.getStr("Peptide","ModifiedSequence", "ModifiedPeptideSequence", "Sequence"), peptide;
 
 //        if (!(seq.indexOf("ELGTVM[Oxidation (M)]R#2")>=0 && z==2)) continue;
         if (Tools.isSet(protein_ids) && !Strs.hasA(tr.get("ProteinId"), 0, protein_ids)) continue;
@@ -1212,6 +1212,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
             if (tr.get("Gene")      !=null) group.setGeneSymbol(tr.get("Gene"));
             if (tr.get("iRT")       !=null) group.setIRT(       tr.get("iRT", 0f));
             if (tr.get("ReportedRT")!=null) group.setReportedRT(tr.get("ReportedRT", 0f));
+            if (tr.get("SIL")       !=null) group.setIsotopeTag(tr.get("SIL"));
 
             group.setBackbone(seq.split("_")[0].replaceAll("\\[\\+57\\]|\\[CAM\\]", ""));
 
@@ -1222,8 +1223,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
             System.out.print("!");
           }
         }
-        float frag_mz = tr.getFloat("ProductMz"), frag_ai = tr.get("LibraryIntensity", 0f),
-            frag_z = tr.get("ProductCharge", 1f);
+        float frag_mz = tr.get("ProductMz", 0f),
+              frag_ai = tr.get("LibraryIntensity", 0f),
+               frag_z = tr.get("ProductCharge", 1f);
 
         SRM srm = group.addTransition(frag_mz, frag_ai, 0).setPrecursorMz(tr.getFloat("PrecursorMz"));
         if      ("light".equalsIgnoreCase(tr.get("Isotope"))) srm.setIsotopeLabel(IsoLable.L);
