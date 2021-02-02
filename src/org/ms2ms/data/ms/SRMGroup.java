@@ -1166,7 +1166,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 // "ABCB1","VVSQEEIVR",529.795663,"light",773.415194,"VVSQEEIVR_light",8.1,1414562,"sp|P08183|MDR1_HUMAN",2,"y6",1,"VVSQEEIVR"
   public static MultiTreeTable<Float, Float, SRMGroup> readTransitions(String trfile, String delim, Map<String, String> cols, boolean use_iRT, boolean c13, String... protein_ids)
   {
-    System.out.println("\nReading the transition list from "+trfile+"...");
+    System.out.println("\nReading the transition list from "+trfile+" with delimiter "+delim+"...");
     if (!new File(trfile).exists()) return null;
 
     try
@@ -1176,6 +1176,11 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
       MultiTreeTable<Float, Float, SRMGroup> groups = new MultiTreeTable<>();
 
+      if (!(new File(trfile).exists()))
+      {
+        System.out.println("Transition file not present: "+trfile);
+        return null;
+      }
       TabFile                          tr = new TabFile(trfile, delim).setColMappings(cols);
       Map<String, SRMGroup> peptide_group = new HashMap<>();
 
@@ -1200,6 +1205,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         }
         else
         {
+          System.out.println(tr.getCurrentLine());
           throw new RuntimeException("Peptide sequence not found in the transition list!");
         }
         SRMGroup group = peptide_group.get(peptide);
@@ -1244,7 +1250,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         }
       }
       tr.close();
-      System.out.println();
+      System.out.println(" --> lib size: "+groups.size());
 
       return groups;
     }
