@@ -26,7 +26,7 @@ public class MaxQuantTest extends TestAbstract
   @Test
   public void calibration() throws Exception
   {
-    Dataframe evidences = new Dataframe(root+"evidence100.txt", '\t');
+    Dataframe evidences = new Dataframe(root+"evidence100.txt", '\t', 0);
 
     // Dataframe pivot(String col, String val, MsStats.Aggregator func, String... rows)
     Dataframe out = evidences.pivot("Raw file", "Retention time calibration", MsStats.Aggregator.MEAN, "Modified sequence", "Retention time");
@@ -36,13 +36,13 @@ public class MaxQuantTest extends TestAbstract
   @Test
   public void parseSummary() throws IOException
   {
-    Dataframe summary = new Dataframe(root+"summary.txt", '\t', "Raw file");
+    Dataframe summary = new Dataframe(root+"summary.txt", '\t', 0, "Raw file");
     System.out.println(summary.size());
   }
   @Test
   public void parsePeptides() throws IOException
   {
-    Dataframe peptides = new Dataframe(root+"allPeptides.txt", '\t');
+    Dataframe peptides = new Dataframe(root+"allPeptides.txt", '\t', 0);
     System.out.println(peptides.size());
 
 /*

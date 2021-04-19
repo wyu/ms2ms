@@ -158,15 +158,16 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   {
     if (Tools.isSet(getSRMs()))
     {
-      float expected = getSRMs().keySet().size(), found=0f, rt0=getRT();
+      float   expected = 0f, found=0f, rt0=getRT();
+      LcMsFeature base = getTransitionSRMs().get("0", sCtrlIsoLabel).getFeature();
 
-      if (getSRMs().containsKey(0f) && getSRMs().get(0f).getFeature()!=null)
+      if (getSRMs().containsKey(0f) && base!=null)
       {
-        rt0 = (float )getSRMs().get(0f).getFeature().getRT();
+        rt0 = (float )base.getRT();
         for (SRM srm : getSRMs().values())
-          if (srm.getFragmentMz()<=0f) expected--;
-          else
+          if (srm.getFragmentMz()>10f && srm.isIsotopeLabel(sAssayIsoLabel))
           {
+            expected++;
             if (srm.getFeature()!=null &&
                 ((srm.getPeakBoundary()!=null && srm.getPeakBoundary().contains(srm.getFeature().getRT())) ||
                     Math.abs(srm.getFeature().getRT()-rt0)<=span)) found++;
@@ -269,35 +270,37 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     mNetwork = new SimpleDirectedWeightedGraph<>(DefaultWeightedEdge.class);
     // only use the current isoLabel
     List<Float> traces = new ArrayList<>();
-    if (getCurrIsoLabel()!=null)
-    {
-      for (Float fr : getSRMs().keySet())
-        if (getSRM(fr).isIsotopeLabel(getCurrIsoLabel())) traces.add(fr);
-    } else {
+//    if (getCurrIsoLabel()!=null)
+//    {
+//      for (Float fr : getSRMs().keySet())
+//        if (getSRM(fr).isIsotopeLabel(getCurrIsoLabel())) traces.add(fr);
+//    } else {
       traces.addAll(getSRMs().keySet());
-    }
+//    }
     // remove the default ms1 sinceit's not sync with the ms2 on RT. We should have called shift_ms1 first to
     // a sync'd version to replace the existing one @-1
     traces.remove(-1f);
     // remove the composite trace from the network since it's redundant for this purpose
     traces.remove(0f);
+    traces.remove(10f);
 
+    Range<Double> rt_bound = getSRM(traces.get(0)).getPeakBoundary();
     for (int i=0; i<traces.size(); i++)
     {
       SRM x = getSRM(traces.get(i));
-      if (!Tools.isSet(x.getXIC()) || x.getXIC().size()<5) continue;
+      if (!Tools.isSet(x.getXIC()) || x.getNumPtsInBound()<5) continue;
 
         mNetwork.addVertex(x);
       for (int j=0; j<traces.size(); j++)
       {
         SRM y = getSRM(traces.get(j));
-        if (!Tools.isSet(y.getXIC()) || y.getXIC().size()<5) continue;
+        if (!Tools.isSet(y.getXIC()) || y.getNumPtsInBound()<5) continue;
 
         mNetwork.addVertex(y);
         if (i!=j)
         {
           // calc the similarity
-          double dp = Similarity.dp_points(x.getXIC(), y.getXIC());
+          double dp = Similarity.dp_points(x.getXIC(), y.getXIC(), rt_bound);
           if (dp>=min_dp) mNetwork.setEdgeWeight(mNetwork.addEdge(x,y), dp);
         }
       }
@@ -731,6 +734,35 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
     return this;
   }
+  public SRMGroup scorePRMSimillarity()
+  {
+    List<Float> lib = new ArrayList<>(), obs = new ArrayList<>();
+    for (String row : mTransitionSRMs.rowKeySet())
+    {
+      SRM ctrl = mTransitionSRMs.get(row, sCtrlIsoLabel),
+          asy  = mTransitionSRMs.get(row, sAssayIsoLabel);
+
+      if (Float.valueOf(row)>10 && ctrl!=null && ctrl.getFeature()!=null && ctrl.getFeature().getArea()>0) {
+        lib.add(ctrl!=null && ctrl.getFeature()!=null ? (float )ctrl.getFeature().getArea():0f);
+        obs.add(asy !=null &&  asy.getFeature()!=null ? (float ) asy.getFeature().getArea():0f);
+      }
+    }
+    mDpSimilarity = Similarity.dp(lib, obs);
+
+    return this;
+  }
+  public SRMGroup score()
+  {
+    scorePRMSimillarity();
+    for (SRM srm : getSRMs().values())
+    {
+      int n = 0;
+      for (LcMsPoint p : srm.getXIC())
+        if (Tools.isSet(srm.getPeakBoundary()) && srm.getPeakBoundary().contains(p.getRT()) && p.getIntensity()>0) n++;
+      srm.setNumPtsInBound(n);
+    }
+    return this;
+  }
   public SRMGroup calcFeatureExclusivity(LcSettings settings)
   {
     return calcFeatureExclusivity(settings.getQuanSpan(), settings.getApexPts());
@@ -883,7 +915,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public static void header_xic(Writer w) throws IOException
   {
     // xic.ai~xic.rt|FragMz
-    w.write("Peptide\tFragMz\tz\tisoL\txic.rt\txic.ai\txic.ppm\n");
+    w.write("Peptide\tFragMz\tz\tisoL\txic.rt\txic.ai\tinjection\txic.ppm\n");
   }
   public static void headerAssayXIC(Writer w, IsoLable assay) throws IOException
   {
@@ -924,6 +956,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
           w.write(isoL +"\t");
           w.write(pk.getRT()       +"\t");
           w.write(pk.getIntensity()+"\t");
+          w.write(pk.getFillTime()+"\t");
           w.write(pk.getPPM()      +"\n");
         }
     }
@@ -1195,7 +1228,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         int z = tr.get("PrecursorCharge", 0);
         String seq = tr.getStr("Peptide","ModifiedSequence", "ModifiedPeptideSequence", "Sequence"), peptide;
 
-//        if (!(seq.indexOf("ELGTVM[Oxidation (M)]R#2")>=0 && z==2)) continue;
+//        if (!(seq.indexOf("EDGIWSTDILK")>=0 && z==2)) continue; // for debugging
+
         if (Tools.isSet(protein_ids) && !Strs.hasA(tr.get("ProteinId"), 0, protein_ids)) continue;
         if (Strs.isSet(seq))
         {

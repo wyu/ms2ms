@@ -183,7 +183,7 @@ public class MaxQuant extends LcMsMsDataset
         proteins = readMaxquant(new TabFile(folder+"/proteinGroups.txt", TabFile.tabb), "id");
 
     // pull the list of experiments
-    Dataframe       summary = new Dataframe(folder+"/summary.txt", '\t');
+    Dataframe       summary = new Dataframe(folder+"/summary.txt", '\t', 0);
     Set<String> experiments = new TreeSet<>(Strs.toStrings(summary.col("Experiment").values())),
                        runs = new TreeSet<>(Strs.toStrings(summary.col("Raw file").values()));
 
