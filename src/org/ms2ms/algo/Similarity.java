@@ -151,7 +151,8 @@ public class Similarity
       sum_ab +=   A.get(ia) * B.get(ia);
     }
     // calculating the dot-product
-    return sum_ab * sum_ab / (sum_a * sum_b);
+    dp = sum_ab * sum_ab / (sum_a * sum_b);
+    return dp;
   }
   public static <T extends Point> float dp_points(List<T> A, List<T> B)
   {

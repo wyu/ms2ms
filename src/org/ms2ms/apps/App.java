@@ -256,6 +256,7 @@ abstract public class App
     return buf;
   }
   public String    param( String s)            { return mParameters!=null?mParameters.getProperty(s):null; }
+  public String    param( String s, String d)  { return mParameters!=null && mParameters.getProperty(s)!=null?mParameters.getProperty(s):d; }
   public Double    param( String s, Double d)  { return mParameters!=null?mParameters.getProperty(s,d):null; }
   public Float     param( String s, Float d)   { return mParameters!=null?mParameters.getProperty(s,d):null; }
   public Integer   param( String s, Integer d) { return mParameters!=null?mParameters.getProperty(s,d):null; }

@@ -376,10 +376,86 @@ public class Peptides
     }
     return frags;
   }
+  // generate the predicted fragments of the key.
+  public static Map<Float, String> toFragments4PRM(char[] peptide, Map<Integer, Double> mods, double ntMod, double ctMod,
+                                               float[] AAs, Float minMH, SortedMap<Double, Float> sModCharge, int maxZ, int maxInternal, String BasicAAs)
+  {
+    if (peptide==null || peptide.length==0) return null;
+
+    double b=(AAs['^']+proton)+ntMod, y=(AAs['$']+H+proton)+ctMod, a=b-CO,z=y-NH3;
+
+    // start the zy/b with 5 to acct for the N-terminus
+    Map<Float, String> frags = new TreeMap<>(); int y_18=0, y_17=0, b_18=0, b_17=0, zy=5, zb=0;
+    for (int i=0; i<peptide.length; i++)
+    {
+      int j=peptide.length-i-1; char Y = peptide[j], B = peptide[i];
+
+      Double dMy = (mods!=null&&mods.get(j)!=null?mods.get(j).floatValue():0d),
+             dMb = (mods!=null&&mods.get(i)!=null?mods.get(i).floatValue():0d);
+
+      y+=AAs[Y]+dMy;
+      b+=AAs[B]+dMb;
+
+      // add the terminal mods. 20210118, WYU
+      if (i==peptide.length-1)
+      {
+        y+=ntMod; b+=ctMod;
+      }
+
+      if ("RKQN".indexOf(Y)>=0) y_17++;
+      if ("STED".indexOf(Y)>=0) y_18++;
+      if ("RKQN".indexOf(B)>=0) b_17++;
+      if ("STED".indexOf(B)>=0) b_18++;
+
+      zy += BasicAAs.indexOf(Y)>=0?10:1;
+      zb += BasicAAs.indexOf(B)>=0?10:1;
+
+      if (sModCharge!=null)
+      {
+        Map<Double, Float> slice = sModCharge.subMap(dMy-0.01, dMy+0.01);
+        if (Tools.isSet(slice)) zy += Stats.sumFloats(slice.values())*10f;
+        slice = sModCharge.subMap(dMb-0.01, dMb+0.01);
+        if (Tools.isSet(slice)) zb += Stats.sumFloats(slice.values())*10f;
+      }
+
+      // up to the maxZ, inclusive
+      int zyx = zy>=35?maxZ:(zy>=20?2:1), zbx = zb>=35?maxZ:(zb>=20?2:1);
+      frags = putFragment4PRM(frags,      y,    "y"+(i+1), zyx, minMH);
+      frags = putFragment4PRM(frags, y-NH3,"z"+(i+1), zyx, minMH);
+      frags = putFragment4PRM(frags,      b,    "b"+(i+1), zbx, minMH);
+      frags = putFragment4PRM(frags, b-CO, "a"+(i+1), zbx, minMH);
+
+      if (y_17>0) frags = putFragment4PRM(frags,y-NH3, "y"+(i+1)+"-17", zyx, minMH);
+      if (b_18>0) frags = putFragment4PRM(frags,b-H2O, "b"+(i+1)+"-18", zbx, minMH);
+
+      // get the internal ions
+      if (i>0)
+      {
+        Float internal=(float )H, intn28=null;
+        for (int k=2; k<maxInternal; k++)
+        {
+          if (i+k>=peptide.length) break;
+          // calculate the expected mass
+          internal+=AAs[peptide[k+i]]; intn28=(float )(internal-CO);
+          if (!frags.containsKey(internal)) Tools.put(frags, internal, Strs.toString(peptide, i, i+k),     minMH);
+          if (!frags.containsKey(intn28))   Tools.put(frags, intn28, Strs.toString(peptide, i, i+k)+"-28", minMH);
+        }
+      }
+    }
+    return frags;
+  }
+  public static Map<Float, String> putFragment4PRM(Map<Float, String> frags, double mh, String tag, int maxZ, float minMH)
+  {
+    // include the maxZ, 20210519
+    for (int z=1; z<=maxZ; z++)
+      Tools.put(frags, (float) (mh+proton*(z-1))/(float )z, tag+(z>1?("`"+z):""), minMH);
+
+    return frags;
+  }
   public static Map<Float, String> putFragment(Map<Float, String> frags, double mh, String tag, int maxZ, float minMH)
   {
     for (int z=1; z<maxZ; z++)
-      Tools.put(frags, (float) (mh+H*(z-1))/(float )z, tag+(z>1?("`"+z):""), minMH);
+      Tools.put(frags, (float) (mh+proton*(z-1))/(float )z, tag+(z>1?("`"+z):""), minMH);
 
     return frags;
   }

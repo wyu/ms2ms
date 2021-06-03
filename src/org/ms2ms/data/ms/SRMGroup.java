@@ -312,7 +312,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     return this;
   }
   // c13 isotope to be included, 1: c12+c13, 0:c12 only
-  public SRMGroup composite(int max_c13, boolean include_ms1, boolean is_sum)
+  public SRMGroup composite(int max_c13, boolean include_ms1, boolean is_sum, int ranks)
   {
     TreeMultimap<Float, Double> rt_ai = TreeMultimap.create(), rt_ai0 = TreeMultimap.create(), rt_pm = TreeMultimap.create();
     HashMap<Float, Integer>     rt_sn = new HashMap<>();
@@ -321,7 +321,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     for (Float frag : mSRMs.keySet())
     {
       SRM srm = getSRM(frag);
-      if (frag>0 && srm!=null && srm.isIsotopeLabel(getCurrIsoLabel()) && srm.getIsotope()<=max_c13 && srm.getXIC()!=null) // only the MS2 XIC
+      // limited to the ranked SRM if asked
+      if (frag>0 && srm!=null && (ranks==0 | srm.getRank()>0) &&
+          srm.isIsotopeLabel(getCurrIsoLabel()) && srm.getIsotope()<=max_c13 && srm.getXIC()!=null) // only the MS2 XIC
       {
         n++;
         for (LcMsPoint pk : srm.getXIC())
@@ -414,8 +416,12 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     return centroid(settings.getPeakWidth(), settings.getQuanSpan(), settings.getQuanOffset(),
         settings.getMinSNR(), settings.getBaseRI(), settings.getMinPeakExclusivity(), min_dp, settings.isOutsiderOK());
   }
-  public SRMGroup detectPeaks(float quan_span)
+  public SRMGroup detectPeaks(float quan_span, boolean individual)
   {
+    if (individual && Tools.isSet(getSRMs()))
+      for (Float mz : getSRMs().keySet())
+        if (mz>10 && getSRM(mz).isIsotopeLabel(getCurrIsoLabel())) getSRM(mz).detectPeak(getRT(), quan_span);
+
     // nothing to do without a composite!
     if (getComposite()!=null && Tools.isSet(getComposite().getXIC()))
     {
@@ -426,6 +432,48 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     return this;
   }
   // for each peaks in the composite trace, calculate the similarity of the fragments versus the library
+  public SRMGroup surveyPeakSimilarity(float rt_tol)
+  {
+    TreeBasedTable<Float, Double, Double> frag_rt_ai = TreeBasedTable.create();
+    if (Tools.isSet(getSRMs()))
+      for (SRM srm : getSRMs().values())
+        if (srm.getFragmentMz()>0 && Tools.isSet(srm.getPeaks()))
+          for (LcMsFeature ftr : srm.getPeaks())
+            frag_rt_ai.put(srm.getFragmentMz(), ftr.getRT(), ftr.getIntensity());
+
+    List<Float> lib = new ArrayList<>(), obs = new ArrayList<>(); float baseLib=0, baseObs=0, valLib=0, valObs=0;
+    if (Tools.isSet(frag_rt_ai) && Tools.isSet(getComposite().getPeaks()))
+      for (LcMsFeature F : getComposite().getPeaks())
+      {
+        lib.clear(); obs.clear(); baseLib=baseObs=0f;
+        for (Float mz : getSRMs().keySet())
+        {
+          SRM srm = getSRM(mz); valLib=valObs=0f;
+          if (mz>10 && srm.isIsotopeLabel(getCurrIsoLabel()) && srm.getLibraryIntensity()>0)
+          {
+            valLib = srm.getLibraryIntensity();
+            lib.add(valLib);
+            if (valLib>baseLib) baseLib= valLib;
+            if (frag_rt_ai.row(mz)!=null) {
+              valObs = Stats.sum(frag_rt_ai.row(mz).subMap(F.getRT()-rt_tol, F.getRT()+rt_tol).values()).floatValue();
+              if (valObs>baseObs) baseObs=valObs;
+            } else valObs=0f;
+
+            obs.add(valObs);
+          }
+        }
+
+        for (int i=0; i<lib.size(); i++)
+        {
+          lib.set(i, lib.get(i)/baseLib);
+          obs.set(i, obs.get(i)/baseObs);
+        }
+        F.setSimilarity(Similarity.dp(lib, obs));
+      }
+    Tools.dispose(frag_rt_ai); frag_rt_ai = null;
+    lib = (List )Tools.dispose(lib); obs = (List )Tools.dispose(obs);
+    return this;
+  }
   public SRMGroup surveySimilarity(float max_isotope, float rt_tol)
   {
     List<Float> lib = new ArrayList<>(), obs = new ArrayList<>();
@@ -458,6 +506,48 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     lib = (List )Tools.dispose(lib); obs = (List )Tools.dispose(obs);
     return this;
   }
+  public SRMGroup centroidPRM(float rt_width, float quan_span, float quant_offset, float minSNR,
+                              float min_ri, float min_pkex, float min_dp)
+  {
+    // nothing to do without a composite!
+    if (getComposite()==null || !Tools.isSet(getComposite().getXIC())) return this;
+
+//    if (Strs.isA(getSequence(), "WPPEDEISKPEVPEDVDLDLKK#4","LMYEHELEQLR#2","VLVLGDSGVGK#2","FEFFEGLLFEGR#2"))
+
+    Range<Double> inner = Range.closed((double )(getRT()+quant_offset-quan_span),  (double )(getRT()+quant_offset+quan_span));
+    List<LcMsFeature> inbounds = new ArrayList<>();
+
+    double base=0;
+    for (LcMsFeature F : getComposite().getPeaks()) if (F.getArea()>base) base=F.getArea();
+
+    for (LcMsFeature F : getComposite().getPeaks())
+    {
+      F.setRelAbundance((100f*F.getArea() / base));
+      if (inner.contains(F.getRT()) && F.getSimilarity()>=min_dp && F.getRelAbundance()>=min_ri) inbounds.add(F);
+    }
+    // go each peaks and determine the best similarity to the library
+    if (Tools.isSet(inbounds))
+    {
+      LcMsFeature selected = inbounds.get(0);
+      if (inbounds.size()>1)
+        for (int i=1; i<inbounds.size(); i++)
+        {
+          // has to be significantly better
+          if (inbounds.get(i).getSimilarity()-selected.getSimilarity()>0.15)
+            selected=inbounds.get(i);
+        }
+
+      selected.setApexRT(selected.getX()).setAbundance(selected.getY());
+      getComposite().setFeature(selected);
+      // determine the peak boundary
+      getComposite().setPeakBoundary(getComposite().getFeature(), 5, rt_width);
+      // propagate to the individual transition using the same peak boundary
+      centroidTransitions(getComposite().getFeature(), getComposite().getPeakBoundary());
+    }
+
+    return this;
+  }
+
   public SRMGroup centroid(float rt_width, float quan_span, float quant_offset, float minSNR,
                            float min_ri, float min_pkex, float min_dp, boolean outside_permitted)
   {
@@ -861,8 +951,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
       if (items.length>1)
         if (Strs.isA(items[1], "17","18")) iontype+="-17/18"; else iontype+=items[1];
 
+      // exclude the full-length fragments
       for (String ion : ions)
-        if (iontype.equalsIgnoreCase(ion) && len>=minN && frag<=maxMz)
+        if (iontype.equalsIgnoreCase(ion) && len>=minN && len<getBackbone().length() && frag<=maxMz)
         {
           // add the valid fragment
           SRM srm = addTransition(frag, 0f, 0);
@@ -874,6 +965,24 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     }
     // update the precursor m/z of the fragments
     for (SRM srm : getSRMs().values()) srm.setPrecursorMz(getMz());
+
+    return this;
+  }
+  // establish the relative ranking if not supplied by the library
+  public SRMGroup setRanks()
+  {
+    int ranked=0;
+    SortedMap<Float, Float> ai_mz = new TreeMap<>();
+    for (Float mz : getSRMs().keySet())
+    {
+      SRM srm = getSRM(mz);
+      if (srm.getRank()>0) ranked++;
+      if (srm.getLibraryIntensity()>0) ai_mz.put(-1 * srm.getLibraryIntensity(), mz);
+    }
+    int r = 0;
+    if (ranked==0 && Tools.isSet(ai_mz))
+      for (Float ai : ai_mz.keySet())
+        getSRM(ai_mz.get(ai)).setRank(++r);
 
     return this;
   }
@@ -1266,8 +1375,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         float frag_mz = tr.get("ProductMz", 0f),
               frag_ai = tr.get("LibraryIntensity", 0f),
                frag_z = tr.get("ProductCharge", 1f);
+        int      rank = tr.get("Rank",0);
 
-        SRM srm = group.addTransition(frag_mz, frag_ai, 0).setPrecursorMz(tr.getFloat("PrecursorMz"));
+        SRM srm = group.addTransition(frag_mz, frag_ai, 0).setPrecursorMz(tr.getFloat("PrecursorMz")).setRank(rank);
         if      ("light".equalsIgnoreCase(tr.get("Isotope"))) srm.setIsotopeLabel(IsoLable.L);
         else if ("heavy".equalsIgnoreCase(tr.get("Isotope"))) srm.setIsotopeLabel(IsoLable.H);
 
@@ -1280,11 +1390,14 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
             group.addTransition(
                 frag_mz + i13*1.0047f/frag_z,
                 frag_ai * (4.362E-04f*((frag_mz-1.000783f)*frag_z) - 2.345E-03f), i13
-            ).setIsotopeLabel(srm.getIsotopeLabel());
+            ).setIsotopeLabel(srm.getIsotopeLabel()).setRank(rank);
         }
       }
       tr.close();
       System.out.println(" --> lib size: "+groups.size());
+
+      if (Tools.isSet(groups))
+        for (SRMGroup grp : groups.values()) grp.setRanks();
 
       return groups;
     }
@@ -1313,23 +1426,23 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
     if (Tools.isSet(protein.getSRMs()))
     {
-      protein.composite(0, true, false);
+      protein.composite(0, true, false, 0);
       protein_id.setCompositeSRMGroup(protein);
     }
     return protein_id;
   }
-  public static ProteinID buildProteinAssay(LcSettings settings, Collection<SRMGroup> groups, String proteinid)
-  {
-    ProteinID protein_id = new ProteinID(null, proteinid);
-    SRMGroup protein     = new SRMGroup("Summary");
-
-    if (Tools.isSet(protein.getSRMs()))
-    {
-      protein.composite(0, true, false);
-      protein_id.setCompositeSRMGroup(protein);
-    }
-    return protein_id;
-  }
+//  public static ProteinID buildProteinAssay(LcSettings settings, Collection<SRMGroup> groups, String proteinid)
+//  {
+//    ProteinID protein_id = new ProteinID(null, proteinid);
+//    SRMGroup protein     = new SRMGroup("Summary");
+//
+//    if (Tools.isSet(protein.getSRMs()))
+//    {
+//      protein.composite(0, true, false, false);
+//      protein_id.setCompositeSRMGroup(protein);
+//    }
+//    return protein_id;
+//  }
 
   public static List<Peak> extractRtCal(MultiTreeTable<Float, Float, SRMGroup> landmarks,
                                         MultiTreeTable<Float, Float, SRMGroup> lib,

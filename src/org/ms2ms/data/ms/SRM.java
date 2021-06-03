@@ -29,7 +29,7 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
 
   private boolean mIsStronglyConnected=false;
 
-  private int mIsotope=0, mSizeNonzero=0, mNumEdges=0, mCharge, mNumPtsBound=0;
+  private int mIsotope=0, mSizeNonzero=0, mNumEdges=0, mCharge, mNumPtsBound=0, mRank=0;
   private float mFragmentMz, mLibraryIntensity, mPkPct=0, mPkPctAll=0, mBackground=0f, mPeaksArea=0f, mPrecursorMz=0f;
   private String mFragmentType;
   Range<Double> mPeakBoundary=null;
@@ -57,6 +57,7 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   public int getIsotope() { return mIsotope; }
   public int getXicSize() { return mSizeNonzero; }
   public int getNumEdges() { return mNumEdges; }
+  public int getRank() { return mRank; }
   public int getCharge() { return mCharge; }
   public int getNumPtsInBound() { return mNumPtsBound; }
 
@@ -123,6 +124,7 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
   //  public SRM setFillTime(float s) { mFillTime=s; return this; }
   public SRM setBackground(float s) { mBackground=s; return this; }
   public SRM setNumEdges(int s) { mNumEdges=s; return this; }
+  public SRM setRank(int s) { mRank=s; return this; }
   public SRM setNumPtsInBound(int s) { mNumPtsBound=s; return this; }
   public SRM setCharge(int s) { mCharge=s; return this; }
   public SRM setIsotope(int s) { mIsotope=s; return this; }
@@ -276,8 +278,6 @@ public class SRM implements Cloneable, Disposable, Comparable<SRM>
         for (LcMsFeature p : mPeaks) p.setExclusivity(100f*p.getArea()/mPeaksArea);
       }
     }
-//    else
-//      System.out.println();
 
     deri = (List )Tools.dispose(deri);
 

@@ -18,7 +18,7 @@ public class LcMsFeature extends LcMsPoint
   private boolean mInMS1=false;
   private int    mApexPos, mPointWidth, mPresentN;
   private double mArea, mApexRT, mLower, mUpper, mRatio2Ctrl, mFmols, mDelta2Ctrl;
-  private double mAbundance;
+  private double mAbundance, mRelIntensity;
   private double mApex, mDeriv1st, mSNR;
   private double mMzStdev=Double.NaN, mMzStdevEx=Double.NaN;
   private double mInitialCentroidRt, mSimilarity, mExclusivity;
@@ -60,6 +60,7 @@ public class LcMsFeature extends LcMsPoint
   }
 
   public double getAbundance() { return mAbundance; }
+  public double getRelAbundance() { return mRelIntensity; }
   public double getArea()      { return mArea; }
   public double getRatio2Ctrl() { return mRatio2Ctrl; }
   public double getDelta2Ctrl() { return mDelta2Ctrl; }
@@ -85,6 +86,7 @@ public class LcMsFeature extends LcMsPoint
   public LcMsFeature setApexPos(int s) { mApexPos=s; return this; }
   public LcMsFeature setPointWidth(int s) { mPointWidth=s; return this; }
   public LcMsPoint setAbundance(double s) { mAbundance=s; return this; }
+  public LcMsPoint setRelAbundance(double s) { mRelIntensity=s; return this; }
   public LcMsFeature setArea(double s) { mArea=s; return this; }
   public LcMsPoint setRatio2Ctrl(double s) { mRatio2Ctrl=s; return this; }
   public LcMsPoint setDelta2Ctrl(double s) { mDelta2Ctrl=s; return this; }
@@ -126,7 +128,7 @@ public class LcMsFeature extends LcMsPoint
     String out = "rt "+ Tools.d2s(getRT(), 2) + ", m/z " + Tools.d2s(getMz(), 4) + ", ai " +
         Tools.d2s(getIntensity(), 1) + ", msec " + Tools.d2s(getFillTime(), 1) + ", area "+
         Tools.d2s(getArea(),1) + ", snr "+Tools.d2s(getSNR(), 2)+", dp "+Tools.d2s(getSimilarity(),2)+", %ex "+
-        Tools.d2s(getExclusivity(),2)+(inMS1()?", ms1":"");
+        Tools.d2s(getExclusivity(),2)+(inMS1()?", ms1":"")+", "+Tools.d2s(getRelAbundance(),2)+"%";
     return out;
   }
 }
