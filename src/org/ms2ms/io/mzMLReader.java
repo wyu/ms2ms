@@ -1,8 +1,6 @@
 package org.ms2ms.io;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Range;
+import com.google.common.collect.*;
 import org.expasy.mzjava.core.io.ms.spectrum.MgfWriter;
 import org.expasy.mzjava.core.ms.Tolerance;
 import org.expasy.mzjava.core.ms.peaklist.Peak;
@@ -368,10 +366,13 @@ public class mzMLReader extends mzReader
   }
   public static MultiTreeTable<Float, Float, SRMGroup> extractTransitionXICs(
       String filename, Tolerance tol, Tolerance precursor_tol, float dRT, MultiTreeTable<Float, Float, SRMGroup> groups,
-      MultiTreeTable<Float, Float, SRMGroup> landmarks, float span_overlap, boolean keep_xic, boolean keep_zero) throws IOException
+      MultiTreeTable<Float, Float, SRMGroup> landmarks, float span_overlap, boolean keep_xic, boolean keep_zero, boolean rt4segment) throws IOException
   {
     // looping through the scans
     System.out.println("Reading "+filename+"...");
+
+    // collection of PRM segments
+    SortedMap<Float, Float> prm_lower = new TreeMap<>(), prm_upper = new TreeMap<>();
 
     MzMLUnmarshaller mzml = new MzMLUnmarshaller(new File(filename), false, null);
     // looping through the scans
@@ -382,7 +383,7 @@ public class mzMLReader extends mzReader
     {
       Spectrum ss = spectrumIterator.next();
       float    rt = MsIO.getDouble(ss.getScanList().getScan().get(0).getCvParam(), "MS:1000016").floatValue();
-      Range<Float> rt_bound = Range.closed(rt-dRT, rt+dRT);
+      Range<Float> rt_bound = rt4segment?Range.closed(rt-dRT, rt+dRT):null;
 
       if (++rows%500==0) System.out.print(".");
       if (rows%50000==0) System.out.print(rows+"\n");
@@ -418,6 +419,15 @@ public class mzMLReader extends mzReader
         mL = m0-(float )precursor_tol.getMin(m0); mR = (float )precursor_tol.getMax(m0)-m0;
       }
 
+      // collection of the PRM segment
+      if (!prm_lower.containsKey(m0))
+      {
+        prm_lower.put(m0, rt); prm_upper.put(m0, rt);
+      }
+      else
+      {
+        prm_upper.put(m0, rt);
+      }
       // bring in the suitable SRM groups
       Range<Float> mz_bound = Range.closed(m0-mL+span_overlap, m0+mR-span_overlap);
 
@@ -517,7 +527,7 @@ public class mzMLReader extends mzReader
   {
     if (groups!=null)
     {
-      Collection<SRMGroup> ms1 = groups.subset(Range.closed(0f, 10000f), rt_bound);
+      Collection<SRMGroup> ms1 = rt_bound!=null?groups.subset(Range.closed(0f, 10000f), rt_bound):groups.values();
       if (Tools.isSet(ms1))
       {
         for (SRMGroup g : ms1) g.scanMS1(pks, rt, scan, 0d, tol, keep_zero);
@@ -533,7 +543,7 @@ public class mzMLReader extends mzReader
   {
     if (groups!=null)
     {
-      Collection<SRMGroup> slice = groups.subset(mz_bound, rt_bound);
+      Collection<SRMGroup> slice = groups.subset(mz_bound, rt_bound!=null?rt_bound:Range.closed(0f,1000f));
 
       // let's go thro each fragments
       if (slice.size()>0)

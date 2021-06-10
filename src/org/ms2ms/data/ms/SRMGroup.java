@@ -525,6 +525,10 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
       F.setRelAbundance((100f*F.getArea() / base));
       if (inner.contains(F.getRT()) && F.getSimilarity()>=min_dp && F.getRelAbundance()>=min_ri) inbounds.add(F);
     }
+    if (!Tools.isSet(inbounds))
+      for (LcMsFeature F : getComposite().getPeaks())
+        if (inner.contains(F.getRT()) && F.getRelAbundance()>=min_ri) inbounds.add(F);
+
     // go each peaks and determine the best similarity to the library
     if (Tools.isSet(inbounds))
     {
@@ -894,8 +898,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   {
     if (mTransitionSRMs ==null) mTransitionSRMs = HashBasedTable.create();
 
-    if ("FVVIQNEDLGPASPLDSTFYR".equalsIgnoreCase(getSequence()))
-      System.out.println();
+//    if ("FVVIQNEDLGPASPLDSTFYR".equalsIgnoreCase(getSequence()))
+//      System.out.println();
     // arrange the incoming group by the frag type/charge
     Map<String, SRM> Hs = new HashMap<>();
     for (SRM srm : heavy.getSRMs().values()) Hs.put(srm.getFragmentType()+"z"+srm.getCharge(), srm);
@@ -972,7 +976,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public SRMGroup setRanks()
   {
     int ranked=0;
-    SortedMap<Float, Float> ai_mz = new TreeMap<>();
+    SortedSetMultimap<Float, Float> ai_mz = TreeMultimap.create();
     for (Float mz : getSRMs().keySet())
     {
       SRM srm = getSRM(mz);
@@ -981,8 +985,9 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
     }
     int r = 0;
     if (ranked==0 && Tools.isSet(ai_mz))
-      for (Float ai : ai_mz.keySet())
-        getSRM(ai_mz.get(ai)).setRank(++r);
+      for (Float ai0 : ai_mz.keySet())
+        for (Float ai : ai_mz.get(ai0))
+          getSRM(ai).setRank(++r);
 
     return this;
   }
@@ -1337,7 +1342,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         int z = tr.get("PrecursorCharge", 0);
         String seq = tr.getStr("Peptide","ModifiedSequence", "ModifiedPeptideSequence", "Sequence"), peptide;
 
-//        if (!(seq.indexOf("EDGIWSTDILK")>=0 && z==2)) continue; // for debugging
+        if (!(seq.indexOf("ELTAPDENIPAK")>=0)) continue; // for debugging
 
         if (Tools.isSet(protein_ids) && !Strs.hasA(tr.get("ProteinId"), 0, protein_ids)) continue;
         if (Strs.isSet(seq))
