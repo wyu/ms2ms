@@ -371,9 +371,6 @@ public class mzMLReader extends mzReader
     // looping through the scans
     System.out.println("Reading "+filename+"...");
 
-    // collection of PRM segments
-    SortedMap<Float, Float> prm_lower = new TreeMap<>(), prm_upper = new TreeMap<>();
-
     MzMLUnmarshaller mzml = new MzMLUnmarshaller(new File(filename), false, null);
     // looping through the scans
     MzMLObjectIterator<uk.ac.ebi.jmzml.model.mzml.Spectrum> spectrumIterator = mzml.unmarshalCollectionFromXpath("/run/spectrumList/spectrum", uk.ac.ebi.jmzml.model.mzml.Spectrum.class);
@@ -419,15 +416,6 @@ public class mzMLReader extends mzReader
         mL = m0-(float )precursor_tol.getMin(m0); mR = (float )precursor_tol.getMax(m0)-m0;
       }
 
-      // collection of the PRM segment
-      if (!prm_lower.containsKey(m0))
-      {
-        prm_lower.put(m0, rt); prm_upper.put(m0, rt);
-      }
-      else
-      {
-        prm_upper.put(m0, rt);
-      }
       // bring in the suitable SRM groups
       Range<Float> mz_bound = Range.closed(m0-mL+span_overlap, m0+mR-span_overlap);
 
@@ -458,7 +446,6 @@ public class mzMLReader extends mzReader
     }
     return groups;
   }
-  // extract the average MS/MS over the boundary of XIC features
   public static Map<String, MsnSpectrum> extractMS2ForFeatures(
       String filename, MultiTreeTable<Float, Float, SRMGroup> groups, Tolerance tol) throws IOException
   {
@@ -520,7 +507,6 @@ public class mzMLReader extends mzReader
 
     return composites;
   }
-
   public static MultiTreeTable<Float, Float, SRMGroup> scanMS1(
       MultiTreeTable<Float, Float, SRMGroup> groups,  SortedMap<Double, Peak> pks,
       Range<Float> rt_bound, float rt, int scan, Tolerance tol, boolean keep_zero)

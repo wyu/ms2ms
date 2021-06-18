@@ -36,7 +36,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
   private String mPeptideSequence, mProteinId, mGeneSymbol, mBackbone, mSIL; // 6C1N@6
   private float mRT, mRtOffset, mPrecursorMz, mDpSimilarity, mIRT, mReportedRT, mNetworkNiche;
-  private int mCharge, mQualifiedSRMs;
+  private int mCharge, mQualifiedSRMs, mGridSize=0;
+  private Range<Double> mSegmentBoundary;
   private IsoLable mCurrIsoLabel=IsoLable.L;
   private Map<String, Object> mNetworkStats;
 
@@ -85,6 +86,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public IsoLable getCurrIsoLabel() { return mCurrIsoLabel; }
 //  public IsoLable getCtrlIsoLabel() { return mCtrlIsoLabel; }
   public int    getNumQualifiedSRMs() { return mQualifiedSRMs; }
+  public int    getGridSize()        { return mGridSize; }
 
   public float  getRT(boolean iRT) { return iRT?mIRT:mRT; }
 
@@ -98,6 +100,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public String getGeneSymbol()   { return mGeneSymbol; }
   public String getBackbone()     { return mBackbone; }
   public String getIsotopeTag()   { return mSIL; }
+
+  public Range<Double> getSegmentBoundary() { return mSegmentBoundary; }
 
   public SRM getComposite() { return mSRMs!=null?mSRMs.get(0f):null; }
   public SRM getMS1() { return mSRMs!=null?mSRMs.get(-1f):null; }
@@ -140,12 +144,15 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public SRMGroup setReportedRT( float s) { mReportedRT=s; return this; }
 
   public SRMGroup setCharge(       int s) { mCharge      =s; return this; }
+  public SRMGroup setGridSize(     int s) { mGridSize    =s; return this; }
   public SRMGroup setSimilarity( float s) { mDpSimilarity=s; return this; }
   public SRMGroup setProteinId( String s) { mProteinId   =s; return this; }
   public SRMGroup setGeneSymbol(String s) { mGeneSymbol  =s; return this; }
   public SRMGroup setBackbone(  String s) { mBackbone    =s; return this; }
   public SRMGroup setSequence(  String s) { mPeptideSequence=s; return this; }
   public SRMGroup setIsotopeTag(String s) { mSIL         =s; return this; }
+
+  public SRMGroup setSegmentBoundary(Range<Double> s) { mSegmentBoundary=s; return this; }
 
   public SRMGroup addTransitionSRM(String tr, IsoLable isoL, SRM srm)
   {
@@ -1342,7 +1349,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         int z = tr.get("PrecursorCharge", 0);
         String seq = tr.getStr("Peptide","ModifiedSequence", "ModifiedPeptideSequence", "Sequence"), peptide;
 
-        if (!(seq.indexOf("ELTAPDENIPAK")>=0)) continue; // for debugging
+//        if (!(seq.indexOf("VVSQEEIVR")>=0)) continue; // for debugging
 
         if (Tools.isSet(protein_ids) && !Strs.hasA(tr.get("ProteinId"), 0, protein_ids)) continue;
         if (Strs.isSet(seq))
