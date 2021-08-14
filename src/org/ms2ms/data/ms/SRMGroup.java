@@ -32,7 +32,7 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
   public enum IsoLable { H, L }
 
   public static IsoLable sCtrlIsoLabel, sAssayIsoLabel;
-  public static int sC13=1;
+  public static int sC13=1, sMs2Matched=0;
 
   private String mPeptideSequence, mProteinId, mGeneSymbol, mBackbone, mSIL; // 6C1N@6
   private float mRT, mRtOffset, mPrecursorMz, mDpSimilarity, mIRT, mReportedRT, mNetworkNiche;
@@ -886,9 +886,13 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 
       SortedMap<Double, Peak> pks = peaks.subMap(tol.getMin(k), tol.getMax(k));
       if (pks!=null && !pks.isEmpty())
+      {
         addXICPoint(k, rt, Peaks.IntensitySum(pks.values()), Peaks.centroid(pks.values()), scan, fill_time, keep_zero);
-      else
+//        SRMGroup.sMs2Matched++;
+      }
+      else {
         addXICPoint(k, rt, 0d, 0d, scan, fill_time, keep_zero);
+      }
     }
     return this;
   }
@@ -909,7 +913,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
 //      System.out.println();
     // arrange the incoming group by the frag type/charge
     Map<String, SRM> Hs = new HashMap<>();
-    for (SRM srm : heavy.getSRMs().values()) Hs.put(srm.getFragmentType()+"z"+srm.getCharge(), srm);
+    if (heavy!=null)
+      for (SRM srm : heavy.getSRMs().values()) Hs.put(srm.getFragmentType()+"z"+srm.getCharge(), srm);
 
     // go over the L/H pairs
     Set<Float> frags = new HashSet<>(getSRMs().keySet()), removed = new HashSet<>();
@@ -1392,8 +1397,8 @@ public class SRMGroup implements Ion, Comparable<SRMGroup>, Cloneable
         SRM srm = group.addTransition(frag_mz, frag_ai, 0).setPrecursorMz(tr.getFloat("PrecursorMz")).setRank(rank);
         if      ("light".equalsIgnoreCase(tr.get("Isotope"))) srm.setIsotopeLabel(IsoLable.L);
         else if ("heavy".equalsIgnoreCase(tr.get("Isotope"))) srm.setIsotopeLabel(IsoLable.H);
-
-        srm.setFragmentType(tr.get("FragType")).setCharge(tr.get("FragZ", 0));
+        // change the default from 0 to frag_z, WYU 20210813
+        srm.setFragmentType(tr.get("FragType")).setCharge(tr.get("FragZ", (int )frag_z));
 
         if (c13 /*&& frag_mz > tr.getFloat("PrecursorMz")*/)
         {

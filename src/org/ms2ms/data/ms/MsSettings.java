@@ -16,10 +16,11 @@ public class MsSettings extends Settings
 {
   public static final String TOL_PREC  = "PrecTol";
   public static final String TOL_FRAG  = "FragTol";
-  public static final String RP_FRAG  = "FragRP200";
+  public static final String RP_FRAG   = "FragRP200";
   public static final String ISOLATION_PREC  = "Precursor isolation";
   public static final String FRAG_MODE = "FragMode";
-  public static final String Z_FLOAT    = "Zfloat";
+  public static final String Z_FLOAT   = "Zfloat";
+  public static final String RUN_NAME  = "RunName";
 
   public static final MsSettings LTQ          = new MsSettings(HBasePeakList.SPEC_TRAP_CID, new AbsoluteTolerance(0.5d), new AbsoluteTolerance(0.5d),  Peaks.CID);
   public static final MsSettings ORBITRAP     = new MsSettings(HBasePeakList.SPEC_TRAP_CID, new PpmTolerance(15d), new AbsoluteTolerance(0.5d),  Peaks.CID);
@@ -48,8 +49,10 @@ public class MsSettings extends Settings
   public Tolerance getPrecursorIsolation()  { return properties!=null?(Tolerance )properties.get(ISOLATION_PREC):null; }
   public Tolerance getFragmentTol()  { return properties!=null?(Tolerance )properties.get(TOL_FRAG):null; }
   public String    getFragMode()     { return getString(FRAG_MODE); }
+  public String    getRunName()      { return getString(RUN_NAME); }
   public float getResolvingPower4Fragment()  { return properties!=null?(Float )properties.get(RP_FRAG):null; }
 
+  public MsSettings setRunName( String s) { properties.put(RUN_NAME, s); return this; }
   public MsSettings setFragmentTol( Tolerance s) { properties.put(TOL_FRAG, s); return this; }
   public MsSettings setPrecursorTol(Tolerance s) { properties.put(TOL_PREC, s); return this; }
   public MsSettings setResolvingPower4Fragment(float s) { properties.put(RP_FRAG, s); return this; }

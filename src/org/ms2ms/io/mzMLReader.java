@@ -375,7 +375,7 @@ public class mzMLReader extends mzReader
     // looping through the scans
     MzMLObjectIterator<uk.ac.ebi.jmzml.model.mzml.Spectrum> spectrumIterator = mzml.unmarshalCollectionFromXpath("/run/spectrumList/spectrum", uk.ac.ebi.jmzml.model.mzml.Spectrum.class);
 
-    int rows=0; String rowid=null; float goalpost=0f;
+    int rows=0; String rowid=null; float goalpost=0f; Multimap<Float, Float> orphan_mz_rt = TreeMultimap.create();
     while (spectrumIterator.hasNext())
     {
       Spectrum ss = spectrumIterator.next();
@@ -401,8 +401,10 @@ public class mzMLReader extends mzReader
         continue;
       }
 
-      float m0=0f, mL=0f, mR=0f;
+      // in msx scan, we might have multiple precursors
       for (Precursor prec : ss.getPrecursorList().getPrecursor())
+      {
+        float m0=0f, mL=0f, mR=0f;
         for (uk.ac.ebi.jmzml.model.mzml.CVParam cv : prec.getIsolationWindow().getCvParam())
         {
           if (cv.getAccession().equals("MS:1000827")) m0 = Float.parseFloat(cv.getValue());
@@ -410,25 +412,25 @@ public class mzMLReader extends mzReader
           if (cv.getAccession().equals("MS:1000829")) mR = Float.parseFloat(cv.getValue());
         }
 
-      if (precursor_tol!=null)
-      {
-        // over-write the isolation windowm
-        mL = m0-(float )precursor_tol.getMin(m0); mR = (float )precursor_tol.getMax(m0)-m0;
+        if (precursor_tol!=null)
+        {
+          // over-write the isolation windowm
+          mL = m0-(float )precursor_tol.getMin(m0); mR = (float )precursor_tol.getMax(m0)-m0;
+        }
+
+        // bring in the suitable SRM groups
+        Range<Float> mz_bound = Range.closed(m0-mL+span_overlap, m0+mR-span_overlap);
+
+        SRMGroup.sMs2Matched=0; // reset the counter
+        groups    = scanMS2(groups,    pks, rt_bound, mz_bound, rt, ion_injection, scan, tol, keep_zero);
+        landmarks = scanMS2(landmarks, pks, rt_bound, mz_bound, rt, ion_injection, scan, tol, keep_zero);
+
+        if (SRMGroup.sMs2Matched==0)
+        {
+          orphan_mz_rt.put(m0, rt);
+        }
       }
 
-      // bring in the suitable SRM groups
-      Range<Float> mz_bound = Range.closed(m0-mL+span_overlap, m0+mR-span_overlap);
-
-      groups    = scanMS2(groups,    pks, rt_bound, mz_bound, rt, ion_injection, scan, tol, keep_zero);
-      landmarks = scanMS2(landmarks, pks, rt_bound, mz_bound, rt, ion_injection, scan, tol, keep_zero);
-//      Collection<SRMGroup> slice = groups.subset(mz_bound, rt_bound);
-//
-//      // let's go thro each fragments
-//      if (slice.size()>0)
-//      {
-//        for (SRMGroup g : slice) g.scanMS2(pks, rt, scan, (double )ion_injection, tol, keep_zero);
-//      }
-//      pks = (SortedMap )Tools.dispose(pks);
       if (!keep_xic && rt-goalpost>2*dRT)
       {
         Collection<SRMGroup> done = groups.subset(0f,10000f, goalpost, rt-dRT);
@@ -442,6 +444,16 @@ public class mzMLReader extends mzReader
 
         // update the goal post
         goalpost = rt - dRT-0.05f;
+      }
+    }
+    if (Tools.isSet(orphan_mz_rt))
+    {
+      System.out.println();
+      for (Float mz : orphan_mz_rt.keySet())
+      {
+        System.out.println("MS2 not assigned to the trlib, m/z"+Tools.d2s(mz, 4)+" --> "+
+            Tools.d2s(Collections.min(orphan_mz_rt.get(mz)), 2) + " to " +
+            Tools.d2s(Collections.max(orphan_mz_rt.get(mz)), 2)+" min");
       }
     }
     return groups;
@@ -534,6 +546,7 @@ public class mzMLReader extends mzReader
       // let's go thro each fragments
       if (slice.size()>0)
       {
+        SRMGroup.sMs2Matched++;
         for (SRMGroup g : slice) g.scanMS2(pks, rt, scan, (double )ion_injection, tol, keep_zero);
       }
     }
